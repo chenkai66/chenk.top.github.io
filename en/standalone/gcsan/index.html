@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Graph Contextualized Self-Attention Network (GC-SAN) for Session-based Recommendation · Chen Kai Blog</title>
+<meta name="description" content="GC-SAN combines a session-graph GGNN (local transitions) with multi-layer self-attention (global dependencies) for session-based recommendation. Covers graph construction, message passing, attention fusion, and where the design wins or breaks.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/standalone/gcsan/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/gcsan/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Graph Contextualized Self-Attention Network (GC-SAN) for Session-based Recommendation">
+<meta property="og:description" content="GC-SAN combines a session-graph GGNN (local transitions) with multi-layer self-attention (global dependencies) for session-based recommendation. Covers graph construction, message passing, attention fusion, and where the design wins or breaks.">
+<meta property="og:url" content="https://www.chenk.top/en/standalone/gcsan/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
+        
+      </div>
+      <h1>Graph Contextualized Self-Attention Network (GC-SAN) for Session-based Recommendation</h1>
+      <p class="deck">GC-SAN combines a session-graph GGNN (local transitions) with multi-layer self-attention (global dependencies) for session-based recommendation. Covers graph construction, message passing, attention fusion, and where the design wins or breaks.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2023-01-15">January 15, 2023</time> · 12 min read · 2400 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/attention/" class="tag">#Attention</a><a href="/en/tags/recommender-systems/" class="tag">#Recommender Systems</a><a href="/en/tags/gnn/" class="tag">#GNN</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>In session-based recommendation you only see a short anonymous click sequence &ndash; no user profile, no long history, no demographics. Every signal you have lives inside that single window. <strong>GC-SAN</strong> (IJCAI 2019) takes the strongest two ideas of the time &ndash; SR-GNN&rsquo;s session graph and the Transformer&rsquo;s self-attention &ndash; and stacks them: a <em>graph</em> view captures local transition patterns and loops, a <em>sequence</em> view captures long-range intent, and a tiny weighted sum decides how much of each to trust. The result is a clean &ldquo;best of both worlds&rdquo; baseline that is genuinely hard to beat at its parameter budget.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>Why session recommendation is structurally harder than classical CF</li>
+<li>How a click sequence becomes a directed weighted graph</li>
+<li>The GGNN cell: in/out aggregation plus GRU gates</li>
+<li>Self-attention as a global encoder on top of graph-contextualised embeddings</li>
+<li>The fusion weight $w$ between last-click and global intent</li>
+<li>When GC-SAN is the right baseline and when it is not</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Graph neural network basics (message passing, GRU-style updates)</li>
+<li>Self-attention (queries, keys, values, scaled dot product)</li>
+<li>Recommendation evaluation metrics (Recall@K, MRR@K)</li>
+</ul>
+<hr>
+<h2 id="1-problem-setup-and-why-this-is-hard">1. Problem setup and why this is hard</h2>
+<p>Let $V = \{v_1, v_2, \dots, v_{|V|}\}$ be the item universe and let a session be an ordered click sequence $s = (v_{s,1}, v_{s,2}, \dots, v_{s,n})$. The task is to predict the next item $v_{s,n+1}$, usually by ranking all candidates and reporting Recall@K and MRR@K.</p>
+<p>What makes this harder than classical collaborative filtering:</p>
+<ul>
+<li><strong>No long-term profile.</strong> You cannot lean on stable user embeddings or demographic features.</li>
+<li><strong>Short, noisy behaviour.</strong> A session may contain exploratory clicks, mis-clicks, or back-and-forth navigation.</li>
+<li><strong>Long-range dependencies.</strong> Early clicks often still matter &ndash; click &ldquo;camera&rdquo; first, click &ldquo;memory card&rdquo; twenty steps later.</li>
+<li><strong>Repeated transitions.</strong> Users bounce between a few related items; a strict sequence model can underuse this structure.</li>
+</ul>
+<p>These four pressures pull in different directions. Sequence-only models (RNN/Transformer) handle order well but treat each step as a fresh token. Graph-only models (SR-GNN) capture loops and repeats but need many hops to reach distant clicks. GC-SAN&rsquo;s design pitch is exactly to combine the two without paying the cost of either alone.</p>
+<h2 id="2-where-gc-san-sits-among-prior-work">2. Where GC-SAN sits among prior work</h2>
+<p>Before GC-SAN the standard baselines were:</p>
+<ul>
+<li><strong>Markov chains.</strong> Strong local signal, no global understanding.</li>
+<li><strong>GRU4Rec.</strong> Sequential RNN; captures order but struggles past a few steps.</li>
+<li><strong>NARM, STAMP.</strong> Attention-based sequential models; better long range, but ignore the explicit transition graph that emerges within a session.</li>
+<li><strong>SR-GNN.</strong> Build a per-session directed graph and run a gated GNN; rich local structure, but multi-hop intent needs many propagation steps and can oversmooth.</li>
+</ul>
+<p>GC-SAN&rsquo;s contribution is <strong>architectural rather than algorithmic</strong>: keep SR-GNN&rsquo;s gated-GNN as the local encoder, then stack a Transformer-style self-attention block on top so global dependencies do not need to be reached by graph hops. Figure 1 shows the full pipeline.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig1_architecture.png" alt="GC-SAN pipeline overview" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The pipeline is strictly serial: clicks $\to$ graph build $\to$ GGNN propagation $\to$ self-attention stack $\to$ fuse last-click and global $\to$ score every item.</p>
+<h2 id="3-session-graph-construction">3. Session graph construction</h2>
+<p>For each session $s$ build a directed graph $G_s = (V_s, E_s)$:</p>
+<ul>
+<li><strong>Nodes</strong> are the unique items that appear in the session.</li>
+<li>For each adjacent pair $(v_{s,i}, v_{s,i+1})$, add a directed edge $v_{s,i} \to v_{s,i+1}$.</li>
+<li>If the same transition repeats, accumulate its weight (or treat as a multi-edge and normalise later).</li>
+</ul>
+<p>This step is where you trade richness for compactness. The same item appearing twice in the session collapses into one node; only the <em>transitions</em> between them carry repetition. Loops &ndash; click A then B then A &ndash; show up as cycles in the graph, which a pure sequence model only sees as &ldquo;two separate occurrences of A&rdquo;.</p>
+<p>Two adjacency matrices are then built and row-normalised:</p>
+$$
+A^{out}_{ij} = \frac{w(v_i \to v_j)}{\sum_k w(v_i \to v_k)}, \quad
+A^{in}_{ij}  = \frac{w(v_j \to v_i)}{\sum_k w(v_k \to v_i)}.
+$$<p>Figure 2 walks through one example end-to-end.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig2_session_graph.png" alt="Session graph construction from clicks" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Note that the click sequence <code>v1 v2 v3 v2 v4</code> produces a 4-node graph with a <code>v2 &lt;-&gt; v3</code> loop and a fan-out from <code>v2</code> to both <code>v3</code> and <code>v4</code>. The pure sequence has length 5; the graph has 4 nodes and 4 distinct edges. That compactness is the whole point.</p>
+<h2 id="4-local-encoder-ggnn-over-the-session-graph">4. Local encoder: GGNN over the session graph</h2>
+<p>GC-SAN reuses the SR-GNN gated graph neural network cell. Each node carries a $d$-dim embedding $h_i$. One propagation step has three parts.</p>
+<p><strong>(i) Aggregate in/out neighbours.</strong> For node $v_i$ at step $t$:</p>
+$$
+a_i^{(t)} \;=\; A^{in}_{i,:} \, H^{(t-1)} W^{in} \;+\; A^{out}_{i,:} \, H^{(t-1)} W^{out} \;+\; b,
+$$<p>where $H^{(t-1)} = [h_1^{(t-1)}, \dots, h_{|V_s|}^{(t-1)}]^\top$ stacks all node embeddings for the session and $W^{in}, W^{out} \in \mathbb{R}^{d \times d}$ are learnable. The two terms separate &ldquo;evidence flowing into me&rdquo; from &ldquo;evidence flowing out of me&rdquo;, which matters for directional transitions.</p>
+<p><strong>(ii) GRU gates.</strong> Combine the aggregated message with the previous state:</p>
+$$
+\begin{aligned}
+z_i^{(t)} &= \sigma(W_z a_i^{(t)} + U_z h_i^{(t-1)}), \\
+r_i^{(t)} &= \sigma(W_r a_i^{(t)} + U_r h_i^{(t-1)}), \\
+\tilde h_i^{(t)} &= \tanh\!\bigl(W_h a_i^{(t)} + U_h (r_i^{(t)} \odot h_i^{(t-1)})\bigr), \\
+h_i^{(t)} &= (1 - z_i^{(t)}) \odot h_i^{(t-1)} \;+\; z_i^{(t)} \odot \tilde h_i^{(t)}.
+\end{aligned}
+$$<p>The update gate $z$ decides how much of the new graph signal to write in; the reset gate $r$ decides how much of the old state to forget when forming the candidate. Figure 3 shows this on a single node.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig3_ggnn_message_passing.png" alt="GGNN message passing on one node" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>After $T$ propagation steps (the paper uses $T=1$, sometimes 2), each node embedding has absorbed its local neighbourhood. <strong>Crucially</strong>, propagation is performed on the per-session graph &ndash; not a global item graph &ndash; so the embeddings are session-conditional.</p>
+<blockquote>
+<p><strong>Practical note.</strong> Because sessions can repeat items, the implementation maintains an <em>alias</em> mapping from each sequence position to its node index in the unique-item graph. After GGNN you &ldquo;scatter&rdquo; node states back to sequence positions before applying self-attention. This is what <code>seq_hidden = hidden[alias_inputs]</code> does in any standard implementation.</p>
+</blockquote>
+<h2 id="5-global-encoder-self-attention-over-the-session">5. Global encoder: self-attention over the session</h2>
+<p>GGNN is strong locally, but reaching a distant click requires many hops, and stacking too many GGNN layers leads to oversmoothing &ndash; node embeddings collapse toward each other. Self-attention sidesteps this entirely: every position can attend to every other position in one step.</p>
+<p>Let $E^{(0)} \in \mathbb{R}^{n \times d}$ be the per-position representation after scattering GGNN node states back to the sequence. One self-attention layer computes:</p>
+$$
+F = \mathrm{softmax}\!\left(\frac{(E W^Q)(E W^K)^\top}{\sqrt{d}}\right)(E W^V),
+$$<p>followed by a position-wise feed-forward block with a residual connection:</p>
+$$
+E^{(1)} = \mathrm{ReLU}(F W_1 + b_1) W_2 + b_2 + F.
+$$<p>Stacking $k$ such blocks produces $E^{(k)}$, the <strong>graph-contextualised</strong> sequence representation. Figure 4 shows what attention typically learns and why GGNN alone struggles to reach the same connections.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig4_self_attention.png" alt="Self-attention captures long-range dependencies" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The heatmap is illustrative but the pattern is real: the first click (&ldquo;camera&rdquo;) attends strongly to thematically related items deep in the session (memory card, battery, bag) &ndash; a connection that would take a 4-hop GNN traversal to reach, by which point the signal has been smoothed.</p>
+<h2 id="6-fusion-last-click-vs-global-intent">6. Fusion: last-click vs global intent</h2>
+<p>Session recommendation almost always benefits from explicitly mixing two signals:</p>
+<ul>
+<li><strong>Current interest</strong> $h_t$: the embedding of the last clicked item (often the strongest short-term predictor).</li>
+<li><strong>Global intent</strong> $a_t$: the last-position output of the self-attention stack, which has integrated the whole session.</li>
+</ul>
+<p>GC-SAN combines them with a single scalar weight:</p>
+$$
+s_f \;=\; w \cdot a_t \;+\; (1 - w) \cdot h_t,
+$$<p>then scores every candidate by dot product with the item embedding table and normalises:</p>
+$$
+\hat y \;=\; \mathrm{softmax}\!\bigl(s_f \, V^\top\bigr).
+$$<p>The weight $w$ is a hyperparameter (typical sweet spot $w \in [0.4, 0.6]$). Set $w = 0$ and you get last-click only, set $w = 1$ and you discard the strong short-term signal. Figure 5(b) shows the typical sweep &ndash; forgiving in the middle, painful at the extremes.</p>
+<h2 id="7-training-and-evaluation">7. Training and evaluation</h2>
+<p>Most session recommenders train with cross-entropy over the next-item softmax:</p>
+$$
+\mathcal{L} \;=\; -\sum_{i=1}^{|V|} y_i \log \hat y_i \;+\; \lambda \|\Theta\|^2,
+$$<p>where $y$ is the one-hot label and $\Theta$ are all learnable parameters. When $|V|$ is large, BPR with negative sampling is a common alternative:</p>
+$$
+\mathcal{L}_{\text{BPR}} \;=\; -\sum_{(u, i, j)} \log \sigma(\hat r_{ui} - \hat r_{uj}) + \lambda \|\Theta\|^2,
+$$<p>with $i$ a positive (clicked) item and $j$ sampled negatives.</p>
+<p>Standard benchmarks are <strong>Yoochoose1/64</strong> and <strong>Diginetica</strong>, reported with <strong>Recall@20</strong> and <strong>MRR@20</strong>. Figure 5 summarises the gap pattern reported in the paper.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/gcsan/fig5_perf_vs_baselines.png" alt="Performance vs SR-GNN and other baselines" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Two things to read off the chart:</p>
+<ol>
+<li>The <strong>GC-SAN over SR-GNN</strong> gap is consistent but not enormous (roughly +1 to +2 points on Recall and MRR). The marginal value of self-attention on top of a graph encoder is real but bounded.</li>
+<li>The fusion-weight curve is <strong>flat in the middle and steep at the edges</strong>, which is exactly what you want from a hyperparameter: easy to tune, hard to break.</li>
+</ol>
+<h2 id="8-implementation-notes-what-matters-in-practice">8. Implementation notes (what matters in practice)</h2>
+<p><strong>Alias mapping and batching.</strong> Sessions repeat items, so you map each sequence position to a node index in the unique-item graph. Batching multiple session graphs together is non-trivial: either build a block-diagonal adjacency or use a library that supports batched graph operations (PyG, RecBole-GNN).</p>
+<p><strong>Complexity.</strong></p>
+<ul>
+<li>GGNN: $\mathcal{O}(T \cdot |E_s| \cdot d)$ per session, where $T$ is propagation steps and $|E_s|$ is the number of edges in the session graph.</li>
+<li>Self-attention: $\mathcal{O}(n^2 d + n d^2)$ per session, quadratic in session length $n$. In session data $n$ is usually short (often $< 50$), so the quadratic cost is fine.</li>
+</ul>
+<p><strong>Hyperparameters that change behaviour.</strong></p>
+<ul>
+<li><strong>Propagation steps $T$.</strong> Too small misses multi-hop transitions; too large oversmooths. $T = 1$ is the paper default.</li>
+<li><strong>Self-attention layers/heads.</strong> More layers add capacity but overfit on small datasets like Diginetica.</li>
+<li><strong>Fusion weight $w$.</strong> Controls global-vs-local emphasis. Sweep on validation; expect a flat optimum near $0.5$.</li>
+</ul>
+<p><strong>Padding and masking.</strong> Self-attention must mask padded positions, otherwise gradient mass leaks into nonsense tokens. This is a frequent source of silent regressions when porting code.</p>
+<h2 id="9-reference-implementation-sketch">9. Reference implementation sketch</h2>
+<p>A minimal RecBole-style implementation. The GGNN cell is reused from SR-GNN; the rest of the wiring is GC-SAN&rsquo;s contribution.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">recbole.model.layers</span> <span class="kn">import</span> <span class="n">TransformerEncoder</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">recbole.model.loss</span> <span class="kn">import</span> <span class="n">BPRLoss</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">recbole.model.abstract_recommender</span> <span class="kn">import</span> <span class="n">SequentialRecommender</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">recbole_gnn.model.layers</span> <span class="kn">import</span> <span class="n">SRGNNCell</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GCSAN</span><span class="p">(</span><span class="n">SequentialRecommender</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;GGNN local encoder + self-attention global encoder + last/global fusion.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Hyperparameters</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;n_layers&#34;</span><span class="p">]</span>                    <span class="c1"># SA depth</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;n_heads&#34;</span><span class="p">]</span>                      <span class="c1"># attention heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;hidden_size&#34;</span><span class="p">]</span>              <span class="c1"># d</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">inner_size</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;inner_size&#34;</span><span class="p">]</span>                <span class="c1"># FFN dim</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dropout_prob</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;hidden_dropout_prob&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout_prob</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;attn_dropout_prob&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;step&#34;</span><span class="p">]</span>                            <span class="c1"># GGNN propagation steps</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;weight&#34;</span><span class="p">]</span>                        <span class="c1"># fusion weight w</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Layers</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_items</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                           <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gnncell</span> <span class="o">=</span> <span class="n">SRGNNCell</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">)</span>            <span class="c1"># SR-GNN gated GGNN</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">self_attention</span> <span class="o">=</span> <span class="n">TransformerEncoder</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">n_layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">n_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">hidden_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">inner_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inner_size</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">hidden_dropout_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_dropout_prob</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">attn_dropout_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout_prob</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">loss_fct</span> <span class="o">=</span> <span class="n">BPRLoss</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">,</span> <span class="n">alias_inputs</span><span class="p">,</span> <span class="n">item_seq_len</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 1. Embed unique items in the session graph.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 2. GGNN propagation (T steps over per-session in/out adjacency).</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gnncell</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 3. Scatter node states back to sequence positions.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seq_hidden</span> <span class="o">=</span> <span class="n">hidden</span><span class="p">[</span><span class="n">alias_inputs</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ht</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gather_indexes</span><span class="p">(</span><span class="n">seq_hidden</span><span class="p">,</span> <span class="n">item_seq_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>   <span class="c1"># last-click h_t</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 4. Self-attention stack on the graph-contextualised sequence.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_attention</span><span class="p">(</span><span class="n">seq_hidden</span><span class="p">,</span> <span class="n">output_all_encoded_layers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">at</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gather_indexes</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">item_seq_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># global a_t</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 5. Linear fusion s_f = w * a_t + (1 - w) * h_t.</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">at</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">ht</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">calculate_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interaction</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seq_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">interaction</span><span class="p">[</span><span class="s2">&#34;x&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="n">interaction</span><span class="p">[</span><span class="s2">&#34;edge_index&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="n">interaction</span><span class="p">[</span><span class="s2">&#34;alias_inputs&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="n">interaction</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ITEM_SEQ_LEN</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">interaction</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">POS_ITEM_ID</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">neg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">interaction</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">NEG_ITEM_ID</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fct</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">seq_output</span> <span class="o">*</span> <span class="n">pos</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">seq_output</span> <span class="o">*</span> <span class="n">neg</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A few things worth noticing about this reference:</p>
+<ul>
+<li>The <strong>GGNN cell is imported, not reimplemented</strong> &ndash; GC-SAN is a wiring story.</li>
+<li><code>gather_indexes</code> extracts the embedding at position <code>item_seq_len - 1</code>, which is the actual last click (not the padded tail).</li>
+<li>The fusion weight <code>self.weight</code> is a fixed scalar from config. A natural extension is to make it input-dependent (a small gating MLP on $h_t \oplus a_t$), but the paper does not explore this.</li>
+<li>Loss can be swapped between BPR and full-softmax cross-entropy depending on $|V|$.</li>
+</ul>
+<h2 id="10-when-gc-san-is-a-good-choice-and-when-it-is-not">10. When GC-SAN is a good choice (and when it is not)</h2>
+<p><strong>Good fit:</strong></p>
+<ul>
+<li>Sessions have meaningful transition structure (loops, repeats, related-item bouncing).</li>
+<li>Sessions are short to moderate length, so the $\mathcal{O}(n^2)$ attention cost is fine.</li>
+<li>You want a strong baseline that combines graph and sequence signals without exotic infrastructure.</li>
+</ul>
+<p><strong>Limitations and risks:</strong></p>
+<ul>
+<li>Attention cost grows quadratically with session length. For very long sessions, switch to a linear attention variant or chunk the session.</li>
+<li>Graph construction choices (edge weighting, normalisation) can quietly change results. Validate on a small held-out slice when changing them.</li>
+<li>If item metadata is critical (text, image, category hierarchy), pure-ID GC-SAN underuses your features. Consider concatenating side-information embeddings before the GGNN, or move to a content-aware variant.</li>
+<li>The improvement over SR-GNN is real but modest. If you cannot afford a self-attention stack, SR-GNN alone is a respectable baseline.</li>
+</ul>
+<h2 id="11-practical-takeaway">11. Practical takeaway</h2>
+<p>GC-SAN reads as a sober &ldquo;do both&rdquo; recipe rather than a clever new mechanism:</p>
+<ul>
+<li><strong>GGNN</strong> captures local transition patterns and repeats efficiently &ndash; but cannot reach far without oversmoothing.</li>
+<li><strong>Self-attention</strong> captures long-range dependencies in one step &ndash; but treats the input as a flat sequence and ignores graph structure.</li>
+<li>A single scalar <strong>fusion weight</strong> $w$ between last-click and global intent ties them together, with a forgiving sweet spot.</li>
+</ul>
+<p>For session-based recommendation in 2024, GC-SAN remains a clean baseline to beat: it tells you whether your fancy new model actually exploits session structure better than a graph encoder plus a Transformer block. If it does not, you have learned something useful before spending more compute.</p>
+<h2 id="references">References</h2>
+<ul>
+<li>Xu et al., &ldquo;Graph Contextualized Self-Attention Network for Session-based Recommendation,&rdquo; IJCAI 2019. <a href="https://www.ijcai.org/proceedings/2019/0547.pdf" target="_blank" rel="noopener noreferrer">Paper PDF <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Wu et al., &ldquo;Session-based Recommendation with Graph Neural Networks (SR-GNN),&rdquo; AAAI 2019.</li>
+<li>Hidasi et al., &ldquo;Session-based Recommendations with Recurrent Neural Networks (GRU4Rec),&rdquo; ICLR 2016.</li>
+<li>Li et al., &ldquo;Neural Attentive Session-based Recommendation (NARM),&rdquo; CIKM 2017.</li>
+<li>Liu et al., &ldquo;STAMP: Short-Term Attention/Memory Priority Model for Session-based Recommendation,&rdquo; KDD 2018.</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-problem-setup-and-why-this-is-hard">1. Problem setup and why this is hard</a></li>
+    <li><a href="#2-where-gc-san-sits-among-prior-work">2. Where GC-SAN sits among prior work</a></li>
+    <li><a href="#3-session-graph-construction">3. Session graph construction</a></li>
+    <li><a href="#4-local-encoder-ggnn-over-the-session-graph">4. Local encoder: GGNN over the session graph</a></li>
+    <li><a href="#5-global-encoder-self-attention-over-the-session">5. Global encoder: self-attention over the session</a></li>
+    <li><a href="#6-fusion-last-click-vs-global-intent">6. Fusion: last-click vs global intent</a></li>
+    <li><a href="#7-training-and-evaluation">7. Training and evaluation</a></li>
+    <li><a href="#8-implementation-notes-what-matters-in-practice">8. Implementation notes (what matters in practice)</a></li>
+    <li><a href="#9-reference-implementation-sketch">9. Reference implementation sketch</a></li>
+    <li><a href="#10-when-gc-san-is-a-good-choice-and-when-it-is-not">10. When GC-SAN is a good choice (and when it is not)</a></li>
+    <li><a href="#11-practical-takeaway">11. Practical takeaway</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2400</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2023</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

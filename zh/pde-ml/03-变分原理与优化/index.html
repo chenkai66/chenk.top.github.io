@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>PDE与机器学习（三）：变分原理与优化 · Chen Kai Blog</title>
+<meta name="description" content="变分原理与PDE求解：Euler-Lagrange方程、Wasserstein梯度流、Mean-Field理论，以及完整数值实验。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="PDE与机器学习（三）：变分原理与优化">
+<meta property="og:description" content="变分原理与PDE求解：Euler-Lagrange方程、Wasserstein梯度流、Mean-Field理论，以及完整数值实验。">
+<meta property="og:url" content="https://www.chenk.top/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Pde与机器学习</a>
+         · Chapter 3
+      </div>
+      <h1>PDE与机器学习（三）：变分原理与优化</h1>
+      <p class="deck">变分原理与PDE求解：Euler-Lagrange方程、Wasserstein梯度流、Mean-Field理论，以及完整数值实验。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-05-31">May 31, 2024</time> · 13 min read · 6300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E5%8F%98%E5%88%86%E6%B3%95/" class="tag">#变分法</a><a href="/zh/tags/%E8%83%BD%E9%87%8F%E6%96%B9%E6%B3%95/" class="tag">#能量方法</a><a href="/zh/tags/pde/" class="tag">#PDE</a><a href="/zh/tags/%E4%BC%98%E5%8C%96/" class="tag">#优化</a><a href="/zh/tags/ritz%E6%96%B9%E6%B3%95/" class="tag">#Ritz方法</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>当你训练一个神经网络时，你在做什么？调整几百万个参数？在高维空间中寻找最优点？这些描述都对，但都不够深刻。</p>
+<p>换个视角：<strong>把神经网络看成一个粒子系统</strong>。每个神经元是一个粒子，训练过程是粒子在参数空间中的集体运动。当网络非常宽（成千上万个神经元）时，单个粒子的行为不重要，重要的是粒子的<strong>密度分布</strong>如何演化——就像研究气体时不跟踪每个分子，而是研究压强和温度。</p>
+<p>这个视角的数学语言是<strong>偏微分方程</strong>。粒子密度 $\rho_t(\theta)$ 的演化由一个 PDE 描述——Vlasov 方程、Fokker-Planck 方程、或者更一般的 Wasserstein 梯度流。这不只是数学游戏，而是揭示了训练的全局性质：<strong>为什么过参数化有效？为什么梯度下降能找到好的解？初始化为什么重要？</strong></p>
+<p>更深一层，这个 PDE 视角连接了三个看似无关的领域：</p>
+<ul>
+<li><strong>变分法</strong>：从物理学的最小作用量原理，到现代的泛函优化；</li>
+<li><strong>最优传输</strong>：Wasserstein 距离测量概率分布的&quot;搬运成本&quot;；</li>
+<li><strong>统计力学</strong>：Mean-Field 理论描述大量粒子的集体行为。</li>
+</ul>
+<p>本文将系统建立这一理论框架。从经典变分法的 Euler-Lagrange 方程出发，引入 Wasserstein 几何和梯度流理论，推导神经网络的 Mean-Field 方程，论述全局收敛性，并通过数值实验验证理论预测。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig1_functional_minimization.png" alt="候选下降路径与时间泛函取值：摆线（cycloid）是最速降线问题的唯一极小者。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 1. 在固定起点 $A=(0,0)$ 与终点 $B=(\pi, 2)$ 之间，几条候选曲线的下降时间 $T[y] = \int \sqrt{(1+y'^2)/(2gy)}\,dx$。摆线给出最小值——这正是变分法最经典的范例。</em></p>
+<h2 id="1-变分法基础从泛函到-euler-lagrange-方程">1. 变分法基础：从泛函到 Euler-Lagrange 方程</h2>
+<h3 id="11-泛函与第一变分">1.1 泛函与第一变分</h3>
+<p>变分法的核心对象是<strong>泛函</strong>——它接收一个函数作为输入，返回一个实数。普通函数吃数字，泛函吃整个函数。</p>
+<p><strong>定义（泛函）</strong>：设 $X$ 是函数空间（如 $C^1([a,b])$），泛函 $J : X \to \mathbb{R}$ 把每个函数 $y \in X$ 映射到一个实数 $J[y]$。</p>
+<p>后文将反复出现的三个例子：</p>
+<ul>
+<li><strong>弧长泛函</strong>：曲线 $y(x)$ 在 $[a,b]$ 上的长度 $L[y] = \int_a^b \sqrt{1 + y'(x)^2}\, dx.$</li>
+<li><strong>旋转曲面面积</strong>：$A[y] = 2\pi \int_a^b y(x) \sqrt{1 + y'(x)^2}\, dx.$</li>
+<li><strong>作用量</strong>：质点轨迹 $q(t)$ 的作用量 $S[q] = \int_{t_0}^{t_1} L(q, \dot q, t)\, dt$，其中 $L$ 为 Lagrangian。</li>
+</ul>
+<p>变分法的根本问题是：<strong>在所有满足边界条件的函数中，哪一个使 $J$ 取极值？</strong></p>
+$$
+\delta J[y; \eta] = \lim_{\varepsilon \to 0} \frac{J[y + \varepsilon \eta] - J[y]}{\varepsilon}.
+$$$$
+\delta J[y; \eta] = \int \frac{\delta J}{\delta y}(x)\, \eta(x)\, dx,
+$$<p>
+$\delta J/\delta y$ 称为 $J$ 的<strong>变分导数</strong>或<strong>泛函导数</strong>。</p>
+$$
+J[y] = \int_a^b F(x, y(x), y'(x))\, dx,
+$$$$
+\frac{\partial F}{\partial y} - \frac{d}{dx}\frac{\partial F}{\partial y'} = 0.
+$$$$
+\int_a^b \left(\frac{\partial F}{\partial y}\eta + \frac{\partial F}{\partial y'}\eta'\right) dx = 0.
+$$$$
+\int_a^b \left(\frac{\partial F}{\partial y} - \frac{d}{dx}\frac{\partial F}{\partial y'}\right)\eta\, dx = 0
+$$<p>
+对<strong>任意</strong>容许 $\eta$ 成立。变分法基本引理迫使括号内的表达式恒等为零，即 Euler-Lagrange 方程。$\square$</p>
+<p><figure>
+  <img src="./03-%e5%8f%98%e5%88%86%e5%8e%9f%e7%90%86%e4%b8%8e%e4%bc%98%e5%8c%96/fig2_euler_lagrange.png" alt="Euler-Lagrange 几何图像：左图为扰动族 $y &#43; \varepsilon \eta$（$\eta$ 在端点为零）；右图为 $J(\varepsilon) = J[y&#43;\varepsilon\eta]$ 的剖面，极值表现为 $\varepsilon = 0$ 处水平切线。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 2. 第一变分论证的几何呈现。极值曲线是唯一一条这样的曲线：沿任何容许扰动方向的方向导数都为零。</em></p>
+<h3 id="12-经典案例最速降线brachistochrone">1.2 经典案例：最速降线（Brachistochrone）</h3>
+<p><strong>问题</strong>：在均匀重力场中，质点沿无摩擦曲线从 $A=(0,0)$ 滑到 $B$，哪条曲线使下降时间最短？</p>
+$$
+T[y] = \int_0^{x_B} \frac{\sqrt{1 + y'(x)^2}}{\sqrt{2 g\, y(x)}}\, dx.
+$$$$
+y(1 + y'^2) = \frac{1}{2gC^2} =: 2R.
+$$$$
+x(\theta) = R(\theta - \sin\theta), \qquad y(\theta) = R(1 - \cos\theta) ,
+$$<p>
+即半径为 $R$ 的圆沿直线滚动时圆周上一点的轨迹。图 1 中直线、抛物线、圆弧等其他候选曲线的下降时间都严格大于摆线。</p>
+<h3 id="13-hamilton-原理与辛几何视角">1.3 Hamilton 原理与辛几何视角</h3>
+$$
+\frac{d}{dt}\frac{\partial L}{\partial \dot q} - \frac{\partial L}{\partial q} = 0
+$$$$
+\dot q = \frac{\partial H}{\partial p}, \qquad \dot p = -\frac{\partial H}{\partial q}.
+$$<p>
+<strong>辛二形式</strong> $\omega = dp \wedge dq$ 沿流不变。第 7 节我们会再次见到这一结构，并对比它与梯度流的差别。</p>
+<h3 id="14-从泛函导数到梯度流">1.4 从泛函导数到梯度流</h3>
+$$
+\frac{\delta J}{\delta y} = \frac{\partial F}{\partial y} - \frac{d}{dx}\frac{\partial F}{\partial y'} .
+$$<p><strong>例（Dirichlet 能量）</strong>：$J[u] = \tfrac12 \int |\nabla u|^2\, dx$，$\delta J/\delta u = -\Delta u$，极值条件 $\delta J/\delta u = 0$ 即 <strong>Laplace 方程</strong> $\Delta u = 0$。</p>
+$$
+\partial_t u = -\frac{\delta J}{\delta u}.
+$$<p>
+对 Dirichlet 能量，这就是<strong>热方程</strong> $\partial_t u = \Delta u$。物理中的众多重要 PDE 都源于这种结构——而下一节我们将看到，即便状态不再是函数，而是一个<strong>概率测度</strong>，这种结构依然成立。</p>
+<h2 id="2-梯度流理论与-wasserstein-几何">2. 梯度流理论与 Wasserstein 几何</h2>
+<h3 id="21-欧氏空间中的梯度流">2.1 欧氏空间中的梯度流</h3>
+$$
+\dot x(t) = -\nabla f(x(t)),
+$$<p>
+即最速下降的连续时间版本。三个性质后文反复使用：</p>
+<ol>
+<li><strong>能量耗散</strong>：$\dfrac{d}{dt} f(x(t)) = -\|\nabla f(x(t))\|^2 \leq 0$。</li>
+<li><strong>平衡点</strong>为 $f$ 的临界点；强凸时收敛到唯一极小值。</li>
+<li><strong>隐式欧拉离散</strong>：$x_{k+1} = \arg\min_x \{f(x) + \tfrac{1}{2\tau}\|x - x_k\|^2\}$。下面我们就把欧氏距离换成 Wasserstein 距离，得到 JKO 格式。</li>
+</ol>
+<h3 id="22-wasserstein-距离">2.2 Wasserstein 距离</h3>
+<p>当系统状态是<strong>概率密度</strong>时，欧氏度量不再是自然选择，应该换成 <strong>Wasserstein-2 距离</strong>——它度量将一个分布&quot;搬运&quot;成另一个所需的最小代价。</p>
+$$
+W_2^2(\rho_0, \rho_1) = \inf_{\gamma \in \Pi(\rho_0, \rho_1)} \int_{\mathbb{R}^d \times \mathbb{R}^d} |x - y|^2\, d\gamma(x, y),
+$$<p>
+其中 $\Pi(\rho_0, \rho_1)$ 是边缘为 $\rho_0, \rho_1$ 的联合分布全体。</p>
+<p><strong>Brenier 定理</strong>：若 $\rho_0$ 绝对连续，则最优耦合集中在某映射 $T = \nabla \varphi$ 的图上，$\varphi$ 凸，$\rho_1 = T_\# \rho_0$。</p>
+$$
+W_2^2 = \|\mu_0 - \mu_1\|^2 + \mathrm{tr}\!\left(\Sigma_0 + \Sigma_1 - 2 (\Sigma_0^{1/2} \Sigma_1 \Sigma_0^{1/2})^{1/2}\right).
+$$<h3 id="23-jko-格式mathcalp_2-上的梯度流">2.3 JKO 格式：$\mathcal{P}_2$ 上的梯度流</h3>
+<p>如何在概率测度空间上定义&quot;梯度流&quot;？Jordan、Kinderlehrer、Otto（1998）的回答是：把隐式欧拉中的 $\|\cdot\|$ 直接替换为 $W_2$。</p>
+$$
+\rho_{k+1}^\tau \in \arg\min_{\rho} \left\{\mathcal{E}[\rho] + \frac{1}{2\tau} W_2^2(\rho, \rho_k^\tau)\right\}.
+$$<p>
+当 $\tau \to 0$ 时（如果极限存在），离散轨迹的极限称为 $\mathcal{E}$ 的 <strong>Wasserstein 梯度流</strong>。</p>
+<h3 id="24-热方程作为熵的梯度流">2.4 热方程作为熵的梯度流</h3>
+<p><strong>定理（Otto）</strong>：Boltzmann 熵 $\mathcal{H}[\rho] = \int \rho \log \rho\, dx$ 的 Wasserstein 梯度流恰为热方程 $\partial_t \rho = \Delta \rho$。</p>
+<p><em>关键步骤</em>：JKO 一阶最优性条件给出 $\delta \mathcal{H}/\delta \rho + \varphi/\tau = \text{常数}$，其中 $\varphi$ 是把 $\rho_k$ 推到 $\rho_{k+1}$ 的 Brenier 势。由 $\delta \mathcal{H}/\delta \rho = \log \rho + 1$ 知最优映射诱导的速度场为 $v = -\nabla \log \rho$。代入连续性方程 $\partial_t \rho + \nabla \cdot (\rho v) = 0$，即得 $\partial_t \rho = \nabla \cdot (\rho \nabla \log \rho) = \Delta \rho$。</p>
+<p>同样的机器还能产出其他经典 PDE：</p>
+<ul>
+<li><strong>Fokker-Planck 方程</strong>：自由能 $\mathcal{F}[\rho] = \int V \rho + \int \rho \log \rho$ 的 Wasserstein 梯度流是 $\partial_t \rho = \nabla \cdot (\rho \nabla V) + \Delta \rho$，平衡解为 Gibbs 测度 $\rho_\infty \propto e^{-V}$。</li>
+<li><strong>多孔介质方程</strong>：内能 $\int \rho^m\, dx$ 的梯度流是 $\partial_t \rho = \Delta(\rho^m)$。</li>
+<li><strong>Keller-Segel 方程</strong>：加上吸引相互作用，得到趋化方程。</li>
+</ul>
+<p><figure>
+  <img src="./03-%e5%8f%98%e5%88%86%e5%8e%9f%e7%90%86%e4%b8%8e%e4%bc%98%e5%8c%96/fig3_wasserstein_gradient_flow.png" alt="自由能 $F[\rho] = \int V \rho &#43; \int \rho \log \rho$ 的 Wasserstein 梯度流：左图为密度快照，右图为沿流的能量耗散。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 3. 一维 Fokker-Planck 数值仿真。密度 $\rho_t$ 在 $\mathcal{P}_2(\mathbb{R})$ 中沿自由能的最速下降方向移动，最终收敛到 Gibbs 平衡 $\rho_\ast \propto e^{-V}$。右图同时显示自由能差 $F[\rho_t] - F[\rho_\ast]$ 与均值漂移 $|\mathbb{E}\rho_t - \mu_\ast|$ 单调递减——梯度流的直接数值证据。</em></p>
+<h2 id="3-神经网络训练的-mean-field-理论">3. 神经网络训练的 Mean-Field 理论</h2>
+<h3 id="31-从有限宽度到无限宽度">3.1 从有限宽度到无限宽度</h3>
+$$
+f_\theta(x) = \frac{1}{m} \sum_{i=1}^m a_i \, \sigma(w_i^\top x + b_i),
+$$<p>
+参数 $\theta_i = (a_i, w_i, b_i)$，宽度 $m$。给定数据 $\{(x_k, y_k)\}_{k=1}^n$，经验风险为 $\hat R(\theta) = \frac{1}{n}\sum_k \ell(f_\theta(x_k), y_k)$，梯度下降按 $-\eta \nabla_{\theta_i} \hat R$ 更新每个 $\theta_i$。</p>
+<p><strong>粒子图像</strong>：把每个神经元视作参数空间中的一个粒子，训练就是 $m$ 粒子相互作用系统——它们通过 $f_\theta$ 共同决定损失而耦合。</p>
+$$
+\rho_t^m := \frac{1}{m} \sum_{i=1}^m \delta_{\theta_i(t)}
+$$$$
+f_{\rho_t^m}(x) = \int a\, \sigma(w^\top x + b)\, d\rho_t^m(\theta).
+$$<p><strong>Mean-Field 极限</strong>：在适当尺度下（依参数化不同，学习率约为 $1/\sqrt m$ 或 $1/m$），若初始参数独立同分布于 $\rho_0$，则 $m \to \infty$ 时 $\rho_t^m \xrightharpoonup{} \rho_t$，极限密度 $\rho_t$ 满足 <strong>Mean-Field 方程</strong>（Vlasov / 连续性 PDE）。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig4_mean_field_limit.png" alt="两层 ReLU 网络的 Mean-Field 极限：宽度 $m \in \{20, 200, 2000\}$ 下，第一层权重的直方图随训练演化。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 4. 经验权重分布 $\rho_t^m$ 随宽度增大而趋于光滑——到 $m = 2000$ 时已可视为对连续密度的采样，恰是 Vlasov 型理论所预言的 Mean-Field 极限。最右一列显示损失曲线：宽度越大收敛越快（过参数化效应）。</em></p>
+<h3 id="32-mean-field-方程的推导">3.2 Mean-Field 方程的推导</h3>
+$$
+\mathcal{L}[\rho] = \frac{1}{n} \sum_{k=1}^n \ell(f_\rho(x_k), y_k), \quad f_\rho(x) = \int a\, \sigma(w^\top x + b)\, d\rho(\theta) .
+$$$$
+\dot \theta_i = -\nabla_\theta \frac{\delta \mathcal{L}}{\delta \rho}\bigg|_{\rho = \rho_t^m}(\theta_i) .
+$$$$
+\partial_t \rho + \nabla_\theta \cdot (\rho\, v_t) = 0, \qquad v_t(\theta) = -\nabla_\theta \frac{\delta \mathcal{L}}{\delta \rho}[\rho_t](\theta) .
+$$<p>
+这是一个确定性、非线性的密度演化 PDE。</p>
+<h3 id="33-全局收敛性">3.3 全局收敛性</h3>
+<p><strong>定理（Mei-Montanari-Nguyen 2018, Chizat-Bach 2018，结论性叙述）</strong>：在 (a) 充分过参数化（极限下 $\rho_0$ 支撑足够大）、(b) 数据点上 NTK 正定、(c) 初始化适当（如高斯）三条件下，Mean-Field 方程驱动损失到零。</p>
+<p><strong>证明骨架</strong>：在适当 regime 下，网络在初始化附近线性化，残差 $r_t(x) = f_{\rho_t}(x) - y(x)$ 满足 $\dot r = -K r$，$K \succeq \lambda_{\min}(K) I$，故 $\|r_t\|^2 \leq e^{-\lambda_{\min}(K) t} \|r_0\|^2$。</p>
+<p><strong>NTK 与 Mean-Field 的对比</strong>：两类典型 regime 描述同一两层网络的不同情形——</p>
+<ul>
+<li><strong>NTK / lazy regime</strong>（Jacot-Gabriel-Hongler 2018）：$m \to \infty$，学习率固定，参数几乎不动，网络在初始化附近线性化，等价于一个核方法。</li>
+<li><strong>Mean-Field regime</strong>：学习率随 $m$ 缩放，参数移动 $O(1)$，动力学真正非线性，呈现&quot;特征学习&quot;。</li>
+</ul>
+<h3 id="34-wasserstein-梯度流形式">3.4 Wasserstein 梯度流形式</h3>
+$$
+\mathcal{L}[\rho] = \tfrac12 \int K(\theta, \theta')\, d\rho(\theta)\, d\rho(\theta') + \int g(\theta)\, d\rho(\theta) ,
+$$<p>
+则 Mean-Field 方程<strong>恰好</strong>是 $\mathcal{L}$ 在 $\mathcal{P}_2$ 上的 Wasserstein 梯度流。这是&quot;训练即 $\mathcal{P}_2$ 上的梯度流&quot;最干净的依据：尽管损失对 $\theta$ 非凸，但在测度空间中可能具有 <strong>位移凸性（displacement convexity）</strong>，从而保证全局收敛。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig5_energy_landscape.png" alt="一个非凸 2-D 能量景观与从糟糕初始化出发的梯度流轨迹；右下子图给出能量沿流单调下降的耗散等式 $\dot E = -\|\nabla E\|^2$。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 5. 能量非凸、有多个吸引盆，但梯度流沿其下降。这是高维神经网络训练的直观图像——只是在 Mean-Field 极限下，&ldquo;参数 $\theta$&rdquo; 的角色被整个密度 $\rho_t$ 取代。</em></p>
+<h3 id="35-深度网络的连续时间解释">3.5 深度网络的连续时间解释</h3>
+$$
+h_{\ell+1} = h_\ell + \tau\, F(h_\ell, \theta_\ell)
+$$$$
+\min_F \int c(x, F(x))\, d\rho_X(x), \quad \text{约束} \ F_\# \rho_X = \rho_Y ,
+$$<p>
+即学习一个把数据分布逐层&quot;展平&quot;、传输到分类器易于读取的目标分布的最优映射。</p>
+<h2 id="4-变分推断与-elbo">4. 变分推断与 ELBO</h2>
+$$
+\mathrm{ELBO}(q) = \mathbb{E}_{q(z|x)}[\log p(x|z)] - \mathrm{KL}\!\left(q(z|x) \,\Vert\, p(z)\right) ,
+$$<p>
+等价于最小化 $\mathrm{KL}(q(z|x)\,\Vert\,p(z|x))$——它是一个有约束的变分问题。当 $\mathcal{Q}$ 取所有密度时，最优解就是真实后验。</p>
+<p>更妙的是，由第 2.4 节的视角，KL 散度 $\mathrm{KL}(\cdot\,\Vert\,p)$ 的 Wasserstein 梯度流正是 Fokker-Planck 方程，这正是扩散生成模型（diffusion）能与 VAE 共用一套理论工具的原因。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig6_variational_autoencoder.png" alt="小型 VAE 在四模高斯混合上的 ELBO 分解：左图为重构损失 vs KL 正则项，中图为数据与重构对照，右图为隐空间编码与标准正态先验等高线。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 6. 重构项与 KL 项方向相反——前者要 $\hat x \approx x$，后者要 $q(z|x) \approx p(z)$；二者之和（负 ELBO）就是变分目标。隐空间将四个数据模有序组织在标准正态先验内，正是 VAE 的预期行为。</em></p>
+<h2 id="5-数值验证">5. 数值验证</h2>
+<p>下面汇总支撑前述理论的数值实验。所有四组实验都可由仓库中的 <code>scripts/figures/pde-ml/03-variational.py</code> 一键复现。</p>
+<h3 id="51-最速降线图-1">5.1 最速降线（图 1）</h3>
+<p>5 条候选下降曲线连接 $A=(0,0)$ 与 $B=(\pi, 2)$；用梯形法离散时间泛函 $T[y]$，按下降时间排序。摆线以明显优势胜出，既快于&quot;最短路径&quot;（直线），也快于&quot;先陡后平&quot;的候选。这一张图浓缩了变分法的全部精神：不同容许函数给出不同泛函值，唯有第一变分为零的那个使泛函取极。</p>
+<h3 id="52-第一变分论证图-2">5.2 第一变分论证（图 2）</h3>
+<p>取 Dirichlet 能量在 $[0,1]$ 上的极值 $y(x) = \sin(\pi x)$（端点为零）以及光滑扰动 $\eta(x) = \sin(2\pi x) \cdot x(1-x)$（端点为零）。绘出 $J(\varepsilon) = J[y + \varepsilon \eta]$ 关于 $\varepsilon$ 的曲线——抛物线，$\varepsilon = 0$ 处水平切线。这就是 Euler-Lagrange 方程的几何内涵。</p>
+<h3 id="53-wasserstein-梯度流图-3">5.3 Wasserstein 梯度流（图 3）</h3>
+$$
+\partial_t \rho = \nabla \cdot (\rho \nabla V) + \Delta \rho, \qquad V(x) = \tfrac12 (x - \mu_\ast)^2 .
+$$<p>
+初始密度是远离目标的尖锐高斯。仿真同时呈现三件事：</p>
+<ul>
+<li>$\rho_t$ 在测度空间中向 Gibbs 目标 $\rho_\ast = \mathcal{N}(\mu_\ast, 1)$ 平移；</li>
+<li>自由能 $F[\rho_t]$ 沿流单调递减（梯度流的能量耗散）；</li>
+<li>均值与 $\mu_\ast$ 的差也单调递减——是一个&quot;Wasserstein 距离的代理量&quot;。</li>
+</ul>
+<h3 id="54-mean-field-极限图-4">5.4 Mean-Field 极限（图 4）</h3>
+<p>两层 ReLU 网络在 64 个数据点上拟合 $f_\ast(x) = \sin(\pi x) + 0.5 \sin(3\pi x)$，宽度 $m \in \{20, 200, 2000\}$。三个训练快照（0、200、1500 epoch）下的第一层权重直方图随 $m$ 增大变得越来越光滑；$m = 2000$ 时已成为对一条连续密度的可信采样。最右一列的损失曲线显示宽度越大收敛越快——与 Mean-Field 过参数化理论一致。学习率取 $\propto 1/\sqrt m$，使每粒子漂移保持 $O(1)$，正是 Mean-Field regime 的正确尺度。</p>
+<h3 id="55-能量景观图-5">5.5 能量景观（图 5）</h3>
+<p>人为构造的二维非凸能量（带倾斜与三角函数&quot;凸起&quot;）演示梯度流的普适耗散律。RK45 积分得到的轨迹落入最低吸引盆，对应能量时间序列单调递减。把同样的图像扩展到百万维，就是关于神经网络训练的常用直观——只不过真实损失景观往往拥有大量更&quot;平坦&quot;的极小值（这一现象既贡献了泛化能力，也解释了 SGD 的成功）。</p>
+<h2 id="6-另外两种几何fisher-rao-与-adam">6. 另外两种几何：Fisher-Rao 与 Adam</h2>
+<h3 id="61-fisher-rao-度量与自然梯度">6.1 Fisher-Rao 度量与自然梯度</h3>
+$$
+I(\theta) = \mathbb{E}_{p_\theta}\!\left[\nabla_\theta \log p_\theta(x)\, \nabla_\theta \log p_\theta(x)^\top\right]
+$$<p>
+诱导 <strong>Fisher-Rao 度量</strong>，相应的<strong>自然梯度流</strong> $\dot \theta = -I(\theta)^{-1} \nabla_\theta J(\theta)$（Amari 1998）通常远快于普通梯度下降，因为它考虑了参数空间的内禀曲率。两种几何看世界的方式不同：</p>
+<ul>
+<li><strong>Wasserstein</strong>：度量&quot;传输代价&quot;，适合分布支撑发生平移的情形；</li>
+<li><strong>Fisher-Rao</strong>：度量&quot;信息几何距离&quot;，适合分布原地变形的情形。</li>
+</ul>
+<p>近期的 <a href="https://arxiv.org/abs/2410.20622" target="_blank" rel="noopener noreferrer">Kernel Approximation of Fisher-Rao Gradient Flows <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ 研究了如何用核方法近似 Fisher-Rao 梯度流，并将其应用于 Langevin 类采样算法。</p>
+<h3 id="62-adam-作为重参数化的梯度流">6.2 Adam 作为重参数化的梯度流</h3>
+$$
+\dot \theta = -\frac{m_t}{\sqrt{v_t} + \epsilon}, \qquad \dot m_t = \alpha_1\big(\nabla J(\theta) - m_t\big), \qquad \dot v_t = \alpha_2\big(\|\nabla J(\theta)\|^2 - v_t\big),
+$$<p>
+即 $J$ 在坐标相关 Riemann 度量 $g_{ii}(\theta) = \sqrt{v_i(\theta)} + \epsilon$ 下的梯度流。这是自然梯度的<strong>对角近似</strong>——自适应学习率的本质，是一次<strong>度量的改换</strong>。</p>
+<h2 id="7-hamilton-流-vs-梯度流">7. Hamilton 流 vs. 梯度流</h2>
+<p>一个关键提醒：<strong>并非所有流都是梯度流</strong>。同一个能量函数可以伴生两种性质完全相反的动力学。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/03-%E5%8F%98%E5%88%86%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig7_hamiltonian_flow.png" alt="同一个能量 $H(q,p) = \tfrac12 (q^2 &#43; p^2)$ 上的两种流：左为 Hamilton 流，沿闭轨保持 $H$；右为梯度流，耗散 $H$ 并收敛到唯一极小。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 7. 同一能量下的两种流。左：辛向量场 $\dot q = H_p, \dot p = -H_q$ 旋转相空间、保持能量——闭轨、不收敛。右：梯度场 $\dot q = -H_q, \dot p = -H_p$ 收缩所有轨道到原点。两者各有用途：梯度流刻画优化，辛流刻画守恒动力学并启发&quot;结构保持&quot;的神经 ODE 架构（详见本系列第 5 部分）。</em></p>
+<h2 id="8-最新进展与开放问题">8. 最新进展与开放问题</h2>
+<p><strong>Mean-Field SGD</strong>：实际训练采用随机梯度，Mean-Field 方程多出噪声项，化为 McKean-Vlasov SDE；适量噪声<strong>加速</strong>收敛——它帮助逃离鞍点；噪声强度、批量大小与有效温度间存在涨落-耗散关系。详见 <a href="https://arxiv.org/abs/2404.12312" target="_blank" rel="noopener noreferrer">Mean-Field Analysis of Neural SGD-Ascent <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+。</p>
+<p><strong>多层 Mean-Field</strong>：对深度 $L$ 的网络，每层参数分布满足耦合 PDE 系统，分析远比两层情形复杂。ResNet 与残差连接相对易处理——它们对应一个离散时间最优传输格式，详见 <a href="https://arxiv.org/abs/2403.12887" target="_blank" rel="noopener noreferrer">Deep ResNets and Conditional Optimal Transport <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+。</p>
+<p><strong>双重下降与隐式偏差</strong>：过参数化网络泛化良好的部分原因，是梯度流在所有插值解中<strong>偏好最大熵</strong>的那个。如何为深度网络给出&quot;最大熵&quot;的恰当定义，仍是活跃方向。</p>
+<p><strong>Lyapunov 函数</strong>：一般收敛理论需要某个 $L[\rho_t]$，其耗散率可被下界。候选包括损失本身（仅在 PL 或凸条件下足够）、自由能、粒子间距离等。目前尚无统一选择能覆盖一般非凸深度情形。</p>
+<h2 id="9-展望">9. 展望</h2>
+<p>PDE / 变分视角目前最活跃的几个方向：</p>
+<ul>
+<li><strong>理论</strong>：非凸损失下更精细的速率；有限宽度修正；注意力层的 PDE 理论；</li>
+<li><strong>算法</strong>：高阶 ODE/PDE 求解器作为新优化器；最优控制视角下的超参数调度；Wasserstein 感知的 MCMC；</li>
+<li><strong>应用</strong>：扩散生成模型 = 反向 Fokker-Planck；策略梯度 = 策略空间上的梯度流；Deep Ritz 与 PINN 把 PDE 求解化为变分问题；</li>
+<li><strong>跨学科</strong>：自旋玻璃类比；端到端优化的 Pontryagin 最大值原理；信息几何与辛几何在深度学习中的应用。</li>
+</ul>
+<h2 id="总结">总结</h2>
+<p>我们从变分法出发，搭建了关于神经网络优化的 PDE 视角：泛函与 Euler-Lagrange 方程把离散优化与连续动力学联通；Wasserstein 几何为概率测度空间提供了自然度量，并把热方程、Fokker-Planck、多孔介质、Keller-Segel 等经典 PDE 统一为显式能量的梯度流；Mean-Field 极限把有限宽度神经网络的训练化为 Vlasov 型 PDE，并在合理假设下给出全局收敛保证；ELBO、Adam、Hamilton 动力学都可纳入同一变分框架。最速降线、一维 Fokker-Planck、宽度扫描、非凸能量景观、小型 VAE 这五组数值实验逐项印证理论。</p>
+<p>PDE 视角仍处早期阶段。随着数学与机器学习继续相互渗透，它将为优化器设计、泛化分析与收敛证明提供越来越锐利的工具。</p>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>L. Chizat and F. Bach, &ldquo;On the Global Convergence of Gradient Descent for Over-parameterized Models using Optimal Transport,&rdquo; <em>NeurIPS</em>, 2018. <a href="https://arxiv.org/abs/1805.09545" target="_blank" rel="noopener noreferrer">arXiv:1805.09545 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>S. Mei, A. Montanari, P.-M. Nguyen, &ldquo;A Mean Field View of the Landscape of Two-Layer Neural Networks,&rdquo; <em>PNAS</em>, 2018. <a href="https://arxiv.org/abs/1804.06561" target="_blank" rel="noopener noreferrer">arXiv:1804.06561 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>G. M. Rotskoff and E. Vanden-Eijnden, &ldquo;Neural Networks as Interacting Particle Systems,&rdquo; <em>arXiv:1805.00915</em>, 2018.</li>
+<li>A. Jacot, F. Gabriel, C. Hongler, &ldquo;Neural Tangent Kernel: Convergence and Generalization in Neural Networks,&rdquo; <em>NeurIPS</em>, 2018. <a href="https://arxiv.org/abs/1806.07572" target="_blank" rel="noopener noreferrer">arXiv:1806.07572 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>W. E and B. Yu, &ldquo;The Deep Ritz Method,&rdquo; <em>CPAM</em>, 2018. <a href="https://arxiv.org/abs/1710.00211" target="_blank" rel="noopener noreferrer">arXiv:1710.00211 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>R. T. Q. Chen et al., &ldquo;Neural Ordinary Differential Equations,&rdquo; <em>NeurIPS</em>, 2018. <a href="https://arxiv.org/abs/1806.07366" target="_blank" rel="noopener noreferrer">arXiv:1806.07366 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>L. Ambrosio, N. Gigli, G. Savaré, <em>Gradient Flows in Metric Spaces and in the Space of Probability Measures</em>, Birkhäuser, 2008.</li>
+<li>C. Villani, <em>Optimal Transport: Old and New</em>, Springer, 2009.</li>
+<li>R. Jordan, D. Kinderlehrer, F. Otto, &ldquo;The Variational Formulation of the Fokker-Planck Equation,&rdquo; <em>SIAM J. Math. Anal.</em>, 1998.</li>
+<li>F. Otto, &ldquo;The Geometry of Dissipative Evolution Equations: the Porous Medium Equation,&rdquo; <em>Comm. PDE</em>, 2001.</li>
+<li>Y. Lu and J. Lu, &ldquo;<a href="https://arxiv.org/abs/2404.12312" target="_blank" rel="noopener noreferrer">Mean-Field Analysis of Neural SGD-Ascent <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+,&rdquo; 2024.</li>
+<li>A. Kazeykina and M. Fornasier, &ldquo;<a href="https://arxiv.org/abs/2410.20622" target="_blank" rel="noopener noreferrer">Kernel Approximation of Fisher-Rao Gradient Flows <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+,&rdquo; 2024.</li>
+<li>D. Onken et al., &ldquo;<a href="https://arxiv.org/abs/2403.12887" target="_blank" rel="noopener noreferrer">Deep ResNets and Conditional Optimal Transport <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+,&rdquo; 2024.</li>
+<li>M. Belkin et al., &ldquo;Reconciling Modern Machine Learning Practice and the Classical Bias-Variance Trade-off,&rdquo; <em>PNAS</em>, 2019.</li>
+<li>S. Amari, &ldquo;Natural Gradient Works Efficiently in Learning,&rdquo; <em>Neural Computation</em>, 1998.</li>
+<li>D. P. Kingma and J. Ba, &ldquo;Adam: A Method for Stochastic Optimization,&rdquo; <em>ICLR</em>, 2015. <a href="https://arxiv.org/abs/1412.6980" target="_blank" rel="noopener noreferrer">arXiv:1412.6980 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>L. Chizat, E. Oyallon, F. Bach, &ldquo;On Lazy Training in Differentiable Programming,&rdquo; <em>NeurIPS</em>, 2019. <a href="https://arxiv.org/abs/1812.07956" target="_blank" rel="noopener noreferrer">arXiv:1812.07956 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>G. Peyré and M. Cuturi, &ldquo;Computational Optimal Transport,&rdquo; <em>Foundations and Trends in Machine Learning</em>, 2019. <a href="https://arxiv.org/abs/1803.00567" target="_blank" rel="noopener noreferrer">arXiv:1803.00567 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>J. Sirignano and K. Spiliopoulos, &ldquo;Mean Field Analysis of Neural Networks: A Central Limit Theorem,&rdquo; <em>Stoch. Proc. Appl.</em>, 2020. <a href="https://arxiv.org/abs/1808.09372" target="_blank" rel="noopener noreferrer">arXiv:1808.09372 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ul>
+<p><strong>可复现性</strong>：本文 7 张图均由仓库中的 <code>scripts/figures/pde-ml/03-variational.py</code> 生成，在仓库根目录执行 <code>python scripts/figures/pde-ml/03-variational.py</code> 即可同时写入 EN/ZH 两侧的资源目录。</p>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e7%89%a9%e7%90%86%e4%bf%a1%e6%81%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c/">1</a>
+</td>
+          <td>物理信息神经网络</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/">2</a>
+</td>
+          <td>神经算子理论</td>
+      </tr>
+      <tr>
+          <td><strong>3</strong></td>
+          <td><strong>变分原理与优化（本文）</strong></td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/">4</a>
+</td>
+          <td>变分推断与 Fokker-Planck 方程</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/">5</a>
+</td>
+          <td>辛几何与保结构网络</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/">6</a>
+</td>
+          <td>连续归一化流与 Neural ODE</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/">7</a>
+</td>
+          <td>扩散模型与 Score Matching</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%8f%8d%e5%ba%94%e6%89%a9%e6%95%a3%e7%b3%bb%e7%bb%9f%e4%b8%8eGNN/">8</a>
+</td>
+          <td>反应扩散系统与 GNN</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-变分法基础从泛函到-euler-lagrange-方程">1. 变分法基础：从泛函到 Euler-Lagrange 方程</a>
+      <ul>
+        <li><a href="#11-泛函与第一变分">1.1 泛函与第一变分</a></li>
+        <li><a href="#12-经典案例最速降线brachistochrone">1.2 经典案例：最速降线（Brachistochrone）</a></li>
+        <li><a href="#13-hamilton-原理与辛几何视角">1.3 Hamilton 原理与辛几何视角</a></li>
+        <li><a href="#14-从泛函导数到梯度流">1.4 从泛函导数到梯度流</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-梯度流理论与-wasserstein-几何">2. 梯度流理论与 Wasserstein 几何</a>
+      <ul>
+        <li><a href="#21-欧氏空间中的梯度流">2.1 欧氏空间中的梯度流</a></li>
+        <li><a href="#22-wasserstein-距离">2.2 Wasserstein 距离</a></li>
+        <li><a href="#23-jko-格式mathcalp_2-上的梯度流">2.3 JKO 格式： 上的梯度流</a></li>
+        <li><a href="#24-热方程作为熵的梯度流">2.4 热方程作为熵的梯度流</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-神经网络训练的-mean-field-理论">3. 神经网络训练的 Mean-Field 理论</a>
+      <ul>
+        <li><a href="#31-从有限宽度到无限宽度">3.1 从有限宽度到无限宽度</a></li>
+        <li><a href="#32-mean-field-方程的推导">3.2 Mean-Field 方程的推导</a></li>
+        <li><a href="#33-全局收敛性">3.3 全局收敛性</a></li>
+        <li><a href="#34-wasserstein-梯度流形式">3.4 Wasserstein 梯度流形式</a></li>
+        <li><a href="#35-深度网络的连续时间解释">3.5 深度网络的连续时间解释</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-变分推断与-elbo">4. 变分推断与 ELBO</a></li>
+    <li><a href="#5-数值验证">5. 数值验证</a>
+      <ul>
+        <li><a href="#51-最速降线图-1">5.1 最速降线（图 1）</a></li>
+        <li><a href="#52-第一变分论证图-2">5.2 第一变分论证（图 2）</a></li>
+        <li><a href="#53-wasserstein-梯度流图-3">5.3 Wasserstein 梯度流（图 3）</a></li>
+        <li><a href="#54-mean-field-极限图-4">5.4 Mean-Field 极限（图 4）</a></li>
+        <li><a href="#55-能量景观图-5">5.5 能量景观（图 5）</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-另外两种几何fisher-rao-与-adam">6. 另外两种几何：Fisher-Rao 与 Adam</a>
+      <ul>
+        <li><a href="#61-fisher-rao-度量与自然梯度">6.1 Fisher-Rao 度量与自然梯度</a></li>
+        <li><a href="#62-adam-作为重参数化的梯度流">6.2 Adam 作为重参数化的梯度流</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-hamilton-流-vs-梯度流">7. Hamilton 流 vs. 梯度流</a></li>
+    <li><a href="#8-最新进展与开放问题">8. 最新进展与开放问题</a></li>
+    <li><a href="#9-展望">9. 展望</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Pde与机器学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6300</strong></div>
+      <div class="row"><span>Published</span><strong>May 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>迁移学习（十二）：工业应用与最佳实践 · Chen Kai Blog</title>
+<meta name="description" content="系列收官。把迁移学习推上生产线的实战指南：何时用、如何串成端到端管线、算力与美元的真实账单、四个标杆案例、A/B 测试、生产环境的分布漂移监控，以及 12 个月的 ROI 模型。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="迁移学习（十二）：工业应用与最佳实践">
+<meta property="og:description" content="系列收官。把迁移学习推上生产线的实战指南：何时用、如何串成端到端管线、算力与美元的真实账单、四个标杆案例、A/B 测试、生产环境的分布漂移监控，以及 12 个月的 ROI 模型。">
+<meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">迁移学习</a>
+         · Chapter 12
+      </div>
+      <h1>迁移学习（十二）：工业应用与最佳实践</h1>
+      <p class="deck">系列收官。把迁移学习推上生产线的实战指南：何时用、如何串成端到端管线、算力与美元的真实账单、四个标杆案例、A/B 测试、生产环境的分布漂移监控，以及 12 个月的 ROI 模型。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-07-06">July 6, 2025</time> · 11 min read · 5500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%A8%A1%E5%9E%8B%E9%83%A8%E7%BD%B2/" class="tag">#模型部署</a><a href="/zh/tags/%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/" class="tag">#最佳实践</a><a href="/zh/tags/%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83/" class="tag">#生产环境</a><a href="/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/" class="tag">#迁移学习</a><a href="/zh/tags/%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8/" class="tag">#工业应用</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>这是整个系列的最后一篇。前面十一篇讲的是机制——预训练、微调、域适应、小样本与零样本、蒸馏、多任务、多模态、参数高效方法、持续学习、跨语言迁移。这一篇要谈的，是 notebook 关掉之后才开始的那部分工作：判断<strong>该不该</strong>用迁移学习，怎么把它<strong>嵌进</strong>一条真实的生产管线，以及怎么在六个月之后<strong>还能确认</strong>它仍然在正常工作。</p>
+<p>下面所有内容都是从一个要长期维护模型的团队的视角出发写的，不是从一个要发论文的团队的视角。两者的取舍方式很不一样。</p>
+<h2 id="你将学到">你将学到</h2>
+<ul>
+<li>一棵决定该不该用迁移学习的判断树</li>
+<li>端到端生产管线的六个阶段，每段属于谁、产出什么</li>
+<li>迁移学习在算力和美元上能省下的三到五个数量级</li>
+<li>四个标杆部署（Google Translate、ChatGPT、Tesla Autopilot、Copilot）背后的迁移谱系</li>
+<li>怎样以统计上严谨的方式 A/B 测试两个迁移学习候选模型</li>
+<li>怎样在生产环境监控分布漂移，并据此触发再训练</li>
+<li>一份可以套进自己提案的 12 个月 ROI 模型</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>本系列前面所有章节，特别是第 9 章（PEFT）、第 10 章（持续学习）、第 11 章（跨语言）</li>
+<li>基本的软件工程能力：API、可观测性、部署</li>
+<li>熟悉 PyTorch 训练循环</li>
+</ul>
+<hr>
+<h2 id="1-到底什么时候才该用迁移学习">1. 到底什么时候才该用迁移学习</h2>
+<p>迁移学习并不是免费的。你要为一个比实际需要更大的骨干网络付出推理成本，要继承预训练语料里的偏见，还要把团队的命运绑在一个上游模型上——它的许可证和生命周期都不在你手里。在伸手去用之前，先把这棵树走一遍。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig1_decision_flowchart.png" alt="判断该不该用迁移学习的决策树" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>真正决定结果的四个问题：</p>
+<ol>
+<li><strong>这个模态有没有现成的预训练模型？</strong> 如果没有——一个小众传感器、一份专有的仪器日志——你就只能从零训，并且需要至少十万级的标注，或者一个像样的自监督任务。</li>
+<li><strong>手上至少有 100 个左右的标注样本吗？</strong> 低于这个量级，用一个前沿模型做提示工程通常打不过任何微调。任务越难，这个临界点越高。</li>
+<li><strong>业务领域和预训练语料贴近吗？</strong> 通用网文和放射科报告、法律合同、工业日志的重合度都很差。先做一轮领域自适应预训练（第 3 章），往往能把后面的微调成本一并赚回来。</li>
+<li><strong>是只服务一个任务，还是同时面向很多租户/任务？</strong> 如果许多租户共享一个骨干，LoRA / Adapter（第 9 章）让你为每个租户存几 KB 而不是几 GB。</li>
+</ol>
+<p>绝大多数情况下，问题不是&quot;用不用迁移&quot;，而是&quot;用哪种迁移配方&quot;。把图里底部那行启发式当起点，然后在两个候选方案之间做对照实验，比在纸上反复斟酌靠谱得多。</p>
+<hr>
+<h2 id="2-端到端的生产管线">2. 端到端的生产管线</h2>
+<p>研究的 notebook 在 <code>model.eval()</code> 那一行就结束了。生产从那里才开始。下面这条管线是大多数团队踩过几次坑之后会收敛到的形态。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig2_production_pipeline.png" alt="从基础模型到被监控的服务的生产管线" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>六个阶段，每个阶段都有明确的负责人和检查点产物：</p>
+<table>
+  <thead>
+      <tr>
+          <th>阶段</th>
+          <th>负责人</th>
+          <th>产物</th>
+          <th>常见坑</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>基础模型</td>
+          <td>ML 平台</td>
+          <td>冻结权重、tokenizer、评测套件</td>
+          <td>静默地换了许可证</td>
+      </tr>
+      <tr>
+          <td>领域预训练</td>
+          <td>研究组</td>
+          <td>领域适配后的权重</td>
+          <td>灾难性遗忘</td>
+      </tr>
+      <tr>
+          <td>任务微调</td>
+          <td>业务团队</td>
+          <td>Adapter 或全量权重、标签体系</td>
+          <td>训推 tokenization 不一致</td>
+      </tr>
+      <tr>
+          <td>压缩与导出</td>
+          <td>MLOps</td>
+          <td>INT8 / 4-bit 权重、ONNX / TensorRT 图</td>
+          <td>算子覆盖不全</td>
+      </tr>
+      <tr>
+          <td>服务化</td>
+          <td>平台 SRE</td>
+          <td>容器、扩缩容配置、批处理策略</td>
+          <td>冷启动导致的 P99 抬升</td>
+      </tr>
+      <tr>
+          <td>监控</td>
+          <td>On-call</td>
+          <td>漂移看板、评测金丝雀、告警路由</td>
+          <td>在罕见切片上的静默失败</td>
+      </tr>
+  </tbody>
+</table>
+<p>图里那条琥珀色的反馈箭头，是大多数团队最容易做得不到位的地方。**漂移检测如果不能自动开一个再训练工单，那就只是一张装饰用的看板。**正确的做法是把监控告警直接接进一条再训练管线，自动拉新数据加缓存数据，产出一个候选模型送进 A/B，而不是变成&quot;下个 sprint 看一眼&quot;。</p>
+<p>每个阶段都要打可复现性快照——模型权重、tokenizer、评测集、数据哈希、git SHA。这是 MLOps 里收益最高的一条纪律。没有它，&ldquo;3 月 14 号在跑的那个模型&quot;就会沦为团队里没人能复原的传说。</p>
+<hr>
+<h2 id="3-经济账三到五个数量级的差距">3. 经济账：三到五个数量级的差距</h2>
+<p>迁移学习能吃下整个领域，原因不只是准确率，更是成本。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig3_compute_cost_savings.png" alt="从零训、继续预训练、LoRA、提示工程的算力与美元账单" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>以一个 7B 参数量级的语言模型为例：</p>
+<ul>
+<li><strong>从零训：</strong> 约 18 万 A100·小时，光算力就是 45 万美元量级。</li>
+<li><strong>继续预训练</strong>到一个领域语料：约 1.2 万小时，约 3 万美元。</li>
+<li><strong>下游全量微调：</strong> 约 800 小时，约 2,000 美元。</li>
+<li><strong>rank=16 的 LoRA：</strong> 约 40 小时，约 100 美元。</li>
+<li><strong>提示工程</strong>调 API：每次实验只要几美分。</li>
+</ul>
+<p>具体数字会随硬件和软件浮动，但这种结构——从&quot;建地基&quot;到&quot;贴任务&quot;的五个数量级落差——在所有模态下都是稳的。对项目排期的含义很尖锐：**预算应该花在数据、评测和服务上，而不是训练算力上。**那些把 80% 的钱砸在微调一个还没有人验证过是否适合自己场景的模型上的团队，钱花错了地方。</p>
+<p>还有一个微妙的点：提示工程<strong>单次实验</strong>便宜，但<strong>单次请求</strong>贵。临界点通常落在每天 10 到 1,000 次请求之间，过了这个点，一个微调过的小模型在摊销成本上就赢了。这件事一定要算明白——一张服务成本电子表格，胜过任何感觉。</p>
+<hr>
+<h2 id="4-四个标杆部署">4. 四个标杆部署</h2>
+<p>具体案例比任何分类法都更能磨砺直觉。下面四个例子，每一个都展示了一种不同形状的迁移。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig4_industry_case_studies.png" alt="标杆性的迁移学习部署" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>Google Translate（GNMT，2016 起）。</strong> 从&quot;每个语言对一个 LSTM seq2seq&quot;切换到&quot;一个多语种 Transformer 编码器&rdquo;，是<strong>多任务迁移</strong>最干净的一次工业级胜利：一个模型，覆盖 100 多个语言对，在训练时从未配对过的语言对之间也能做零样本翻译。教训：当任务之间共享结构时，共享表示几乎一定会赢过逐任务模型。</p>
+<p><strong>OpenAI ChatGPT（2022 起）。</strong> GPT-3.5 和 GPT-4 本质上是 GPT-3 上面贴了两层适配——有监督的指令微调，再叠加 RLHF。基础模型完成了大部分重活，适配层把它变成可用的产品。这是现代的标准打法：一个小团队拿一个别人付钱训出来的大模型，用对的偏好数据微调，就能做出一个定义品类的体验。</p>
+<p><strong>Tesla Autopilot 的 HydraNet。</strong> 一个 ResNet 风格的骨干网络，喂给 48 个任务专用头——车道、信号灯状态、深度、占据格、交通标志识别等等。这是第 6 章的多任务学习放大到生产规模：新增一个头几乎零成本，共享特征意味着修一个任务的数据常常能顺带改善其他任务，推理成本被 48 个输出一次性摊薄。</p>
+<p><strong>GitHub Copilot（Codex）。</strong> 把预训练好的 GPT 在公开代码库上继续预训练，再为代码补全做微调。这就是第 3 章讲的<strong>领域自适应预训练</strong>，放到了星球级的尺度上。从通用 GPT 到代码特化的 Codex 之间的提升，足够大到定义了一个新品类。</p>
+<p>四个案例的共同点不在于用了哪个模型，而在于：<strong>做产品的团队都没有自己去训那个基础模型。生产���境里的迁移学习，就是把别人的算力当杠杆来撬动。</strong></p>
+<hr>
+<h2 id="5-怎样-ab-测试两个迁移学习候选">5. 怎样 A/B 测试两个迁移学习候选</h2>
+<p>一个在离线评测上赢了的新模型，是一个假设，而不是一个上线决策。唯一诚实的答案来自生产环境里的随机对照。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig5_ab_testing.png" alt="两个迁移学习候选模型的 A/B 测试" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>图里的实验是一个典型设置。BERT-base 全量微调（对照）与 RoBERTa-large + LoRA（实验）按 50/50 分流，跑 14 天。每日转化率带 95% 置信带。第 9 天达到最小样本量，第 14 天的 Welch t 检验给出 $t = 3.42$、$p = 0.002$、转化率提升 $+6.5\%$，p99 延迟护栏不破，基础设施成本下降 18%。结论：全量上线。</p>
+<p>经验里几条不会错的规矩：</p>
+<ul>
+<li><strong>预先登记成功指标和护栏指标。</strong> 跑完之后再决定&quot;哪个指标其实更重要&quot;，那是 p-hacking。</li>
+<li><strong>用 Welch t 检验，不要用 Student t 检验。</strong> 两组的方差几乎从来都不相等。</li>
+<li><strong>盯着异质性处理效应。</strong> 一个模型可能在总体上赢，却在某个关键用户切片上输。在批准全量之前，按语言、设备、租户切一下结果。</li>
+<li><strong>至少跑满一个完整的业务周期。</strong> 工作日和周末的动力学差异足以翻转结论。</li>
+<li><strong>就算上线之后也保留一个小流量对照组</strong>，这样在外界条件变化时还能发现回退。</li>
+</ul>
+<p>低流量服务可以用序贯检验（比如 mSPRT）提前停止而不抬高假阳性率。高风险变更则应当先跑一段影子模式，让新模型只静默打分、只记录日志。</p>
+<hr>
+<h2 id="6-监控分布漂移">6. 监控分布漂移</h2>
+<p>模型不会高声地坏掉。它们会<strong>漂移</strong>——训练时假设的世界悄悄移动，准确率每天掉一点点，等到某次季度复盘里有人察觉，你已经默默地少了三个月的业绩。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig6_distribution_shift.png" alt="分布漂移监控：KL 散度与准确率联动" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>标准做法是把一个无监督的分布指标和一个有监督的准确率金丝雀配对使用：</p>
+<ul>
+<li><strong>分布指标。</strong> 在滚动窗口上每天计算生产端特征分布与训练端分布的 KL 散度（或 PSI、KS 统计量）。KL 用起来方便，因为解读上比较直观——在归一化特征上读数高于约 $0.15$ 就值得关注。具体阈值要按服务调。</li>
+<li><strong>有监督金丝雀。</strong> 一个小的 holdout 集，最好每周补充一批新鲜的人工标注，对线上模型打分。这能抓到那种&quot;输入分布看起来没变、但标签分布变了&quot;的情况。</li>
+</ul>
+<p>图里两个信号在第 24 天前后一起越线——KL 翻过 0.15、准确率掉破 85% 的 SLO。再训练管线被自动触发。这就是一个能让系统在野外存活下来的闭环。</p>
+<p>一个常见陷阱：只盯分布指标、不配标注金丝雀。KL 完全可能因为某种良性的变化（一个新产品上线、流量构成变了）而上升，而准确率毫发无损。每次 KL 抖动就告警，会训练团队对告警麻木。<strong>分布漂移与准确率下降同时发生</strong>，才是高精度的触发器。</p>
+<hr>
+<h2 id="7-roi把商业账算明白">7. ROI：把商业账算明白</h2>
+<p>工程师之所以总是低估迁移学习项目的价值，是因为只把 GPU 账单计入了成本。如果把价值放在同一张坐标轴上，画面立刻清晰得多。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/12-%E5%B7%A5%E4%B8%9A%E5%BA%94%E7%94%A8%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig7_roi_curve.png" alt="一个迁移学习项目 12 个月的 ROI 曲线" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>一个有代表性的单模型项目：</p>
+<ul>
+<li><strong>建设成本</strong>（工程、初始领域预训练、数据标注）：约 8 万美元。</li>
+<li><strong>持续成本</strong>（服务、监控、On-call）：约每月 6,000 美元。</li>
+<li><strong>价值</strong>（替换规则引擎、节省外采、追回转化）：从第 1 个月的 5,000 美元爬升，第 6 个月稳定在每月 50,000 美元左右。</li>
+<li><strong>盈亏平衡点</strong>落在第 5 个月；第一年的 ROI 大致在 $+150\%$ 量级。</li>
+</ul>
+<p>即使把价值预估打个对折，曲线的形状也不会变。真正杀死这类项目的不是曲线太平，而是团队上线之后就放着不管，价值平台期被漂移侵蚀，根本撑不到盈亏平衡点。<strong>ROI 的论证和监控的论证，本质上是同一个论证。</strong></p>
+<p>提一个新的迁移学习项目时，递三份材料过去：</p>
+<ol>
+<li>第 1 节那棵决策树的判断结论。</li>
+<li>第 3 节针对显而易见的替代方案的成本对比。</li>
+<li>这条 12 个月曲线，假设要保守，并写明监控闭环的负责人是谁。</li>
+</ol>
+<p>这套材料能直接答完一个有思考的赞助人会提的所有问题。</p>
+<hr>
+<h2 id="8-最小可用的生产配方">8. 最小可用的生产配方</h2>
+<p>把一切剥到一屏代码以内，一个生产级迁移学习服务的第一版长这样。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;最小可用的生产迁移学习配方。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="p">(</span><span class="n">AutoModelForSequenceClassification</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                          <span class="n">AutoTokenizer</span><span class="p">,</span> <span class="n">get_linear_schedule_with_warmup</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. 按&#34;数据量 + 延迟预算&#34;挑骨干（参见第 1 节的决策树）</span>
+</span></span><span class="line"><span class="cl"><span class="n">model_name</span> <span class="o">=</span> <span class="s2">&#34;roberta-base&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForSequenceClassification</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model_name</span><span class="p">,</span> <span class="n">num_labels</span><span class="o">=</span><span class="n">NUM_CLASSES</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 逐层学习率：浅层比顶层动得慢</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">layerwise_params</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">base_lr</span><span class="o">=</span><span class="mf">2e-5</span><span class="p">,</span> <span class="n">decay</span><span class="o">=</span><span class="mf">0.95</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">named</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">named</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[{</span><span class="s2">&#34;params&#34;</span><span class="p">:</span> <span class="n">p</span><span class="p">,</span> <span class="s2">&#34;lr&#34;</span><span class="p">:</span> <span class="n">base_lr</span> <span class="o">*</span> <span class="n">decay</span> <span class="o">**</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="n">i</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">named</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">(</span><span class="n">layerwise_params</span><span class="p">(</span><span class="n">model</span><span class="p">),</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">scheduler</span> <span class="o">=</span> <span class="n">get_linear_schedule_with_warmup</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">optimizer</span><span class="p">,</span> <span class="n">num_warmup_steps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="n">total_steps</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_training_steps</span><span class="o">=</span><span class="n">total_steps</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 早停 + 完整快照：模型、tokenizer、评测集、git SHA 一起持久化</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#    可复现性是非可选项</span>
+</span></span><span class="line"><span class="cl"><span class="n">best_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">);</span> <span class="n">patience</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span> <span class="n">bad</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">MAX_EPOCHS</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">train_one_epoch</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">val_loss</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">val_loss</span> <span class="o">&lt;</span> <span class="n">best_val</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">best_val</span><span class="p">,</span> <span class="n">bad</span> <span class="o">=</span> <span class="n">val_loss</span><span class="p">,</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">save_checkpoint</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">EVAL_SET</span><span class="p">,</span> <span class="n">GIT_SHA</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">bad</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">bad</span> <span class="o">&gt;=</span> <span class="n">patience</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">break</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 服务化前的压缩。INT8 动态量化是最便宜的胜利；</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#    剪枝和蒸馏可以稍后再说</span>
+</span></span><span class="line"><span class="cl"><span class="n">model_int8</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">quantize_dynamic</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="p">,</span> <span class="p">{</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">},</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">qint8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">torch</span><span class="o">.</span><span class="n">onnx</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">model_int8</span><span class="p">,</span> <span class="n">dummy_input</span><span class="p">,</span> <span class="s2">&#34;model.onnx&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">dynamic_axes</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;input_ids&#34;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&#34;batch&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&#34;seq&#34;</span><span class="p">}})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 5. 用一个薄 API 包起来，并从第一天就埋好延迟、漂移、准确率的指标</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#    监控代码是部署的一部分，不是后续工单</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>让这段脚本变成一个<strong>系统</strong>，需要再补四块东西：每周刷新一次的标注 holdout、带 On-call 路由的漂移看板、A/B 测试框架、看板能直接触发的再训练管线。按这个顺序去搭。</p>
+<hr>
+<h2 id="9-实操问答">9. 实操问答</h2>
+<p><strong>Q1：用闭源 API 还是自托管开源模型？</strong> 原型期、低流量、或者前沿模型在指标上确实大幅领先的任务，用 API。日活流量越过成本临界点、有数据驻留要求、或者延迟 SLA 在 200 毫秒以下时，自托管。很多团队最后两边都做。</p>
+<p><strong>Q2：微调到底要多少数据？</strong> 有一个像样的预训练骨干在手，每类 100 到 1,000 个标注样本通常已经能打过任何精心调过的提示。低于这个量级，用前沿模型做提示工程一般都更划算。</p>
+<p><strong>Q3：生产环境里全量微调还是 LoRA？</strong> 多租户或者多任务共享一个底座，用 LoRA——每个租户只多几 KB 适配权重。单一高风险任务、又承担得起完整模型，全量微调。<strong>只有当部署目标连 LoRA 方案都装不下时，才考虑蒸馏。</strong></p>
+<p><strong>Q4：什么时候该再训练？</strong> &ldquo;分布漂移 AND 标注金丝雀准确率下降&quot;同时触发的时候。不要按日历表再训，世界不按 cron 走。</p>
+<p><strong>Q5：再训练时怎么避免灾难性遗忘？</strong> 把一部分老分布数据混进新训练集；或者用 EWC、LoRA + replay（第 10 章）。务必把上一版测试集作为护栏一起评——一个在新数据上涨了 3 分、却在老数据上掉了 5 分的模型，是一次回退，不是升级。</p>
+<p><strong>Q6：离线评测的提升上线没复现，为什么？</strong> 几乎一定是训推不一致、标签泄露，或者评测集和真实流量之间的人群分布差异。这是一个运维问题，不是算法问题：把预处理对齐到完全一致，审一遍评测集的构成，再重跑 A/B。</p>
+<hr>
+<h2 id="10-整个系列用一段话回顾">10. 整个系列，用一段话回顾</h2>
+<p>我们从迁移学习的&quot;为什么&quot;和形式化定义起步（第 1 章），走过经典的&quot;先预训练再微调&quot;配方（第 2 章）；第 3 章和第 11 章处理域漂移和语言漂移；第 4 章和第 7 章覆盖小样本与零数据的极端情形；第 5 章讲怎么把已有的收益压缩进小模型；第 6 章把范式推广到多任务；第 8 章推到多模态；第 9 章给出今天驱动绝大多数生产微调的参数高效方法；第 10 章解决&quot;持续更新模型而不忘记过去&quot;的问题。这最后一章想说的是：上面所有这些都是必要条件，但不是充分条件——把迁移学习真正推上线，意味着你要同时拥有判断、管线、经济账、实验、监控、ROI 这六样东西的所有权。把这六块都搭起来，剩下的就是工程问题。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>Howard, J., &amp; Ruder, S. (2018). Universal language model fine-tuning for text classification. <em>ACL</em>.</li>
+<li>Wei, J., &amp; Zou, K. (2019). EDA: Easy data augmentation. <em>EMNLP</em>.</li>
+<li>Yun, S., et al. (2019). CutMix: Regularization strategy. <em>ICCV</em>.</li>
+<li>Wu, Y., et al. (2016). Google&rsquo;s neural machine translation system. <em>arXiv:1609.08144</em>.</li>
+<li>Ouyang, L., et al. (2022). Training language models to follow instructions with human feedback. <em>NeurIPS</em>.</li>
+<li>Chen, M., et al. (2021). Evaluating large language models trained on code. <em>arXiv:2107.03374</em>.</li>
+<li>Sculley, D., et al. (2015). Hidden technical debt in machine learning systems. <em>NeurIPS</em>.</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">1</a>
+</td>
+          <td>基础与核心概念</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/">2</a>
+</td>
+          <td>预训练与微调</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%9f%9f%e9%80%82%e5%ba%94%e6%96%b9%e6%b3%95/">3</a>
+</td>
+          <td>域适应</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/">4</a>
+</td>
+          <td>小样本学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e7%9f%a5%e8%af%86%e8%92%b8%e9%a6%8f/">5</a>
+</td>
+          <td>知识蒸馏</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0/">6</a>
+</td>
+          <td>多任务学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e9%9b%b6%e6%a0%b7%e6%9c%ac%e5%ad%a6%e4%b9%a0/">7</a>
+</td>
+          <td>零样本学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%a4%9a%e6%a8%a1%e6%80%81%e8%bf%81%e7%a7%bb/">8</a>
+</td>
+          <td>多模态迁移</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b9%9d-%e5%8f%82%e6%95%b0%e9%ab%98%e6%95%88%e5%be%ae%e8%b0%83/">9</a>
+</td>
+          <td>参数高效微调</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e6%8c%81%e7%bb%ad%e5%ad%a6%e4%b9%a0/">10</a>
+</td>
+          <td>持续学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%b8%80-%e8%b7%a8%e8%af%ad%e8%a8%80%e8%bf%81%e7%a7%bb/">11</a>
+</td>
+          <td>跨语言迁移</td>
+      </tr>
+      <tr>
+          <td><strong>12</strong></td>
+          <td><strong>工业应用与最佳实践（本文）</strong></td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到">你将学到</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#1-到底什么时候才该用迁移学习">1. 到底什么时候才该用迁移学习</a></li>
+    <li><a href="#2-端到端的生产管线">2. 端到端的生产管线</a></li>
+    <li><a href="#3-经济账三到五个数量级的差距">3. 经济账：三到五个数量级的差距</a></li>
+    <li><a href="#4-四个标杆部署">4. 四个标杆部署</a></li>
+    <li><a href="#5-怎样-ab-测试两个迁移学习候选">5. 怎样 A/B 测试两个迁移学习候选</a></li>
+    <li><a href="#6-监控分布漂移">6. 监控分布漂移</a></li>
+    <li><a href="#7-roi把商业账算明白">7. ROI：把商业账算明白</a></li>
+    <li><a href="#8-最小可用的生产配方">8. 最小可用的生产配方</a></li>
+    <li><a href="#9-实操问答">9. 实操问答</a></li>
+    <li><a href="#10-整个系列用一段话回顾">10. 整个系列，用一段话回顾</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">迁移学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5500</strong></div>
+      <div class="row"><span>Published</span><strong>Jul 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

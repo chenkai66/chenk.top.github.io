@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux 用户管理 · Chen Kai Blog</title>
+<meta name="description" content="把 Linux 账户从「会跑 useradd」升级到能讲清楚的层次：/etc/passwd 与 /etc/shadow 的字段含义与联动、初始组与附加组的区别、sudo 的判定流程、useradd/usermod/passwd/chage/userdel 的完整生命周期，以及底下那一层 PAM 是怎么把这些黏在一起的。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/linux/%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linux/%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux 用户管理">
+<meta property="og:description" content="把 Linux 账户从「会跑 useradd」升级到能讲清楚的层次：/etc/passwd 与 /etc/shadow 的字段含义与联动、初始组与附加组的区别、sudo 的判定流程、useradd/usermod/passwd/chage/userdel 的完整生命周期，以及底下那一层 PAM 是怎么把这些黏在一起的。">
+<meta property="og:url" content="https://www.chenk.top/zh/linux/%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+         · Chapter 5
+      </div>
+      <h1>Linux 用户管理</h1>
+      <p class="deck">把 Linux 账户从「会跑 useradd」升级到能讲清楚的层次：/etc/passwd 与 /etc/shadow 的字段含义与联动、初始组与附加组的区别、sudo 的判定流程、useradd/usermod/passwd/chage/userdel 的完整生命周期，以及底下那一层 PAM 是怎么把这些黏在一起的。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-02-22">February 22, 2022</time> · 13 min read · 6400 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/linux/" class="tag">#Linux</a><a href="/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/" class="tag">#云计算</a><a href="/zh/tags/%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86/" class="tag">#系统管理</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>如果你只在自己一台笔记本上跑过 <code>useradd</code> 和 <code>passwd</code>，这篇文章里的大多数细节你可能根本用不上。可一旦同一台机器上同时坐着多个人、跑着多个服务，&ldquo;用户管理&quot;就不再是行政流程，而是安全模型本身：它决定了谁能登进来、进程以哪个 UID 写文件、<code>sudo</code> 把哪些命令提到 root、密码被偷之后还能被用多久。</p>
+<p>这篇文章按一条主线把模型讲完。先看 <code>/etc/passwd</code> 和 <code>/etc/shadow</code> 的原始结构——因为这一节里所有命令本质上都是在改这两个文件；再说用户和组之间最容易讲反的关系；接着是完整的生命周期命令（<code>useradd</code>、<code>usermod</code>、<code>passwd</code>、<code>chage</code>、<code>userdel</code>）、<code>sudo</code> 与 <code>visudo</code> 的正确写法，最后落到那一层把所有东西串起来的 PAM 框架。</p>
+<h1 id="心智模型账户就是几个文本文件里的一行">心智模型：账户就是几个文本文件里的一行</h1>
+<p>先讲数据模型，再讲命令。Linux 的账户信息存在三个扁平的文本文件里，一行一条记录，字段用冒号分隔：</p>
+<ul>
+<li><code>/etc/passwd</code>——公开。每行一个账户（人类账户<strong>和</strong>服务账户都在这里）。所有人可读，只有 root 可写。</li>
+<li><code>/etc/shadow</code>——机密。每行一个账户，存密码哈希和老化策略。只有 root 可读。</li>
+<li><code>/etc/group</code>——每行一个组，最后一段是逗号分隔的成员列表。</li>
+</ul>
+<p>另外还有 <code>/etc/gshadow</code>（组密码和组管理员，实际很少用）和 <code>/etc/skel</code>（每个新家目录的模板）。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/fig1_passwd_anatomy.png" alt="/etc/passwd 一行的解剖以及它和 /etc/shadow 的关联" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>/etc/passwd</code> 的七个字段，从左到右：</p>
+<ol>
+<li><strong>username</strong>——登录名，本机唯一。</li>
+<li><strong>密码占位符</strong>——几乎永远是 <code>x</code>，意思是&quot;真正的哈希在 <code>/etc/shadow</code> 里&rdquo;。如果这位是 <code>*</code> 或者空，意味着没有可用密码（这跟&quot;被锁定&quot;是两回事）。</li>
+<li><strong>UID</strong>——用户的数字 ID。内核眼里只有这个数，名字只是给人看的。<code>0</code> 是 root，<code>1–999</code> 留给系统服务，<code>1000+</code> 是人类账户（CentOS 6 及更早从 <code>500</code> 起算）。</li>
+<li><strong>GID</strong>——<strong>初始组</strong>的 ID。这个用户新建的文件，默认属组就是它。</li>
+<li><strong>GECOS</strong>——历史上是 General Electric Comprehensive Operating System 的全名字段，今天就是个自由格式的注释。<code>chfn</code> 可以改它。</li>
+<li><strong>家目录</strong>——登录后的 <code>$HOME</code>。如果你给 <code>useradd</code> 加了 <code>-m</code>，系统会从 <code>/etc/skel</code> 复制一份过来。</li>
+<li><strong>登录 shell</strong>——认证通过后被 <code>exec</code> 起来的程序。把它设成 <code>/sbin/nologin</code> 或 <code>/usr/sbin/nologin</code> 就能让账户变成不可交互登录的状态（这是服务账户该有的样子）。</li>
+</ol>
+<p>对应的 <code>/etc/shadow</code> 一行里则有：哈希本身（前缀决定算法——<code>$6$</code> 是 SHA‑512，新版 Debian/Ubuntu 默认的 <code>$y$</code> 是 yescrypt，<code>$1$</code> 是 MD5，现代系统上不该再见到它）、上次改密码的天数（自 1970-01-01 起算），以及五个老化字段：<code>min</code>、<code>max</code>、<code>warn</code>、<code>inactive</code>、<code>expire</code>。哈希前面带 <code>!</code> 或 <code>*</code> 表示&quot;已锁定&quot;——账户存在，但任何密码都对不上。</p>
+<blockquote>
+<p>不要直接用普通编辑器去改这些文件。要改的话用 <code>vipw</code> 和 <code>vigr</code>，它们会拿正确的锁（<code>/etc/passwd.lock</code>、<code>/etc/shadow.lock</code>），避免你保存的瞬间正好和 <code>useradd</code> 撞车把文件写坏。更好的做法是用上层封装好的命令。</p>
+</blockquote>
+<h1 id="用户初始组附加组">用户、初始组、附加组</h1>
+<p>这一节是教程里最容易讲反的地方。每个账户都恰好有<strong>一个初始组</strong>（<code>/etc/passwd</code> 里那个 GID），以及<strong>零个或多个附加组</strong>（<code>/etc/group</code> 里成员列表包含这个用户的那些行）。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/fig2_user_group_relationship.png" alt="一个用户、一个初始组、若干附加组" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>为什么要分成两类？</p>
+<ul>
+<li><strong>初始组</strong>决定默认属组：<code>alice</code> 跑 <code>touch foo</code>，文件就是 <code>alice:alice</code>（或者她的初始组是什么就是什么）。它也是登录后内核给进程设的 <code>egid</code>。</li>
+<li><strong>附加组</strong>是用来发<strong>额外</strong>权限的。把 <code>alice</code> 加进 <code>docker</code>，她就能跟 docker socket 说话；加进 <code>sudo</code>（Debian）或 <code>wheel</code>（RHEL），她就能提权。这些都不会改变她新建文件的默认属组。</li>
+</ul>
+<p>一个常见的迷惑点：如果 <code>alice</code> 的初始组就叫 <code>alice</code>，你在 <code>/etc/group</code> 里那一行 <code>alice</code> 的成员列表里<strong>看不到她的名字</strong>——初始组的归属信息存在 <code>/etc/passwd</code> 里，不在 <code>/etc/group</code> 里。<code>/etc/group</code> 的成员列表只列<strong>附加成员</strong>。要看真正的并集，问内核：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">id alice
+</span></span><span class="line"><span class="cl"><span class="c1"># uid=1001(alice) gid=1001(alice) groups=1001(alice),998(docker),27(sudo)</span>
+</span></span><span class="line"><span class="cl">groups alice
+</span></span><span class="line"><span class="cl"><span class="c1"># alice : alice docker sudo</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="生命周期命令">生命周期命令</h1>
+<p>每个账户都会经历同样的五个阶段。每条命令各自只动其中几个文件；只要你清楚谁动了谁，恢复和审计就都不是问题。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/fig4_user_lifecycle_commands.png" alt="Linux 账户的生命周期：useradd, usermod, passwd, 锁定, userdel" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="useradd创建"><code>useradd</code>——创建</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo useradd -m -s /bin/bash -c <span class="s2">&#34;Alice Wang&#34;</span> alice
+</span></span><span class="line"><span class="cl">sudo passwd alice
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>值得记住的几个参数：</p>
+<table>
+  <thead>
+      <tr>
+          <th>参数</th>
+          <th>作用</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>-m</code></td>
+          <td>创建家目录（同时把 <code>/etc/skel</code> 的内容复制进去）。不加 <code>-m</code> 的话，账户的 <code>$HOME</code> 会指向一个不存在的路径。</td>
+      </tr>
+      <tr>
+          <td><code>-s SHELL</code></td>
+          <td>登录 shell：<code>/bin/bash</code>、<code>/bin/zsh</code>，或者服务账户用 <code>/sbin/nologin</code>。</td>
+      </tr>
+      <tr>
+          <td><code>-g GROUP</code></td>
+          <td>初始组。默认行为是新建一个同名组、用同样的 GID（这就是&quot;用户私有组&quot;模型，所有现代发行版的标准布局）。</td>
+      </tr>
+      <tr>
+          <td><code>-G g1,g2</code></td>
+          <td>附加组，逗号分隔。<strong>逗号之间不要有空格</strong>。</td>
+      </tr>
+      <tr>
+          <td><code>-u UID</code></td>
+          <td>指定 UID。在多台机器共享 NFS 的场景下用得上，可以保证文件归属一致。</td>
+      </tr>
+      <tr>
+          <td><code>-r</code></td>
+          <td>创建<strong>系统</strong>用户（UID 落在系统区间，不参与老化，不建 <code>/home</code>）。</td>
+      </tr>
+      <tr>
+          <td><code>-c &quot;...&quot;</code></td>
+          <td>GECOS / 注释字段。</td>
+      </tr>
+  </tbody>
+</table>
+<p>两种最常见的写法：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 一个人类账户，加进 developers 和 docker：</span>
+</span></span><span class="line"><span class="cl">sudo useradd -m -s /bin/bash -G developers,docker bob
+</span></span><span class="line"><span class="cl">sudo passwd bob
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 一个跑 nginx 的服务账户：</span>
+</span></span><span class="line"><span class="cl">sudo useradd -r -s /sbin/nologin -d /var/lib/nginx -M nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>-M</code> 的意思是&quot;不要建家目录&quot;——很多服务账户不需要家目录，因为它们的状态目录在别的地方（一般是 <code>/var/lib/&lt;service&gt;</code>）。</p>
+<h2 id="usermod原地修改"><code>usermod</code>——原地修改</h2>
+<p><code>-G</code> 的坑是它会<strong>整体替换</strong>已有的附加组列表。要追加，用 <code>-aG</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 对：把 alice 加进 sudo，其他附加组保留。</span>
+</span></span><span class="line"><span class="cl">sudo usermod -aG sudo alice
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 错：这会把 alice 的附加组直接覆盖成 {sudo}。</span>
+</span></span><span class="line"><span class="cl">sudo usermod -G sudo alice
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>其他常用写法：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo usermod -s /bin/zsh alice                   <span class="c1"># 改登录 shell</span>
+</span></span><span class="line"><span class="cl">sudo usermod -d /data/alice -m alice             <span class="c1"># 搬家目录（连内容一起搬）</span>
+</span></span><span class="line"><span class="cl">sudo usermod -l awang -d /home/awang -m alice    <span class="c1"># 改用户名</span>
+</span></span><span class="line"><span class="cl">sudo usermod -L alice                            <span class="c1"># 锁定（在哈希前加 &#39;!&#39;）</span>
+</span></span><span class="line"><span class="cl">sudo usermod -U alice                            <span class="c1"># 解锁</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>锁定的账户依然存在、依然拥有自己的文件，root 依然可以 <code>su - alice</code> 切过去——只是任何密码都不会被认可。这正是员工离职、但他名下的文件可能还要再用几周时的标准做法。</p>
+<h2 id="passwd-和-chage密码本身和它的过期策略"><code>passwd</code> 和 <code>chage</code>——密码本身和它的过期策略</h2>
+<p><code>passwd</code> 设密码；<code>chage</code> 设决定密码什么时候必须换的策略。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">passwd                       <span class="c1"># 改自己的密码</span>
+</span></span><span class="line"><span class="cl">sudo passwd alice            <span class="c1"># 改 alice 的密码</span>
+</span></span><span class="line"><span class="cl">sudo passwd -l alice         <span class="c1"># 锁定（和 `usermod -L` 等效）</span>
+</span></span><span class="line"><span class="cl">sudo passwd -u alice         <span class="c1"># 解锁</span>
+</span></span><span class="line"><span class="cl">sudo passwd -e alice         <span class="c1"># 立刻过期：alice 下次登录必须重设</span>
+</span></span><span class="line"><span class="cl">sudo passwd -d alice         <span class="c1"># 删除密码（变成空密码登录——基本不会是你想要的）</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>chage -l</code> 看当前策略；<code>chage</code> 改它：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo chage -l alice
+</span></span><span class="line"><span class="cl"><span class="c1"># Last password change         : Apr 21, 2026</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Password expires             : Jul 20, 2026</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Password inactive            : Aug 19, 2026</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Account expires              : never</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Minimum number of days...    : 1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Maximum number of days...    : 90</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Number of days of warning... : 7</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 一个还算合理的策略：90 天必须换；过期前 7 天开始警告；</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 过期后再过 30 天，账户直接禁用。</span>
+</span></span><span class="line"><span class="cl">sudo chage -m <span class="m">1</span> -M <span class="m">90</span> -W <span class="m">7</span> -I <span class="m">30</span> alice
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 给某个日期写死过期（比如外包到期）：</span>
+</span></span><span class="line"><span class="cl">sudo chage -E 2026-12-31 alice
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>值得提醒的是，&ldquo;最长使用期限&quot;本身并不是大多数人想象中的安全控制——NIST SP 800-63B 这一代的指导意见，其实是<strong>反对</strong>强制周期性轮换<strong>人类</strong>密码的，因为这只会逼用户用可预测的套路。要用就用在<strong>服务账户</strong>和合规明确要求的场景上；对人类账户，靠多因素、长度、和泄露检测才是正路。</p>
+<h2 id="userdel以及为什么应该先锁后删"><code>userdel</code>——以及为什么应该先锁后删</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo userdel alice           <span class="c1"># 删账户，保留 $HOME</span>
+</span></span><span class="line"><span class="cl">sudo userdel -r alice        <span class="c1"># 删账户，连 $HOME 和邮件假脱机一起删</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>风险点：<code>alice</code> 在 <code>$HOME</code> 之外拥有的文件，删账户之后会变成&quot;无主文件&rdquo;，属主只剩一个光秃秃的 UID。下一次创建的账户如果分到了同一个 UID，会<strong>默默继承这些文件</strong>。要避免这件事，靠流程，不是靠技术：</p>
+<ol>
+<li><code>usermod -L alice</code>（或 <code>passwd -l alice</code>）——立刻锁定，禁止再登录。</li>
+<li>等。等 cron 跑完，等还开着的 shell 关掉，等文件归属审计跑完。</li>
+<li><code>find / -uid $(id -u alice) -print</code> 看看她在 <code>$HOME</code> 之外还拥有什么。<code>chown</code> 转给别人，或者归档。</li>
+<li>这之后才是 <code>userdel -r alice</code>。</li>
+</ol>
+<h1 id="组管理">组管理</h1>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo groupadd developers              <span class="c1"># 创建</span>
+</span></span><span class="line"><span class="cl">sudo groupadd -g <span class="m">2000</span> developers      <span class="c1"># 创建并指定 GID</span>
+</span></span><span class="line"><span class="cl">sudo groupmod -n devs developers      <span class="c1"># 改名</span>
+</span></span><span class="line"><span class="cl">sudo groupmod -g <span class="m">3000</span> developers      <span class="c1"># 改 GID（注意：不会同时 chown 已有文件！）</span>
+</span></span><span class="line"><span class="cl">sudo groupdel developers              <span class="c1"># 删除（如果是某人的初始组会拒绝）</span>
+</span></span><span class="line"><span class="cl">sudo gpasswd -a alice developers      <span class="c1"># 把 alice 加进 developers</span>
+</span></span><span class="line"><span class="cl">sudo gpasswd -d alice developers      <span class="c1"># 把 alice 从 developers 移出</span>
+</span></span><span class="line"><span class="cl">sudo gpasswd -A alice developers      <span class="c1"># 让 alice 当组管理员</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>gpasswd</code> 是专门管 <code>/etc/group</code> / <code>/etc/gshadow</code> 的封装，比通过 <code>usermod -G</code> 间接动这两个文件更安全；它还能把&quot;管理某个组的成员&quot;这件事下放给一个非 root 用户——这就是&quot;组管理员&quot;角色的用法。</p>
+<h1 id="sudo把一条命令变成-root"><code>sudo</code>：把一条命令变成 root</h1>
+<p>直接用 root 登录有两个错。第一，<code>rm -rf /</code> 应该有阻力；第二，审计日志里只能看见&quot;root 干了什么事&quot;，在不止一个人有 root 密码的环境里完全没用。<code>sudo</code> 把这两件事都修了：每次调用都按<strong>真实用户</strong>记账，而策略文件能让你只发出恰好够用的权限。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/fig3_sudo_policy_hierarchy.png" alt="sudo 是怎么决定要不要执行你这条命令的" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>一条 <code>sudoers</code> 规则要在<strong>五个</strong>维度上同时匹配，命令才会执行：</p>
+<pre tabindex="0"><code>user_or_%group  host=(runas_user:runas_group)  TAG=  command_list
+</code></pre><p>照着读一遍：&quot;<strong>谁</strong>，在<strong>哪台主机上</strong>，可以以<strong>谁的身份</strong>，带<strong>什么标签</strong>，执行<strong>哪些命令</strong>。&quot;</p>
+<h2 id="用-visudo永远不要直接编辑">用 <code>visudo</code>，永远不要直接编辑</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo visudo                       <span class="c1"># 改 /etc/sudoers</span>
+</span></span><span class="line"><span class="cl">sudo visudo -f /etc/sudoers.d/ops <span class="c1"># 改某个 drop-in 文件</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>visudo</code> 会拿锁、保存时跑 <code>sudoers</code> 语法校验，校验不过它直接拒绝写入。直接 <code>vim /etc/sudoers</code> 是少数几个能把一台机器彻底锁死、除了进单用户模式没别的办法救的事故来源——因为 <code>sudo</code> 自己读不懂自己的配置时，<strong>没有任何东西</strong>能帮你修。</p>
+<p>更推荐用 <code>/etc/sudoers.d/</code> 下面的 drop-in 文件（主文件里有一行 <code>@includedir</code> 把它们包进来）。它们更适合走版本控制、走包管理、走代码评审，比单一巨大的文件好维护得多。</p>
+<h2 id="真正会用到的几种写法">真正会用到的几种写法</h2>
+<pre tabindex="0"><code class="language-sudoers" data-lang="sudoers"># 完整 root 权限，要密码。
+alice   ALL=(ALL:ALL) ALL
+
+# 按组发：wheel（RHEL）或 sudo（Debian）的成员都能成 root。
+%wheel  ALL=(ALL:ALL) ALL
+
+# 收敛：bob 只能重启 nginx，不要密码。
+bob     ALL=(root) NOPASSWD: /usr/bin/systemctl restart nginx, \
+                              /usr/bin/systemctl status nginx
+
+# 用别名让大策略读起来还像人话。
+Cmnd_Alias NGINX_CTL = /usr/bin/systemctl restart nginx, \
+                        /usr/bin/systemctl reload nginx, \
+                        /usr/bin/systemctl status nginx
+User_Alias  ONCALL    = alice, bob, carol
+ONCALL    ALL=(root) NOPASSWD: NGINX_CTL
+</code></pre><p>几个不那么直观的规则：</p>
+<ul>
+<li>命令列表必须写<strong>绝对路径</strong>。<code>bob ... NOPASSWD: nginx</code> 没什么用，甚至可能开后门——用户可以让 <code>nginx</code> 在自己的 <code>$PATH</code> 上指向别的东西。</li>
+<li>不指定参数的话，命令是按<strong>前缀</strong>匹配的。<code>/usr/bin/systemctl restart nginx</code> 只允许这一条；<code>/usr/bin/systemctl</code> 等价于&quot;systemctl 能干的它都能干&quot;（包括 <code>poweroff</code>）。</li>
+<li><code>NOPASSWD:</code> 方便也危险。留给非交互的自动化用；人类账户该问就问。</li>
+<li><code>Defaults requiretty</code>（RHEL 上偶尔会带）会让 <code>sudo</code> 在非 tty 的通道上直接挂掉。给自动化账户单独写一行 <code>Defaults:bot !requiretty</code>。</li>
+</ul>
+<h2 id="sudo-启动时读什么"><code>sudo</code> 启动时读什么</h2>
+<p>按顺序：先 <code>/etc/sudoers</code>，再 <code>/etc/sudoers.d/</code> 下面所有文件按字母序，然后解析组成员关系，最后应用 <code>Defaults</code>。要看某个用户<strong>最终生效</strong>的策略，用 <code>sudo -ll</code>，比手动读这些文件靠谱得多。</p>
+<h2 id="su-和-sudo-的差别"><code>su</code> 和 <code>sudo</code> 的差别</h2>
+<p><code>su -</code> 用<strong>目标用户</strong>的密码开一个 shell（默认是 root）；<code>sudo</code> 用<strong>你自己</strong>的密码以另一个用户身份跑一条命令。几乎所有场景下都该选 <code>sudo</code>：审计粒度更细，而且你永远不需要把 root 密码告诉别人。</p>
+<h1 id="pam所有这些东西底下的那一层">PAM：所有这些东西底下的那一层</h1>
+<p><code>sudo</code>、<code>sshd</code>、<code>login</code>、<code>gdm</code>、<code>cron</code>、<code>su</code>、<code>passwd</code>、<code>crond</code>——它们里面<strong>没有一个</strong>自己实现了密码校验。全部委托给 PAM（Pluggable Authentication Modules），一个由 <code>.so</code> 库堆起来的栈，每个服务都在 <code>/etc/pam.d/</code> 里有自己的配置。看懂 PAM 是把&quot;我也不知道这个账户为什么登不上&quot;变成五秒钟就能定位的关键。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86/fig5_pam_auth_flow.png" alt="PAM 怎么处理一次登录请求：auth, account, password, session" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>一个 PAM 服务文件里最多有四个栈：</p>
+<ul>
+<li><strong>auth</strong>——证明你是你。<code>pam_unix.so</code> 查 <code>/etc/shadow</code>；<code>pam_sss.so</code> 跟 SSSD/LDAP/AD 对接；<code>pam_google_authenticator.so</code> 接 TOTP。</li>
+<li><strong>account</strong>——就算密码对了，这个账户<strong>现在</strong>可以登吗？老化策略、<code>nologin</code> 标志、当前时间、来源主机都在这一层判断。</li>
+<li><strong>password</strong>——只在 <code>passwd</code> 触发时跑。强度规则（<code>pam_pwquality.so</code>）、复用规则（<code>pam_pwhistory.so</code>），最后 <code>pam_unix.so</code> 把新哈希写下去。</li>
+<li><strong>session</strong>——成功登录之后给用户搭好工作环境：rlimit（<code>pam_limits.so</code>）、systemd 用户 slice（<code>pam_systemd.so</code>）、首次登录时建家目录（<code>pam_mkhomedir.so</code>）、记 <code>lastlog</code>。</li>
+</ul>
+<p>每一行都带一个<strong>控制标志</strong>，决定它的结果怎么和栈里其他模块组合：</p>
+<ul>
+<li><code>required</code>——必须成功；失败的话整栈失败，但 PAM 会把剩下的模块跑完，让用户看不出<strong>具体哪一行</strong>挂了（这是故意的——告诉攻击者会泄露信息）。</li>
+<li><code>requisite</code>——必须成功；失败立刻终止，不再往下跑。</li>
+<li><code>sufficient</code>——只要它通过、并且前面没有 <code>required</code> 失败过，整栈直接通过。</li>
+<li><code>optional</code>——结果会被忽略，除非它是栈里唯一的模块。</li>
+</ul>
+<p>一个实际例子——在 Debian 上打开强密码策略。改 <code>/etc/pam.d/common-password</code>：</p>
+<pre tabindex="0"><code class="language-pam" data-lang="pam">password requisite pam_pwquality.so retry=3 minlen=12 \
+                   dcredit=-1 ucredit=-1 ocredit=-1 lcredit=-1 \
+                   difok=4 enforce_for_root
+password required  pam_pwhistory.so remember=5 use_authtok
+password [success=1 default=ignore] pam_unix.so obscure use_authtok yescrypt
+</code></pre><p>它说的是：长度至少 12；至少各有一个数字 / 大写 / 特殊字符 / 小写（<code>-1</code> 的意思是&quot;这一类至少给一分&quot;）；和旧密码相同的字符不能超过 4 个；记住最近 5 次的哈希、不准复用；最后用现代的 yescrypt 写下去。改之前先用一个<strong>非 root 账户</strong>跑 <code>passwd &lt;自己&gt;</code> 验证一下，再退出登录。</p>
+<p>定位问题最有用的工具就是日志：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo journalctl -u sshd -e            <span class="c1"># sshd 看到了什么</span>
+</span></span><span class="line"><span class="cl">sudo journalctl <span class="nv">_COMM</span><span class="o">=</span>sudo --since <span class="s2">&#34;1h ago&#34;</span>
+</span></span><span class="line"><span class="cl">sudo grep <span class="s2">&#34;alice&#34;</span> /var/log/auth.log   <span class="c1"># Debian</span>
+</span></span><span class="line"><span class="cl">sudo grep <span class="s2">&#34;alice&#34;</span> /var/log/secure     <span class="c1"># RHEL</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果密码确实对，但还是登不上，几乎一定是这几种之一：账户被锁（<code>/etc/shadow</code> 里哈希前有 <code>!</code>）；shell 设成了 <code>/sbin/nologin</code>；<code>/etc/nologin</code> 文件存在导致 <code>pam_nologin</code> 把所有人挡在门外；<code>sshd_config</code> 里的 <code>AllowUsers</code> / <code>DenyUsers</code>；密码已经过了 <code>inactive</code> 期。</p>
+<h1 id="几个现场常见的方案">几个现场常见的方案</h1>
+<h2 id="共享项目目录">共享项目目录</h2>
+<p>需求：<code>/srv/project</code> 对 <code>developers</code> 组成员可读写，对其他人完全不可见，并且组员在里面新建的文件<strong>自动</strong>保持 <code>developers</code> 属组——避免互相不小心把对方锁在外面。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo groupadd -r developers
+</span></span><span class="line"><span class="cl">sudo usermod -aG developers alice
+</span></span><span class="line"><span class="cl">sudo usermod -aG developers bob
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo mkdir -p /srv/project
+</span></span><span class="line"><span class="cl">sudo chown root:developers /srv/project
+</span></span><span class="line"><span class="cl">sudo chmod <span class="m">2770</span> /srv/project   <span class="c1"># 2 是 SGID；770 是 owner+group rwx，others 全无</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>2770</code> 里那个 <code>2</code> 是<strong>目录上的 SGID 位</strong>：新建文件继承父目录的属组，而不是创建者的初始组。如果不加这位，<code>alice</code>（初始组 <code>alice</code>）建出来的文件会是 <code>alice:alice</code>，<code>bob</code> 就改不动。</p>
+<p>如果还想再细——比如&quot;developers 可写，但 carol 只读&quot;——上 POSIX ACL：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo setfacl -m g:developers:rwx /srv/project
+</span></span><span class="line"><span class="cl">sudo setfacl -m u:carol:r-x /srv/project
+</span></span><span class="line"><span class="cl">sudo setfacl -d -m g:developers:rwx /srv/project   <span class="c1"># 默认 ACL，作用于以后新建的文件</span>
+</span></span><span class="line"><span class="cl">getfacl /srv/project
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="服务账户的标准写法">服务账户的标准写法</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo useradd --system <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --home-dir /var/lib/myapp <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --shell /usr/sbin/nologin <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --no-create-home <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --user-group <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             myapp
+</span></span><span class="line"><span class="cl">sudo install -d -o myapp -g myapp -m <span class="m">0750</span> /var/lib/myapp /var/log/myapp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>--system</code> 拿一个低段 UID，跳过老化。<code>--user-group</code> 顺手建一个同名组。<code>--no-create-home</code> 是因为状态目录我们要用 <code>install</code> 自己建，把权限位钉到 0750。systemd unit 里写 <code>User=myapp Group=myapp</code>，这就是磁盘上<strong>唯一</strong>应该拥有这个应用数据的身份。</p>
+<h2 id="分级-sudo">分级 <code>sudo</code></h2>
+<pre tabindex="0"><code class="language-sudoers" data-lang="sudoers">Cmnd_Alias READ_LOGS = /usr/bin/journalctl, /usr/bin/tail, /usr/bin/less
+Cmnd_Alias NGINX_CTL = /usr/bin/systemctl restart nginx, \
+                        /usr/bin/systemctl reload nginx, \
+                        /usr/bin/systemctl status nginx
+
+# 完整管理员
+alice    ALL=(ALL:ALL) ALL
+# 值班：只能动 nginx，不要密码（凌晨三点被叫起来，没空在键盘上跟密码较劲）
+bob      ALL=(root) NOPASSWD: NGINX_CTL
+# 支持：读日志，但要密码
+carol    ALL=(root)          READ_LOGS
+</code></pre><h2 id="从-csv-批量建用户">从 CSV 批量建用户</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/usr/bin/env bash
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="nb">set</span> -euo pipefail
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="nv">IFS</span><span class="o">=</span>, <span class="nb">read</span> -r username fullname groups<span class="p">;</span> <span class="k">do</span>
+</span></span><span class="line"><span class="cl">  id <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">&#34;</span> <span class="p">&amp;</span>&gt;/dev/null <span class="o">&amp;&amp;</span> <span class="o">{</span> <span class="nb">echo</span> <span class="s2">&#34;skip </span><span class="nv">$username</span><span class="s2"> (已存在)&#34;</span><span class="p">;</span> <span class="k">continue</span><span class="p">;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  sudo useradd -m -s /bin/bash -c <span class="s2">&#34;</span><span class="nv">$fullname</span><span class="s2">&#34;</span> -G <span class="s2">&#34;</span><span class="nv">$groups</span><span class="s2">&#34;</span> <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># 生成一次性的随机密码，并强制首次登录修改。</span>
+</span></span><span class="line"><span class="cl">  <span class="nv">pw</span><span class="o">=</span><span class="k">$(</span>openssl rand -base64 16<span class="k">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nb">echo</span> <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">:</span><span class="nv">$pw</span><span class="s2">&#34;</span> <span class="p">|</span> sudo chpasswd
+</span></span><span class="line"><span class="cl">  sudo chage -d <span class="m">0</span> <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">&#34;</span>     <span class="c1"># &#39;last change = epoch&#39; 的小技巧：首次登录必须重设</span>
+</span></span><span class="line"><span class="cl">  <span class="nb">echo</span> <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">,</span><span class="nv">$pw</span><span class="s2">&#34;</span> &gt;&gt; /root/initial-passwords.csv
+</span></span><span class="line"><span class="cl"><span class="k">done</span> &lt; users.csv
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>chpasswd</code> 接受 <code>user:password</code> 行，是批量改密的正确工具；<code>passwd --stdin</code> 只在 RHEL 系上有。<code>chage -d 0</code> 是个特别好用的小技巧，可以在不发非过期随机密码的前提下，强制用户首次登录就改一次。</p>
+<h1 id="接下来读什么">接下来读什么</h1>
+<p>这一章把操作模型讲完了：文件结构、生命周期命令、<code>sudo</code> 策略语言、PAM 栈。系列里下面两篇会直接接着这套基础往下走：</p>
+<ul>
+<li><a href="../%e6%96%87%e4%bb%b6%e6%9d%83%e9%99%90/">Linux 文件权限</a>
+——<code>rwx</code>、上面共享目录里用到的 SUID / SGID、以及 POSIX ACL。</li>
+<li><a href="../%e7%b3%bb%e7%bb%9f%e6%9c%8d%e5%8a%a1%e7%ae%a1%e7%90%86/">Linux 系统服务管理</a>
+——systemd unit 里的 <code>User=</code> / <code>Group=</code> / <code>DynamicUser=</code> 是怎么把&quot;建一个服务账户&quot;这件事变得几乎不必要的。</li>
+</ul>
+<p>边上可以放着的参考：<code>man 5 sudoers</code>、<code>man 8 pam.d</code>、<code>man 5 shadow</code>，以及——如果哪天你需要给十几台以上的机器做集中身份认证——FreeIPA / SSSD 的官方文档。</p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#useradd创建"><code>useradd</code>——创建</a></li>
+    <li><a href="#usermod原地修改"><code>usermod</code>——原地修改</a></li>
+    <li><a href="#passwd-和-chage密码本身和它的过期策略"><code>passwd</code> 和 <code>chage</code>——密码本身和它的过期策略</a></li>
+    <li><a href="#userdel以及为什么应该先锁后删"><code>userdel</code>——以及为什么应该先锁后删</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#用-visudo永远不要直接编辑">用 <code>visudo</code>，永远不要直接编辑</a></li>
+    <li><a href="#真正会用到的几种写法">真正会用到的几种写法</a></li>
+    <li><a href="#sudo-启动时读什么"><code>sudo</code> 启动时读什么</a></li>
+    <li><a href="#su-和-sudo-的差别"><code>su</code> 和 <code>sudo</code> 的差别</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#共享项目目录">共享项目目录</a></li>
+    <li><a href="#服务账户的标准写法">服务账户的标准写法</a></li>
+    <li><a href="#分级-sudo">分级 <code>sudo</code></a></li>
+    <li><a href="#从-csv-批量建用户">从 CSV 批量建用户</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6400</strong></div>
+      <div class="row"><span>Published</span><strong>Feb 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

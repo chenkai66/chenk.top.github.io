@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="zh" data-translation="/en/terraform-agents/05-storage-for-agent-memory/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆 · Chen Kai Blog</title>
+<meta name="description" content="Agent 有三种记忆，分别落到三个阿里云服务上：会话用 PolarDB/RDS，embedding 用 OpenSearch 向量版或 pgvector，产物用 OSS。每一层的真实 Terraform，加上让账单不暴涨的 lifecycle 和备份规则。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆">
+<meta property="og:description" content="Agent 有三种记忆，分别落到三个阿里云服务上：会话用 PolarDB/RDS，embedding 用 OpenSearch 向量版或 pgvector，产物用 OSS。每一层的真实 Terraform，加上让账单不暴涨的 lifecycle 和备份规则。">
+<meta property="og:url" content="https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-3);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Terraform Agents</a>
+         · Chapter 5
+      </div>
+      <h1>用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆</h1>
+      <p class="deck">Agent 有三种记忆，分别落到三个阿里云服务上：会话用 PolarDB/RDS，embedding 用 OpenSearch 向量版或 pgvector，产物用 OSS。每一层的真实 Terraform，加上让账单不暴涨的 lifecycle 和备份规则。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-03-20">March 20, 2026</time> · 7 min read · 3100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/terraform/" class="tag">#Terraform</a><a href="/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" class="tag">#阿里云</a><a href="/zh/tags/oss/" class="tag">#OSS</a><a href="/zh/tags/rds/" class="tag">#RDS</a><a href="/zh/tags/opensearch/" class="tag">#OpenSearch</a><a href="/zh/tags/ai-agent/" class="tag">#AI Agent</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/en/terraform-agents/05-storage-for-agent-memory/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Agent 的&quot;记忆&quot;是多数教程一笔带过的部分。&ldquo;embedding 丢 Pinecone，会话进 Postgres，截图传 S3。&ldquo;在阿里云上，三种都有托管服务，而正确地用 Terraform 把它们建出来，就是&quot;记忆好用&quot;和&quot;凌晨四点磁盘满了我们丢了三周对话历史&quot;的差。</p>
+<p>本篇覆盖三层、每层的 Terraform，外加无聊但关键的 lifecycle 和备份规则。</p>
+<h2 id="三层记忆模型">三层记忆模型</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png" alt="Agent 三种记忆映射到三个阿里云服务" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>心智模型：</p>
+<ul>
+<li><strong>短期 / 会话</strong>——Agent 在当前次和最近几次跑里做过的事。对话轮次、工具调用、中间状态。schema 稳定、低延迟、要事务。放关系型数据库。</li>
+<li><strong>长期 / 语义</strong>——文档、历史输出、召回库的 embedding。混合 lexical + 向量检索。放向量库。</li>
+<li><strong>产物 / blob</strong>——生成的图片、PDF、截图、运行快照。有时大、常常写一次很少读。放对象存储。</li>
+</ul>
+<p>不要混淆。我见过一个团队把 50 GB 生成的 PDF 塞进 Postgres，因为&quot;它有 <code>bytea</code> 列&rdquo;。成本是 OSS 的十倍，查询延迟糊成一团，备份要几小时。</p>
+<h2 id="第-1-层关系型rds-for-postgresql">第 1 层：关系型，RDS for PostgreSQL</h2>
+<p>会话状态——对话轮次、工具调用 trace、用户身份——你需要真正的 RDBMS。PostgreSQL 是我的默认；MySQL 也行如果团队偏好。需要横向 scale 时升 PolarDB。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;random_password&#34; &#34;rds_admin&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  length</span>  <span class="o">=</span> <span class="m">32</span>
+</span></span><span class="line"><span class="cl"><span class="n">  special</span> <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_kms_secret&#34; &#34;rds_admin&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  secret_name</span>              <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace}-rds-admin&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  secret_data</span>              <span class="o">=</span> <span class="k">random_password</span><span class="p">.</span><span class="k">rds_admin</span><span class="p">.</span><span class="k">result</span>
+</span></span><span class="line"><span class="cl"><span class="n">  version_id</span>               <span class="o">=</span> <span class="s2">&#34;v1&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  description</span>              <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace} 的 RDS admin 密码&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  encryption_key_id</span>        <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;secrets&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">  recovery_window_in_days</span>  <span class="o">=</span> <span class="m">7</span>
+</span></span><span class="line"><span class="cl"><span class="n">  force_delete_without_recovery</span> <span class="o">=</span> <span class="kt">false</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_db_instance&#34; &#34;memory&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  engine</span>           <span class="o">=</span> <span class="s2">&#34;PostgreSQL&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  engine_version</span>   <span class="o">=</span> <span class="s2">&#34;16.0&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  instance_type</span>    <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34; ? &#34;pg.x4.large.2c&#34; : &#34;pg.n2.medium.1c&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  instance_storage</span> <span class="o">=</span> <span class="m">100</span>
+</span></span><span class="line"><span class="cl"><span class="n">  instance_name</span>    <span class="o">=</span> <span class="s2">&#34;agents-memory-${terraform.workspace}&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  vswitch_id</span>          <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span><span class="p">[</span><span class="m">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">  security_ips</span>        <span class="o">=</span> <span class="p">[</span><span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">vpc_cidr_block</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">  db_instance_storage_type</span> <span class="o">=</span> <span class="s2">&#34;cloud_essd&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  encryption_key</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;memory&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  backup_period</span>   <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;Monday&#34;, &#34;Wednesday&#34;, &#34;Friday&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">  backup_time</span>     <span class="o">=</span> <span class="s2">&#34;02:00Z-03:00Z&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  retention_period</span> <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34;</span> <span class="err">?</span> <span class="m">30</span> <span class="err">:</span> <span class="m">7</span>
+</span></span><span class="line"><span class="cl"><span class="n">  log_backup_retention_period</span> <span class="o">=</span> <span class="m">30</span>
+</span></span><span class="line"><span class="cl"><span class="n">  preferred_backup_period</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;Monday&#34;, &#34;Wednesday&#34;, &#34;Friday&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  deletion_protection</span> <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  zone_id</span> <span class="o">=</span> <span class="s2">&#34;cn-shanghai-l&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  zone_id_slave_a</span> <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34; ? &#34;cn-shanghai-m&#34;</span> <span class="err">:</span> <span class="k">null</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_db_account&#34; &#34;agent&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  db_instance_id</span>   <span class="o">=</span> <span class="k">alicloud_db_instance</span><span class="p">.</span><span class="k">memory</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  account_name</span>     <span class="o">=</span> <span class="s2">&#34;agent&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  account_password</span> <span class="o">=</span> <span class="k">random_password</span><span class="p">.</span><span class="k">rds_admin</span><span class="p">.</span><span class="k">result</span>
+</span></span><span class="line"><span class="cl"><span class="n">  account_type</span>     <span class="o">=</span> <span class="s2">&#34;Super&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_db_database&#34; &#34;session&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  instance_id</span>   <span class="o">=</span> <span class="k">alicloud_db_instance</span><span class="p">.</span><span class="k">memory</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>          <span class="o">=</span> <span class="s2">&#34;agent_sessions&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  character_set</span> <span class="o">=</span> <span class="s2">&#34;UTF8&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>要点：</p>
+<ul>
+<li><strong>密码出生即在 KMS Secrets Manager 里。</strong> <code>random_password</code> 生成，写进 <code>alicloud_kms_secret</code>，Agent 启动时通过 STS 取。明文密码只在 Terraform 内存里短暂存在，不进 tfstate（用 <code>secret_id</code> 引用）。</li>
+<li><strong><code>encryption_key</code></strong> 把磁盘和 <code>memory</code> CMK 绑定。静态加密，零额外成本。</li>
+<li><strong><code>backup_period</code> + <code>retention_period</code></strong> 一周三次自动备份，prod 留 30 天、dev 留 7 天。RDS 备份存在 OSS 上，bucket 不用你管。</li>
+<li><strong><code>zone_id_slave_a</code></strong> 在 prod 里在第二个 zone 建热备。30 秒内 failover。代价是 2 倍——prod 值得，dev 过头。</li>
+<li><strong><code>deletion_protection</code></strong> 在 prod 里挡住 <code>terraform destroy</code> 杀数据库。永远要。</li>
+</ul>
+<blockquote>
+<p><strong>实操提示：</strong> 当你的 sessions 表过 ~10M 行或者需要无停机读副本时，PolarDB 是对的选择。RDS → PolarDB 迁移文档完善，Terraform 两边都支持。但别从一开始就用——小规模时 RDS 更简单更便宜。</p>
+</blockquote>
+<h2 id="第-2-层向量库">第 2 层：向量库</h2>
+<p>阿里云上向量层有两个合理选择：</p>
+<ol>
+<li><strong>OpenSearch 向量检索版</strong>——托管、Lucene 后端、支持 HNSW + IVF、按 QPS 配额计费</li>
+<li><strong>PolarDB 或 RDS PostgreSQL + <code>pgvector</code></strong>——和关系数据共址、新基础设施零成本，过 ~1M 向量后变慢</li>
+</ol>
+<p>原型之外我偏好 OpenSearch。成本是真的（最小实例 ~¥800/月），但你拿到开箱即用的 lexical+向量混合检索，正是召回需要的形状。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_opensearch_app_group&#34; &#34;vector&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  app_group_name</span>  <span class="o">=</span> <span class="s2">&#34;agent-vec-${terraform.workspace}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  payment_type</span>    <span class="o">=</span> <span class="s2">&#34;PayAsYouGo&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  type</span>            <span class="o">=</span> <span class="s2">&#34;vector&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">quota</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    doc_size</span>   <span class="o">=</span> <span class="m">100</span>
+</span></span><span class="line"><span class="cl"><span class="n">    compute_resource</span> <span class="o">=</span> <span class="m">20</span>
+</span></span><span class="line"><span class="cl"><span class="n">    spec</span>       <span class="o">=</span> <span class="s2">&#34;opensearch.share.junior&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Agent 的长期语义记忆&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>app group 是 OpenSearch 持有 index 的概念。从这里通过 OpenSearch 控制台或 SDK 创建 index schema——<code>alicloud_opensearch_app</code> 资源存在但 schema 部分是运维而非 provisioning。</p>
+<p>如果你走 pgvector 路线，给 RDS 数据库创建里加上：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_db_database&#34; &#34;vectors&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  instance_id</span>   <span class="o">=</span> <span class="k">alicloud_db_instance</span><span class="p">.</span><span class="k">memory</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>          <span class="o">=</span> <span class="s2">&#34;agent_vectors&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  character_set</span> <span class="o">=</span> <span class="s2">&#34;UTF8&#34;</span>
+</span></span><span class="line"><span class="cl">}<span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1"># pgvector 扩展通过你的迁移工具创建，不在 Terraform 里：
+</span></span></span><span class="line"><span class="cl"><span class="c1"># CREATE EXTENSION IF NOT EXISTS vector;
+</span></span></span><span class="line"><span class="cl"><span class="c1"># CREATE TABLE embeddings (id bigserial primary key, vec vector(1536), meta jsonb);
+</span></span></span><span class="line"><span class="cl"><span class="c1"># CREATE INDEX embeddings_vec_idx ON embeddings USING hnsw (vec vector_cosine_ops);
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>Terraform 那一半只管数据库；schema 是应用代码（Alembic、Flyway、sqlx-migrate——挑一个）。别想用 Terraform 管表 schema，这条路通向疯狂。</p>
+<h2 id="第-3-层对象存储">第 3 层：对象存储</h2>
+<p>OSS 装产物：生成图片、PDF、截图、运行 trace tarball、微调出来的模型 checkpoint。</p>
+<p>官方&quot;Create a bucket with Terraform&quot;实践文档覆盖了基础。Agent stack 用：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_oss_bucket&#34; &#34;artifacts&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  bucket</span> <span class="o">=</span> <span class="s2">&#34;agents-artifacts-${terraform.workspace}-${random_id.suffix.hex}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  acl</span>    <span class="o">=</span> <span class="s2">&#34;private&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">versioning</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    status</span> <span class="o">=</span> <span class="s2">&#34;Enabled&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">server_side_encryption_rule</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    sse_algorithm</span>   <span class="o">=</span> <span class="s2">&#34;KMS&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    kms_master_key_id</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;memory&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">lifecycle_rule</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    id</span>      <span class="o">=</span> <span class="s2">&#34;agent-artifacts-tiering&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    enabled</span> <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">transitions</span> {
+</span></span><span class="line"><span class="cl"><span class="n">      days</span>          <span class="o">=</span> <span class="m">30</span>
+</span></span><span class="line"><span class="cl"><span class="n">      storage_class</span> <span class="o">=</span> <span class="s2">&#34;IA&#34;</span>
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">    <span class="k">transitions</span> {
+</span></span><span class="line"><span class="cl"><span class="n">      days</span>          <span class="o">=</span> <span class="m">90</span>
+</span></span><span class="line"><span class="cl"><span class="n">      storage_class</span> <span class="o">=</span> <span class="s2">&#34;Archive&#34;</span>
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">    <span class="k">transitions</span> {
+</span></span><span class="line"><span class="cl"><span class="n">      days</span>          <span class="o">=</span> <span class="m">365</span>
+</span></span><span class="line"><span class="cl"><span class="n">      storage_class</span> <span class="o">=</span> <span class="s2">&#34;ColdArchive&#34;</span>
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">    <span class="k">expiration</span> {
+</span></span><span class="line"><span class="cl"><span class="n">      days</span> <span class="o">=</span> <span class="m">730</span>
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">logging</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    target_bucket</span> <span class="o">=</span> <span class="k">alicloud_oss_bucket</span><span class="p">.</span><span class="k">access_logs</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">    target_prefix</span> <span class="o">=</span> <span class="s2">&#34;artifacts-access/&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    Domain</span> <span class="o">=</span> <span class="s2">&#34;agent-artifacts&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;random_id&#34; &#34;suffix&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  byte_length</span> <span class="o">=</span> <span class="m">4</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>三处值得展开：</p>
+<h3 id="bucket-名全局唯一">Bucket 名全局唯一</h3>
+<p>OSS bucket 名在所有阿里云用户范围内唯一。<code>random_id</code> 后缀避开&quot;名字已被占用&quot;的 plan 失败——每个新手都栽过。一旦建出来，名字就稳定。</p>
+<h3 id="lifecycle-分层">Lifecycle 分层</h3>
+<p><code>lifecycle_rule</code> 块是 OSS 上最大的成本杠杆：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig2_oss_lifecycle.png" alt="OSS 产物 lifecycle" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>标准</strong> (0-30 天，~¥0.12/GB/月)——默认写入</li>
+<li><strong>低频访问</strong> (30-90 天，~¥0.08/GB/月)——存便宜，每 GB 取回 ¥0.0125</li>
+<li><strong>归档</strong> (90-365 天，~¥0.033/GB/月)——分钟到小时取回</li>
+<li><strong>冷归档</strong> (365 天+，~¥0.015/GB/月)——小时取回，最便宜</li>
+</ul>
+<p>对 Agent 产物，这条规则说：30 天热、转 IA、3 月转归档、1 年转冷归档、2 年删。1 TB 产物语料下，这是 ¥1500/月（全标准）和 ~¥250/月的差。HCL 里写一次，一年省五位数。</p>
+<h3 id="版本化">版本化</h3>
+<p><code>versioning { status = &quot;Enabled&quot; }</code> 留每个对象版本。Agent 覆写 <code>artifacts/run-123/output.pdf</code> 不会真销毁前一版——它还在，version ID 不同。两个原因重要：</p>
+<ol>
+<li><strong>恢复。</strong> Bug 把 50,000 个对象写成垃圾？脚本恢复前一版。</li>
+<li><strong>防篡改。</strong> 配 WORM (Write-Once-Read-Many) 策略，免费拿监管合规。</li>
+</ol>
+<p>成本是真的——版本化对象会累积。版本化要配 lifecycle 里的 <code>noncurrent_version_expiration</code> 规则，比如 180 天后剪枝。</p>
+<h2 id="备份故事">备份故事</h2>
+<p>Terraform 管的备份配置长这样：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig3_backup_topology.png" alt="备份不是可选项，是有预算的" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li>RDS：内置自动备份（上面 HCL 已经有了）</li>
+<li>OSS：版本化 + 跨区域复制做灾备</li>
+<li>OpenSearch：通过 <code>alicloud_opensearch_*</code> 快照资源快照到 OSS</li>
+</ul>
+<p>OSS 跨区域复制就一个资源：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_oss_bucket&#34; &#34;artifacts_dr&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  provider</span> <span class="o">=</span> <span class="k">alicloud</span><span class="p">.</span><span class="k">beijing</span><span class="c1">       # 第二 region 的 provider 别名
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">  bucket</span>   <span class="o">=</span> <span class="s2">&#34;${alicloud_oss_bucket.artifacts.bucket}-dr&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  acl</span>      <span class="o">=</span> <span class="s2">&#34;private&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">versioning</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    status</span> <span class="o">=</span> <span class="s2">&#34;Enabled&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">server_side_encryption_rule</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    sse_algorithm</span> <span class="o">=</span> <span class="s2">&#34;AES256&#34;</span><span class="c1">        # KMS key 是 region 范围的，DR 用 AES256 更简单
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_oss_bucket_replication&#34; &#34;artifacts&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  bucket</span> <span class="o">=</span> <span class="k">alicloud_oss_bucket</span><span class="p">.</span><span class="k">artifacts</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  action</span> <span class="o">=</span> <span class="s2">&#34;ALL&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">destination</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    bucket</span>   <span class="o">=</span> <span class="k">alicloud_oss_bucket</span><span class="p">.</span><span class="k">artifacts_dr</span><span class="p">.</span><span class="k">bucket</span>
+</span></span><span class="line"><span class="cl"><span class="n">    location</span> <span class="o">=</span> <span class="s2">&#34;oss-cn-beijing&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl"><span class="n">  enable_historical_object_replication</span> <span class="o">=</span> <span class="s2">&#34;enabled&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">encryption_configuration</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    replica_kms_key_id</span> <span class="o">=</span> <span class="s2">&#34;alias/agents-prod-memory-dr&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>带别名的 provider 让一次 Terraform run 触两个 region：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">provider</span> <span class="s2">&#34;alicloud&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  alias</span>  <span class="o">=</span> <span class="s2">&#34;beijing&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  region</span> <span class="o">=</span> <span class="s2">&#34;cn-beijing&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>主要无状态的研究 Agent 你可能决定 DR 不值得双倍存储费。承担对话历史合法持久化的对客 Agent 则强制要求。</p>
+<blockquote>
+<p><strong>实操提示：</strong> 季度做一次 restore drill。从未恢复过的备份只是昂贵的希望。我每月跑一个 <code>restore-drill.sh</code> 脚本，把随机 RDS 备份拉到 <code>cn-shanghai-dr</code> 实例上跑 schema/checksum 校验。这是我每月最有用的 30 分钟。</p>
+</blockquote>
+<h2 id="把计算和存储接起来">把计算和存储接起来</h2>
+<p>第四篇的 ECS 实例需要真正能访问到这些存储。三块：</p>
+<ol>
+<li><strong>网络</strong>——已经做了。VPC module 输出的 <code>agent_runtime_sg_id</code> 是 <code>memory_rds_sg</code> 和 <code>vector_store_sg</code> 入站规则的 source。</li>
+<li><strong>凭证</strong>——Agent 启动时通过 STS 从 KMS Secrets Manager 读 DB 密码：
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">alibabacloud_kms20160120.client</span> <span class="kn">import</span> <span class="n">Client</span> <span class="k">as</span> <span class="n">KmsClient</span>
+</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">kms_client</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">(</span><span class="n">GetSecretValueRequest</span><span class="p">(</span><span class="n">secret_name</span><span class="o">=</span><span class="s2">&#34;agents-prod-rds-admin&#34;</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="n">db_password</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">secret_data</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li><strong>Endpoint</strong>——Terraform 输出：
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;rds_endpoint&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_db_instance</span><span class="p">.</span><span class="k">memory</span><span class="p">.</span><span class="k">connection_string</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;vector_endpoint&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_opensearch_app_group</span><span class="p">.</span><span class="k">vector</span><span class="p">.</span><span class="k">api_domain</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;artifacts_bucket&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_oss_bucket</span><span class="p">.</span><span class="k">artifacts</span><span class="p">.</span><span class="k">bucket</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+</ol>
+<p>Agent 从 cloud-init 写入的环境变量读这些。没有硬写的 endpoint，没有手工配置文件。</p>
+<h2 id="月成本dev-workspace低流量">月成本（dev workspace、低流量）</h2>
+<ul>
+<li>RDS PostgreSQL (<code>pg.n2.medium.1c</code>, 100 GB ESSD)：~¥350/月</li>
+<li>OpenSearch 向量（最小）：~¥800/月</li>
+<li>OSS（10 GB 标准，lifecycle 开）：~¥1.5/月 + 流量</li>
+<li>KMS（第三篇覆盖）：~¥10/月</li>
+</ul>
+<p>dev 存储层粗略 ¥1200/月。Prod 加 HA RDS、更大 OpenSearch、更多 OSS 会到 ¥3000-5000/月。这就是成本压力开始真实的地方——第七篇讲怎么追踪和告警。</p>
+<h2 id="下一篇">下一篇</h2>
+<p>第六篇在第四篇的计算和刚刚的存储前面建 LLM 网关。那是 API key 住的地方、配额执行的地方、按 Agent 归因成本的地方。第六篇结束你就拥有一个能跑 Agent 的完整 stack——最后两篇在上面接观测和成本控制。</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/zh/terraform-agents/04-compute-for-agent-runtime/"><span class="title">用 Terraform 给 AI Agent 上云（四）：计算层选 ECS、ACK 还是函数计算？</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/"><span class="title">用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#三层记忆模型">三层记忆模型</a></li>
+    <li><a href="#第-1-层关系型rds-for-postgresql">第 1 层：关系型，RDS for PostgreSQL</a></li>
+    <li><a href="#第-2-层向量库">第 2 层：向量库</a></li>
+    <li><a href="#第-3-层对象存储">第 3 层：对象存储</a>
+      <ul>
+        <li><a href="#bucket-名全局唯一">Bucket 名全局唯一</a></li>
+        <li><a href="#lifecycle-分层">Lifecycle 分层</a></li>
+        <li><a href="#版本化">版本化</a></li>
+      </ul>
+    </li>
+    <li><a href="#备份故事">备份故事</a></li>
+    <li><a href="#把计算和存储接起来">把计算和存储接起来</a></li>
+    <li><a href="#月成本dev-workspace低流量">月成本（dev workspace、低流量）</a></li>
+    <li><a href="#下一篇">下一篇</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Terraform Agents</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>7 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3100</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

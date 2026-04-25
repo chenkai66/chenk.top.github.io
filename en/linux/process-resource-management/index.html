@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux Process and Resource Management: From `top` to cgroups · Chen Kai Blog</title>
+<meta name="description" content="How processes are born and die on Linux: the fork/exec model, the state machine that ps and top print in the STAT column, the resource axes (CPU, memory, disk I/O, network) that actually constrain a server, the signals you should know by heart, and the cgroup &#43; namespace primitives that turn all of this into containers.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/linux/process-resource-management/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/linux/process-resource-management/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux Process and Resource Management: From `top` to cgroups">
+<meta property="og:description" content="How processes are born and die on Linux: the fork/exec model, the state machine that ps and top print in the STAT column, the resource axes (CPU, memory, disk I/O, network) that actually constrain a server, the signals you should know by heart, and the cgroup &#43; namespace primitives that turn all of this into containers.">
+<meta property="og:url" content="https://www.chenk.top/en/linux/process-resource-management/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Linux</a>
+         · Chapter 7
+      </div>
+      <h1>Linux Process and Resource Management: From `top` to cgroups</h1>
+      <p class="deck">How processes are born and die on Linux: the fork/exec model, the state machine that ps and top print in the STAT column, the resource axes (CPU, memory, disk I/O, network) that actually constrain a server, the signals you should know by heart, and the cgroup &#43; namespace primitives that turn all of this into containers.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-03-20">March 20, 2022</time> · 19 min read · 4000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/linux/" class="tag">#Linux</a><a href="/en/tags/cloud/" class="tag">#Cloud</a><a href="/en/tags/system-administration/" class="tag">#System Administration</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>The job of a Linux operator is rarely &ldquo;memorise more commands&rdquo;. It is to take a fuzzy symptom — <em>the site feels slow, the API timed out, the box is unresponsive</em> — and quickly <strong>map it to the right axis</strong>: is the CPU saturated, is memory being eaten by cache (which is fine) or by a runaway process (which is not), is the disk queue full, is some socket leaking? Once the axis is named, the tool follows almost mechanically.</p>
+<p>This post walks the full picture in that order. We start from how a process actually comes to exist (<code>fork()</code> + <code>exec()</code>), the state machine the kernel pushes it through, and the four resource axes that bound everything it can do. Then we build up the toolchain — <code>top</code> / <code>htop</code> / <code>ps</code> / <code>pstree</code> / <code>lsof</code> / <code>ss</code> / <code>iostat</code> — not as a command list but as a layered way of looking at the same system. Finally we cover the things you do <em>to</em> a process: signals, background jobs, <code>nice</code>/<code>renice</code> priorities, and the cgroup + namespace mechanisms that quietly underpin every container you have ever run.</p>
+<h2 id="process-program-thread--and-why-the-distinction-matters">Process, program, thread — and why the distinction matters</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig1_process_states.png" alt="Process states" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>These three terms are used interchangeably in casual conversation, but the kernel treats them very differently:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Term</th>
+          <th>What it is</th>
+          <th>Identifier</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Program</strong></td>
+          <td>A static file on disk (<code>/usr/bin/vim</code>) — instructions plus data layout</td>
+          <td>inode + path</td>
+      </tr>
+      <tr>
+          <td><strong>Process</strong></td>
+          <td>A running instance of a program: own address space, file descriptors, PID</td>
+          <td>PID, parent PPID</td>
+      </tr>
+      <tr>
+          <td><strong>Thread</strong></td>
+          <td>An execution flow <em>inside</em> a process, sharing its address space</td>
+          <td>TID (kernel <code>task_struct</code>)</td>
+      </tr>
+  </tbody>
+</table>
+<p>A process is what you bill resources against — memory pages, file descriptors, open sockets all live in the process. A thread is just another schedulable entity that happens to share that state with its siblings. On Linux this distinction is unusually thin: both processes and threads are <code>task_struct</code> to the kernel; they only differ in <em>what</em> they share when created (<code>clone()</code> flags decide). That is why <code>ps -eLf</code> lists threads with the same PID but different LWP values, and why a multi-threaded JVM shows up as one process with hundreds of <code>task_struct</code>s underneath.</p>
+<p>A few invariants worth keeping in mind:</p>
+<ul>
+<li>Every process has a <strong>parent</strong>. PPID 0 is reserved for the kernel; PPID 1 is <code>systemd</code> (or <code>init</code>), the only userspace process the kernel itself starts. Walk PPIDs up far enough and you always hit 1.</li>
+<li>Processes are <strong>isolated by default</strong>: address spaces don&rsquo;t overlap, opening a file in process A does nothing to process B. Sharing requires explicit IPC (pipes, sockets, shared memory, signals).</li>
+<li>Processes are <strong>dynamic</strong>: they are created, scheduled, blocked, woken, and torn down constantly. A healthy server churns thousands of short-lived processes per minute; that is normal.</li>
+</ul>
+<h2 id="how-processes-are-born-fork-and-exec">How processes are born: fork() and exec()</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig2_fork_exec_model.png" alt="fork/exec model" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Linux has exactly one mechanism for creating a new process: <strong>fork</strong>. <code>fork()</code> (or its modern cousin <code>clone()</code>) duplicates the calling process. Right after the call you have two near-identical processes returning from the same line of code; the only difference is the return value (<code>0</code> in the child, the child&rsquo;s PID in the parent). They share open file descriptors, the same code, the same heap contents — initially even the same memory pages, thanks to copy-on-write.</p>
+<p>That alone would just multiply the same program. The second half of the trick is <strong>exec</strong>. Inside the freshly forked child, calling <code>execve(&quot;/bin/ls&quot;, argv, envp)</code> tells the kernel to <em>replace</em> the current program image with a different binary while keeping the same PID, the same PPID, and (by default) the same file descriptors. So when you type <code>ls</code> at a shell prompt, what actually happens is:</p>
+<ol>
+<li>The shell calls <code>fork()</code>. Now there are two shells.</li>
+<li>The child calls <code>execve(&quot;/bin/ls&quot;, ...)</code>. Its program image becomes <code>ls</code>.</li>
+<li>The parent (the original shell) calls <code>waitpid()</code> to block until the child exits, then collects the exit code into <code>$?</code>.</li>
+</ol>
+<p>This split between &ldquo;create a process&rdquo; and &ldquo;load a program&rdquo; is what makes shell pipelines, redirection, environment manipulation, and <code>setuid</code>-style privilege drops possible. Each of those happens <em>between</em> fork and exec, in the child, before the new program even starts.</p>
+<p>Two consequences of this design show up constantly:</p>
+<ul>
+<li><strong>Inherited file descriptors.</strong> A child inherits all open FDs of the parent unless they are marked <code>O_CLOEXEC</code>. That is why <code>cmd &gt; log.txt</code> works: the shell opens the file as FD 1 in the child <em>before</em> exec-ing the command. It is also why a leaking daemon can pin deleted files (we&rsquo;ll come back to that).</li>
+<li><strong>PID 1 is special.</strong> If a process exits while it still has children, those orphans get re-parented to PID 1, which is responsible for <code>wait()</code>-ing on them. A container&rsquo;s PID 1 has the same job — and if you forget to handle it, you get the famous &ldquo;zombies in my Docker container&rdquo; problem.</li>
+</ul>
+<h2 id="the-process-state-machine">The process state machine</h2>
+<p><code>ps</code> and <code>top</code> show a one-letter <code>STAT</code> column for every process. Those letters correspond to the state the kernel currently has the task in:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Code</th>
+          <th>State</th>
+          <th>Meaning</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>R</code></td>
+          <td>Running</td>
+          <td>On a CPU right now, or on the runqueue waiting for one</td>
+      </tr>
+      <tr>
+          <td><code>S</code></td>
+          <td>Interruptible sleep</td>
+          <td>Waiting for an event (read from socket, timer); woken by signals</td>
+      </tr>
+      <tr>
+          <td><code>D</code></td>
+          <td>Uninterruptible sleep</td>
+          <td>Waiting on something the kernel won&rsquo;t let go of, usually disk I/O — even <code>kill -9</code> won&rsquo;t move it</td>
+      </tr>
+      <tr>
+          <td><code>T</code></td>
+          <td>Stopped</td>
+          <td>Paused by <code>SIGSTOP</code>/<code>SIGTSTP</code> (e.g. you hit Ctrl+Z)</td>
+      </tr>
+      <tr>
+          <td><code>Z</code></td>
+          <td>Zombie</td>
+          <td>Already exited, but parent hasn&rsquo;t called <code>wait()</code> to reap it</td>
+      </tr>
+      <tr>
+          <td><code>X</code></td>
+          <td>Dead</td>
+          <td>Transient state during teardown, you almost never see it</td>
+      </tr>
+  </tbody>
+</table>
+<p>The state is not just trivia. A box with 200 processes in <code>D</code> is not &ldquo;100 % CPU bound&rdquo; — it is <em>blocked on storage</em>, and no amount of CPU tuning will help. A growing pile of <code>Z</code> processes points at a buggy parent that forgot to <code>wait()</code>. Stuck <code>T</code> processes mean somebody (or some script) sent <code>SIGSTOP</code> and never followed up with <code>SIGCONT</code>.</p>
+<p><code>top</code>&rsquo;s top line — <code>Tasks: 150 total, 2 running, 148 sleeping, 0 stopped, 0 zombie</code> — is your first sanity check. Anything other than zero in <code>stopped</code> or <code>zombie</code> deserves a follow-up.</p>
+<h2 id="the-four-resource-axes">The four resource axes</h2>
+<p>Before drowning in tools, fix the mental model. Almost every production problem maps to one of four axes:</p>
+<ol>
+<li><strong>CPU</strong> — how much computation per second can be performed.</li>
+<li><strong>Memory</strong> — how much working set the process can hold without going to disk.</li>
+<li><strong>Disk I/O</strong> — how fast bytes can flow to and from persistent storage.</li>
+<li><strong>Network</strong> — how fast bytes can flow in and out of the box.</li>
+</ol>
+<p>A bottleneck on any of them slows everything that depends on it. The trick is figuring out <em>which</em> one — and that&rsquo;s mostly what monitoring tools are for.</p>
+<h3 id="cpu">CPU</h3>
+<p>What you usually want to know:</p>
+<ul>
+<li>How many cores does the box actually have? <code>nproc</code> and <code>lscpu</code> answer that.</li>
+<li>How loaded is it? <code>uptime</code> shows three load averages: 1, 5 and 15 minutes.</li>
+</ul>
+<p>Load average is <em>not</em> CPU utilisation. It counts processes that are either running or <strong>runnable plus uninterruptible</strong> (<code>R + D</code>). A 4-core box with <code>load avg 4.0</code> and 95 % idle CPU is almost always a disk problem: tasks are piling up in <code>D</code> waiting for I/O, not for CPU. Read load against the number of cores: <code>&lt; cores</code> is fine, <code>≈ cores</code> is full, <code>&gt;&gt; cores</code> is overloaded.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">uptime
+</span></span><span class="line"><span class="cl"><span class="c1"># 06:56:12 up 12 days,  3:45,  3 users,  load average: 0.22, 0.45, 0.56</span>
+</span></span><span class="line"><span class="cl">nproc
+</span></span><span class="line"><span class="cl"><span class="c1"># 4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="memory">Memory</h3>
+<p><code>free -h</code> is the canonical view. The trap is reading it like Windows Task Manager:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">              total        used        free      shared  buff/cache   available
+</span></span><span class="line"><span class="cl">Mem:           15Gi       2.5Gi       1.0Gi       100Mi       11.5Gi        12Gi
+</span></span><span class="line"><span class="cl">Swap:         2.0Gi          0B       2.0Gi
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Newcomers see <code>free: 1.0Gi</code> and panic. <strong>Don&rsquo;t.</strong> Linux deliberately uses spare RAM as <strong>buffer/cache</strong> to speed up I/O — that 11.5 GiB is reclaimable on demand. The number that matters is <code>available</code>: it accounts for the cache the kernel believes it could free if a process asked for memory.</p>
+<p>The two flavours of cached memory:</p>
+<ul>
+<li><strong>Buffer</strong> is a write-side staging area. When you write a file, bytes land in the page cache and are flushed to disk in batches; that is what makes small writes fast.</li>
+<li><strong>Cache</strong> is the read-side: pages from disk that the kernel keeps around in case they are read again, which they very often are.</li>
+</ul>
+<p>You are <em>actually</em> low on memory when <strong>all three</strong> of these become true at once:</p>
+<ul>
+<li><code>available</code> is near zero,</li>
+<li><code>swap used</code> is climbing rather than just non-zero,</li>
+<li>the kernel starts logging OOM kills (<code>dmesg | grep -i 'killed process'</code>).</li>
+</ul>
+<h3 id="disk-and-network">Disk and network</h3>
+<p>Disk capacity is <code>df -h</code> (per filesystem) and <code>du -sh *</code> (per directory). Real-time I/O lives in <code>iostat -x 1</code> and <code>iotop</code>; the two metrics that matter are <code>%util</code> (how busy the device is) and <code>await</code> (how long requests sit in the queue). A device pegged at <code>%util 100</code> with <code>await</code> in the tens of milliseconds is a real bottleneck.</p>
+<p>Network is <code>ss -tulnp</code> for who is listening, <code>ip -s link</code> for interface counters and drops, and <code>iftop</code> (or <code>nload</code>) for live bandwidth. For &ldquo;who is using port 80&rdquo; the fastest answer is <code>lsof -i :80</code> or <code>ss -tulnp | grep :80</code>.</p>
+<h2 id="the-monitoring-toolchain">The monitoring toolchain</h2>
+<h3 id="top--the-first-thing-to-run"><code>top</code> — the first thing to run</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig3_top_dissected.png" alt="top dissected" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>top</code> is the cockpit view. Every region tells you something specific:</p>
+<ul>
+<li><strong>Header:</strong> uptime, users, load average. Compare load against <code>nproc</code>.</li>
+<li><strong>Tasks:</strong> total / running / sleeping / <strong>stopped / zombie</strong>. Last two should be zero.</li>
+<li><strong><code>%Cpu(s)</code>:</strong> broken down into user (<code>us</code>), system (<code>sy</code>), nice (<code>ni</code>), idle (<code>id</code>), I/O wait (<code>wa</code>), hardware/software interrupts (<code>hi</code>/<code>si</code>), and stolen (<code>st</code>). High <code>wa</code> means slow disk. <strong>High <code>st</code> on a VM means the hypervisor is giving your CPU to other tenants</strong> — common in noisy-neighbour clouds.</li>
+<li><strong>Mem / Swap:</strong> trust <code>avail Mem</code>, not <code>free</code>. If <code>Swap used</code> is climbing, the box is under real memory pressure.</li>
+<li><strong>Process table:</strong> sortable by hotkey. <code>P</code> sorts by <code>%CPU</code>, <code>M</code> by <code>%MEM</code>, <code>T</code> by time. <code>1</code> toggles per-CPU breakdown — invaluable when one core is pinned and the others sit idle. <code>k</code> prompts for a PID and signal. <code>q</code> quits.</li>
+</ul>
+<h3 id="htop--top-with-a-ui"><code>htop</code> — top with a UI</h3>
+<p><code>htop</code> is <code>top</code> with colour, mouse support, a tree view (<code>F5</code>) and a built-in signal sender (<code>F9</code>). On any box where you spend more than a minute in <code>top</code>, install it:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install htop          <span class="c1"># Debian/Ubuntu</span>
+</span></span><span class="line"><span class="cl">sudo dnf install htop          <span class="c1"># RHEL/Rocky/Fedora</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="ps--the-static-snapshot"><code>ps</code> — the static snapshot</h3>
+<p><code>top</code> refreshes; <code>ps</code> freezes a moment in time, which is often what you want for scripting and grep&rsquo;ing.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps -ef                  <span class="c1"># System V style: every process, full format</span>
+</span></span><span class="line"><span class="cl">ps aux                  <span class="c1"># BSD style: every process including those without a TTY</span>
+</span></span><span class="line"><span class="cl">ps -eo pid,ppid,user,stat,%cpu,%mem,cmd --sort<span class="o">=</span>-%cpu <span class="p">|</span> head -10
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The columns worth knowing (<code>ps aux</code>):</p>
+<ul>
+<li><code>VSZ</code> — virtual memory size (what the process <em>asked for</em>; mostly meaningless on its own).</li>
+<li><code>RSS</code> — resident set size, <strong>actual physical pages</strong>. This is the honest memory number.</li>
+<li><code>STAT</code> — the state codes from the table above, sometimes with extra suffixes (<code>&lt;</code> high-priority, <code>N</code> low-priority, <code>s</code> session leader, <code>+</code> foreground process group).</li>
+<li><code>TIME</code> — accumulated CPU time, not wall-clock.</li>
+</ul>
+<h3 id="pstree--who-spawned-whom"><code>pstree</code> — who spawned whom</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pstree -ap            <span class="c1"># show command line + PIDs</span>
+</span></span><span class="line"><span class="cl">pstree -ap &lt;PID&gt;      <span class="c1"># subtree under a single PID</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>When a misbehaving process keeps coming back, look up the tree: something is respawning it.</p>
+<h3 id="lsof--every-open-file-is-something"><code>lsof</code> — every open file is something</h3>
+<p><code>lsof</code> lists open files, where &ldquo;file&rdquo; is the Unix everything-is-a-file sense — regular files, sockets, pipes, devices, even kernel-side handles.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsof -p &lt;PID&gt;          <span class="c1"># files this PID has open</span>
+</span></span><span class="line"><span class="cl">lsof -c nginx          <span class="c1"># files any nginx process has open</span>
+</span></span><span class="line"><span class="cl">lsof -u alice          <span class="c1"># files owned by alice&#39;s processes</span>
+</span></span><span class="line"><span class="cl">lsof -i :80            <span class="c1"># who is bound to port 80</span>
+</span></span><span class="line"><span class="cl">lsof -i tcp            <span class="c1"># all TCP sockets</span>
+</span></span><span class="line"><span class="cl">lsof +D /var/log       <span class="c1"># everything open under /var/log</span>
+</span></span><span class="line"><span class="cl">lsof +L1               <span class="c1"># files with link count &lt; 1 — deleted but still pinned</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The <code>FD</code> column is a tiny grammar of its own:</p>
+<ul>
+<li><code>cwd</code> — the process&rsquo;s current working directory</li>
+<li><code>txt</code> — the program binary itself</li>
+<li><code>mem</code> — memory-mapped file (shared library)</li>
+<li><code>0r</code>, <code>1w</code>, <code>2w</code> — stdin / stdout / stderr</li>
+<li><code>Nu</code> (<code>u</code>/<code>r</code>/<code>w</code>) — a regular open FD with mode</li>
+</ul>
+<h3 id="ss--sockets-the-modern-netstat"><code>ss</code> — sockets, the modern <code>netstat</code></h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ss -tulnp            <span class="c1"># tcp + udp + listening + numeric + with PID</span>
+</span></span><span class="line"><span class="cl">ss -s                <span class="c1"># one-line summary of all socket states</span>
+</span></span><span class="line"><span class="cl">ss -tan state established <span class="s1">&#39;( dport = :443 )&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="iostat-and-iotop--the-disk-axis"><code>iostat</code> and <code>iotop</code> — the disk axis</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">iostat -x <span class="m">1</span>          <span class="c1"># per-device extended stats, refresh every second</span>
+</span></span><span class="line"><span class="cl">sudo iotop -o        <span class="c1"># only processes currently doing I/O</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Watch <code>%util</code>, <code>r/s</code>, <code>w/s</code>, <code>await</code>. A device at <code>%util 100</code> with single-digit <code>await</code> is <em>busy but healthy</em>; one at <code>%util 100</code> with <code>await</code> in the hundreds is <em>queued and miserable</em>.</p>
+<h2 id="controlling-processes">Controlling processes</h2>
+<h3 id="signals">Signals</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig5_signals_table.png" alt="Signals reference" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>kill</code> is misnamed. It does not kill anything; it <strong>sends a signal</strong>, and the signal&rsquo;s <em>default</em> action happens to be &ldquo;terminate&rdquo; for most signals. The handful that actually matter day to day:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Signal</th>
+          <th>Number</th>
+          <th>What it does</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>SIGTERM</code></td>
+          <td>15</td>
+          <td>Polite request to terminate; process can clean up. <strong>Always try this first.</strong></td>
+      </tr>
+      <tr>
+          <td><code>SIGINT</code></td>
+          <td>2</td>
+          <td>What Ctrl+C sends; semantically &ldquo;the user interrupted you&rdquo;</td>
+      </tr>
+      <tr>
+          <td><code>SIGHUP</code></td>
+          <td>1</td>
+          <td>Originally &ldquo;the terminal hung up&rdquo;; by convention, daemons treat it as <strong>reload config</strong> (nginx, sshd, syslog)</td>
+      </tr>
+      <tr>
+          <td><code>SIGKILL</code></td>
+          <td>9</td>
+          <td>The nuclear option. Kernel kills the process, no cleanup, <strong>uncatchable</strong>. Last resort.</td>
+      </tr>
+      <tr>
+          <td><code>SIGSTOP</code></td>
+          <td>19</td>
+          <td>Pause the process. <strong>Uncatchable.</strong> Resume with <code>SIGCONT</code>.</td>
+      </tr>
+      <tr>
+          <td><code>SIGTSTP</code></td>
+          <td>20</td>
+          <td>Catchable variant of stop — what Ctrl+Z sends</td>
+      </tr>
+      <tr>
+          <td><code>SIGCONT</code></td>
+          <td>18</td>
+          <td>Resume a stopped process</td>
+      </tr>
+      <tr>
+          <td><code>SIGUSR1</code> / <code>SIGUSR2</code></td>
+          <td>10 / 12</td>
+          <td>Application-defined. Many daemons use <code>SIGUSR1</code> to rotate logs.</td>
+      </tr>
+      <tr>
+          <td><code>SIGCHLD</code></td>
+          <td>17</td>
+          <td>Sent to the parent when a child changes state. The parent should <code>wait()</code>.</td>
+      </tr>
+      <tr>
+          <td><code>SIGPIPE</code></td>
+          <td>13</td>
+          <td>You wrote to a pipe with no reader (`yes</td>
+      </tr>
+  </tbody>
+</table>
+<p>The right escalation is <strong>always</strong>: try <code>SIGTERM</code>, give the process a few seconds, only then escalate to <code>SIGKILL</code>. <code>kill -9</code> skips destructors, leaves locks held, leaves temp files behind, and corrupts databases that were mid-write. Reach for it last.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">kill</span> &lt;PID&gt;             <span class="c1"># SIGTERM (the default)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> -HUP &lt;PID&gt;        <span class="c1"># reload config</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> -9 &lt;PID&gt;          <span class="c1"># SIGKILL — last resort</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> -l                <span class="c1"># list every signal name and number on this kernel</span>
+</span></span><span class="line"><span class="cl">pkill -HUP nginx       <span class="c1"># by name and pattern</span>
+</span></span><span class="line"><span class="cl">killall -USR1 nginx    <span class="c1"># by exact program name</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="background-jobs-and-detachment">Background jobs and detachment</h3>
+<p>When you start something that needs to outlive your SSH session, three options in increasing order of robustness:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./long_task.sh <span class="p">&amp;</span>                                  <span class="c1"># backgrounds in this shell only;</span>
+</span></span><span class="line"><span class="cl">                                                  <span class="c1"># dies on SIGHUP when SSH drops</span>
+</span></span><span class="line"><span class="cl">nohup ./long_task.sh &gt;/dev/null 2&gt;<span class="p">&amp;</span><span class="m">1</span> <span class="p">&amp;</span>           <span class="c1"># ignore SIGHUP; output discarded</span>
+</span></span><span class="line"><span class="cl">tmux new -s work     <span class="c1"># then run it inside; detach with Ctrl-B d, reattach later</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>tmux</code> (or the older <code>screen</code>) is the right answer for anything interactive or long-running. For <em>services</em>, none of these are appropriate — write a <code>systemd</code> unit and let the init system supervise it (covered in the service-management post).</p>
+<p>Foreground/background within one shell:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./task.sh         <span class="c1"># foreground</span>
+</span></span><span class="line"><span class="cl">^Z                <span class="c1"># SIGTSTP — pauses, returns to shell</span>
+</span></span><span class="line"><span class="cl"><span class="nb">bg</span> %1             <span class="c1"># resume in background</span>
+</span></span><span class="line"><span class="cl"><span class="nb">fg</span> %1             <span class="c1"># bring back to foreground</span>
+</span></span><span class="line"><span class="cl"><span class="nb">jobs</span>              <span class="c1"># list jobs in this shell</span>
+</span></span><span class="line"><span class="cl"><span class="nb">disown</span> %1         <span class="c1"># detach from shell, survive logout</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="priorities-nice-and-renice">Priorities: <code>nice</code> and <code>renice</code></h3>
+<p>The scheduler picks who runs next partly based on a process&rsquo;s <strong>nice value</strong>, an integer from <code>-20</code> (highest priority, scheduler favours it) to <code>19</code> (lowest, polite to others). Default is <code>0</code>. Lowering nice below 0 requires root.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nice -n <span class="m">19</span>  ./backup.sh                <span class="c1"># start a low-priority background backup</span>
+</span></span><span class="line"><span class="cl">nice -n -10 ./important.sh             <span class="c1"># higher priority (root)</span>
+</span></span><span class="line"><span class="cl">renice -n <span class="m">10</span> -p &lt;PID&gt;                  <span class="c1"># change nice on a running process</span>
+</span></span><span class="line"><span class="cl">renice -n <span class="m">5</span> -u alice                   <span class="c1"># all of alice&#39;s processes</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>nice</code> is a soft hint — it influences scheduling weight but a low-priority process still gets CPU when nothing else wants it. For <em>hard</em> limits (e.g. &ldquo;this batch job may use no more than 2 cores and 4 GiB&rdquo;), use cgroups, not nice.</p>
+<h3 id="orphans-and-zombies">Orphans and zombies</h3>
+<p>Two states that confuse newcomers, both rooted in the parent–child contract:</p>
+<ul>
+<li><strong>Orphan</strong>: parent exits before the child. The kernel re-parents the child to PID 1, which inherits the duty to <code>wait()</code> on it. <strong>Harmless</strong> in normal operation.</li>
+<li><strong>Zombie (<code>Z</code>)</strong>: child has already exited, but the parent has not called <code>wait()</code> to collect its exit status. The <code>task_struct</code> lingers in the process table holding a PID and exit code. Zombies use no CPU or memory, but they consume process-table slots — accumulate enough and <code>fork()</code> itself starts to fail.</li>
+</ul>
+<p>The fix for zombies is to fix the parent. If the parent is a daemon under your control, it must <code>wait()</code> (or set up a <code>SIGCHLD</code> handler, or set <code>SIGCHLD</code> to <code>SIG_IGN</code> so the kernel auto-reaps). If the parent is third-party and broken, killing the parent re-parents the zombies to <code>systemd</code>, which reaps them immediately. Rebooting is the answer of last resort.</p>
+<p>You can list current zombies cheaply:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps -eo pid,ppid,stat,cmd <span class="p">|</span> awk <span class="s1">&#39;$3 ~ /^Z/&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="cgroups--namespaces--the-foundation-under-containers">cgroups + namespaces — the foundation under containers</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/process-resource-management/fig4_cgroups_namespaces.png" alt="cgroups and namespaces" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Once you understand processes, two kernel features explain how containers actually work — and they are useful even if you never touch Docker.</p>
+<p><strong>Namespaces</strong> isolate <em>what a process can see</em>. Each namespace virtualises a different system resource:</p>
+<ul>
+<li><code>pid</code> — own PID space; PID 1 inside is not PID 1 outside.</li>
+<li><code>net</code> — own network interfaces, routing table, sockets.</li>
+<li><code>mnt</code> — own mount table; the root filesystem can be entirely different.</li>
+<li><code>uts</code> — own hostname and domain name.</li>
+<li><code>ipc</code> — own SysV/POSIX IPC objects.</li>
+<li><code>user</code> — own UID/GID range; root inside maps to an unprivileged UID outside.</li>
+<li><code>cgroup</code> — own view of the cgroup hierarchy.</li>
+</ul>
+<p><strong>cgroups (control groups, v2)</strong> limit <em>what a process can use</em>. A cgroup is a directory under <code>/sys/fs/cgroup/</code> containing the PIDs that belong to it and a set of files that configure resource caps:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># create a group, cap it at half a CPU and 512 MiB, run a shell in it</span>
+</span></span><span class="line"><span class="cl">sudo mkdir /sys/fs/cgroup/demo
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;50000 100000&#34;</span> <span class="p">|</span> sudo tee /sys/fs/cgroup/demo/cpu.max     <span class="c1"># 50ms per 100ms</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="k">$((</span><span class="m">512</span><span class="o">*</span><span class="m">1024</span><span class="o">*</span><span class="m">1024</span><span class="k">))</span> <span class="p">|</span> sudo tee /sys/fs/cgroup/demo/memory.max
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="nv">$$</span> <span class="p">|</span> sudo tee /sys/fs/cgroup/demo/cgroup.procs            <span class="c1"># add this shell</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The controllers worth knowing:</p>
+<ul>
+<li><code>cpu.max</code> — bandwidth cap (quota / period).</li>
+<li><code>cpu.weight</code> — relative share when contended.</li>
+<li><code>memory.max</code> — hard ceiling; exceeding it triggers the OOM killer <strong>inside the cgroup</strong> rather than across the host.</li>
+<li><code>io.max</code> — per-device IOPS and BPS caps.</li>
+<li><code>pids.max</code> — fork-bomb protection; cap the number of processes in the group.</li>
+<li><code>cpuset.cpus</code> — pin to specific CPUs / NUMA nodes.</li>
+</ul>
+<p>A container engine like Docker, Podman or <code>containerd</code> is, fundamentally, a small program that:</p>
+<ol>
+<li>Creates a fresh set of namespaces (<code>unshare(2)</code> or <code>clone(2)</code> with the right flags).</li>
+<li>Pivots into a new root filesystem extracted from an image.</li>
+<li>Puts the resulting process tree into a cgroup with the caps you asked for (<code>docker run --cpus 0.5 --memory 512m</code>).</li>
+</ol>
+<p>Once you have seen this, container debugging becomes much less mysterious. <code>nsenter -t &lt;PID&gt; -a</code> enters a running container&rsquo;s namespaces; <code>cat /proc/&lt;PID&gt;/cgroup</code> tells you which group it lives in; <code>systemd-cgtop</code> is <code>top</code> for cgroups.</p>
+<h2 id="walkthrough-the-box-feels-slow-what-now">Walkthrough: &ldquo;the box feels slow, what now?&rdquo;</h2>
+<p>A repeatable order of operations for triaging &ldquo;slow&rdquo;:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. Is anything obviously on fire?</span>
+</span></span><span class="line"><span class="cl">uptime                          <span class="c1"># load average vs. nproc</span>
+</span></span><span class="line"><span class="cl">dmesg -T <span class="p">|</span> tail -50             <span class="c1"># OOM kills, hardware errors, segfaults</span>
+</span></span><span class="line"><span class="cl">df -h                           <span class="c1"># any filesystem near 100 %?</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. Which axis is saturated?</span>
+</span></span><span class="line"><span class="cl">top                             <span class="c1"># press 1 for per-CPU; watch us/sy/wa/st</span>
+</span></span><span class="line"><span class="cl">free -h                         <span class="c1"># available memory? swap growing?</span>
+</span></span><span class="line"><span class="cl">iostat -x <span class="m">1</span> <span class="m">5</span>                   <span class="c1"># %util and await per device</span>
+</span></span><span class="line"><span class="cl">ss -s                           <span class="c1"># socket counts; lots of TIME-WAIT?</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. Who is doing it?</span>
+</span></span><span class="line"><span class="cl">ps aux --sort<span class="o">=</span>-%cpu <span class="p">|</span> head      <span class="c1"># top CPU consumers</span>
+</span></span><span class="line"><span class="cl">ps aux --sort<span class="o">=</span>-%mem <span class="p">|</span> head      <span class="c1"># top RSS consumers</span>
+</span></span><span class="line"><span class="cl">sudo iotop -o                   <span class="c1"># who is reading/writing</span>
+</span></span><span class="line"><span class="cl">sudo lsof -i -nP <span class="p">|</span> head         <span class="c1"># who is opening sockets</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. Drill into a specific PID</span>
+</span></span><span class="line"><span class="cl">cat /proc/&lt;PID&gt;/status          <span class="c1"># state, threads, memory totals</span>
+</span></span><span class="line"><span class="cl">ls -l /proc/&lt;PID&gt;/fd/           <span class="c1"># what files are open</span>
+</span></span><span class="line"><span class="cl">cat /proc/&lt;PID&gt;/limits          <span class="c1"># ulimits in effect for that process</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 5. Decide and act</span>
+</span></span><span class="line"><span class="cl">renice -n <span class="m">10</span> -p &lt;PID&gt;           <span class="c1"># de-prioritise a runaway batch job</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> &lt;PID&gt;                      <span class="c1"># ask politely first</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> -9 &lt;PID&gt;                   <span class="c1"># only after SIGTERM is ignored</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Resist the temptation to skip step 2. Most &ldquo;the server is slow&rdquo; tickets are misdiagnosed because somebody jumped straight to <code>top</code>, saw 100 % CPU on one process, and <code>kill -9</code>&rsquo;d it — when the real problem was a saturated disk and the process was simply waiting in <code>D</code>.</p>
+<h2 id="real-world-recovering-an-accidentally-deleted-log-file">Real-world: recovering an accidentally deleted log file</h2>
+<p>Classic incident: someone runs <code>rm -rf /var/log/nginx/access.log</code> while nginx is happily writing to it. After the <code>rm</code>:</p>
+<ul>
+<li><code>ls /var/log/nginx/</code> no longer shows the file (the directory entry is gone).</li>
+<li><code>df -h</code> reports the same usage as before (the inode and data blocks are still allocated).</li>
+<li>nginx keeps writing to <strong>the same FD</strong> as if nothing happened — because it is.</li>
+</ul>
+<p>This is straight out of Unix semantics: a file is unlinked from its directory, but as long as any process still holds an open FD to it, the inode lives on. The kernel exposes that FD under <code>/proc/&lt;pid&gt;/fd/&lt;fd&gt;</code>, which means you can copy the file back out:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">PID</span><span class="o">=</span><span class="k">$(</span>pidof nginx <span class="p">|</span> awk <span class="s1">&#39;{print $1}&#39;</span><span class="k">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. Confirm the deleted file is still open</span>
+</span></span><span class="line"><span class="cl">sudo lsof -p <span class="s2">&#34;</span><span class="nv">$PID</span><span class="s2">&#34;</span> <span class="p">|</span> grep access.log
+</span></span><span class="line"><span class="cl"><span class="c1"># nginx 1234 root  6w  REG  8,1  123456789  4711  /var/log/nginx/access.log (deleted)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. Recover by copying out of /proc</span>
+</span></span><span class="line"><span class="cl">sudo cp /proc/<span class="s2">&#34;</span><span class="nv">$PID</span><span class="s2">&#34;</span>/fd/6 /var/log/nginx/access.log
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. Tell nginx to reopen its log files</span>
+</span></span><span class="line"><span class="cl">sudo nginx -s reload    <span class="c1"># or: sudo kill -USR1 &#34;$PID&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The same trick works for any deleted-but-still-open file. The moment the last FD is closed, though, the kernel really frees the inode — so do this <em>now</em>, before the daemon restarts.</p>
+<h2 id="recap">Recap</h2>
+<ul>
+<li>A <strong>process</strong> is a running program with its own address space; <strong>threads</strong> share that space; only <code>task_struct</code>s exist as far as the scheduler is concerned.</li>
+<li>New processes are created by <strong><code>fork()</code> + <code>exec()</code></strong>, never from scratch. PID 1 (<code>systemd</code> / <code>init</code>) is the root of every process tree.</li>
+<li>The <strong>state machine</strong> (<code>R</code>/<code>S</code>/<code>D</code>/<code>T</code>/<code>Z</code>) is what <code>ps</code>/<code>top</code> print, and each state implies a different troubleshooting path.</li>
+<li>Resource bottlenecks live on four axes — <strong>CPU, memory, disk I/O, network</strong> — and most monitoring tools are just different views of the same axes.</li>
+<li>Linux memory looks scarier than it is: <strong><code>available</code>, not <code>free</code></strong>, is the number to trust.</li>
+<li><code>kill</code> sends <strong>signals</strong>; <code>SIGTERM</code> first, <code>SIGKILL</code> last. Daemons reload on <code>SIGHUP</code>.</li>
+<li><code>nice</code>/<code>renice</code> are soft scheduling hints; <strong>cgroups</strong> are hard caps and they are the real foundation of containers, alongside <strong>namespaces</strong>.</li>
+</ul>
+<h3 id="further-reading">Further reading</h3>
+<ul>
+<li>Brendan Gregg, <em>Linux Performance</em> — <a href="http://www.brendangregg.com/linuxperf.html" target="_blank" rel="noopener noreferrer">http://www.brendangregg.com/linuxperf.html <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><code>man proc(5)</code> — exhaustive reference for <code>/proc</code></li>
+<li><code>man 7 signal</code> — every signal, default action, and catchability rule</li>
+<li><code>man 7 cgroups</code> — cgroup v2 design and controller list</li>
+<li><code>man 7 namespaces</code> — what each namespace virtualises</li>
+</ul>
+<h3 id="up-next-in-this-series">Up next in this series</h3>
+<ul>
+<li><strong>Linux Disk Management</strong> — partitions, filesystems, LVM and the mount stack</li>
+<li><strong>Linux User Management</strong> — users, groups, sudo, PAM, and the principle of least privilege</li>
+</ul>
+<p>By this point you should be able to walk into a slow box, name the saturated axis within a minute, and pick a tool with intent rather than by reflex. That is the difference between <em>running <code>top</code></em> and <em>operating a system</em>.</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/linux/service-management/"><span class="title">Linux Service Management: systemd, systemctl, and journald</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/linux/pipelines/"><span class="title">Linux Pipelines and File Operations: Composing Tools into Data Flows</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#process-program-thread--and-why-the-distinction-matters">Process, program, thread — and why the distinction matters</a></li>
+    <li><a href="#how-processes-are-born-fork-and-exec">How processes are born: fork() and exec()</a></li>
+    <li><a href="#the-process-state-machine">The process state machine</a></li>
+    <li><a href="#the-four-resource-axes">The four resource axes</a>
+      <ul>
+        <li><a href="#cpu">CPU</a></li>
+        <li><a href="#memory">Memory</a></li>
+        <li><a href="#disk-and-network">Disk and network</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-monitoring-toolchain">The monitoring toolchain</a>
+      <ul>
+        <li><a href="#top--the-first-thing-to-run"><code>top</code> — the first thing to run</a></li>
+        <li><a href="#htop--top-with-a-ui"><code>htop</code> — top with a UI</a></li>
+        <li><a href="#ps--the-static-snapshot"><code>ps</code> — the static snapshot</a></li>
+        <li><a href="#pstree--who-spawned-whom"><code>pstree</code> — who spawned whom</a></li>
+        <li><a href="#lsof--every-open-file-is-something"><code>lsof</code> — every open file is something</a></li>
+        <li><a href="#ss--sockets-the-modern-netstat"><code>ss</code> — sockets, the modern <code>netstat</code></a></li>
+        <li><a href="#iostat-and-iotop--the-disk-axis"><code>iostat</code> and <code>iotop</code> — the disk axis</a></li>
+      </ul>
+    </li>
+    <li><a href="#controlling-processes">Controlling processes</a>
+      <ul>
+        <li><a href="#signals">Signals</a></li>
+        <li><a href="#background-jobs-and-detachment">Background jobs and detachment</a></li>
+        <li><a href="#priorities-nice-and-renice">Priorities: <code>nice</code> and <code>renice</code></a></li>
+        <li><a href="#orphans-and-zombies">Orphans and zombies</a></li>
+      </ul>
+    </li>
+    <li><a href="#cgroups--namespaces--the-foundation-under-containers">cgroups + namespaces — the foundation under containers</a></li>
+    <li><a href="#walkthrough-the-box-feels-slow-what-now">Walkthrough: &ldquo;the box feels slow, what now?&rdquo;</a></li>
+    <li><a href="#real-world-recovering-an-accidentally-deleted-log-file">Real-world: recovering an accidentally deleted log file</a></li>
+    <li><a href="#recap">Recap</a>
+      <ul>
+        <li><a href="#further-reading">Further reading</a></li>
+        <li><a href="#up-next-in-this-series">Up next in this series</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Linux</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>19 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4000</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

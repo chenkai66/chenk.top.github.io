@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Transfer Learning (8): Multimodal Transfer · Chen Kai Blog</title>
+<meta name="description" content="Derive contrastive learning (InfoNCE), CLIP&#39;s vision-language pretraining, BLIP&#39;s Q-Former bridge to LLMs, cross-modal alignment, and multimodal fusion strategies. Includes a from-scratch CLIP implementation in PyTorch.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/transfer-learning/08-multimodal-transfer/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/transfer-learning/08-multimodal-transfer/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Transfer Learning (8): Multimodal Transfer">
+<meta property="og:description" content="Derive contrastive learning (InfoNCE), CLIP&#39;s vision-language pretraining, BLIP&#39;s Q-Former bridge to LLMs, cross-modal alignment, and multimodal fusion strategies. Includes a from-scratch CLIP implementation in PyTorch.">
+<meta property="og:url" content="https://www.chenk.top/en/transfer-learning/08-multimodal-transfer/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Transfer Learning</a>
+         · Chapter 8
+      </div>
+      <h1>Transfer Learning (8): Multimodal Transfer</h1>
+      <p class="deck">Derive contrastive learning (InfoNCE), CLIP&#39;s vision-language pretraining, BLIP&#39;s Q-Former bridge to LLMs, cross-modal alignment, and multimodal fusion strategies. Includes a from-scratch CLIP implementation in PyTorch.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-06-12">June 12, 2025</time> · 12 min read · 2500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/multimodal-learning/" class="tag">#Multimodal Learning</a><a href="/en/tags/clip/" class="tag">#CLIP</a><a href="/en/tags/contrastive-learning/" class="tag">#Contrastive Learning</a><a href="/en/tags/vision-language-models/" class="tag">#Vision-Language Models</a><a href="/en/tags/transfer-learning/" class="tag">#Transfer Learning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>How can a model classify an image of a Burmese cat correctly without ever having seen a label &ldquo;Burmese cat&rdquo;? Traditional supervised learning needs millions of labeled examples per class. CLIP, released by OpenAI in 2021, sidesteps that constraint entirely: it learns to put images and natural-language descriptions into the same vector space, and then &ldquo;classification&rdquo; reduces to picking which sentence — out of any candidate sentences you write down — sits closest to the image.</p>
+<p>The trick is not architecture. The trick is supervision. CLIP scraped 400 million (image, alt-text) pairs from the web and trained a contrastive objective: for every image, its true caption should be more similar than the captions paired with the other images in the batch. That single constraint, applied at scale, is enough to align two modalities so well that downstream tasks — zero-shot classification, retrieval, captioning prompting — fall out almost for free.</p>
+<p>This post derives the math behind that alignment, walks through CLIP and its successor BLIP-2, compares the three families of fusion strategies, and ends with a from-scratch CLIP implementation in PyTorch.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>The InfoNCE loss as mutual-information maximization, and the role of temperature $\tau$</li>
+<li>CLIP&rsquo;s dual-encoder design and zero-shot classification protocol</li>
+<li>BLIP / BLIP-2: the Q-Former bridge that connects a frozen ViT to a frozen LLM</li>
+<li>Cross-modal retrieval ($R@K$), captioning, VQA, and visual grounding</li>
+<li>Three fusion strategies: early, late, and cross-attention — when to use which</li>
+<li>A 100-line CLIP implementation that you can train</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Neural network training in PyTorch</li>
+<li>Cosine similarity, softmax, cross-entropy</li>
+<li>Transfer learning fundamentals (Parts 1–6)</li>
+</ul>
+<hr>
+<h2 id="1-clip-a-dual-encoder-vision-language-model">1. CLIP: a dual-encoder vision-language model</h2>
+<p>CLIP has only two moving parts: an image encoder $f_v$ (ViT or ResNet) and a text encoder $f_t$ (Transformer). Both project to a shared $d$-dimensional space and L2-normalize, so similarity is just a dot product on the unit hypersphere.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/fig1_clip_architecture.png" alt="CLIP dual-encoder architecture: image encoder &#43; text encoder share an L2-normalised embedding space, trained with symmetric InfoNCE." loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Two design choices carry almost all of CLIP&rsquo;s power:</p>
+<ol>
+<li><strong>No classification head.</strong> Output is an embedding vector, not a logit over a fixed label set. The model never commits to &ldquo;1000 ImageNet classes&rdquo;, so it is free to be applied to any concept that can be written as text.</li>
+<li><strong>Symmetric contrastive loss.</strong> Image-to-text and text-to-image are trained simultaneously. The encoder doesn&rsquo;t learn an asymmetric skill (e.g. &ldquo;describe this image&rdquo;); it learns a <em>bidirectional</em> alignment, which is exactly what zero-shot classification and retrieval both need.</li>
+</ol>
+<h3 id="zero-shot-classification-protocol">Zero-shot classification protocol</h3>
+<p>Given an image and $K$ candidate classes:</p>
+<ol>
+<li>Wrap each class name in a prompt template: <code>&quot;a photo of a {class}&quot;</code>.</li>
+<li>Encode the image once and all $K$ prompts once.</li>
+<li>Pick the class whose text embedding has the highest cosine similarity to the image embedding.</li>
+</ol>
+<p>That&rsquo;s it. No gradient descent on the target task, no labeled examples — just $K$ class names. CLIP achieves 76% top-1 on ImageNet this way, comparable to a fully supervised ResNet-50 trained on ImageNet&rsquo;s 1.28M labels.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Aspect</th>
+          <th>Supervised classifier</th>
+          <th>CLIP zero-shot</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Labels needed</td>
+          <td>One per training image</td>
+          <td>None at deployment</td>
+      </tr>
+      <tr>
+          <td>Output space</td>
+          <td>Fixed $K$ classes</td>
+          <td>Any text</td>
+      </tr>
+      <tr>
+          <td>New class cost</td>
+          <td>Retrain or fine-tune</td>
+          <td>Add a new prompt</td>
+      </tr>
+      <tr>
+          <td>Web-scale data</td>
+          <td>Manually curated</td>
+          <td>Naturally exists</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="2-contrastive-learning-the-math-behind-alignment">2. Contrastive learning: the math behind alignment</h2>
+<p>For a batch of $B$ image-text pairs $\{(\mathbf{v}_i, \mathbf{t}_i)\}$, all $B \times B$ pairwise similarities form a matrix. The diagonal entries are positives (true pairs); the off-diagonal entries are negatives (mismatched pairs).</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/fig2_contrastive_alignment.png" alt="Contrastive image-text alignment: diagonal of the batch similarity matrix is pulled up, off-diagonal is pushed down." loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The image-to-text InfoNCE loss is a row-wise softmax cross-entropy over this matrix, with the diagonal as the target:</p>
+$$
+\mathcal{L}_{i \to t} \;=\; -\frac{1}{B}\sum_{i=1}^{B} \log \frac{\exp(\mathbf{v}_i^\top \mathbf{t}_i / \tau)}{\sum_{j=1}^{B} \exp(\mathbf{v}_i^\top \mathbf{t}_j / \tau)}
+$$<p>The text-to-image loss $\mathcal{L}_{t \to i}$ is the column-wise version. CLIP minimizes the symmetric average $\mathcal{L} = \tfrac{1}{2}(\mathcal{L}_{i \to t} + \mathcal{L}_{t \to i})$.</p>
+<h3 id="why-it-works-a-mutual-information-lower-bound">Why it works: a mutual-information lower bound</h3>
+<p>InfoNCE is not just a heuristic; it is a tractable lower bound on the mutual information $I(V; T)$ between the two modalities (Oord et al., 2018):</p>
+$$
+I(V; T) \;\geq\; \log B \;-\; \mathcal{L}_{\text{InfoNCE}}
+$$<p>So minimizing the loss directly <em>maximizes</em> a lower bound on how much knowing the image tells you about the text (and vice versa). The bound tightens as $B$ grows — which is exactly why CLIP uses an enormous batch size of 32,768.</p>
+<h3 id="temperature-tau-focus-vs-spread">Temperature $\tau$: focus vs. spread</h3>
+<p>The temperature controls the softmax sharpness:</p>
+<ul>
+<li><strong>Small $\tau$ (≈0.01):</strong> distribution is peaked, gradients concentrate on the hardest negative. Risks overfitting to noise in web data.</li>
+<li><strong>Large $\tau$ (≈1.0):</strong> distribution is flat, all negatives contribute equally. Slow, weak signal.</li>
+<li><strong>CLIP&rsquo;s choice:</strong> $\tau = 0.07$, and crucially it is <em>learned</em> (parameterized as $\log(1/\tau)$ to keep it positive), so the model can settle on its own sharpness.</li>
+</ul>
+<h3 id="the-role-of-batch-size">The role of batch size</h3>
+<p>Each anchor image sees $B - 1$ negatives in its batch. A bigger batch means more negatives, a tighter MI bound, and stronger learning signal — until you run out of GPU memory.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Batch size</th>
+          <th>Notes</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>256</td>
+          <td>Typical academic baseline; works but slow to converge</td>
+      </tr>
+      <tr>
+          <td>4,096</td>
+          <td>MoCo-style queues compensate at this scale</td>
+      </tr>
+      <tr>
+          <td>32,768</td>
+          <td>CLIP&rsquo;s setting; required massive distributed training</td>
+      </tr>
+  </tbody>
+</table>
+<p>When you can&rsquo;t increase the batch directly, two tricks help: <strong>MoCo-style memory banks</strong> (keep a queue of recent negatives) and <strong>gradient accumulation</strong> (only feasible for the loss, since the softmax denominator must see all negatives at once).</p>
+<hr>
+<h2 id="3-blip-and-blip-2-bridging-vision-encoders-to-llms">3. BLIP and BLIP-2: bridging vision encoders to LLMs</h2>
+<p>CLIP gives you a great <em>embedding</em>, but it cannot generate text. To unlock captioning, VQA, and instruction-following on images, you need a generative head. BLIP-2 (Li et al., 2023) provides a particularly elegant recipe.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/fig3_blip_architecture.png" alt="BLIP-2 architecture: a small Q-Former bridges a frozen image encoder and a frozen LLM, trained with three contrastive/matching/generative objectives." loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The core idea: keep the expensive parts (a pretrained ViT and a pretrained LLM) <strong>frozen</strong>, and train only a small <strong>Q-Former</strong> (≈100M params) in between. The Q-Former is a transformer with a small set of <em>learned query vectors</em> that cross-attend to image features and produce a fixed-length &ldquo;soft visual prompt&rdquo; the LLM can consume.</p>
+<h3 id="two-stage-training">Two-stage training</h3>
+<p><strong>Stage 1</strong> trains the Q-Former with three complementary losses:</p>
+<ul>
+<li><strong>ITC</strong> (Image-Text Contrastive): the CLIP-style alignment loss, so the queries learn to capture text-relevant image content.</li>
+<li><strong>ITM</strong> (Image-Text Matching): a binary classifier on (image, text) pairs, including hard negatives. Forces fine-grained image-text matching that contrastive loss misses.</li>
+<li><strong>ITG</strong> (Image-grounded Text Generation): teach the Q-Former to extract information sufficient to <em>generate</em> the caption (autoregressive language modelling conditioned on visual queries).</li>
+</ul>
+<p><strong>Stage 2</strong> plugs the Q-Former&rsquo;s output into the frozen LLM&rsquo;s input embedding space and fine-tunes only the projection layer with a generative loss. Because the LLM already knows language, learning to &ldquo;read&rdquo; visual prompts is cheap.</p>
+<h3 id="why-this-matters-for-transfer-learning">Why this matters for transfer learning</h3>
+<p>BLIP-2 is the template for almost every modern vision-language model (LLaVA, MiniGPT-4, Qwen-VL, GPT-4V): freeze the heavy encoders, train a thin connector. Transfer cost drops by 1–2 orders of magnitude compared to training a multimodal model end-to-end.</p>
+<hr>
+<h2 id="4-cross-modal-retrieval">4. Cross-modal retrieval</h2>
+<p>A shared embedding space buys you retrieval <em>for free</em>. Encode the query in one modality, encode a database in the other, return the top-$K$ nearest neighbours by cosine similarity.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/fig4_cross_modal_retrieval.png" alt="Cross-modal retrieval: image-to-text and text-to-image both reduce to nearest-neighbour search in the shared embedding space." loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The standard metric is <strong>Recall@K</strong> — the fraction of queries for which the true match appears in the top $K$ results. Modern VLMs report $R@1$, $R@5$, $R@10$ on benchmarks like MS-COCO (5K test images, 25K captions) and Flickr30K.</p>
+<p>Three engineering wins follow from the dual-encoder design:</p>
+<ol>
+<li><strong>Database embeddings are precomputed.</strong> At query time you only encode the query, then do an ANN search (FAISS / ScaNN). This scales to billions of items.</li>
+<li><strong>Modality-symmetric.</strong> The same index serves image-to-text and text-to-image queries.</li>
+<li><strong>Composable.</strong> You can mix: encode an image <em>and</em> a text refinement (&quot;…but in winter&quot;), average them, and retrieve.</li>
+</ol>
+<hr>
+<h2 id="5-cross-modal-alignment-how-tightly-should-we-couple">5. Cross-modal alignment: how tightly should we couple?</h2>
+<p>The <em>granularity</em> of alignment is a design knob. Three regimes are common:</p>
+<ul>
+<li><strong>Global alignment (CLIP, ALIGN).</strong> One vector per image, one vector per sentence. Fast and scalable; misses fine-grained spatial reasoning.</li>
+<li><strong>Region alignment (OSCAR).</strong> Detect object regions in the image, align each region to noun phrases in the caption. Object tags act as anchor concepts. Better for VQA where the question targets a specific object.</li>
+<li><strong>Dense alignment (GLIP, GroundingDINO).</strong> Pixel-level or token-level correspondence. Required for visual grounding (&ldquo;which woman in the photo?&rdquo;) and open-vocabulary detection.</li>
+</ul>
+<p>Joint multimodal embeddings cluster by <em>semantic concept</em>, not by modality:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/fig5_embedding_tsne.png" alt="t-SNE of joint multimodal embeddings: images and captions of the same concept land in the same cluster." loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>That clustering structure is what makes zero-shot transfer work: a new image of &ldquo;a beach&rdquo; lands near the <em>concept</em> of beach, regardless of which captions the model has seen before.</p>
+<hr>
+<h2 id="6-downstream-tasks">6. Downstream tasks</h2>
+<p>Once you have a good multimodal encoder, a small head — or sometimes no head at all — unlocks a wide task surface.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/fig6_vl_tasks.png" alt="Vision-language downstream tasks: VQA, Captioning, Retrieval, Visual Grounding." loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<table>
+  <thead>
+      <tr>
+          <th>Task</th>
+          <th>Setup</th>
+          <th>Model family</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Zero-shot classification</td>
+          <td>Cosine similarity vs. prompted class names</td>
+          <td>CLIP, ALIGN</td>
+      </tr>
+      <tr>
+          <td>Image-text retrieval</td>
+          <td>ANN over precomputed embeddings; $R@K$</td>
+          <td>CLIP, ALIGN, BLIP</td>
+      </tr>
+      <tr>
+          <td>Image captioning</td>
+          <td>Image → autoregressive text decoder</td>
+          <td>BLIP-2, LLaVA</td>
+      </tr>
+      <tr>
+          <td>Visual question answering</td>
+          <td>(Image, question) → answer</td>
+          <td>BLIP-2, LLaVA, Flamingo</td>
+      </tr>
+      <tr>
+          <td>Visual grounding</td>
+          <td>(Image, expression) → bounding box</td>
+          <td>GLIP, GroundingDINO</td>
+      </tr>
+      <tr>
+          <td>Open-vocabulary detection</td>
+          <td>Image + class prompts → boxes</td>
+          <td>OWL-ViT, GLIP</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="7-fusion-strategies">7. Fusion strategies</h2>
+<p>Whenever you mix two modalities, you have to decide <em>where</em> to fuse them. Three patterns dominate.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/fig7_fusion_strategies.png" alt="Three fusion strategies for multimodal models: early (raw concat), late (independent encoders &#43; combine), cross-attention (deep interaction)." loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>Early fusion.</strong> Concatenate raw features and feed a single encoder: $\mathbf{h} = f([\mathbf{v}; \mathbf{t}])$. Simple but throws away pretrained unimodal encoders. Rare in modern systems.</p>
+<p><strong>Late fusion.</strong> Encode each modality independently, then combine: $\mathbf{h} = g(f_v(\mathbf{v}), f_t(\mathbf{t}))$. This is CLIP. Modular, scalable, retrieval-friendly, but interaction between modalities is shallow — the encoders don&rsquo;t &ldquo;see&rdquo; each other.</p>
+<p><strong>Cross-attention (deep) fusion.</strong> Encoders interleave cross-attention layers where queries from one modality attend to keys/values from the other:</p>
+$$
+\text{CrossAttn}(\mathbf{V}, \mathbf{T}) = \text{softmax}\!\left(\frac{(\mathbf{V}\mathbf{W}_Q)(\mathbf{T}\mathbf{W}_K)^\top}{\sqrt{d}}\right) \mathbf{T}\mathbf{W}_V
+$$<p>Used in ViLBERT, LXMERT, BLIP. Richer interaction, better on tasks needing fine-grained reasoning (VQA, grounding); slower at retrieval because every (image, text) pair must be re-scored.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Strategy</th>
+          <th>Pretrained encoders</th>
+          <th>Interaction depth</th>
+          <th>Retrieval cost</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Early</td>
+          <td>No</td>
+          <td>High but unprincipled</td>
+          <td>Low</td>
+      </tr>
+      <tr>
+          <td>Late</td>
+          <td>Yes</td>
+          <td>Shallow</td>
+          <td>$O(N + M)$ encodings, then ANN</td>
+      </tr>
+      <tr>
+          <td>Cross-attention</td>
+          <td>Yes</td>
+          <td>Deep</td>
+          <td>$O(N \cdot M)$ — re-score every pair</td>
+      </tr>
+  </tbody>
+</table>
+<p>Practical rule: use <strong>late fusion</strong> when retrieval is on the critical path (search, recommendation), <strong>cross-attention</strong> when reasoning quality matters more than latency (VQA, captioning).</p>
+<hr>
+<h2 id="8-implementation-a-minimal-clip">8. Implementation: a minimal CLIP</h2>
+<p>This is a complete, runnable contrastive learner. The image encoder is intentionally a stub (a small MLP over fake 2048-d features) so the focus stays on the contrastive machinery; swap it for a real ViT in production.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ImageEncoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Stand-in for a ViT/ResNet feature extractor + projection head.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># unit hypersphere</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TextEncoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Small Transformer text encoder; uses the [CLS] position as the summary.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">max_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">77</span><span class="p">,</span> <span class="n">n_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tok</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">max_len</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.02</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerEncoderLayer</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">d_model</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">nhead</span><span class="o">=</span><span class="n">n_heads</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">dim_feedforward</span><span class="o">=</span><span class="mi">4</span> <span class="o">*</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tf</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="n">n_layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">[:</span> <span class="n">tokens</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># CLS pooling</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CLIP</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">image_encoder</span> <span class="o">=</span> <span class="n">ImageEncoder</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">text_encoder</span> <span class="o">=</span> <span class="n">TextEncoder</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Learnable temperature, parameterised in log-space to stay positive.</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">logit_scale</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">0.07</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_encoder</span><span class="p">(</span><span class="n">images</span><span class="p">)</span>            <span class="c1"># (B, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_encoder</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>             <span class="c1"># (B, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logit_scale</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits_i2t</span> <span class="o">=</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">v</span> <span class="o">@</span> <span class="n">t</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>            <span class="c1"># (B, B)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">logits_i2t</span><span class="p">,</span> <span class="n">logits_i2t</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">contrastive_loss</span><span class="p">(</span><span class="n">logits_i2t</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                     <span class="n">logits_t2i</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Symmetric InfoNCE: diagonal indices are the positive targets.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">B</span> <span class="o">=</span> <span class="n">logits_i2t</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">logits_i2t</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits_i2t</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                  <span class="o">+</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits_t2i</span><span class="p">,</span> <span class="n">target</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">zero_shot_classify</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">CLIP</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                       <span class="n">class_token_lists</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Classify `image` into one of K classes, given tokenised class prompts.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">v</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">image_encoder</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>                      <span class="c1"># (1, d)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">model</span><span class="o">.</span><span class="n">text_encoder</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                     <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">class_token_lists</span><span class="p">])</span>                    <span class="c1"># (K, d)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">logit_scale</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span> <span class="o">*</span> <span class="n">v</span> <span class="o">@</span> <span class="n">t</span><span class="o">.</span><span class="n">t</span><span class="p">())</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Three details that newcomers often get wrong:</p>
+<ol>
+<li><strong>Always L2-normalize before the dot product.</strong> Otherwise the loss collapses to &ldquo;make the embedding norm large&rdquo;.</li>
+<li><strong>Clamp <code>logit_scale.exp()</code>.</strong> Empirically, capping it around 100 stabilises late-stage training when the model has learned a near-perfect alignment.</li>
+<li><strong>The cross-entropy targets are <code>arange(B)</code>.</strong> The &ldquo;label&rdquo; of pair $i$ is just its row/column index — this is what implements &ldquo;pair $i$ matches itself&rdquo;.</li>
+</ol>
+<hr>
+<h2 id="9-qa">9. Q&amp;A</h2>
+<p><strong>Q1: Where does CLIP&rsquo;s zero-shot ability really come from?</strong> Three things stacked: (i) 400M web pairs cover an enormous concept distribution; (ii) natural language is a far richer label space than discrete classes — you supervise on a <em>description</em>, not a category; (iii) contrastive learning aligns the modalities so that any text becomes a usable &ldquo;prototype&rdquo; for classification.</p>
+<p><strong>Q2: Why is batch size so important?</strong> Each example sees $B-1$ negatives, and the InfoNCE bound on mutual information tightens as $B$ grows. Below $B \approx 1{,}024$, results degrade noticeably; CLIP uses 32,768. If you can&rsquo;t go big, use a MoCo-style queue.</p>
+<p><strong>Q3: What does CLIP fail at?</strong> Counting (&ldquo;how many cats?&rdquo;), spatial relations (&ldquo;the cat <em>left of</em> the lamp&rdquo;), fine-grained categories (dog breeds), text <em>inside</em> images, and abstract concepts. Contrastive learning on noisy web text rewards coarse matching.</p>
+<p><strong>Q4: How should I fine-tune CLIP on my own data?</strong> Three tiers: (a) <strong>freeze + linear probe</strong> for ≤10K labelled examples; (b) <strong>LoRA on attention layers</strong> for 10K–100K; (c) <strong>full fine-tune at low LR</strong> for ≥100K, but freeze the temperature and use the contrastive loss, not cross-entropy on labels.</p>
+<p><strong>Q5: When is cross-attention worth the cost?</strong> When you need <em>interaction</em> — VQA, grounding, multi-step reasoning. For pure retrieval at scale, late fusion (CLIP-style) wins because you can precompute and ANN-search.</p>
+<p><strong>Q6: Do I have to scrape 400M pairs to train a useful VL model?</strong> No. The BLIP-2 recipe — freeze a pretrained vision encoder <em>and</em> a pretrained LLM, train only a small connector — works with low-millions of pairs and is what most modern open-source VLMs do.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Radford, A., et al. (2021). Learning transferable visual models from natural language supervision. <em>ICML</em>.</li>
+<li>Jia, C., et al. (2021). Scaling up visual and vision-language representation learning with noisy text supervision (ALIGN). <em>ICML</em>.</li>
+<li>Li, J., et al. (2022). BLIP: Bootstrapping language-image pre-training. <em>ICML</em>.</li>
+<li>Li, J., et al. (2023). BLIP-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. <em>ICML</em>.</li>
+<li>Li, X., et al. (2020). Oscar: Object-semantics aligned pre-training. <em>ECCV</em>.</li>
+<li>Lu, J., et al. (2019). ViLBERT: Pretraining task-agnostic visiolinguistic representations. <em>NeurIPS</em>.</li>
+<li>van den Oord, A., Li, Y., &amp; Vinyals, O. (2018). Representation learning with contrastive predictive coding (InfoNCE). <em>arXiv:1807.03748</em>.</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<ul>
+<li>Previous: <a href="/en/transfer-learning-7-zero-shot-learning/">Part 7 &ndash; Zero-Shot Learning</a>
+</li>
+<li>Next: <a href="/en/transfer-learning-9-parameter-efficient-fine-tuning/">Part 9 &ndash; Parameter-Efficient Fine-Tuning</a>
+</li>
+<li><a href="/tags/Transfer-Learning/">View all 12 parts in this series</a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-clip-a-dual-encoder-vision-language-model">1. CLIP: a dual-encoder vision-language model</a>
+      <ul>
+        <li><a href="#zero-shot-classification-protocol">Zero-shot classification protocol</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-contrastive-learning-the-math-behind-alignment">2. Contrastive learning: the math behind alignment</a>
+      <ul>
+        <li><a href="#why-it-works-a-mutual-information-lower-bound">Why it works: a mutual-information lower bound</a></li>
+        <li><a href="#temperature-tau-focus-vs-spread">Temperature : focus vs. spread</a></li>
+        <li><a href="#the-role-of-batch-size">The role of batch size</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-blip-and-blip-2-bridging-vision-encoders-to-llms">3. BLIP and BLIP-2: bridging vision encoders to LLMs</a>
+      <ul>
+        <li><a href="#two-stage-training">Two-stage training</a></li>
+        <li><a href="#why-this-matters-for-transfer-learning">Why this matters for transfer learning</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-cross-modal-retrieval">4. Cross-modal retrieval</a></li>
+    <li><a href="#5-cross-modal-alignment-how-tightly-should-we-couple">5. Cross-modal alignment: how tightly should we couple?</a></li>
+    <li><a href="#6-downstream-tasks">6. Downstream tasks</a></li>
+    <li><a href="#7-fusion-strategies">7. Fusion strategies</a></li>
+    <li><a href="#8-implementation-a-minimal-clip">8. Implementation: a minimal CLIP</a></li>
+    <li><a href="#9-qa">9. Q&amp;A</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Transfer Learning</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2500</strong></div>
+      <div class="row"><span>Published</span><strong>Jun 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Time Series Forecasting (5): Transformer Architecture for Time Series · Chen Kai Blog</title>
+<meta name="description" content="Transformers for time series, end to end: encoder-decoder anatomy, temporal positional encoding, the O(n^2) attention bottleneck, decoder-only forecasting, and patching. With variants (Autoformer, FEDformer, Informer, PatchTST) and a real implementation.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/time-series/transformer/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/time-series/transformer/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Time Series Forecasting (5): Transformer Architecture for Time Series">
+<meta property="og:description" content="Transformers for time series, end to end: encoder-decoder anatomy, temporal positional encoding, the O(n^2) attention bottleneck, decoder-only forecasting, and patching. With variants (Autoformer, FEDformer, Informer, PatchTST) and a real implementation.">
+<meta property="og:url" content="https://www.chenk.top/en/time-series/transformer/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Time series forecasting</a>
+         · Chapter 5
+      </div>
+      <h1>Time Series Forecasting (5): Transformer Architecture for Time Series</h1>
+      <p class="deck">Transformers for time series, end to end: encoder-decoder anatomy, temporal positional encoding, the O(n^2) attention bottleneck, decoder-only forecasting, and patching. With variants (Autoformer, FEDformer, Informer, PatchTST) and a real implementation.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-10-31">October 31, 2024</time> · 13 min read · 2700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/time-series/" class="tag">#Time Series</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/transformer/" class="tag">#Transformer</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li>The full encoder-decoder Transformer, redrawn for time series</li>
+<li>Why position must be injected, and how sinusoidal / learned / time-aware encodings differ</li>
+<li>What multi-head attention actually learns over a temporal sequence</li>
+<li>Where vanilla attention breaks down (O(n^2)) and the four families of fixes: sparse, linear, patched, decoder-only</li>
+<li>A clean PyTorch reference implementation, plus when to reach for Autoformer / FEDformer / Informer / PatchTST</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Self-attention and multi-head attention (Part 4)</li>
+<li>Encoder-decoder architectures and teacher forcing</li>
+<li>PyTorch fundamentals (<code>nn.Module</code>, training loops)</li>
+</ul>
+<hr>
+<h2 id="1-why-transformers-for-time-series">1. Why Transformers for Time Series</h2>
+<p>LSTM and GRU process a sequence step by step. Three things follow from
+that:</p>
+<ol>
+<li><strong>Path length is O(L)</strong>. Information from step $t-L$ has to ride
+through $L$ recurrence steps before it can influence step $t$.
+That&rsquo;s where vanishing gradients come from.</li>
+<li><strong>Training is sequential</strong>. Step $t+1$ cannot start until step $t$
+has finished, so a GPU sits half-idle.</li>
+<li><strong>The hidden state is a bottleneck</strong>. The model has to compress
+everything it might need from the past into one fixed-size vector.</li>
+</ol>
+<p>Self-attention removes all three constraints at once. Every position
+sees every other position in <strong>one matrix multiply</strong>, the path length
+between any two steps is $O(1)$, and the whole sequence is processed
+in parallel. The cost is memory: storing $n \times n$ attention weights
+is $O(n^2)$, which we will deal with in Sections 5 and 7.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig1_architecture.png" alt="Encoder-decoder Transformer adapted for time series. The encoder reads the lookback window in parallel; the decoder generates the forecast horizon and attends to encoder memory through cross-attention." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Figure 1. Encoder-decoder Transformer adapted for time series. The encoder reads the lookback window in parallel; the decoder generates the forecast horizon and attends to encoder memory through cross-attention.</em></p>
+<h2 id="2-the-architecture-block-by-block">2. The Architecture, Block by Block</h2>
+<p>A time-series Transformer is the original 2017 architecture with three
+small but consequential changes:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Component</th>
+          <th>Original NLP</th>
+          <th>Time series</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Input embedding</td>
+          <td>Token embedding lookup</td>
+          <td><strong>Linear projection</strong> of continuous features</td>
+      </tr>
+      <tr>
+          <td>Positional info</td>
+          <td>Sinusoidal on token index</td>
+          <td><strong>Time-aware</strong> encoding (calendar features, irregular dt)</td>
+      </tr>
+      <tr>
+          <td>Output head</td>
+          <td>Softmax over vocabulary</td>
+          <td><strong>Linear</strong> to a real-valued forecast vector</td>
+      </tr>
+  </tbody>
+</table>
+<p>Everything else &ndash; multi-head self-attention, feed-forward, residual
+connections, LayerNorm, decoder cross-attention, causal masking &ndash; is
+unchanged. The four sub-layers per block are:</p>
+$$
+\begin{aligned}
+h_1 &= \text{LayerNorm}(x + \text{MHSA}(x)) \\
+h_2 &= \text{LayerNorm}(h_1 + \text{FFN}(h_1))
+\end{aligned}
+$$<p>with the standard scaled dot-product attention from Part 4:</p>
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
+$$<h3 id="21-encoder">2.1 Encoder</h3>
+<p>Reads the lookback window $x_{t-L+1:t}$ and produces context vectors
+$M \in \mathbb{R}^{L \times d_{\text{model}}}$. No mask &ndash; every
+position attends to every other.</p>
+<h3 id="22-decoder">2.2 Decoder</h3>
+<p>Takes the <strong>label window</strong> (last $L_{\text{label}}$ steps of history)
+concatenated with placeholder zeros for the forecast horizon, and emits
+the prediction $\hat{y}_{t+1:t+H}$. It uses two attention sub-layers per
+block:</p>
+<ul>
+<li><strong>Masked self-attention</strong> with a causal mask, so step $t+k$ can only
+see steps up to $t+k-1$.</li>
+<li><strong>Cross-attention</strong> where queries come from the decoder and keys /
+values come from the encoder memory $M$. This is the only place the
+decoder ever looks at the encoder output.</li>
+</ul>
+<h3 id="23-the-label-window-a-small-but-useful-trick">2.3 The label window: a small but useful trick</h3>
+<p>Pure encoder-decoder models often suffer at the boundary between
+history and forecast. The fix used by Informer / Autoformer is to feed
+the decoder $L_{\text{label}}$ steps of <em>known history</em> plus $H$
+zero-filled placeholders, so the decoder always starts from a known
+state and rolls forward into the unknown.</p>
+<h2 id="3-positional-encoding-for-time">3. Positional Encoding for Time</h2>
+<p>Self-attention is permutation invariant &ndash; shuffle the input, you get
+the same output. For language that&rsquo;s a bug; for time series it&rsquo;s
+catastrophic. We inject position with sinusoidal encodings:</p>
+$$
+\text{PE}_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right), \qquad
+\text{PE}_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).
+$$<p>Each position $p$ ends up with a <strong>unique signature</strong> built from a
+geometric series of frequencies. Low-index dimensions oscillate fast
+(they encode short-range position), high-index dimensions oscillate
+slowly (they encode long-range position).</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig2_positional_encoding.png" alt="Sinusoidal positional encoding. Left: the full encoding matrix where each row is a unique signature. Right: four representative dimensions oscillating at different frequencies." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Figure 2. Sinusoidal positional encoding. Left: the full encoding matrix where each row is a unique signature. Right: four representative dimensions oscillating at different frequencies.</em></p>
+<p>For time series we usually want <strong>richer</strong> positional information than
+just &ldquo;step index&rdquo;:</p>
+<ul>
+<li><strong>Calendar features</strong>: hour-of-day, day-of-week, month, holiday
+flag. Each gets its own learned embedding and is added to the input.</li>
+<li><strong>Irregular sampling</strong>: replace position $p$ with the actual
+timestamp $\tau_p$, normalised. Used by Time2Vec and Continuous-Time
+Transformer.</li>
+<li><strong>Relative position</strong>: encode $\tau_q - \tau_k$ inside the attention
+score itself (T5 / TUPE style). Better for very long contexts.</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TemporalPositionalEncoding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Sinusoidal PE + optional calendar feature embeddings.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">max_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">calendar_sizes</span><span class="o">=</span><span class="p">(</span><span class="mi">24</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">12</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># ---- sinusoidal -----------------------------------------------------</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pe</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">max_len</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_len</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">div</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                        <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">10000.0</span><span class="p">)</span> <span class="o">/</span> <span class="n">d_model</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pe</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">pos</span> <span class="o">*</span> <span class="n">div</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pe</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">pos</span> <span class="o">*</span> <span class="n">div</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&#34;pe&#34;</span><span class="p">,</span> <span class="n">pe</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>  <span class="c1"># (1, L, d)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># ---- calendar embeddings (hour, weekday, day, month) ---------------</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">cal_embeds</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">calendar_sizes</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">cal</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># x: (B, L, d). cal: (B, L, 4) integer calendar features.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">cal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">emb</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cal_embeds</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">emb</span><span class="p">(</span><span class="n">cal</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="4-what-multi-head-attention-learns">4. What Multi-Head Attention Learns</h2>
+<p>A single attention head can only model one type of relationship. Multi-
+head splits the model into $h$ parallel attention computations on
+$d_k = d_{\text{model}} / h$-dimensional projections, then concatenates.
+For time series, different heads tend to specialise:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig3_multihead_patterns.png" alt="Four heads from a trained Transformer over a 48-step window, each attending to a different temporal pattern. Note the causal mask: nothing above the diagonal." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Figure 3. Four heads from a trained Transformer over a 48-step window, each attending to a different temporal pattern. Note the causal mask: nothing above the diagonal.</em></p>
+<table>
+  <thead>
+      <tr>
+          <th>Head pattern</th>
+          <th>What the model is doing</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Local</strong> (diagonal)</td>
+          <td>Mostly an autoregressive moving average</td>
+      </tr>
+      <tr>
+          <td><strong>Periodic stripes</strong></td>
+          <td>Locking onto a known cycle (24-hour, weekly)</td>
+      </tr>
+      <tr>
+          <td><strong>Long-range diffuse</strong></td>
+          <td>Pulling in slow trend information</td>
+      </tr>
+      <tr>
+          <td><strong>Anchored bands</strong></td>
+          <td>Latching onto a specific past event (spike, regime shift)</td>
+      </tr>
+  </tbody>
+</table>
+<p>This is also where <strong>interpretability</strong> comes from: averaging the final
+layer&rsquo;s attention over heads tells you which historical steps the
+forecast actually depends on.</p>
+<h2 id="5-the-on2-bottleneck">5. The O(n^2) Bottleneck</h2>
+<p>Vanilla attention stores an $n \times n$ score matrix per head per
+layer. In fp16 with 8 heads, the per-layer attention memory is</p>
+$$
+M_{\text{attn}} = h \cdot n^2 \cdot 2 \;\text{bytes}.
+$$<p>This is fine at $n=512$ (4 MB) and uncomfortable at $n=4096$ (256 MB);
+at $n=16384$ a single layer needs over 4 GB just for the attention
+matrices. Compute scales the same way: each layer is
+$O(n^2 d_{\text{model}})$ FLOPs.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig5_quadratic_bottleneck.png" alt="Attention memory and FLOPs as a function of sequence length. Vanilla O(n^2) becomes infeasible past a few thousand steps; sparse / linear / patched alternatives keep the cost manageable." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Figure 5. Attention memory and FLOPs as a function of sequence length. Vanilla O(n^2) becomes infeasible past a few thousand steps; sparse / linear / patched alternatives keep the cost manageable.</em></p>
+<p>There are four families of fixes, in increasing order of &ldquo;how much they
+change the model&rdquo;:</p>
+<ol>
+<li><strong>Sparse attention</strong> (Longformer, BigBird, Informer&rsquo;s ProbSparse):
+only compute scores for a sparse subset of $(q, k)$ pairs. Cost
+$O(n \cdot w)$ where $w$ is a window or number of selected keys.</li>
+<li><strong>Linear attention</strong> (Performer, Linformer, Nystromformer): replace
+the softmax with a kernel that factorises, so attention becomes
+$O(n \cdot d^2)$.</li>
+<li><strong>Patching</strong> (PatchTST, autoformer-style series decomposition):
+<em>shorten the sequence itself</em> by grouping consecutive steps into
+patches. We come back to this in Section 7.</li>
+<li><strong>Decoder-only with KV cache</strong> (Section 6): you still pay $O(n^2)$
+in training, but inference is incremental.</li>
+</ol>
+<p>In practice, for forecasting horizons up to a few hundred steps with
+lookback windows under 2k, vanilla attention is fine. Past that,
+<strong>patching is the most cost-effective change</strong> &ndash; it usually improves
+accuracy <em>and</em> slashes compute.</p>
+<h2 id="6-decoder-only-autoregressive-forecasting">6. Decoder-Only Autoregressive Forecasting</h2>
+<p>GPT-style decoder-only Transformers have largely won in NLP. The same
+recipe works for forecasting: drop the encoder, train one stack with a
+causal mask, and roll predictions forward one step at a time.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig6_decoder_only_forecast.png" alt="Decoder-only forecasting with a causal mask. At each step we feed the model everything it has produced so far and ask for the next value. The mask on the right shows which positions are visible." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Figure 6. Decoder-only forecasting with a causal mask. At each step we feed the model everything it has produced so far and ask for the next value. The mask on the right shows which positions are visible.</em></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">autoregressive_forecast</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">history</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">horizon</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;history: (B, L, d). Returns (B, horizon, d).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">seq</span> <span class="o">=</span> <span class="n">history</span>
+</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">horizon</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">seq</span><span class="p">)[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span>   <span class="c1"># last position is the next-step prediction</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">seq</span><span class="p">,</span> <span class="n">pred</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Trade-offs vs. encoder-decoder</strong>:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Property</th>
+          <th>Encoder-decoder</th>
+          <th>Decoder-only</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Training cost</td>
+          <td>Two stacks</td>
+          <td>One stack</td>
+      </tr>
+      <tr>
+          <td>Inference latency</td>
+          <td>One forward pass for all $H$</td>
+          <td>$H$ forward passes (with KV cache, much cheaper)</td>
+      </tr>
+      <tr>
+          <td>Exposure bias</td>
+          <td>Mitigated by teacher forcing</td>
+          <td>Present unless you do scheduled sampling</td>
+      </tr>
+      <tr>
+          <td>Pre-training transfer</td>
+          <td>Awkward</td>
+          <td>Natural &ndash; this is how foundation TS models (TimesFM, Lag-Llama, Chronos) are built</td>
+      </tr>
+  </tbody>
+</table>
+<p>For forecasting from a single foundation model on many tasks,
+decoder-only is now the dominant choice.</p>
+<h2 id="7-patching-the-single-best-speedup">7. Patching: The Single Best Speedup</h2>
+<p>PatchTST (Nie et al., ICLR 2023) made a quietly revolutionary
+observation: <strong>time steps are not the right tokens</strong>. A length-512
+hourly series has way more tokens than a typical NLP sentence, but
+each &ldquo;token&rdquo; carries almost no information. Group them into patches of
+size $P$ and you get $\lceil L / P \rceil$ tokens that each summarise a
+short waveform.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig7_patching.png" alt="Patching strategy. Top: split a length-96 series into eight patches of size 12. Bottom: each patch becomes one token via a linear projection. Right: relative attention cost as a function of patch size &ndash; O(n^2) shrinks fast." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Figure 7. Patching strategy. Top: split a length-96 series into eight patches of size 12. Bottom: each patch becomes one token via a linear projection. Right: relative attention cost as a function of patch size &ndash; O(n^2) shrinks fast.</em></p>
+<p>Why patching helps so much:</p>
+<ul>
+<li><strong>Attention cost drops by $P^2$</strong>. With $P=16$ on $L=512$,
+you go from 262k attention entries per head to ~1k.</li>
+<li><strong>Each token is meaningful</strong>. A patch of 12 hourly values captures
+half a day &ndash; a useful unit. A single hour does not.</li>
+<li><strong>Locality bias for free</strong>. The local pattern inside a patch is
+handled by the linear projection; attention only needs to model
+cross-patch (longer-range) interactions.</li>
+<li><strong>Per-channel independence</strong>. PatchTST treats each variable as its
+own sequence, share weights, and avoids spurious cross-channel
+attention in early training.</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PatchEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">d_model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="o">=</span> <span class="n">patch_size</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">patch_size</span> <span class="o">*</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>                <span class="c1"># x: (B, L, C)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">B</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">P</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span>
+</span></span><span class="line"><span class="cl">        <span class="n">L_trim</span> <span class="o">=</span> <span class="p">(</span><span class="n">L</span> <span class="o">//</span> <span class="n">P</span><span class="p">)</span> <span class="o">*</span> <span class="n">P</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">L_trim</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">L_trim</span> <span class="o">//</span> <span class="n">P</span><span class="p">,</span> <span class="n">P</span> <span class="o">*</span> <span class="n">C</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>              <span class="c1"># (B, L/P, d_model)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="8-a-reference-implementation">8. A Reference Implementation</h2>
+<p>Putting it together with <code>nn.Transformer</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TimeSeriesTransformer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_features</span><span class="p">,</span> <span class="n">d_model</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">n_heads</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">n_enc</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_dec</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">d_ff</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">lookback</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">96</span><span class="p">,</span> <span class="n">patch</span><span class="o">=</span><span class="mi">16</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">patch_embed</span> <span class="o">=</span> <span class="n">PatchEmbedding</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">n_features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n_tokens</span> <span class="o">=</span> <span class="n">lookback</span> <span class="o">//</span> <span class="n">patch</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">TemporalPositionalEncoding</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="n">n_tokens</span> <span class="o">+</span> <span class="n">horizon</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">enc_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerEncoderLayer</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">norm_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s2">&#34;gelu&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dec_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerDecoderLayer</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">norm_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s2">&#34;gelu&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">enc_layer</span><span class="p">,</span> <span class="n">n_enc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerDecoder</span><span class="p">(</span><span class="n">dec_layer</span><span class="p">,</span> <span class="n">n_dec</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">horizon</span> <span class="o">=</span> <span class="n">horizon</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># src: (B, L, C). tgt: (B, H, C) -- use teacher forcing in training.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">memory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_embed</span><span class="p">(</span><span class="n">src</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">tgt_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_embed</span><span class="p">(</span><span class="n">tgt</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">L_tgt</span> <span class="o">=</span> <span class="n">tgt_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">causal</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Transformer</span><span class="o">.</span><span class="n">generate_square_subsequent_mask</span><span class="p">(</span><span class="n">L_tgt</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">tgt_emb</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="o">=</span><span class="n">causal</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>            <span class="c1"># (B, L_tgt, C)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A few production notes:</p>
+<ul>
+<li><strong><code>norm_first=True</code></strong> (pre-LN) is more stable for deep stacks; the
+original post-LN can require warm-up to converge.</li>
+<li><strong>GELU</strong> rather than ReLU in the FFN &ndash; standard since BERT and
+consistently better in our experience.</li>
+<li><strong>Always normalise per series</strong> (z-score) before the model and
+invert at the output. Forgetting this is the most common reason a
+Transformer &ldquo;won&rsquo;t train&rdquo; on time series.</li>
+</ul>
+<h2 id="9-variants-and-how-to-pick-one">9. Variants and How to Pick One</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Variant</th>
+          <th>Key idea</th>
+          <th>Best when</th>
+          <th>Year</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Vanilla</strong></td>
+          <td>Encoder-decoder + sinusoidal PE</td>
+          <td>Lookback &lt; 1k, you want a baseline</td>
+          <td>2017</td>
+      </tr>
+      <tr>
+          <td><strong>Informer</strong></td>
+          <td>ProbSparse attention + label window</td>
+          <td>Very long lookback (5k-10k)</td>
+          <td>2021</td>
+      </tr>
+      <tr>
+          <td><strong>Autoformer</strong></td>
+          <td>Series decomposition + auto-correlation in place of self-attention</td>
+          <td>Strong, clean seasonality</td>
+          <td>2021</td>
+      </tr>
+      <tr>
+          <td><strong>FEDformer</strong></td>
+          <td>Attention in the frequency domain</td>
+          <td>Periodic data, long horizons</td>
+          <td>2022</td>
+      </tr>
+      <tr>
+          <td><strong>PatchTST</strong></td>
+          <td>Patching + channel independence</td>
+          <td>Most multivariate forecasting</td>
+          <td>2023</td>
+      </tr>
+      <tr>
+          <td><strong>iTransformer</strong></td>
+          <td>Treat each variable as a token, attend across variables</td>
+          <td>Many correlated channels</td>
+          <td>2024</td>
+      </tr>
+  </tbody>
+</table>
+<p>If you&rsquo;re starting fresh in 2024-2025, our default recommendation is
+<strong>PatchTST or iTransformer</strong>, both of which beat the older variants on
+the standard ETT / Electricity / Traffic benchmarks while being simpler
+to implement and faster to train.</p>
+<h2 id="10-performance-and-engineering">10. Performance and Engineering</h2>
+<h3 id="101-forecast-quality">10.1 Forecast quality</h3>
+<p>We forecast a 96-step horizon on a synthetic signal with daily and
+weekly seasonality plus random spikes. The Transformer cleanly captures
+both seasonalities; the LSTM tracks the dominant daily cycle but drifts
+on the weekly component.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/fig4_lstm_vs_transformer.png" alt="Forecast quality on a daily &#43; weekly seasonal signal. The Transformer locks both cycles; the LSTM captures the dominant daily one but drifts on the weekly. Right: MAE comparison across architectures." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Figure 4. Forecast quality on a daily + weekly seasonal signal. The Transformer locks both cycles; the LSTM captures the dominant daily one but drifts on the weekly. Right: MAE comparison across architectures.</em></p>
+<h3 id="102-training-recipe-the-boring-stuff-that-matters">10.2 Training recipe (the boring stuff that matters)</h3>
+<ul>
+<li><strong>Optimizer</strong>: AdamW, $\beta = (0.9, 0.95)$ (the GPT-3 setting &ndash; the
+default 0.999 is too sluggish for time series).</li>
+<li><strong>Schedule</strong>: linear warm-up over the first 5-10% of steps, then
+cosine decay to zero. Without warm-up, deep Transformers diverge.</li>
+<li><strong>Learning rate</strong>: start at $1\text{e-}4$ for $d_{\text{model}}=128$,
+scale down for larger models.</li>
+<li><strong>Gradient clipping</strong>: $\|g\| \le 1.0$. Non-negotiable.</li>
+<li><strong>Batch size</strong>: as large as fits. Transformers benefit dramatically
+from large batches for stability.</li>
+<li><strong>Mixed precision</strong> (<code>torch.cuda.amp</code> or <code>bfloat16</code>): 2-3x speedup
+with no accuracy loss.</li>
+<li><strong>Patience</strong>: forecasting Transformers usually need 100-300 epochs;
+language Transformers&rsquo; 3-10 epochs do not transfer.</li>
+</ul>
+<h3 id="103-production-serving-cost-and-the-revin-trick">10.3 Production: serving cost and the RevIN trick</h3>
+<ul>
+<li>Use <strong><code>torch.compile</code></strong> (PyTorch 2.x) &ndash; 1.5-2x latency win for free.</li>
+<li>For decoder-only deployments, <strong>cache K and V</strong> across steps so each
+new prediction is $O(n)$ rather than $O(n^2)$.</li>
+<li><strong>Reversible Instance Normalization</strong> (RevIN, ICLR 2022): normalise
+each input series at inference time, denormalise at the output. A
+one-line change that fixes the &ldquo;model trained on history that drifts
+away from production&rdquo; failure mode.</li>
+</ul>
+<h2 id="11-common-pitfalls">11. Common Pitfalls</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Symptom</th>
+          <th>Likely cause</th>
+          <th>Fix</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Loss flat at the variance of the data</td>
+          <td>Forgot to normalise the input</td>
+          <td>z-score per series, denormalise at output</td>
+      </tr>
+      <tr>
+          <td>Loss diverges after a few hundred steps</td>
+          <td>No warm-up, post-LN with high LR</td>
+          <td>Linear warm-up + <code>norm_first=True</code></td>
+      </tr>
+      <tr>
+          <td>Validation collapses to a constant</td>
+          <td>Decoder leaks future via wrong mask</td>
+          <td>Verify <code>tgt_mask</code> is strictly upper-triangular</td>
+      </tr>
+      <tr>
+          <td>OOM at lookback &gt; 1024</td>
+          <td>Vanilla attention</td>
+          <td>Patching first, then sparse / linear if needed</td>
+      </tr>
+      <tr>
+          <td>Forecast tracks recent value, ignores trend</td>
+          <td>Position not injected, or PE swamped by feature scale</td>
+          <td>Scale PE to feature norm; add calendar features</td>
+      </tr>
+      <tr>
+          <td>&ldquo;Transformer is worse than LSTM&rdquo;</td>
+          <td>Dataset under 10k samples, model under-regularised</td>
+          <td>Smaller model, dropout 0.2-0.3, weight decay</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="12-summary">12. Summary</h2>
+<p>The Transformer is not magic &ndash; it&rsquo;s the simplest architecture that
+gives every time step direct access to every other, in parallel. For
+time series, three things matter:</p>
+<ol>
+<li><strong>Position is the input</strong> &ndash; without good positional information, a
+Transformer cannot tell a Monday from a Friday. Use sinusoidal PE
+plus calendar features (or relative position for irregular data).</li>
+<li><strong>Vanilla attention is O(n^2)</strong> &ndash; and that&rsquo;s only a problem past a
+few thousand steps. The cheapest fix is <strong>patching</strong>, which usually
+improves accuracy too.</li>
+<li><strong>Pick the variant that matches the data</strong> &ndash; PatchTST or
+iTransformer for most multivariate problems, FEDformer / Autoformer
+for clean seasonality, decoder-only for foundation-model-style
+transfer.</li>
+</ol>
+<p>The fundamental attention formula stays the same throughout:</p>
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
+$$<p>Everything in this article is just engineering on top of that.</p>
+<h2 id="further-reading">Further Reading</h2>
+<ul>
+<li>Vaswani et al., <em>Attention Is All You Need</em>, NeurIPS 2017</li>
+<li>Zhou et al., <em>Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting</em>, AAAI 2021</li>
+<li>Wu et al., <em>Autoformer: Decomposition Transformers with Auto-Correlation</em>, NeurIPS 2021</li>
+<li>Zhou et al., <em>FEDformer: Frequency Enhanced Decomposed Transformer</em>, ICML 2022</li>
+<li>Nie et al., <em>A Time Series is Worth 64 Words: Long-term Forecasting with Transformers (PatchTST)</em>, ICLR 2023</li>
+<li>Liu et al., <em>iTransformer: Inverted Transformers Are Effective for Time Series Forecasting</em>, ICLR 2024</li>
+<li>Kim et al., <em>Reversible Instance Normalization for Accurate Time-Series Forecasting against Distribution Shift</em>, ICLR 2022</li>
+</ul>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/time-series/attention-mechanism/"><span class="title">Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/time-series/temporal-convolutional-networks/"><span class="title">Time Series Forecasting (6): Temporal Convolutional Networks (TCN)</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-why-transformers-for-time-series">1. Why Transformers for Time Series</a></li>
+    <li><a href="#2-the-architecture-block-by-block">2. The Architecture, Block by Block</a>
+      <ul>
+        <li><a href="#21-encoder">2.1 Encoder</a></li>
+        <li><a href="#22-decoder">2.2 Decoder</a></li>
+        <li><a href="#23-the-label-window-a-small-but-useful-trick">2.3 The label window: a small but useful trick</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-positional-encoding-for-time">3. Positional Encoding for Time</a></li>
+    <li><a href="#4-what-multi-head-attention-learns">4. What Multi-Head Attention Learns</a></li>
+    <li><a href="#5-the-on2-bottleneck">5. The O(n^2) Bottleneck</a></li>
+    <li><a href="#6-decoder-only-autoregressive-forecasting">6. Decoder-Only Autoregressive Forecasting</a></li>
+    <li><a href="#7-patching-the-single-best-speedup">7. Patching: The Single Best Speedup</a></li>
+    <li><a href="#8-a-reference-implementation">8. A Reference Implementation</a></li>
+    <li><a href="#9-variants-and-how-to-pick-one">9. Variants and How to Pick One</a></li>
+    <li><a href="#10-performance-and-engineering">10. Performance and Engineering</a>
+      <ul>
+        <li><a href="#101-forecast-quality">10.1 Forecast quality</a></li>
+        <li><a href="#102-training-recipe-the-boring-stuff-that-matters">10.2 Training recipe (the boring stuff that matters)</a></li>
+        <li><a href="#103-production-serving-cost-and-the-revin-trick">10.3 Production: serving cost and the RevIN trick</a></li>
+      </ul>
+    </li>
+    <li><a href="#11-common-pitfalls">11. Common Pitfalls</a></li>
+    <li><a href="#12-summary">12. Summary</a></li>
+    <li><a href="#further-reading">Further Reading</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Time series forecasting</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2700</strong></div>
+      <div class="row"><span>Published</span><strong>Oct 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

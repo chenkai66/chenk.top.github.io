@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Recommendation Systems (9): Multi-Task Learning and Multi-Objective Optimization · Chen Kai Blog</title>
+<meta name="description" content="How real recommenders juggle clicks, conversions, watch time and revenue at once. Shared-Bottom, ESMM, MMoE, PLE explained from first principles, with PyTorch code, loss-balancing strategies and the gradient-conflict story behind them.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/recommendation-systems/09-multi-task-learning/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/recommendation-systems/09-multi-task-learning/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Recommendation Systems (9): Multi-Task Learning and Multi-Objective Optimization">
+<meta property="og:description" content="How real recommenders juggle clicks, conversions, watch time and revenue at once. Shared-Bottom, ESMM, MMoE, PLE explained from first principles, with PyTorch code, loss-balancing strategies and the gradient-conflict story behind them.">
+<meta property="og:url" content="https://www.chenk.top/en/recommendation-systems/09-multi-task-learning/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-2);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Recommendation Systems</a>
+         · Chapter 9
+      </div>
+      <h1>Recommendation Systems (9): Multi-Task Learning and Multi-Objective Optimization</h1>
+      <p class="deck">How real recommenders juggle clicks, conversions, watch time and revenue at once. Shared-Bottom, ESMM, MMoE, PLE explained from first principles, with PyTorch code, loss-balancing strategies and the gradient-conflict story behind them.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-12-25">December 25, 2025</time> · 19 min read · 3900 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/recommendation-systems/" class="tag">#Recommendation Systems</a><a href="/en/tags/multi-task-learning/" class="tag">#Multi-Task Learning</a><a href="/en/tags/multi-objective/" class="tag">#Multi-Objective</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>A live e-commerce ranker is never optimizing one number. The same model that decides which product to show you is, in the same forward pass, predicting whether you will click, whether you will add it to cart, whether you will pay, whether you will return it, and whether you will leave a positive review. Each prediction is a different <em>task</em> with its own data distribution, its own scarcity, and its own incentives. They are also tightly coupled: a clicker is more likely to convert, a converter is more likely to write a review, and a high-CTR thumbnail can buy clicks that depress watch time.</p>
+<p><strong>Multi-task learning (MTL)</strong> is how production systems handle this. Instead of training one model per objective and stitching scores together, we train one neural network with several output heads and let the shared trunk learn representations that serve all of them at once. The hard part is not the architecture diagram &ndash; it is making sure the heads cooperate instead of fighting over the shared weights.</p>
+<p>This post is the mental model and the working code for the four architectures you will actually meet in industry: <strong>Shared-Bottom, ESMM, MMoE, PLE</strong>. We will also unpack <em>why</em> the simple version breaks (negative transfer, gradient conflict, sample selection bias) and how Uncertainty Weighting, GradNorm and Pareto trade-offs paper over the cracks.</p>
+<h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li><strong>Why</strong> ranking is inherently multi-objective and what goes wrong when you ignore that</li>
+<li><strong>Sample selection bias</strong> in CVR prediction and ESMM&rsquo;s chain-rule fix</li>
+<li><strong>Four architectures</strong> &ndash; Shared-Bottom, ESMM, MMoE, PLE &ndash; and <em>when</em> each one wins</li>
+<li><strong>Loss balancing</strong>: Uncertainty Weighting, GradNorm, Pareto frontiers</li>
+<li>A complete <strong>PyTorch training loop</strong> that you can lift into a project</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>PyTorch basics (modules, forward pass, loss functions)</li>
+<li>CTR prediction concepts (<a href="/en/recommendation-systems-4-ctr-prediction/">Part 4</a>
+)</li>
+<li>Embedding layers (<a href="/en/recommendation-systems-5-embedding-techniques/">Part 5</a>
+)</li>
+</ul>
+<hr>
+<h2 id="why-recommenders-are-multi-objective">Why Recommenders Are Multi-Objective</h2>
+<h3 id="optimizing-one-number-is-the-wrong-game">Optimizing One Number Is the Wrong Game</h3>
+<p>Picture a restaurant recommender. If you only optimize <strong>clicks</strong>, the model learns that lurid food photos and clickbait names work great &ndash; and your conversion rate craters. If you only optimize <strong>bookings</strong>, you surface safe national chains with no upside for discovery. If you only optimize <strong>stars</strong>, you push fancy expensive places that nobody books. The honest objective is a <em>bundle</em>:</p>
+<ul>
+<li>Will the user <strong>click</strong>? (engagement)</li>
+<li>Will they actually <strong>visit</strong>? (conversion)</li>
+<li>Will they <strong>enjoy</strong> it? (satisfaction)</li>
+<li>Will they <strong>come back</strong>? (retention)</li>
+</ul>
+<p>The same pattern shows up everywhere:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Domain</th>
+          <th>Typical objectives</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>E-commerce</td>
+          <td>CTR, CVR, revenue per impression, return rate, review quality</td>
+      </tr>
+      <tr>
+          <td>Short video</td>
+          <td>CTR, watch time, like/share rate, follow rate</td>
+      </tr>
+      <tr>
+          <td>Ads</td>
+          <td>CTR, CVR, cost per acquisition, lifetime value</td>
+      </tr>
+  </tbody>
+</table>
+<p>These metrics are <strong>correlated but distinct</strong>. The job of an MTL model is to exploit the correlation (clicks teach the conversion head about user intent) without letting one objective dominate.</p>
+<h3 id="sample-selection-bias-why-naive-cvr-is-broken">Sample Selection Bias: Why Naive CVR Is Broken</h3>
+<p>Here is the subtle problem that motivated ESMM. Suppose you want a <em>conversion</em> model: given a user and an item, what is $P(\text{buy} \mid \text{shown})$?</p>
+<ul>
+<li><strong>Training labels exist only on clicked items</strong> &ndash; you can only observe a buy after a click.</li>
+<li><strong>At serving time the model must score every candidate</strong>, including items the user never clicked.</li>
+</ul>
+<p>You train on the slice of impressions that were clicked, then deploy on all impressions. That is <strong>sample selection bias</strong>: a textbook covariate shift between train and serve.</p>
+<p>ESMM&rsquo;s escape uses the chain rule of probability:</p>
+$$P(\text{buy} \mid \text{imp}) = P(\text{click} \mid \text{imp}) \cdot P(\text{buy} \mid \text{click})$$<p>Read it in English: &ldquo;the probability of buying after seeing an item equals the probability of clicking it times the probability of buying given that you clicked.&rdquo; The first factor (CTR) and the product (CTCVR) are both observable on the <em>whole</em> impression space. So we train those two and let CVR fall out as a free byproduct &ndash; no biased slice required.</p>
+<h3 id="what-mtl-buys-you-and-what-it-costs">What MTL Buys You (and What It Costs)</h3>
+<p><strong>Wins</strong></p>
+<ul>
+<li><em>Data efficiency.</em> Sparse tasks (purchases, follows) piggyback on dense tasks (impressions, clicks).</li>
+<li><em>Implicit regularization.</em> Sharing weights across tasks discourages overfitting to any single label.</li>
+<li><em>Cheaper serving.</em> One forward pass produces every score the ranker needs.</li>
+<li><em>Better generalization.</em> Joint training tends to find representations that generalize beyond any single objective.</li>
+</ul>
+<p><strong>Costs</strong></p>
+<ul>
+<li><em>Negative transfer.</em> Tasks can pull shared weights in opposite directions and make every head worse than its single-task baseline.</li>
+<li><em>Loss balancing.</em> CTR loss may sit around 0.3 while a revenue MSE sits at 100 &ndash; naive sums let one task drown the others.</li>
+<li><em>Architecture choices.</em> You have to decide what to share and what to keep private, with surprisingly little theory to guide you.</li>
+</ul>
+<p>The architectures below are essentially four answers to the same question: <strong>how much sharing, and where?</strong></p>
+<hr>
+<h2 id="architecture-1-shared-bottom">Architecture 1: Shared-Bottom</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig1_shared_bottom.png" alt="Shared-Bottom architecture: one shared MLP feeds three independent task towers" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The starting point. One MLP trunk produces a representation $h$, then each task gets its own small tower:</p>
+$$h = f_{\text{shared}}(x), \qquad \hat{y}_k = f_k(h), \quad k=1,\dots,K$$<p>Every task sees the <em>same</em> $h$. That is the single design assumption &ndash; and the single failure mode.</p>
+<h3 id="implementation">Implementation</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SharedBottomMTL</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Shared-Bottom MTL: one trunk, K task-specific towers.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Works well when tasks are aligned. Breaks down (negative transfer)
+</span></span></span><span class="line"><span class="cl"><span class="s2">    when tasks pull the shared trunk in opposite directions.
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">shared_hidden_dims</span><span class="p">,</span> <span class="n">task_hidden_dims</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">num_tasks</span><span class="p">,</span> <span class="n">task_types</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_tasks</span> <span class="o">=</span> <span class="n">num_tasks</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_types</span> <span class="o">=</span> <span class="n">task_types</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># ---- shared trunk</span>
+</span></span><span class="line"><span class="cl">        <span class="n">shared</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">input_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">shared_hidden_dims</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">shared</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">h</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                       <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">shared_bottom</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">shared</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># ---- one tower per task</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_towers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_tasks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">shared_hidden_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">task_hidden_dims</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">h</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                           <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">                <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">task_types</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;binary&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">task_towers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared_bottom</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">tower</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="k">for</span> <span class="n">tower</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_towers</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3 tasks: CTR (binary), CVR (binary), Revenue (regression)</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">SharedBottomMTL</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">input_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">shared_hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">task_hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">16</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_tasks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">task_types</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="s1">&#39;regression&#39;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">ctr</span><span class="p">,</span> <span class="n">cvr</span><span class="p">,</span> <span class="n">rev</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">ctr</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">cvr</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">rev</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># all (32, 1)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="why-it-eventually-hurts">Why It Eventually Hurts</h3>
+<p>If two tasks disagree about what the shared representation should encode &ndash; e.g. CTR rewards eye-catching novelty while CVR rewards reliable signals &ndash; the trunk has to compromise. The compromise is usually worse for <em>both</em> tasks than the single-task baseline. That is <strong>negative transfer</strong>, and it is the reason every architecture below exists.</p>
+<hr>
+<h2 id="architecture-2-esmm-entire-space-multi-task-model">Architecture 2: ESMM (Entire Space Multi-Task Model)</h2>
+<p>ESMM was Alibaba&rsquo;s answer to sample selection bias in CVR. The architecture itself is small. The trick is what gets supervised, and where.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig7_esmm.png" alt="ESMM architecture: shared embedding feeds CTR and CVR towers; CTCVR is the product, supervised on all impressions" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="the-idea">The Idea</h3>
+<p>Don&rsquo;t train CVR directly on the clicked-only slice. Train two things on the <em>full</em> impression space:</p>
+<ul>
+<li><strong>pCTR</strong> = $P(\text{click} \mid \text{imp})$, supervised by the click label</li>
+<li><strong>pCTCVR</strong> = $P(\text{click and buy} \mid \text{imp})$, supervised by <code>click AND buy</code></li>
+</ul>
+<p>CVR is then defined implicitly: $\text{pCTCVR} = \text{pCTR} \times \text{pCVR}$. Backprop through the multiplication shapes the CVR tower without ever asking it to fit a biased label.</p>
+<h3 id="implementation-1">Implementation</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ESMM</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Entire-Space Multi-Task Model.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Decompose P(buy|imp) = P(click|imp) * P(buy|click).
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Train CTR and CTCVR on every impression; CVR is supervised
+</span></span></span><span class="line"><span class="cl"><span class="s2">    *implicitly* through the product. No more selection bias.
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dims</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.2</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ctr_tower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tower</span><span class="p">(</span><span class="n">hidden_dims</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">cvr_tower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tower</span><span class="p">(</span><span class="n">hidden_dims</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_tower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">()]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pctr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctr_tower</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>            <span class="c1"># P(click | imp)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pcvr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cvr_tower</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>            <span class="c1"># P(buy | click)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pctcvr</span> <span class="o">=</span> <span class="n">pctr</span> <span class="o">*</span> <span class="n">pcvr</span>                <span class="c1"># P(click AND buy | imp)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">pctr</span><span class="p">,</span> <span class="n">pcvr</span><span class="p">,</span> <span class="n">pctcvr</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">esmm_loss</span><span class="p">(</span><span class="n">pctr</span><span class="p">,</span> <span class="n">pcvr</span><span class="p">,</span> <span class="n">pctcvr</span><span class="p">,</span> <span class="n">click_label</span><span class="p">,</span> <span class="n">buy_label</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;ESMM loss.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    - CTR loss on the FULL batch (every impression has a click label).
+</span></span></span><span class="line"><span class="cl"><span class="s2">    - CTCVR loss on the FULL batch (click AND buy is observable for all).
+</span></span></span><span class="line"><span class="cl"><span class="s2">    - CVR has NO direct loss -- gradient flows in through the product.
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ctcvr_label</span> <span class="o">=</span> <span class="n">click_label</span> <span class="o">*</span> <span class="n">buy_label</span>  <span class="c1"># 1 only if clicked AND bought</span>
+</span></span><span class="line"><span class="cl">    <span class="n">loss_ctr</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy</span><span class="p">(</span><span class="n">pctr</span><span class="p">,</span> <span class="n">click_label</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="n">loss_ctcvr</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy</span><span class="p">(</span><span class="n">pctcvr</span><span class="p">,</span> <span class="n">ctcvr_label</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">loss_ctr</span> <span class="o">+</span> <span class="n">loss_ctcvr</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Mini training step</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">ESMM</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">click</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">buy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>  <span class="c1"># only meaningful where click=1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">pctr</span><span class="p">,</span> <span class="n">pcvr</span><span class="p">,</span> <span class="n">pctcvr</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">loss</span> <span class="o">=</span> <span class="n">esmm_loss</span><span class="p">(</span><span class="n">pctr</span><span class="p">,</span> <span class="n">pcvr</span><span class="p">,</span> <span class="n">pctcvr</span><span class="p">,</span> <span class="n">click</span><span class="p">,</span> <span class="n">buy</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">();</span> <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;loss = </span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="why-it-works">Why It Works</h3>
+<ul>
+<li><strong>No biased slice.</strong> CTR and CTCVR live on every impression. CVR is never asked to fit a label that exists only after clicking.</li>
+<li><strong>Mathematical consistency.</strong> By construction $\text{pCTCVR} = \text{pCTR} \times \text{pCVR}$, so the three scores you serve cannot contradict each other.</li>
+<li><strong>Cheap to deploy.</strong> It is the same shape as a Shared-Bottom with two binary heads. Production ranking pipelines barely notice.</li>
+</ul>
+<p>In Alibaba&rsquo;s original paper this trick lifted CVR AUC by about 2-3% on Taobao. That is a lot for a one-line architectural change.</p>
+<hr>
+<h2 id="architecture-3-mmoe-multi-gate-mixture-of-experts">Architecture 3: MMoE (Multi-gate Mixture-of-Experts)</h2>
+<p>Shared-Bottom forces every task through one bottleneck. <strong>MMoE</strong> keeps a pool of expert sub-networks and lets each task <em>softly choose its own mixture of experts</em>.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig2_mmoe.png" alt="MMoE architecture: a pool of expert MLPs and one gating network per task" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="the-analogy">The Analogy</h3>
+<p>You are organizing a dinner party with three jobs: cooking, decor, music. Instead of hiring one person to do all three (Shared-Bottom), you hire four specialists. Each job has its own <em>manager</em> (gate) who decides how much weight to give each specialist. The cooking manager leans on the chef and the sommelier; the decor manager leans on the florist and the lighting designer. The chef may still throw in a plating idea for decor &ndash; managers are free to mix.</p>
+<h3 id="the-math">The Math</h3>
+<p>For task $k$ the representation is a gated mixture of all $n$ experts:</p>
+$$f_k(x) = \sum_{i=1}^{n} g_k^{(i)}(x) \cdot E_i(x), \qquad g_k(x) = \mathrm{softmax}(W_k x)$$<p>Each gate is just a tiny linear-then-softmax network. Conflicting tasks learn to point at different experts; cooperative tasks learn to share.</p>
+<h3 id="implementation-2">Implementation</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Expert</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MMoE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Multi-gate Mixture-of-Experts.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    A pool of n experts; each of the K tasks has its own gate that
+</span></span></span><span class="line"><span class="cl"><span class="s2">    forms a soft mixture over them. Conflicting tasks can route to
+</span></span></span><span class="line"><span class="cl"><span class="s2">    different experts -- the model decides.
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">num_experts</span><span class="p">,</span> <span class="n">expert_hidden_dim</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">expert_output_dim</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">,</span> <span class="n">task_hidden_dims</span><span class="p">,</span> <span class="n">task_types</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_tasks</span> <span class="o">=</span> <span class="n">num_tasks</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">experts</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">Expert</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">expert_hidden_dim</span><span class="p">,</span> <span class="n">expert_output_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_experts</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gates</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">num_experts</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_tasks</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_towers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_tasks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">expert_output_dim</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">task_hidden_dims</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">                <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">task_types</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;binary&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">task_towers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># All experts in one stacked tensor: (B, n_experts, expert_dim)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">E</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">e</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">experts</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">outputs</span><span class="p">,</span> <span class="n">gates_out</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">x</span><span class="p">)</span>               <span class="c1"># (B, n_experts)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">gates_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">mix</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">E</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (B, expert_dim)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_towers</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">mix</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">gates_out</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">MMoE</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">input_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">num_experts</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">expert_hidden_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">expert_output_dim</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">num_tasks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">task_hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">task_types</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="s1">&#39;regression&#39;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">outs</span><span class="p">,</span> <span class="n">gates</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Inspect routing -- often Task 1 favors a different subset than Task 3</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;Task 1 gate weights:&#34;</span><span class="p">,</span> <span class="n">gates</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;Task 3 gate weights:&#34;</span><span class="p">,</span> <span class="n">gates</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="when-mmoe-helps">When MMoE Helps</h3>
+<ul>
+<li>You suspect some tasks conflict but you don&rsquo;t know which.</li>
+<li>You want a single architecture that gracefully handles both cooperative and antagonistic mixes.</li>
+<li>The gate weights themselves are useful telemetry &ndash; you can plot them and see which tasks share which experts.</li>
+</ul>
+<hr>
+<h2 id="architecture-4-ple-progressive-layered-extraction">Architecture 4: PLE (Progressive Layered Extraction)</h2>
+<p>PLE, from Tencent, addresses an MMoE failure mode: even with gates, a shared expert pool can let one task&rsquo;s gradients corrupt features another task depends on &ndash; the famous <strong>seesaw phenomenon</strong> where lifting CTR drops watch time by exactly the amount you lifted.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig3_ple.png" alt="PLE architecture: shared experts plus task-specific experts, combined per task by a gate" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="the-idea-1">The Idea</h3>
+<p>Make the split explicit. Each task layer has:</p>
+<ul>
+<li><strong>Shared experts</strong> &ndash; visible to every task, learn cross-task patterns.</li>
+<li><strong>Task-specific experts</strong> &ndash; private to one task, never see another task&rsquo;s gradient.</li>
+</ul>
+<p>Each task&rsquo;s gate combines shared experts with <em>its own</em> task-specific experts. Stack a couple of these layers and you get progressive extraction: lower layers do generic feature work, higher layers do task-specific refinement.</p>
+<h3 id="implementation-3">Implementation</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PLELayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;One PLE block: shared experts + per-task experts + per-task gates.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">num_shared</span><span class="p">,</span> <span class="n">num_per_task</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">expert_hidden</span><span class="p">,</span> <span class="n">expert_out</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_tasks</span> <span class="o">=</span> <span class="n">num_tasks</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">shared_experts</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">Expert</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">expert_hidden</span><span class="p">,</span> <span class="n">expert_out</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shared</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_experts</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">                <span class="n">Expert</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">expert_hidden</span><span class="p">,</span> <span class="n">expert_out</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_per_task</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_tasks</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="n">num_shared</span> <span class="o">+</span> <span class="n">num_per_task</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gates</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">total</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_tasks</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">shared</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">e</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared_experts</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">task_e</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">e</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_experts</span><span class="p">[</span><span class="n">k</span><span class="p">]],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">pool</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">shared</span><span class="p">,</span> <span class="n">task_e</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">w</span> <span class="o">*</span> <span class="n">pool</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PLE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Progressive Layered Extraction with task-specific + shared experts.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">num_shared</span><span class="p">,</span> <span class="n">num_per_task</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">expert_hidden</span><span class="p">,</span> <span class="n">expert_out</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">task_hidden_dims</span><span class="p">,</span> <span class="n">task_types</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_tasks</span> <span class="o">=</span> <span class="n">num_tasks</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">prev</span> <span class="o">=</span> <span class="n">input_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PLELayer</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">prev</span><span class="p">,</span> <span class="n">num_shared</span><span class="p">,</span> <span class="n">num_per_task</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">expert_hidden</span><span class="p">,</span> <span class="n">expert_out</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">expert_out</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_towers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_tasks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">expert_out</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">task_hidden_dims</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">task_types</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;binary&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">task_towers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Each task carries its own representation through the stack.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">reps</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_tasks</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Each task feeds its own current representation into the next layer.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">reps</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer</span><span class="p">(</span><span class="n">reps</span><span class="p">[</span><span class="n">k</span><span class="p">])[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task_towers</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">reps</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">PLE</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">input_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_shared</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">num_per_task</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">expert_hidden</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">expert_out</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_tasks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">task_hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">task_types</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="s1">&#39;regression&#39;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">128</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">([</span><span class="n">o</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">out</span><span class="p">])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="why-the-split-matters">Why The Split Matters</h3>
+<p>A task-specific expert receives gradient <em>only</em> from its task. So when CTR&rsquo;s gradient yanks the model in a direction CVR hates, the damage is confined to the shared experts &ndash; CVR&rsquo;s private experts are untouched. In Tencent&rsquo;s reported video-recommendation numbers PLE bought another ~0.4% AUC over MMoE on multiple engagement metrics, and meaningfully reduced the seesaw effect.</p>
+<hr>
+<h2 id="picking-an-architecture">Picking an Architecture</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Situation</th>
+          <th>Pick</th>
+          <th>Reason</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Tasks closely aligned, limited eng resources</td>
+          <td>Shared-Bottom</td>
+          <td>Simple, fast, good baseline</td>
+      </tr>
+      <tr>
+          <td>CVR prediction with clicked-only labels</td>
+          <td>ESMM</td>
+          <td>Removes selection bias by construction</td>
+      </tr>
+      <tr>
+          <td>Mix of related and possibly conflicting tasks</td>
+          <td>MMoE</td>
+          <td>Gates discover the right routing</td>
+      </tr>
+      <tr>
+          <td>Known mix of shared and conflicting patterns</td>
+          <td>PLE</td>
+          <td>Hard split caps negative transfer</td>
+      </tr>
+  </tbody>
+</table>
+<p>A reasonable progression in a real project: ship Shared-Bottom; if any single-task baseline beats your MTL model on its own task, move to MMoE; if you observe seesaw, move to PLE.</p>
+<hr>
+<h2 id="loss-balancing-stop-one-task-from-eating-the-others">Loss Balancing: Stop One Task From Eating The Others</h2>
+<p>CTR loss might sit around 0.3, CVR around 0.05, a revenue MSE around 100. If you sum them, the regression task drowns the others. Balancing is not a finishing touch &ndash; it is the difference between the model learning two tasks and learning one and a half.</p>
+<h3 id="uncertainty-weighting-kendall-et-al-2018">Uncertainty Weighting (Kendall et al., 2018)</h3>
+<p>Treat each task as a noisy regression / classification with its own variance $\sigma_k^2$, and learn the variances:</p>
+$$\mathcal{L}_{\text{total}} = \sum_k \frac{1}{2\sigma_k^2}\, \mathcal{L}_k + \log \sigma_k$$<p>Hard tasks naturally inflate $\sigma_k$, which down-weights them; the $\log \sigma_k$ term stops $\sigma_k$ from running off to infinity. The picture is what you&rsquo;d hope for &ndash; the easy task&rsquo;s normalized weight grows as the hard task&rsquo;s shrinks:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig5_loss_balancing.png" alt="Uncertainty Weighting and GradNorm: how learned task weights and gradient norms evolve during training" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">UncertaintyWeighting</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Learn per-task log-variance; downweight hard tasks automatically.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_tasks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">log_var</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_tasks</span><span class="p">))</span>  <span class="c1"># = 2 log sigma</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_losses</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">loss</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">task_losses</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">precision</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">log_var</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>  <span class="c1"># 1 / sigma^2</span>
+</span></span><span class="line"><span class="cl">            <span class="n">total</span> <span class="o">=</span> <span class="n">total</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">precision</span> <span class="o">*</span> <span class="n">loss</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_var</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">total</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="gradnorm">GradNorm</h3>
+<p>Uncertainty Weighting balances <em>losses</em>. <strong>GradNorm</strong> balances <em>gradient magnitudes</em> on the shared trunk. The intuition: a task whose gradient norm dwarfs the others is, mechanically, the one steering the trunk. GradNorm scales each task&rsquo;s weight so that all tasks contribute roughly equal pull, with an optional bias toward tasks that are learning more slowly. The right panel above shows the raw norms drifting apart and being pulled back to a common rate.</p>
+<h3 id="pareto-optimization">Pareto Optimization</h3>
+<p>When tasks genuinely conflict, no single weighting is &ldquo;best&rdquo; &ndash; only different trade-offs. Plotting the achievable (CTR-AUC, CVR-AUC) pairs gives you a <strong>Pareto frontier</strong>: solutions where you cannot improve one metric without sacrificing the other.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig4_pareto_frontier.png" alt="Pareto frontier between CTR AUC and CVR AUC, with three named operating points" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>In production this is less of a math problem and more of a product call: where on the curve does the business want to sit?</p>
+<hr>
+<h2 id="why-tasks-fight-gradient-conflict-up-close">Why Tasks Fight: Gradient Conflict Up Close</h2>
+<p>Why does any of this matter? Because shared parameters get pulled in two different directions at once. Pick a single shared weight $\theta$; task A says &ldquo;increase me&rdquo; and task B says &ldquo;decrease me&rdquo;. The joint update is the <em>sum</em> of two opposing arrows &ndash; often a much smaller step than either task wanted, in a direction neither task likes.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/09-multi-task-learning/fig6_gradient_conflict.png" alt="Two task gradients on shared parameters can point in conflicting directions; cosine similarity between gradients can flip negative during training" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The right panel is the diagnostic you actually want in production: track the cosine similarity of the two tasks&rsquo; gradients on the shared trunk over training. If it slides negative and stays there, your model is in active gradient war. That is the precise moment to consider PLE (split the experts) or PCGrad (project away the conflicting component before stepping). Watching this number is cheap and tells you more than aggregate loss curves.</p>
+<hr>
+<h2 id="industrial-reference-points">Industrial Reference Points</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Company</th>
+          <th>Architecture</th>
+          <th>Setting</th>
+          <th>Reported lift</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Alibaba</td>
+          <td>ESMM</td>
+          <td>Taobao CVR</td>
+          <td>~2-3% AUC over biased CVR baseline</td>
+      </tr>
+      <tr>
+          <td>Google</td>
+          <td>MMoE</td>
+          <td>YouTube ranking</td>
+          <td>Significant improvement over Shared-Bottom across multiple objectives</td>
+      </tr>
+      <tr>
+          <td>Tencent</td>
+          <td>PLE</td>
+          <td>Tencent Video</td>
+          <td>~0.4% AUC over MMoE; seesaw effect reduced</td>
+      </tr>
+  </tbody>
+</table>
+<p>Numbers are from the original papers; production systems iterate further.</p>
+<hr>
+<h2 id="a-complete-training-pipeline">A Complete Training Pipeline</h2>
+<p>Putting MMoE together with Uncertainty Weighting and a real-feeling training loop:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">DataLoader</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RecDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">labels</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="o">**</span><span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">t</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">}}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">balancer</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">running</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">batch</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">outs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;ctr&#39;</span><span class="p">,</span> <span class="s1">&#39;cvr&#39;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy</span><span class="p">(</span><span class="n">outs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">y</span><span class="p">[</span><span class="n">t</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">outs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">y</span><span class="p">[</span><span class="n">t</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">running</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+=</span> <span class="n">losses</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">balancer</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span> <span class="k">if</span> <span class="n">balancer</span> <span class="k">else</span> <span class="nb">sum</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">();</span> <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">();</span> <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">total</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">v</span> <span class="o">/</span> <span class="n">n</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">running</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ------ run it</span>
+</span></span><span class="line"><span class="cl"><span class="n">N</span> <span class="o">=</span> <span class="mi">10_000</span>
+</span></span><span class="line"><span class="cl"><span class="n">features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">labels</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;ctr&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;cvr&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;revenue&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">RecDataset</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">labels</span><span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">MMoE</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">input_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">num_experts</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">expert_hidden_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">expert_output_dim</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">num_tasks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">task_hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">task_types</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="s1">&#39;regression&#39;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">balancer</span> <span class="o">=</span> <span class="n">UncertaintyWeighting</span><span class="p">(</span><span class="n">num_tasks</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">opt</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">balancer</span><span class="o">.</span><span class="n">parameters</span><span class="p">()),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">loss</span><span class="p">,</span> <span class="n">per_task</span> <span class="o">=</span> <span class="n">train_epoch</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">balancer</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                 <span class="p">[</span><span class="s1">&#39;ctr&#39;</span><span class="p">,</span> <span class="s1">&#39;cvr&#39;</span><span class="p">,</span> <span class="s1">&#39;revenue&#39;</span><span class="p">],</span> <span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: loss=</span><span class="si">{</span><span class="n">loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> | &#34;</span>
+</span></span><span class="line"><span class="cl">          <span class="sa">f</span><span class="s2">&#34;ctr=</span><span class="si">{</span><span class="n">per_task</span><span class="p">[</span><span class="s1">&#39;ctr&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> | cvr=</span><span class="si">{</span><span class="n">per_task</span><span class="p">[</span><span class="s1">&#39;cvr&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> | &#34;</span>
+</span></span><span class="line"><span class="cl">          <span class="sa">f</span><span class="s2">&#34;rev=</span><span class="si">{</span><span class="n">per_task</span><span class="p">[</span><span class="s1">&#39;revenue&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="faq">FAQ</h2>
+<h3 id="when-is-mtl-actually-worth-the-complexity">When is MTL actually worth the complexity?</h3>
+<p>When tasks share underlying user/item structure, <em>and</em> you have at least one sparse task that benefits from a dense one&rsquo;s signal, <em>and</em> you care about serving cost. If those don&rsquo;t apply &ndash; truly independent tasks, comfortable serving budget &ndash; separate models are simpler and often better.</p>
+<h3 id="how-many-experts-in-mmoe--ple">How many experts in MMoE / PLE?</h3>
+<p>Heuristic: <em>at least</em> as many experts as tasks; in practice 2-4 experts for 2-3 tasks, 4-8 for more. Too few and the experts can&rsquo;t specialize; too many and they overfit and the gates collapse onto a small subset.</p>
+<h3 id="what-about-missing-labels">What about missing labels?</h3>
+<p>Mask the loss. For each sample, only contribute the loss of tasks whose label is present. This is the standard play for CVR-style sparse labels living alongside CTR-style dense labels.</p>
+<h3 id="does-mtl-help-cold-start">Does MTL help cold-start?</h3>
+<p>Yes, indirectly. Dense tasks (clicks) shape representations that the sparse heads (purchases, follows) can lean on. New users with a handful of clicks get usable conversion estimates, where a single-task CVR model would have nothing to say.</p>
+<h3 id="how-do-i-debug-an-mtl-model">How do I debug an MTL model?</h3>
+<p>In rough order of usefulness:</p>
+<ol>
+<li>Compare each head against its single-task baseline. If MTL loses on a head, you have negative transfer.</li>
+<li>Plot gate weights (MMoE/PLE). Are tasks routing to different experts the way you&rsquo;d expect?</li>
+<li>Track gradient cosine similarity between task losses on the shared trunk. Negative for long stretches → consider PLE or PCGrad.</li>
+<li>Ablate: drop a task, drop an expert, drop loss balancing. Whatever you remove that <em>helps</em> is the thing your model didn&rsquo;t actually need.</li>
+</ol>
+<hr>
+<h2 id="closing-thought">Closing Thought</h2>
+<p>The architecture progression &ndash; Shared-Bottom → ESMM → MMoE → PLE &ndash; is really a progression in <strong>how much we admit that tasks fight each other</strong>. Shared-Bottom assumes they don&rsquo;t. ESMM sidesteps a specific bias problem. MMoE lets the model decide where to share. PLE makes the share/private split explicit and structural. Pair the right architecture with a sane balancing strategy (start with Uncertainty Weighting), watch your gradient cosine similarities, and you have a multi-task system that holds up in production.</p>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<p>This article is <strong>Part 9</strong> of the 16-part Recommendation Systems series.</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: left">Previous</th>
+          <th style="text-align: center"></th>
+          <th style="text-align: right">Next</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left"><a href="/en/recommendation-systems-8-knowledge-graph/">Part 8: Knowledge Graph</a>
+</td>
+          <td style="text-align: center"><a href="/tags/Recommendation-Systems/">All Parts</a>
+</td>
+          <td style="text-align: right"><a href="/en/recommendation-systems-10-deep-interest-networks/">Part 10: Deep Interest Networks</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#why-recommenders-are-multi-objective">Why Recommenders Are Multi-Objective</a>
+      <ul>
+        <li><a href="#optimizing-one-number-is-the-wrong-game">Optimizing One Number Is the Wrong Game</a></li>
+        <li><a href="#sample-selection-bias-why-naive-cvr-is-broken">Sample Selection Bias: Why Naive CVR Is Broken</a></li>
+        <li><a href="#what-mtl-buys-you-and-what-it-costs">What MTL Buys You (and What It Costs)</a></li>
+      </ul>
+    </li>
+    <li><a href="#architecture-1-shared-bottom">Architecture 1: Shared-Bottom</a>
+      <ul>
+        <li><a href="#implementation">Implementation</a></li>
+        <li><a href="#why-it-eventually-hurts">Why It Eventually Hurts</a></li>
+      </ul>
+    </li>
+    <li><a href="#architecture-2-esmm-entire-space-multi-task-model">Architecture 2: ESMM (Entire Space Multi-Task Model)</a>
+      <ul>
+        <li><a href="#the-idea">The Idea</a></li>
+        <li><a href="#implementation-1">Implementation</a></li>
+        <li><a href="#why-it-works">Why It Works</a></li>
+      </ul>
+    </li>
+    <li><a href="#architecture-3-mmoe-multi-gate-mixture-of-experts">Architecture 3: MMoE (Multi-gate Mixture-of-Experts)</a>
+      <ul>
+        <li><a href="#the-analogy">The Analogy</a></li>
+        <li><a href="#the-math">The Math</a></li>
+        <li><a href="#implementation-2">Implementation</a></li>
+        <li><a href="#when-mmoe-helps">When MMoE Helps</a></li>
+      </ul>
+    </li>
+    <li><a href="#architecture-4-ple-progressive-layered-extraction">Architecture 4: PLE (Progressive Layered Extraction)</a>
+      <ul>
+        <li><a href="#the-idea-1">The Idea</a></li>
+        <li><a href="#implementation-3">Implementation</a></li>
+        <li><a href="#why-the-split-matters">Why The Split Matters</a></li>
+      </ul>
+    </li>
+    <li><a href="#picking-an-architecture">Picking an Architecture</a></li>
+    <li><a href="#loss-balancing-stop-one-task-from-eating-the-others">Loss Balancing: Stop One Task From Eating The Others</a>
+      <ul>
+        <li><a href="#uncertainty-weighting-kendall-et-al-2018">Uncertainty Weighting (Kendall et al., 2018)</a></li>
+        <li><a href="#gradnorm">GradNorm</a></li>
+        <li><a href="#pareto-optimization">Pareto Optimization</a></li>
+      </ul>
+    </li>
+    <li><a href="#why-tasks-fight-gradient-conflict-up-close">Why Tasks Fight: Gradient Conflict Up Close</a></li>
+    <li><a href="#industrial-reference-points">Industrial Reference Points</a></li>
+    <li><a href="#a-complete-training-pipeline">A Complete Training Pipeline</a></li>
+    <li><a href="#faq">FAQ</a>
+      <ul>
+        <li><a href="#when-is-mtl-actually-worth-the-complexity">When is MTL actually worth the complexity?</a></li>
+        <li><a href="#how-many-experts-in-mmoe--ple">How many experts in MMoE / PLE?</a></li>
+        <li><a href="#what-about-missing-labels">What about missing labels?</a></li>
+        <li><a href="#does-mtl-help-cold-start">Does MTL help cold-start?</a></li>
+        <li><a href="#how-do-i-debug-an-mtl-model">How do I debug an MTL model?</a></li>
+      </ul>
+    </li>
+    <li><a href="#closing-thought">Closing Thought</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Recommendation Systems</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>19 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3900</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

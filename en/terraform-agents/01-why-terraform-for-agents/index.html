@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/terraform-agents/01-why-terraform-for-agents/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents · Chen Kai Blog</title>
+<meta name="description" content="Agent systems are a moving target — new tools, new memory stores, new regions every month. Manual console clicks don&#39;t survive the second teammate. This first article makes the case for Terraform on Alibaba Cloud, surveys what the alicloud provider actually covers, and compares it to Pulumi, Crossplane, and ROS so you pick the right tool the first time.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents">
+<meta property="og:description" content="Agent systems are a moving target — new tools, new memory stores, new regions every month. Manual console clicks don&#39;t survive the second teammate. This first article makes the case for Terraform on Alibaba Cloud, surveys what the alicloud provider actually covers, and compares it to Pulumi, Crossplane, and ROS so you pick the right tool the first time.">
+<meta property="og:url" content="https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-3);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Terraform Agents</a>
+         · Chapter 1
+      </div>
+      <h1>Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents</h1>
+      <p class="deck">Agent systems are a moving target — new tools, new memory stores, new regions every month. Manual console clicks don&#39;t survive the second teammate. This first article makes the case for Terraform on Alibaba Cloud, surveys what the alicloud provider actually covers, and compares it to Pulumi, Crossplane, and ROS so you pick the right tool the first time.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-03-12">March 12, 2026</time> · 8 min read · 1700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/terraform/" class="tag">#Terraform</a><a href="/en/tags/alibaba-cloud/" class="tag">#Alibaba Cloud</a><a href="/en/tags/infrastructure-as-code/" class="tag">#Infrastructure as Code</a><a href="/en/tags/ai-agents/" class="tag">#AI Agents</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/terraform-agents/01-why-terraform-for-agents/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>I have shipped four agent systems on Alibaba Cloud in the last eighteen months. Three of them started life as a <code>tmux</code> session on a single ECS instance someone created by clicking through the console. All three of those needed a panicked weekend of rebuilding when the second engineer joined the project, when the prod region had a stockout, or when the security team asked for a network diagram.</p>
+<p>The fourth started life as <code>terraform apply</code>. It was the only one I haven&rsquo;t lost a weekend to.</p>
+<p>This series is the field guide for that fourth pattern: how to use Terraform to provision the cloud infrastructure that an AI agent system actually needs on Alibaba Cloud. It is not a Terraform tutorial — there are good ones online and the official <code>Get Started</code> doc covers the basics. It is the senior-engineer playbook for the specific intersection of &ldquo;I run agents&rdquo; and &ldquo;I run them on Aliyun&rdquo;.</p>
+<p>Eight articles. One real, working stack at the end. This first one is the why.</p>
+<h2 id="what-an-agent-system-actually-requires">What &ldquo;an agent system&rdquo; actually requires</h2>
+<p>Before we talk infrastructure, let&rsquo;s name the components an agent system has — the ones a <code>pip install langgraph</code> README usually skips:</p>
+<ol>
+<li><strong>A runtime</strong> that holds the agent loop process — usually Python or Node — and survives restarts</li>
+<li><strong>A vector store</strong> for semantic memory — embeddings of documents, prior conversations, tool outputs</li>
+<li><strong>A relational store</strong> for session state — turn-by-turn conversation, tool-call traces, user identity</li>
+<li><strong>An object store</strong> for artifacts — generated images, PDFs, screenshots, run snapshots</li>
+<li><strong>An LLM gateway</strong> — one place that holds the API keys and enforces per-agent quotas</li>
+<li><strong>Outbound network</strong> — to call DashScope, OpenAI, Anthropic, your scraping targets</li>
+<li><strong>Observability</strong> — agent runs are non-deterministic, so logs and traces are not optional</li>
+<li><strong>Secrets</strong> — provider keys, OAuth tokens, OSS credentials, database passwords</li>
+<li><strong>Cost control</strong> — because token bills can 10x overnight when an agent loops on itself</li>
+</ol>
+<p>That is at least nine separate Aliyun services touching each other in specific ways. Each has its own console page, its own RAM permissions, its own region scoping, its own networking. The probability that you can wire all of this up by hand and have it still match across <code>dev</code>, <code>staging</code>, and <code>prod</code> after three months of evolution is roughly zero.</p>
+<h2 id="the-console-vs-iac-moment">The console-vs-IaC moment</h2>
+<p>The pain pattern is universal enough that I have a stock figure for it:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig1_console_vs_iac.png" alt="Console clicks vs Terraform — where the divergence happens" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Read the left column carefully. Every step is plausible — none of them are dumb mistakes. They are what happens when smart people make small reasonable decisions over months. The right column is the same path, but every step leaves an artifact in git. The diff between the two columns is the difference between &ldquo;I shipped this&rdquo; and &ldquo;I am paged at 2am because nobody knows what&rsquo;s running in <code>cn-beijing</code>.&rdquo;</p>
+<p>The official Alibaba Cloud Terraform doc puts it more diplomatically. Quoting from the <em>What Is Alibaba Cloud Terraform?</em> topic:</p>
+<blockquote>
+<p>Console operations: Click and enter parameters step by step. Repeat manual steps — hard to ensure consistency. Rely on documentation and verbal agreements.</p>
+<p>Terraform: Describe the desired state of resources in configuration files. Configuration files are reviewable, shareable, and reusable. Store configuration files in version control. Changes are traceable and reversible.</p>
+</blockquote>
+<p>That second paragraph is the entire pitch. Everything else in this series is implementation detail.</p>
+<h2 id="what-terraform-actually-is-in-two-sentences">What Terraform actually is, in two sentences</h2>
+<p>Terraform is an open-source declarative tool from HashiCorp. You write <code>.tf</code> files in <strong>HashiCorp Configuration Language (HCL)</strong> that describe the cloud resources you want; Terraform diffs that desired state against the live state recorded in a <strong>state file</strong> and emits a <strong>plan</strong>; you review the plan; you <code>apply</code> it; Terraform translates the plan into provider API calls.</p>
+<p>Three things to internalize from that:</p>
+<ul>
+<li><strong>Declarative, not imperative.</strong> You don&rsquo;t say &ldquo;create an instance&rdquo; — you say &ldquo;an instance of this shape exists.&rdquo; Re-running the same config is a no-op if nothing changed. This is what makes Terraform safe to run from CI on every commit.</li>
+<li><strong>State is real.</strong> The <code>terraform.tfstate</code> file is a JSON map from your HCL resource addresses to the cloud&rsquo;s actual resource IDs. Lose the state file and Terraform thinks nothing exists. Article 2 is about putting state somewhere durable.</li>
+<li><strong>Plan before apply.</strong> This is the killer feature. Every change shows you a literal diff of what will create, modify, or destroy <em>before</em> anything happens. Cultivate the habit of pasting the plan output into PR descriptions — your future self will thank you.</li>
+</ul>
+<h2 id="what-the-aliyun-provider-covers">What the Aliyun provider covers</h2>
+<p>Cloud platforms talk to Terraform through <strong>provider plug-ins</strong>. The official <code>alicloud</code> provider was the first official Terraform provider in China and is maintained by Alibaba. As of this writing it ships <strong>300+ resource types</strong> across roughly six domains:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig2_provider_coverage.png" alt="alicloud provider coverage" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Per the official <code>What Is Alibaba Cloud Terraform?</code> page, supported categories include:</p>
+<ul>
+<li><strong>Compute and containers</strong>: ECS, ACK (Kubernetes), Function Compute, Auto Scaling</li>
+<li><strong>Networking</strong>: VPC, SLB, ALB, NLB, NAT Gateway, Cloud Enterprise Network</li>
+<li><strong>Storage and databases</strong>: OSS, NAS, ApsaraDB RDS, PolarDB, Redis, MongoDB</li>
+<li><strong>Security and management</strong>: RAM, KMS, WAF</li>
+<li><strong>Big data and AI</strong>: MaxCompute, PAI</li>
+</ul>
+<p>That covers everything in our nine-component checklist above except observability (SLS, ARMS, CloudMonitor — also covered, just not on this short list) and the per-LLM-provider key bits (which we&rsquo;ll handle through KMS Secrets Manager in article 6).</p>
+<p>A minimal HCL example, straight from the official ECS practice doc, looks like this:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">provider</span> <span class="s2">&#34;alicloud&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  region</span> <span class="o">=</span> <span class="s2">&#34;cn-shanghai&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_vpc&#34; &#34;main&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_name</span>   <span class="o">=</span> <span class="s2">&#34;agents-prod&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span> <span class="o">=</span> <span class="s2">&#34;10.20.0.0/16&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_vswitch&#34; &#34;private_a&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>     <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span> <span class="o">=</span> <span class="s2">&#34;10.20.1.0/24&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  zone_id</span>    <span class="o">=</span> <span class="s2">&#34;cn-shanghai-l&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_security_group&#34; &#34;agent_runtime&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>   <span class="o">=</span> <span class="s2">&#34;agent-runtime-sg&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span> <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Three resources, with <code>vpc_id</code> references that Terraform resolves into the right dependency order automatically. You don&rsquo;t say &ldquo;first VPC, then vSwitch, then SG&rdquo; — you write what you want and Terraform builds the DAG.</p>
+<h2 id="modules-the-unit-of-reuse">Modules: the unit of reuse</h2>
+<p>The single most important habit to build early is <strong>modules</strong>. A module is just a directory of <code>.tf</code> files that takes inputs and produces outputs. Once you have a working pattern — a VPC with three vSwitches, a NAT, and a security group baseline — wrap it in a module and you can stamp it out across <code>dev</code>, <code>staging</code>, <code>prod</code>, and <code>intl-prod</code> without copying HCL.</p>
+<p>A bare-bones module call:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">module</span> <span class="s2">&#34;vpc&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  source</span> <span class="o">=</span> <span class="s2">&#34;./modules/vpc-baseline&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_name</span>   <span class="o">=</span> <span class="s2">&#34;agents-${var.env}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span> <span class="o">=</span> <span class="s2">&#34;10.20.0.0/16&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  zones</span>      <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;cn-shanghai-l&#34;, &#34;cn-shanghai-m&#34;, &#34;cn-shanghai-n&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The body of <code>./modules/vpc-baseline/main.tf</code> contains the actual <code>alicloud_vpc</code>, <code>alicloud_vswitch</code>, <code>alicloud_nat_gateway</code> resources. The caller doesn&rsquo;t need to know — they just want a VPC with sane defaults. This is the same idea as a Python function, applied to infrastructure.</p>
+<p>We will build exactly this module in article 3 and reuse it in every subsequent article.</p>
+<h2 id="terraform-vs-pulumi-vs-crossplane-vs-ros">Terraform vs Pulumi vs Crossplane vs ROS</h2>
+<p>Before you commit, a quick look at the alternatives. None are wrong; pick on team fit, not religion:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig3_iac_tools_compare.png" alt="IaC tools compared" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>My honest read after using all four:</p>
+<ul>
+<li><strong>Terraform</strong> is the default. Largest ecosystem of providers, modules, and people who know it. HCL feels weird for the first day and fine after that. Pick this unless you have a strong reason not to.</li>
+<li><strong>Pulumi</strong> wraps Terraform providers but lets you write Python/TypeScript/Go. The expressiveness is real — you get loops, conditionals, and types your IDE actually checks. The cost is debugging: when something goes wrong, you&rsquo;re now debugging through two layers (your code → Pulumi → TF provider). Worth it if your team genuinely hates HCL.</li>
+<li><strong>Crossplane</strong> lives in Kubernetes — every cloud resource becomes a CRD, and you <code>kubectl apply</code> your way to a VPC. Beautiful if you&rsquo;re already a pure-Kubernetes shop with GitOps, painful if you aren&rsquo;t.</li>
+<li><strong>ROS</strong> (Resource Orchestration Service) is Aliyun&rsquo;s native equivalent. Deeply integrated with the console, JSON or YAML templates, no provider plug-in to install. Pick this only if you&rsquo;re 100% on Aliyun forever and the ops team prefers a managed service.</li>
+</ul>
+<p>The official Aliyun docs have a fair comparison in their FAQ:</p>
+<blockquote>
+<p>Both [Terraform and ROS] are declarative IaC tools. Terraform is an open source, third-party tool that supports multi-cloud management. ROS is a native Alibaba Cloud service deeply integrated with the Alibaba Cloud Management Console. Choose Terraform if you need multi-cloud support or already use Terraform elsewhere.</p>
+</blockquote>
+<p>For an agent system that calls multiple LLM providers and might one day need a US region or a Singapore region, multi-cloud-friendly Terraform is the right default.</p>
+<h2 id="what-this-series-will-and-wont-do">What this series will and won&rsquo;t do</h2>
+<p>What it will:</p>
+<ul>
+<li>Take you from <code>terraform init</code> to a complete <code>research-agent-stack</code> running on Aliyun, in eight articles.</li>
+<li>Show real, working HCL for VPC, ECS, ACK, OSS, RDS, OpenSearch, KMS, SLS, and CloudMonitor.</li>
+<li>Cover the failure modes that are not in the docs — state drift, locked tfstate, GFW provider downloads, region stockouts.</li>
+<li>Hand you a starter repo at the end you can fork.</li>
+</ul>
+<p>What it won&rsquo;t:</p>
+<ul>
+<li>Teach you HCL syntax beyond what we use. The official HashiCorp tutorials do that better.</li>
+<li>Teach you how to write the agent itself. There are series for LangGraph, AutoGen, MetaGPT, Claude Code already; pick one.</li>
+<li>Compare Aliyun against AWS or GCP feature-by-feature. The IaC patterns translate across clouds; the resource names don&rsquo;t.</li>
+</ul>
+<h2 id="whats-next">What&rsquo;s next</h2>
+<p>Article 2 is the first hands-on: installing the alicloud provider, picking your authentication method (the three choices — static AK/SK, AssumeRole, ECS RAM role — are not equivalent), setting up remote state on OSS with Tablestore for locking, and the workspace pattern for <code>dev</code>/<code>staging</code>/<code>prod</code>.</p>
+<p>If you only do one thing today, install Terraform (<code>brew install terraform</code> on macOS, or follow the official <code>Install Terraform</code> topic) and run <code>terraform version</code> to confirm. The rest of the series assumes you have it.</p>
+<blockquote>
+<p><strong>Real-world tip:</strong> Pin the alicloud provider version in <code>required_providers</code> from day one. The provider is actively developed and breaking changes between minor versions are rare but not zero. A pinned version means your Friday <code>terraform plan</code> returns the same result on Monday.</p>
+</blockquote>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">Previous</div>
+      <span class="title" style="color: var(--ink-faint)">—</span>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/"><span class="title">Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-an-agent-system-actually-requires">What &ldquo;an agent system&rdquo; actually requires</a></li>
+    <li><a href="#the-console-vs-iac-moment">The console-vs-IaC moment</a></li>
+    <li><a href="#what-terraform-actually-is-in-two-sentences">What Terraform actually is, in two sentences</a></li>
+    <li><a href="#what-the-aliyun-provider-covers">What the Aliyun provider covers</a></li>
+    <li><a href="#modules-the-unit-of-reuse">Modules: the unit of reuse</a></li>
+    <li><a href="#terraform-vs-pulumi-vs-crossplane-vs-ros">Terraform vs Pulumi vs Crossplane vs ROS</a></li>
+    <li><a href="#what-this-series-will-and-wont-do">What this series will and won&rsquo;t do</a></li>
+    <li><a href="#whats-next">What&rsquo;s next</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Terraform Agents</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>8 min</strong></div>
+      <div class="row"><span>Word count</span><strong>1700</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

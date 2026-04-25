@@ -1,0 +1,1303 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/cloud-computing/cloud-native-containers/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Cloud-Native and Container Technologies · Chen Kai Blog</title>
+<meta name="description" content="Why cloud-native exists, what containers actually do at the kernel level, how Kubernetes really works, when service mesh is worth its weight, and how the whole stack fits together in production.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/cloud-computing/cloud-native-containers/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/cloud-computing/cloud-native-containers/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/cloud-computing/cloud-native-containers/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/cloud-computing/cloud-native-containers/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cloud-Native and Container Technologies">
+<meta property="og:description" content="Why cloud-native exists, what containers actually do at the kernel level, how Kubernetes really works, when service mesh is worth its weight, and how the whole stack fits together in production.">
+<meta property="og:url" content="https://www.chenk.top/en/cloud-computing/cloud-native-containers/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-2);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Cloud Computing</a>
+         · Chapter 3
+      </div>
+      <h1>Cloud-Native and Container Technologies</h1>
+      <p class="deck">Why cloud-native exists, what containers actually do at the kernel level, how Kubernetes really works, when service mesh is worth its weight, and how the whole stack fits together in production.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2023-03-11">March 11, 2023</time> · 21 min read · 4400 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/cloud-computing/" class="tag">#Cloud Computing</a><a href="/en/tags/cloud-native/" class="tag">#Cloud Native</a><a href="/en/tags/docker/" class="tag">#Docker</a><a href="/en/tags/kubernetes/" class="tag">#Kubernetes</a><a href="/en/tags/microservices/" class="tag">#Microservices</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/cloud-computing/cloud-native-containers/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>The shift from monolithic applications to cloud-native architectures is one of the most consequential changes in software engineering this decade. The headline &ndash; containers and Kubernetes &ndash; is well known. The interesting story is <em>why</em> this stack won, what each layer actually does, and where the seams are that determine whether your platform feels effortless or feels like a maze.</p>
+<p>This article walks the cloud-native stack from first principles. We start with the architectural shift that motivates everything else, then dig into what a container really is at the Linux kernel level, climb up to Kubernetes orchestration, examine when a service mesh earns its complexity, and finish with packaging and delivery via Helm and GitOps. Examples are deliberately concrete: copy-pastable Dockerfiles, real manifests, and the trade-offs that matter when you run this in production.</p>
+<h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li>The 12-Factor App methodology and <em>why</em> each factor exists</li>
+<li>Containers from the inside: namespaces, cgroups, union filesystems, and image layering</li>
+<li>Docker production essentials: multi-stage builds, security, Compose for local dev</li>
+<li>Kubernetes architecture: how the control plane drives worker nodes via the reconciliation loop</li>
+<li>Workload primitives: Pods, Services, Deployments, StatefulSets, DaemonSets, Jobs</li>
+<li>Networking: CNI plugins, NetworkPolicy, Ingress, and when Istio service mesh pays for itself</li>
+<li>Storage: PV/PVC dynamic provisioning and what <code>ReadWriteMany</code> actually costs</li>
+<li>Helm packaging, release history, and how rollbacks really work</li>
+<li>Microservices patterns: circuit breakers, sagas, API gateways</li>
+<li>GitOps with ArgoCD and the operational discipline it forces</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Comfortable with the Linux command line and basic networking (routing, DNS, TCP)</li>
+<li>Understanding of HTTP/REST and how web apps and databases talk to each other</li>
+<li>Parts 1-6 of this series (especially <a href="/en/cloud-computing-virtualization/">Virtualization</a>
+, <a href="/en/cloud-computing-networking-sdn/">Networking</a>
+, and <a href="/en/cloud-computing-operations-devops/">DevOps</a>
+) provide useful background</li>
+</ul>
+<hr>
+<h2 id="cloud-native-what-changed-and-why">Cloud-Native: What Changed and Why</h2>
+<p>Cloud-native is not &ldquo;running stuff in the cloud.&rdquo; A lift-and-shifted VM is in the cloud but not cloud-native. The CNCF definition is precise:</p>
+<blockquote>
+<p>Cloud-native technologies empower organizations to build and run scalable applications in modern, dynamic environments such as public, private, and hybrid clouds. Containers, service meshes, microservices, immutable infrastructure, and declarative APIs exemplify this approach.</p>
+</blockquote>
+<p>Three ideas do most of the work behind that sentence:</p>
+<ol>
+<li><strong>Immutable infrastructure.</strong> Servers are not pets you patch; they are cattle you replace. A new release is a new image, never an in-place edit. This eliminates configuration drift, the source of half of all production incidents.</li>
+<li><strong>Declarative APIs.</strong> You describe the <em>desired</em> state (&ldquo;I want 3 replicas of v1.4 with 500 MB memory each&rdquo;) and the platform makes reality match. The opposite &ndash; imperative scripts that say &ldquo;do step 1, then step 2&rdquo; &ndash; breaks the moment reality differs from the script&rsquo;s assumptions.</li>
+<li><strong>Loose coupling at every layer.</strong> Services are independent. So are deploys. So are failures. So are scaling decisions. The cost is more moving parts; the benefit is that no single moving part can break everything.</li>
+</ol>
+<h3 id="monolith-vs-microservices-the-trade-off-made-visible">Monolith vs Microservices: The Trade-off Made Visible</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/fig1_microservices_vs_monolith.png" alt="Monolith vs Microservices Architecture" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The diagram above shows the structural difference, but the real story is in four numbers:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Dimension</th>
+          <th>Monolith</th>
+          <th>Microservices</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Deploy unit</strong></td>
+          <td>1 binary</td>
+          <td>N independent services</td>
+      </tr>
+      <tr>
+          <td><strong>Scale unit</strong></td>
+          <td>Whole app</td>
+          <td>Each service independently</td>
+      </tr>
+      <tr>
+          <td><strong>Tech stack</strong></td>
+          <td>One language/runtime</td>
+          <td>Polyglot per service</td>
+      </tr>
+      <tr>
+          <td><strong>Failure blast radius</strong></td>
+          <td>100%</td>
+          <td>1 service (with circuit breakers)</td>
+      </tr>
+  </tbody>
+</table>
+<p>Microservices are not strictly better. They trade simplicity for independence: you pay with distributed systems complexity (network failures, eventual consistency, distributed tracing, contract versioning) to gain the ability to deploy, scale, and fail independently. <strong>The decision rule:</strong> if your team is small enough to fit in two pizzas and your release cadence is monthly, a well-structured monolith is almost certainly the right answer. The threshold to introduce microservices is when coordination overhead between teams starts dominating engineering time.</p>
+<h3 id="the-12-factor-app-a-survival-guide">The 12-Factor App: A Survival Guide</h3>
+<p>The <a href="https://12factor.net/" target="_blank" rel="noopener noreferrer">12-Factor methodology <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ (Heroku, 2011) predates Kubernetes but has become the default operational contract a containerized service is expected to honor. Each factor exists to make a specific failure mode impossible:</p>
+<table>
+  <thead>
+      <tr>
+          <th>#</th>
+          <th>Factor</th>
+          <th>Why it matters</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td><strong>Codebase</strong> &ndash; one repo, many deploys</td>
+          <td>Same code, different config = reliable promotion path</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td><strong>Dependencies</strong> &ndash; explicitly declared and isolated</td>
+          <td>&ldquo;Works on my machine&rdquo; becomes impossible</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td><strong>Config</strong> &ndash; in environment, not code</td>
+          <td>Same image runs in dev/staging/prod</td>
+      </tr>
+      <tr>
+          <td>4</td>
+          <td><strong>Backing services</strong> &ndash; attached resources</td>
+          <td>Swap a DB by changing a URL, not refactoring</td>
+      </tr>
+      <tr>
+          <td>5</td>
+          <td><strong>Build, release, run</strong> &ndash; strictly separated</td>
+          <td>A release is immutable and rollback-able</td>
+      </tr>
+      <tr>
+          <td>6</td>
+          <td><strong>Processes</strong> &ndash; stateless and share-nothing</td>
+          <td>Any replica can serve any request</td>
+      </tr>
+      <tr>
+          <td>7</td>
+          <td><strong>Port binding</strong> &ndash; self-contained</td>
+          <td>No assumed external server (Tomcat, IIS)</td>
+      </tr>
+      <tr>
+          <td>8</td>
+          <td><strong>Concurrency</strong> &ndash; scale via process model</td>
+          <td>Horizontal scaling is the default</td>
+      </tr>
+      <tr>
+          <td>9</td>
+          <td><strong>Disposability</strong> &ndash; fast startup, graceful shutdown</td>
+          <td>Auto-scaling and rolling updates work</td>
+      </tr>
+      <tr>
+          <td>10</td>
+          <td><strong>Dev/prod parity</strong> &ndash; keep environments similar</td>
+          <td>Production surprises shrink</td>
+      </tr>
+      <tr>
+          <td>11</td>
+          <td><strong>Logs</strong> &ndash; as event streams to stdout</td>
+          <td>Platform aggregates, you don&rsquo;t write to files</td>
+      </tr>
+      <tr>
+          <td>12</td>
+          <td><strong>Admin processes</strong> &ndash; one-off in same env</td>
+          <td>Migrations don&rsquo;t have a separate stack</td>
+      </tr>
+  </tbody>
+</table>
+<p>Violating a factor is sometimes the right call (factor 6 is genuinely hard for stateful systems), but each violation is a debt you should know you took on.</p>
+<h2 id="containers-what-they-actually-are">Containers: What They Actually Are</h2>
+<p>A common mental model is &ldquo;containers are lightweight VMs.&rdquo; That mental model is wrong in important ways. <strong>Containers are not virtualization; they are process isolation.</strong> A container is just a Linux process (or process tree) where the kernel has been instructed to lie to it about what the system looks like.</p>
+<p>Three Linux kernel features do the work:</p>
+<ol>
+<li><strong>Namespaces</strong> &ndash; give a process its own view of system resources (PID, network, mount, UTS, IPC, user, cgroup). Inside a PID namespace, your container sees itself as PID 1 and cannot see processes outside.</li>
+<li><strong>cgroups (v2)</strong> &ndash; enforce resource limits (CPU, memory, IO, PIDs). When you set <code>--memory=512m</code>, the kernel kills the process if it exceeds that limit.</li>
+<li><strong>Union filesystems</strong> (overlay2 today) &ndash; stack read-only image layers under a thin writable layer per container, enabling instant copy-on-write filesystem semantics.</li>
+</ol>
+<p>That&rsquo;s it. A container shares the host kernel. There is no hypervisor, no second OS. The cost: ~50 ms startup vs ~30 s for a VM, ~5 MB overhead vs ~500 MB, and density of hundreds per host vs tens.</p>
+<h3 id="image-layers-the-cache-that-makes-builds-fast">Image Layers: The Cache That Makes Builds Fast</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/fig2_docker_layers.png" alt="Docker Image Layers" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Every Dockerfile instruction creates a new layer. Layers stack via the union filesystem; identical layers are deduplicated across images and across hosts. This is why two well-structured images that share a base can differ by megabytes even if the base is gigabytes.</p>
+<p>Two practical consequences:</p>
+<p><strong>1. Order Dockerfile instructions for cache reuse.</strong> Put things that change rarely (system packages, language runtime) first; put things that change every commit (your app code) last. A cached build is seconds; a cold build is minutes.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> python:3.12-slim</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># Layer 1: system deps (changes ~monthly)</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> apt-get update <span class="o">&amp;&amp;</span> apt-get install -y --no-install-recommends <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>        libpq-dev gcc <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    <span class="o">&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># Layer 2: Python deps (changes ~weekly)</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> requirements.txt .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> pip install --no-cache-dir -r requirements.txt<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># Layer 3: app code (changes every commit)</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> . /app<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /app</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">CMD</span> <span class="p">[</span><span class="s2">&#34;gunicorn&#34;</span><span class="p">,</span> <span class="s2">&#34;-w&#34;</span><span class="p">,</span> <span class="s2">&#34;4&#34;</span><span class="p">,</span> <span class="s2">&#34;app:app&#34;</span><span class="p">]</span><span class="err">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>If you <code>COPY . .</code> first, every code change invalidates the dependency layer and you reinstall everything. The shipping difference is 10x build time.</p>
+<p><strong>2. Image size matters more than you think.</strong> Smaller images pull faster, start faster, attack-surface smaller, and (in tools like KEDA or Knative) cold-start faster. Multi-stage builds let you compile in a heavy image and ship from a tiny one:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="c"># Builder stage: full toolchain (~800 MB)</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> golang:1.22-alpine AS builder</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /src</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> go.mod go.sum ./<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> go mod download<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> . .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> <span class="nv">CGO_ENABLED</span><span class="o">=</span><span class="m">0</span> <span class="nv">GOOS</span><span class="o">=</span>linux go build -ldflags<span class="o">=</span><span class="s2">&#34;-s -w&#34;</span> -o /out/server ./cmd/server<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># Runtime stage: just the binary (~10 MB)</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> gcr.io/distroless/static-debian12</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>builder /out/server /server<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">USER</span><span class="s"> 65532:65532</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">EXPOSE</span><span class="s"> 8080</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">ENTRYPOINT</span> <span class="p">[</span><span class="s2">&#34;/server&#34;</span><span class="p">]</span><span class="err">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>The final image contains only the compiled binary &ndash; no shell, no package manager, no source code. That&rsquo;s a security and operational win.</p>
+<h3 id="production-grade-dockerfile-practices">Production-grade Dockerfile Practices</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Practice</th>
+          <th>Why</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Pin tags, never <code>latest</code></strong></td>
+          <td>Reproducible builds; <code>latest</code> is a moving target</td>
+      </tr>
+      <tr>
+          <td><strong>Run as non-root</strong> (<code>USER 1000</code>)</td>
+          <td>Container escape is much harder without root</td>
+      </tr>
+      <tr>
+          <td><strong>One process per container</strong></td>
+          <td>Init systems (supervisord) hide failures from K8s</td>
+      </tr>
+      <tr>
+          <td><strong>Use <code>.dockerignore</code></strong></td>
+          <td><code>node_modules/</code>, <code>.git/</code>, <code>.env</code> should never enter the build context</td>
+      </tr>
+      <tr>
+          <td><strong>Combine related <code>RUN</code>s</strong></td>
+          <td>Each <code>RUN</code> is a layer; cleanup in a separate <code>RUN</code> doesn&rsquo;t shrink the image</td>
+      </tr>
+      <tr>
+          <td><strong>Use <code>HEALTHCHECK</code></strong></td>
+          <td>Tells the runtime when the process is ready, not just running</td>
+      </tr>
+      <tr>
+          <td><strong>Sign and scan images</strong></td>
+          <td><code>cosign</code> for signing, <code>trivy</code>/<code>grype</code> for CVE scanning in CI</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="docker-compose-the-right-tool-for-local-dev">Docker Compose: The Right Tool for Local Dev</h3>
+<p>Compose is for local development and small single-host deployments. It is <em>not</em> a production orchestrator &ndash; it has no auto-healing, no rolling updates, no horizontal scaling across hosts. But for &ldquo;spin up the API, the database, and Redis on my laptop,&rdquo; nothing is better:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">services</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">web</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">build</span><span class="p">:</span><span class="w"> </span><span class="l">.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;3000:3000&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">DATABASE_URL</span><span class="p">:</span><span class="w"> </span><span class="l">postgresql://postgres:dev@db:5432/myapp</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">REDIS_URL</span><span class="p">:</span><span class="w"> </span><span class="l">redis://redis:6379</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">db</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="l">service_healthy }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">db</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">postgres:16-alpine</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">POSTGRES_PASSWORD</span><span class="p">:</span><span class="w"> </span><span class="l">dev</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">POSTGRES_DB</span><span class="p">:</span><span class="w"> </span><span class="l">myapp</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">healthcheck</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">test</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;CMD-SHELL&#34;</span><span class="p">,</span><span class="w"> </span><span class="s2">&#34;pg_isready -U postgres&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l">5s</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l">3s</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">retries</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">pgdata:/var/lib/postgresql/data]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">redis</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">redis:7-alpine</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">pgdata</span><span class="p">:</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>depends_on</code> with <code>condition: service_healthy</code> is the underrated feature &ndash; it means web only starts once the DB actually accepts connections, not just when its container exists.</p>
+<h2 id="kubernetes-the-orchestrator-that-won">Kubernetes: The Orchestrator That Won</h2>
+<p>Kubernetes (K8s) emerged from Google&rsquo;s internal Borg system and has won the orchestration race so completely that &ldquo;container orchestration&rdquo; and &ldquo;Kubernetes&rdquo; are now synonyms in most conversations. Understanding <em>how</em> it works &ndash; not just which YAML to write &ndash; is what separates copying examples from designing platforms.</p>
+<h3 id="architecture-control-plane-and-worker-nodes">Architecture: Control Plane and Worker Nodes</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/fig3_kubernetes_architecture.png" alt="Kubernetes Architecture" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The <strong>control plane</strong> is the brain. Four components matter:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Component</th>
+          <th>Role</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>kube-apiserver</strong></td>
+          <td>The only thing that talks to etcd. All other components talk to the API server. REST/gRPC over HTTPS.</td>
+      </tr>
+      <tr>
+          <td><strong>etcd</strong></td>
+          <td>The cluster&rsquo;s source of truth. A consistent, distributed key-value store. Lose etcd, lose the cluster. Back it up.</td>
+      </tr>
+      <tr>
+          <td><strong>kube-scheduler</strong></td>
+          <td>Decides which node a new pod should run on (based on resource requests, taints, affinity, etc.).</td>
+      </tr>
+      <tr>
+          <td><strong>kube-controller-manager</strong></td>
+          <td>Runs the reconciliation loops &ndash; the deployment controller, replica set controller, node controller, etc.</td>
+      </tr>
+  </tbody>
+</table>
+<p>Each <strong>worker node</strong> runs:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Component</th>
+          <th>Role</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>kubelet</strong></td>
+          <td>The node agent. Receives pod specs from the API server, asks the container runtime to run them, reports status back.</td>
+      </tr>
+      <tr>
+          <td><strong>kube-proxy</strong></td>
+          <td>Programs iptables/IPVS rules so that Service IPs route to the right pods.</td>
+      </tr>
+      <tr>
+          <td><strong>container runtime</strong></td>
+          <td>Actually runs containers (containerd or CRI-O; Docker is no longer used directly).</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="the-reconciliation-loop-kubernetes-core-idea">The Reconciliation Loop: Kubernetes&rsquo; Core Idea</h3>
+<p>Every controller in Kubernetes runs the same loop:</p>
+<pre tabindex="0"><code>while True:
+    desired = read_desired_state_from_api_server()
+    actual = observe_actual_state()
+    if desired != actual:
+        take_action_to_close_the_gap()
+</code></pre><p>You declare you want 3 replicas. The replica set controller observes 2 are running. It creates 1 more. A node dies; 1 pod becomes unavailable. The controller observes 2 are running again. It creates another. <strong>You never told it what to do; you told it what you want.</strong></p>
+<p>This is why Kubernetes feels self-healing: there is no separate &ldquo;self-healing&rdquo; feature; the entire system is <em>built</em> as a self-healing loop. It is also why it can sometimes feel mysterious &ndash; if reality doesn&rsquo;t match desired state, something somewhere is silently retrying.</p>
+<h3 id="pods-services-deployments-the-daily-drivers">Pods, Services, Deployments: The Daily Drivers</h3>
+<p>A <strong>Pod</strong> is the smallest deployable unit &ndash; one or more containers that share network and storage. In practice, &ldquo;one container per pod&rdquo; is the default; the exception is when a sidecar (logging agent, service mesh proxy) needs to share network/volumes with the main app.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Pod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">web }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">nginx:1.27-alpine</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">resources</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">requests</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;64Mi&#34;</span><span class="nt">, cpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;100m&#34;</span><span class="w"> </span>}<span class="w">   </span><span class="c"># guaranteed</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">limits</span><span class="p">:</span><span class="w">   </span>{<span class="w"> </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;128Mi&#34;</span><span class="nt">, cpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;500m&#34;</span><span class="w"> </span>}<span class="w">  </span><span class="c"># ceiling</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">readinessProbe</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">httpGet</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">path: /, port</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">livenessProbe</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">httpGet</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">path: /healthz, port</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="m">30</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Resource requests vs limits is a load-bearing distinction.</strong> Requests are what the scheduler uses to place the pod and what the kernel guarantees. Limits are the hard ceiling beyond which the kernel kills (memory) or throttles (CPU) the process. Setting requests too low causes nodes to over-commit and OOM; setting limits too low causes throttling that looks like a slow app.</p>
+<p><strong>Probes determine traffic and lifecycle.</strong> Readiness gates traffic (&ldquo;am I ready to serve?&rdquo;). Liveness gates restarts (&ldquo;am I alive at all?&rdquo;). Many production outages trace to a misconfigured liveness probe that restart-loops a pod that is actually fine but slow.</p>
+<p>A <strong>Service</strong> gives you a stable virtual IP and DNS name in front of a set of pods. Pods come and go; the Service IP doesn&rsquo;t.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Service</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">web }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">port: 80, targetPort</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">ClusterIP   </span><span class="w"> </span><span class="c"># internal-only; use LoadBalancer for external</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>A <strong>Deployment</strong> manages rolling updates and rollbacks of a stateless workload. It owns a ReplicaSet, which owns Pods. When you change the image, the Deployment creates a new ReplicaSet and shifts traffic over according to your strategy:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Deployment</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="m">3</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">web } }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">strategy</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">RollingUpdate</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">rollingUpdate</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">maxSurge: 1, maxUnavailable</span><span class="p">:</span><span class="w"> </span><span class="m">0</span><span class="w"> </span>}<span class="w">   </span><span class="c"># zero downtime</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">web } }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">ghcr.io/myorg/web:v1.4.2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="c"># ...</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>maxUnavailable: 0</code> means &ldquo;never reduce capacity during an update&rdquo; &ndash; safer for prod. <code>maxSurge: 1</code> means &ldquo;spin up one extra pod at a time&rdquo; &ndash; limits how aggressively the rollout proceeds.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">kubectl <span class="nb">set</span> image deployment/web <span class="nv">web</span><span class="o">=</span>ghcr.io/myorg/web:v1.4.3
+</span></span><span class="line"><span class="cl">kubectl rollout status deployment/web        <span class="c1"># wait for rollout</span>
+</span></span><span class="line"><span class="cl">kubectl rollout <span class="nb">history</span> deployment/web       <span class="c1"># see all revisions</span>
+</span></span><span class="line"><span class="cl">kubectl rollout undo deployment/web          <span class="c1"># roll back to previous</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="when-you-need-statefulsets-daemonsets-jobs">When You Need StatefulSets, DaemonSets, Jobs</h3>
+<p>Most workloads are Deployments. The exceptions are worth knowing:</p>
+<ul>
+<li><strong>StatefulSet</strong> &ndash; ordered, named pods (<code>db-0</code>, <code>db-1</code>, <code>db-2</code>) with stable persistent volumes. For databases, message queues, anything that needs identity. Slower to update (one pod at a time, in order).</li>
+<li><strong>DaemonSet</strong> &ndash; one pod per node. For log collectors, monitoring agents, CSI drivers, CNI plugins.</li>
+<li><strong>Job</strong> &ndash; run to completion. For migrations, batch processing.</li>
+<li><strong>CronJob</strong> &ndash; Job on a schedule. For backups, periodic reports.</li>
+</ul>
+<h3 id="managed-kubernetes-the-sane-default">Managed Kubernetes: The Sane Default</h3>
+<p>Running your own control plane is possible (<code>kubeadm</code>, <code>kops</code>, <code>kubespray</code>) but rarely the right call &ndash; you take on etcd backups, certificate rotation, version upgrades, and security patches. The managed offerings carry that weight for you:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># AWS EKS</span>
+</span></span><span class="line"><span class="cl">eksctl create cluster --name prod --region us-west-2 --nodes <span class="m">3</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Google GKE</span>
+</span></span><span class="line"><span class="cl">gcloud container clusters create prod --num-nodes <span class="m">3</span> --region us-central1
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Azure AKS</span>
+</span></span><span class="line"><span class="cl">az aks create --name prod --resource-group rg --node-count <span class="m">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Pricing is roughly $73-150/month for the control plane plus the cost of the worker nodes you choose. For all but the largest organizations, that fee is dwarfed by the engineering time it saves.</p>
+<h2 id="networking-from-cni-to-service-mesh">Networking: From CNI to Service Mesh</h2>
+<p>Kubernetes networking has three layers, each with its own primitive:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Concern</th>
+          <th>Primitive</th>
+          <th>Implementation</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Pod-to-pod connectivity</strong></td>
+          <td>Flat L3 network</td>
+          <td>CNI plugin (Calico, Cilium, Flannel)</td>
+      </tr>
+      <tr>
+          <td><strong>L4 access policy</strong></td>
+          <td>NetworkPolicy</td>
+          <td>Enforced by CNI</td>
+      </tr>
+      <tr>
+          <td><strong>L7 traffic management</strong></td>
+          <td>Ingress / Service mesh</td>
+          <td>NGINX, Istio, Linkerd</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="cni-plugin-choice">CNI Plugin Choice</h3>
+<p>Every pod gets its own IP. The Container Network Interface (CNI) plugin is what makes that work.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Plugin</th>
+          <th>Approach</th>
+          <th>When to pick</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Flannel</strong></td>
+          <td>VXLAN overlay, no policy</td>
+          <td>Lab/dev only</td>
+      </tr>
+      <tr>
+          <td><strong>Calico</strong></td>
+          <td>BGP routing + iptables policy</td>
+          <td>Default for most production</td>
+      </tr>
+      <tr>
+          <td><strong>Cilium</strong></td>
+          <td>eBPF, kernel-level policy + L7 visibility</td>
+          <td>Performance + security; the modern default</td>
+      </tr>
+  </tbody>
+</table>
+<p>Cilium is increasingly the answer for new clusters: it skips iptables (which becomes a bottleneck at scale), enforces L7 policy (HTTP method/path level), and gives you flow visibility for free.</p>
+<h3 id="networkpolicy-default-deny-is-the-goal">NetworkPolicy: Default-deny is the Goal</h3>
+<p>By default, every pod can talk to every other pod. That is convenient and terrible for security. NetworkPolicy fixes it:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.k8s.io/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">NetworkPolicy</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name: api-policy, namespace</span><span class="p">:</span><span class="w"> </span><span class="l">prod }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">api } }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">policyTypes</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">Ingress, Egress]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ingress</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">from</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">frontend } }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">protocol: TCP, port</span><span class="p">:</span><span class="w"> </span><span class="m">8080</span><span class="w"> </span>}<span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">egress</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">to</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">postgres } }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">protocol: TCP, port</span><span class="p">:</span><span class="w"> </span><span class="m">5432</span><span class="w"> </span>}<span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">to</span><span class="p">:</span><span class="w">                              </span><span class="c"># allow DNS</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">namespaceSelector</span><span class="p">:</span><span class="w"> </span>{}<span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">k8s-app</span><span class="p">:</span><span class="w"> </span><span class="l">kube-dns } }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">protocol: UDP, port</span><span class="p">:</span><span class="w"> </span><span class="m">53</span><span class="w"> </span>}<span class="p">]</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>The discipline that pays off: <strong>start with a default-deny policy in the namespace, then add explicit allows.</strong> Compromised pods then can&rsquo;t trivially scan the cluster.</p>
+<h3 id="service-mesh-when-sidecars-earn-their-keep">Service Mesh: When Sidecars Earn Their Keep</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/fig4_service_mesh_istio.png" alt="Service Mesh with Istio" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A service mesh (Istio, Linkerd) injects a proxy (Envoy) as a sidecar in every pod. All inter-service traffic goes through the proxy, which gives you mTLS, retries, timeouts, traffic splitting, and golden-signal observability <strong>without changing app code.</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.istio.io/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">VirtualService</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">reviews }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">hosts</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">reviews]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">http</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">route</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">destination</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">host: reviews, subset</span><span class="p">:</span><span class="w"> </span><span class="l">v1 }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">weight</span><span class="p">:</span><span class="w"> </span><span class="m">90</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">destination</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">host: reviews, subset</span><span class="p">:</span><span class="w"> </span><span class="l">v2 }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">weight</span><span class="p">:</span><span class="w"> </span><span class="m">10</span><span class="w">        </span><span class="c"># 10% canary on v2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.istio.io/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">DestinationRule</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">reviews }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l">reviews</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">trafficPolicy</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">outlierDetection</span><span class="p">:</span><span class="w">        </span><span class="c"># circuit breaker</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">consecutive5xxErrors</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l">30s</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">baseEjectionTime</span><span class="p">:</span><span class="w"> </span><span class="l">30s</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">subsets</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l">v1 }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">v2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l">v2 }</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>The cost: a sidecar per pod (~50 MB memory, ~5 ms latency overhead), a control plane to manage, and a steeper learning curve. <strong>The honest rule of thumb:</strong> if you have fewer than ~10 services, the YAML is more complex than the problem. If you have 50+ services and your engineers are spending real time on retries/timeouts/mTLS in app code, the mesh is a clear win.</p>
+<h3 id="ingress-the-front-door">Ingress: The Front Door</h3>
+<p>For HTTP traffic from outside the cluster, an Ingress (with a controller like NGINX, Traefik, or a cloud-managed ALB/GLB) is usually simpler than a LoadBalancer per service:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.k8s.io/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Ingress</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">cert-manager.io/cluster-issuer</span><span class="p">:</span><span class="w"> </span><span class="l">letsencrypt-prod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">tls</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">hosts</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">app.example.com]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l">web-tls</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">rules</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l">app.example.com</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">http</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">paths</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">/</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">pathType</span><span class="p">:</span><span class="w"> </span><span class="l">Prefix</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">backend</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name: web, port</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">number</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="w"> </span>}<span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>With <code>cert-manager</code>, certificates auto-renew. Combined with ExternalDNS, the entire DNS+TLS+routing surface becomes declarative.</p>
+<h2 id="storage-persistent-volumes-done-right">Storage: Persistent Volumes Done Right</h2>
+<p>Pods are ephemeral; data isn&rsquo;t. The Kubernetes storage abstractions decouple &ldquo;what storage do I want&rdquo; (PVC) from &ldquo;how is it provisioned&rdquo; (StorageClass) from &ldquo;what backs it&rdquo; (provisioner).</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">storage.k8s.io/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">StorageClass</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">fast-ssd }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">provisioner</span><span class="p">:</span><span class="w"> </span><span class="l">ebs.csi.aws.com</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">parameters</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">gp3</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">encrypted</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;true&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">iops</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;3000&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">allowVolumeExpansion</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">reclaimPolicy</span><span class="p">:</span><span class="w"> </span><span class="l">Retain               </span><span class="w"> </span><span class="c"># do not delete the volume on PVC delete</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">PersistentVolumeClaim</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">pgdata }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">accessModes</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;ReadWriteOnce&#34;</span><span class="p">]</span><span class="w">     </span><span class="c"># one node mounts it</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">storageClassName</span><span class="p">:</span><span class="w"> </span><span class="l">fast-ssd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">resources</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">requests</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">storage</span><span class="p">:</span><span class="w"> </span><span class="l">100Gi } }</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Access modes that actually matter:</strong></p>
+<ul>
+<li><code>ReadWriteOnce</code> (RWO) &ndash; one node mounts read-write. Block storage (EBS, PD, Azure Disk). The default. Fast.</li>
+<li><code>ReadWriteMany</code> (RWX) &ndash; many nodes mount read-write. Requires a network filesystem (EFS, Filestore, Azure Files, CephFS). Slower, and the consistency model is filesystem-dependent. Avoid unless you genuinely need shared writable state.</li>
+<li><code>ReadOnlyMany</code> (ROX) &ndash; distributing static content.</li>
+</ul>
+<p><strong><code>reclaimPolicy: Retain</code> is the safe default for production data.</strong> With <code>Delete</code>, deleting a PVC silently destroys the volume. With <code>Retain</code>, you have to do it manually &ndash; which has saved many a Friday afternoon.</p>
+<p>For databases on Kubernetes, prefer <strong>operators</strong> (Postgres Operator, MongoDB Operator) over rolling your own StatefulSet. They handle the failure modes (failover, backup, rolling upgrades) that are easy to underestimate.</p>
+<h2 id="helm-packaging-done-properly">Helm: Packaging Done Properly</h2>
+<p>Once you have a few services, manifests proliferate. Helm packages templated manifests into versioned, reusable, parameterized &ldquo;charts.&rdquo;</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/fig5_helm_charts.png" alt="Helm Charts and Release History" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A chart is a directory of templates plus a <code>values.yaml</code> file with default values. At install time, you override values for the environment:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">helm install web ./charts/web -n prod -f values.prod.yaml
+</span></span><span class="line"><span class="cl">helm upgrade web ./charts/web -n prod -f values.prod.yaml --atomic
+</span></span><span class="line"><span class="cl">helm rollback web <span class="m">3</span> -n prod                  <span class="c1"># back to revision 3</span>
+</span></span><span class="line"><span class="cl">helm <span class="nb">history</span> web -n prod                     <span class="c1"># full release history</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>--atomic</code> is the underrated flag: if the upgrade fails any post-install hooks or readiness checks, Helm automatically rolls back. That single flag turns Helm from &ldquo;templating&rdquo; into &ldquo;transactional release management.&rdquo;</p>
+<h3 id="when-not-to-use-helm">When <em>not</em> to use Helm</h3>
+<p>Helm&rsquo;s templating uses Go templates with Sprig functions. For simple charts it is fine; for complex ones, the YAML-inside-template-strings can become painful (whitespace bugs, no schema validation until install time). Alternatives gaining ground:</p>
+<ul>
+<li><strong>Kustomize</strong> (built into kubectl) &ndash; patches and overlays without templating. Simpler for small variations.</li>
+<li><strong>CUE / KCL / Pkl</strong> &ndash; typed configuration languages with real schemas. More upfront cost, far fewer late-stage surprises.</li>
+</ul>
+<p>For shipping third-party software (databases, monitoring stacks), Helm is the lingua franca. For your own apps, evaluate the alternatives.</p>
+<h2 id="microservices-patterns-that-survive-production">Microservices Patterns That Survive Production</h2>
+<p>The patterns that consistently appear in mature systems:</p>
+<p><strong>API Gateway</strong> &ndash; single entry point for clients (auth, rate limit, routing, response shaping). Kong, Envoy Gateway, or a cloud-managed gateway. Keeps client code simple and security policy centralized.</p>
+<p><strong>Circuit Breaker</strong> &ndash; stop calling a downstream that is failing, fail fast for callers, give the downstream room to recover. Service mesh (Istio outlierDetection) handles this transparently; libraries like Resilience4j or Hystrix do it in-process.</p>
+<p><strong>Saga</strong> &ndash; distributed transactions without distributed locks. Each step has a compensating action; if step 4 fails, run the compensations for 1-3 in reverse. Two flavors: orchestration (a coordinator drives the steps) and choreography (services emit events). Orchestration is easier to reason about; choreography is easier to extend.</p>
+<p><strong>Outbox Pattern</strong> &ndash; atomic &ldquo;DB write + event emit.&rdquo; Write the event to an outbox table in the same DB transaction; a separate process reads the outbox and publishes. Solves the double-write problem that bites every event-driven system eventually.</p>
+<p><strong>Database per Service</strong> &ndash; each service owns its data; no shared DB. The pain is real (joins become API calls), but shared databases couple services through the schema, which silently destroys the point of microservices.</p>
+<h2 id="cicd-and-gitops">CI/CD and GitOps</h2>
+<p>The modern delivery pipeline for Kubernetes looks like:</p>
+<pre tabindex="0"><code>git push -&gt; CI (test, build, scan, sign image, push)
+         -&gt; CI updates manifest repo (image tag bump)
+         -&gt; ArgoCD detects diff and syncs cluster
+</code></pre><p>The key shift is <strong>GitOps</strong>: the cluster&rsquo;s state is defined by Git. ArgoCD (or Flux) continuously reconciles the cluster against a Git repo. Two big wins:</p>
+<ol>
+<li><strong>Audit trail.</strong> Every change is a commit. Want to know who changed prod at 2am? <code>git blame</code>.</li>
+<li><strong>Disaster recovery.</strong> Cluster gone? <code>kubectl apply</code> from the manifest repo and you&rsquo;re back.</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">argoproj.io/v1alpha1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Application</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name: web, namespace</span><span class="p">:</span><span class="w"> </span><span class="l">argocd }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">repoURL</span><span class="p">:</span><span class="w"> </span><span class="l">https://github.com/myorg/k8s-manifests</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">apps/web/overlays/prod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">targetRevision</span><span class="p">:</span><span class="w"> </span><span class="l">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">destination</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="l">https://kubernetes.default.svc</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">prod</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">syncPolicy</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">automated</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">prune: true, selfHeal</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span>}<span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">syncOptions</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">CreateNamespace=true]</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>selfHeal: true</code> means &ldquo;if someone <code>kubectl edit</code>s a resource by hand, ArgoCD will revert it.&rdquo; That is the discipline GitOps enforces &ndash; the cluster&rsquo;s state is what&rsquo;s in Git, not what&rsquo;s in someone&rsquo;s terminal.</p>
+<h2 id="operating-in-production-the-commands-that-matter">Operating in Production: The Commands That Matter</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Cluster overview</span>
+</span></span><span class="line"><span class="cl">kubectl cluster-info
+</span></span><span class="line"><span class="cl">kubectl get nodes -o wide
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># What&#39;s running where</span>
+</span></span><span class="line"><span class="cl">kubectl get pods -A -o wide
+</span></span><span class="line"><span class="cl">kubectl top pods -A                   <span class="c1"># CPU/memory actuals</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Debug a failing pod</span>
+</span></span><span class="line"><span class="cl">kubectl describe pod &lt;name&gt; -n &lt;ns&gt;   <span class="c1"># events, status, scheduling</span>
+</span></span><span class="line"><span class="cl">kubectl logs &lt;name&gt; -n &lt;ns&gt; -f        <span class="c1"># stream logs</span>
+</span></span><span class="line"><span class="cl">kubectl logs &lt;name&gt; -n &lt;ns&gt; --previous  <span class="c1"># logs from the crashed previous container</span>
+</span></span><span class="line"><span class="cl">kubectl <span class="nb">exec</span> -it &lt;name&gt; -n &lt;ns&gt; -- sh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Recent cluster events (the goldmine for &#34;why did this happen&#34;)</span>
+</span></span><span class="line"><span class="cl">kubectl get events -A --sort-by<span class="o">=</span><span class="s1">&#39;.lastTimestamp&#39;</span> <span class="p">|</span> tail -30
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Scale and rollout</span>
+</span></span><span class="line"><span class="cl">kubectl scale deploy/web --replicas<span class="o">=</span><span class="m">5</span>
+</span></span><span class="line"><span class="cl">kubectl rollout restart deploy/web    <span class="c1"># forces a fresh rollout, useful for picking up new secrets</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The single most useful pair: <code>kubectl describe</code> (status, events, scheduling decisions) and <code>kubectl logs --previous</code> (what happened in the container that just crashed).</p>
+<h2 id="production-checklist">Production Checklist</h2>
+<p>Before declaring a workload production-ready:</p>
+<ul>
+<li><input disabled="" type="checkbox"> Multi-stage Dockerfile, non-root user, distroless or minimal base</li>
+<li><input disabled="" type="checkbox"> Image pinned by digest (or at least immutable tag), signed, scanned in CI</li>
+<li><input disabled="" type="checkbox"> Resource requests <em>and</em> limits set on every container</li>
+<li><input disabled="" type="checkbox"> Liveness <em>and</em> readiness probes (readiness controls traffic, liveness controls restarts)</li>
+<li><input disabled="" type="checkbox"> PodDisruptionBudget so cluster maintenance doesn&rsquo;t take you below <code>minAvailable</code></li>
+<li><input disabled="" type="checkbox"> HorizontalPodAutoscaler if traffic is variable</li>
+<li><input disabled="" type="checkbox"> NetworkPolicy with default-deny + explicit allows</li>
+<li><input disabled="" type="checkbox"> Secrets in an external store (Vault, AWS Secrets Manager, External Secrets Operator) not in plain Secrets</li>
+<li><input disabled="" type="checkbox"> Logs to stdout, structured (JSON), aggregated to a central system</li>
+<li><input disabled="" type="checkbox"> Metrics exposed (Prometheus format) and dashboards exist</li>
+<li><input disabled="" type="checkbox"> Distributed tracing instrumented (OpenTelemetry)</li>
+<li><input disabled="" type="checkbox"> Backups tested (especially for StatefulSets)</li>
+<li><input disabled="" type="checkbox"> Runbook exists for the common failure modes</li>
+</ul>
+<p>A workload that ticks all these boxes is not unbreakable &ndash; but the failure modes that remain are the interesting ones, not the embarrassing ones.</p>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Part</th>
+          <th>Topic</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td><a href="/en/cloud-computing-fundamentals/">Fundamentals and Architecture</a>
+</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td><a href="/en/cloud-computing-virtualization/">Virtualization Technology Deep Dive</a>
+</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td><a href="/en/cloud-computing-storage-systems/">Storage Systems and Distributed Architecture</a>
+</td>
+      </tr>
+      <tr>
+          <td>4</td>
+          <td><a href="/en/cloud-computing-networking-sdn/">Network Architecture and SDN</a>
+</td>
+      </tr>
+      <tr>
+          <td>5</td>
+          <td><a href="/en/cloud-computing-security-privacy/">Security and Privacy Protection</a>
+</td>
+      </tr>
+      <tr>
+          <td>6</td>
+          <td><a href="/en/cloud-computing-operations-devops/">Operations and DevOps Practices</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>7</strong></td>
+          <td><strong>Cloud-Native and Container Technologies (you are here)</strong></td>
+      </tr>
+      <tr>
+          <td>8</td>
+          <td><a href="/en/cloud-computing-multi-cloud-hybrid/">Multi-Cloud and Hybrid Architecture</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#cloud-native-what-changed-and-why">Cloud-Native: What Changed and Why</a>
+      <ul>
+        <li><a href="#monolith-vs-microservices-the-trade-off-made-visible">Monolith vs Microservices: The Trade-off Made Visible</a></li>
+        <li><a href="#the-12-factor-app-a-survival-guide">The 12-Factor App: A Survival Guide</a></li>
+      </ul>
+    </li>
+    <li><a href="#containers-what-they-actually-are">Containers: What They Actually Are</a>
+      <ul>
+        <li><a href="#image-layers-the-cache-that-makes-builds-fast">Image Layers: The Cache That Makes Builds Fast</a></li>
+        <li><a href="#production-grade-dockerfile-practices">Production-grade Dockerfile Practices</a></li>
+        <li><a href="#docker-compose-the-right-tool-for-local-dev">Docker Compose: The Right Tool for Local Dev</a></li>
+      </ul>
+    </li>
+    <li><a href="#kubernetes-the-orchestrator-that-won">Kubernetes: The Orchestrator That Won</a>
+      <ul>
+        <li><a href="#architecture-control-plane-and-worker-nodes">Architecture: Control Plane and Worker Nodes</a></li>
+        <li><a href="#the-reconciliation-loop-kubernetes-core-idea">The Reconciliation Loop: Kubernetes&rsquo; Core Idea</a></li>
+        <li><a href="#pods-services-deployments-the-daily-drivers">Pods, Services, Deployments: The Daily Drivers</a></li>
+        <li><a href="#when-you-need-statefulsets-daemonsets-jobs">When You Need StatefulSets, DaemonSets, Jobs</a></li>
+        <li><a href="#managed-kubernetes-the-sane-default">Managed Kubernetes: The Sane Default</a></li>
+      </ul>
+    </li>
+    <li><a href="#networking-from-cni-to-service-mesh">Networking: From CNI to Service Mesh</a>
+      <ul>
+        <li><a href="#cni-plugin-choice">CNI Plugin Choice</a></li>
+        <li><a href="#networkpolicy-default-deny-is-the-goal">NetworkPolicy: Default-deny is the Goal</a></li>
+        <li><a href="#service-mesh-when-sidecars-earn-their-keep">Service Mesh: When Sidecars Earn Their Keep</a></li>
+        <li><a href="#ingress-the-front-door">Ingress: The Front Door</a></li>
+      </ul>
+    </li>
+    <li><a href="#storage-persistent-volumes-done-right">Storage: Persistent Volumes Done Right</a></li>
+    <li><a href="#helm-packaging-done-properly">Helm: Packaging Done Properly</a>
+      <ul>
+        <li><a href="#when-not-to-use-helm">When <em>not</em> to use Helm</a></li>
+      </ul>
+    </li>
+    <li><a href="#microservices-patterns-that-survive-production">Microservices Patterns That Survive Production</a></li>
+    <li><a href="#cicd-and-gitops">CI/CD and GitOps</a></li>
+    <li><a href="#operating-in-production-the-commands-that-matter">Operating in Production: The Commands That Matter</a></li>
+    <li><a href="#production-checklist">Production Checklist</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Cloud Computing</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>21 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4400</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2023</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

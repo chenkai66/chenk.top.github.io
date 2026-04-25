@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>强化学习（五）：Model-Based强化学习与世界模型 · Chen Kai Blog</title>
+<meta name="description" content="从 Dyna、MBPO 到 World Models、Dreamer 和 MuZero——学一个环境模型，让智能体在想象中规划，把样本效率提高 10-100 倍。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/reinforcement-learning/05-model-based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/reinforcement-learning/05-model-based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习（五）：Model-Based强化学习与世界模型">
+<meta property="og:description" content="从 Dyna、MBPO 到 World Models、Dreamer 和 MuZero——学一个环境模型，让智能体在想象中规划，把样本效率提高 10-100 倍。">
+<meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/05-model-based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">强化学习</a>
+         · Chapter 5
+      </div>
+      <h1>强化学习（五）：Model-Based强化学习与世界模型</h1>
+      <p class="deck">从 Dyna、MBPO 到 World Models、Dreamer 和 MuZero——学一个环境模型，让智能体在想象中规划，把样本效率提高 10-100 倍。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-08-21">August 21, 2025</time> · 14 min read · 6600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" class="tag">#强化学习</a><a href="/zh/tags/model-based-rl/" class="tag">#Model-Based RL</a><a href="/zh/tags/%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/" class="tag">#世界模型</a><a href="/zh/tags/dyna/" class="tag">#Dyna</a><a href="/zh/tags/mbpo/" class="tag">#MBPO</a><a href="/zh/tags/dreamer/" class="tag">#Dreamer</a><a href="/zh/tags/muzero/" class="tag">#MuZero</a><a href="/zh/tags/planet/" class="tag">#PlaNet</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>到目前为止介绍过的所有算法——DQN、REINFORCE、A2C、PPO、SAC——本质上都是 <strong>Model-Free</strong> 的：智能体把环境当成黑盒，扔动作、收奖励、更新策略，从来不去理解环境到底是怎么运作的。这条路走得通，但极其奢侈：DQN 在 Atari Pong 上要 <strong>1000 万帧</strong>才能精通，OpenAI Five 在 Dota 2 上自我对弈了相当于 <strong>45000 年</strong>的游戏时间，AlphaStar 也是按&quot;年&quot;来烧 StarCraft 的样本。</p>
+<p>人显然不是这么学的。下棋的高手会在脑子里推演几步、剪掉明显的臭棋；小孩学会&quot;悬崖危险&quot;是靠推理，不是靠摔下去一次。两者依靠的都是对世界响应方式的内部<strong>模型</strong>，而且大部分认知预算花在&quot;模型里&quot;，而不是&quot;世界里&quot;。</p>
+<p>**Model-Based RL（基于模型的强化学习，MBRL）**就是把这件事形式化：先学一个近似的动态模型$\hat{P}(s'\mid s,a)$和奖励模型$\hat{R}(s,a)$，再把它当成一个便宜的模拟器，用来规划、提升策略、估计价值。在它能 work 的任务上，回报非常可观——<strong>真实环境样本量降低 10 到 100 倍</strong>——这就是&quot;机器人需要在物理世界里跑三个月&quot;和&quot;跑一下午就够了&quot;之间的差距。</p>
+<p>本文按时间和思想脉络梳理现代 MBRL：Dyna（1990）-&gt; MBPO（2019）-&gt; World Models（2018）-&gt; Dreamer（2020-23）-&gt; MuZero（2020）。每种方法背后都是一个非常锋利的想法，下面 7 张图就是一图一想法。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>Model-Based 何时赢、何时输的精确权衡</li>
+<li><strong>Dyna-Q</strong>：真实经验和想象经验混合学习的祖师爷</li>
+<li><strong>MBPO</strong>：为什么&quot;短&quot;想象才是甜区</li>
+<li><strong>MPC</strong>：纯粹靠规划，不学策略</li>
+<li><strong>World Models（V/M/C）</strong>：把像素压成潜空间里的&quot;梦&quot;</li>
+<li><strong>Dreamer / RSSM</strong>：端到端的潜空间想象，确定性 + 随机状态</li>
+<li><strong>MuZero</strong>：根本不预测观察的规划</li>
+</ul>
+<p><strong>前置知识：</strong><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">第 1-3 部分</a>
+（MDP、价值函数、策略梯度、Actor-Critic）。</p>
+<hr>
+<h2 id="一两种范式同一个目标">一、两种范式，同一个目标</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/fig1_mf_vs_mb_loops.png" alt="Model-free 与 model-based 控制循环对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Model-Free RL 只有一个循环：<em>执行 -&gt; 观察 -&gt; 学习</em>。Model-Based 在中间塞进了第二个循环：<em>学模型 -&gt; 在模型里规划 -&gt; 改进策略</em>。一次真实交互摊销到成千上万次想象更新里，账就立刻好看了。</p>
+<h3 id="核心权衡">核心权衡</h3>
+<table>
+  <thead>
+      <tr>
+          <th></th>
+          <th>Model-Free</th>
+          <th>Model-Based</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>学什么</strong></td>
+          <td>只学策略 / 价值函数</td>
+          <td>学模型 $\hat{P},\hat{R}$ <strong>和</strong> 策略 / 价值</td>
+      </tr>
+      <tr>
+          <td><strong>样本成本</strong></td>
+          <td>高，每次梯度都要消耗一次真实交互</td>
+          <td>低，一次真实步可以衍生很多想象更新</td>
+      </tr>
+      <tr>
+          <td><strong>算力成本</strong></td>
+          <td>单步更便宜</td>
+          <td>更贵（要拟合模型 + 规划）</td>
+      </tr>
+      <tr>
+          <td><strong>渐近性能</strong></td>
+          <td>只受探索瓶颈限制</td>
+          <td>受 <strong>模型偏差</strong>限制</td>
+      </tr>
+      <tr>
+          <td><strong>迁移性</strong></td>
+          <td>与训练时的奖励绑定</td>
+          <td>同一个模型可以复用到新任务</td>
+      </tr>
+      <tr>
+          <td><strong>失败模式</strong></td>
+          <td>学得慢</td>
+          <td>误差累积 -&gt; 在&quot;梦里的最优&quot;上自我催眠</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="现实中的样本效率">现实中的样本效率</h3>
+<table>
+  <thead>
+      <tr>
+          <th>算法</th>
+          <th>类别</th>
+          <th>基准</th>
+          <th>达到专家水平的步数</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>DQN</td>
+          <td>Model-Free</td>
+          <td>Atari Pong</td>
+          <td>约 1000 万帧</td>
+      </tr>
+      <tr>
+          <td>PPO</td>
+          <td>Model-Free</td>
+          <td>MuJoCo HalfCheetah</td>
+          <td>约 100 万-200 万步</td>
+      </tr>
+      <tr>
+          <td>SAC</td>
+          <td>Model-Free</td>
+          <td>MuJoCo HalfCheetah</td>
+          <td>约 60 万步</td>
+      </tr>
+      <tr>
+          <td><strong>MBPO</strong></td>
+          <td>Model-Based</td>
+          <td>MuJoCo HalfCheetah</td>
+          <td><strong>约 8 万-10 万步</strong></td>
+      </tr>
+      <tr>
+          <td><strong>Dreamer</strong></td>
+          <td>Model-Based</td>
+          <td>DMControl Walker</td>
+          <td><strong>约 10 万步</strong></td>
+      </tr>
+      <tr>
+          <td><strong>DreamerV3</strong></td>
+          <td>Model-Based</td>
+          <td>Minecraft（挖钻石）</td>
+          <td>史上首个从零完成</td>
+      </tr>
+  </tbody>
+</table>
+<p>差距大约是 <strong>一个数量级</strong>，模拟器越贵（真实机器人、慢物理仿真），优势越夸张。</p>
+<h3 id="什么时候上-model-based">什么时候上 Model-Based</h3>
+<p>合适的场景：</p>
+<ul>
+<li>真实交互昂贵：机器人、自动驾驶、药物发现、有真人参与的对话系统。</li>
+<li>动力学<strong>可学</strong>：物理光滑、棋类、结构化环境。</li>
+<li>同一个环境上有<strong>多个下游任务</strong>，模型可以摊销复用。</li>
+</ul>
+<p>不合适的场景：</p>
+<ul>
+<li>已经有又快又准的免费模拟器（Atari 自己<strong>就是</strong>模拟器）。</li>
+<li>高度随机或对抗（金融市场、社交博弈）。</li>
+<li>状态空间巨大到模型没法在数据预算内拟合。</li>
+</ul>
+<hr>
+<h2 id="二dyna-q最早的蓝图">二、Dyna-Q：最早的蓝图</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/fig3_dyna_q_flow.png" alt="Dyna-Q 数据流和收敛曲线" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Sutton 1990 年提出的 <strong>Dyna</strong> 是第一个把 model-based 循环讲清楚的系统。它把每次真实转移用了三遍：</p>
+<ol>
+<li><strong>直接学习</strong> —— 用真实$(s,a,r,s')$更新 Q；</li>
+<li><strong>学模型</strong> —— 把这条转移存进表格化模型$M(s,a)\to(r,s')$；</li>
+<li><strong>规划</strong> —— 从历史$(s,a)$里随机采样$n$条，查模型得到想象转移，再做$n$次 Q 更新。</li>
+</ol>
+<p>右边的收敛曲线说明了后果：在确定性 GridWorld 上，规划步数从 0（普通 Q-Learning）拉到 50，收敛所需 episode 数掉了一个数量级——因为每次真实交互现在触发 51 次 Bellman 更新而不是 1 次。</p>
+<h3 id="参考实现">参考实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DynaQ</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;表格 Dyna-Q：直接学习 + 从记忆模型里规划。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_states</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">planning_steps</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_states</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="p">{}</span>                    <span class="c1"># (s, a) -&gt; (r, s&#39;)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">visited</span> <span class="o">=</span> <span class="p">[]</span>                  <span class="c1"># 用于采样的有序列表</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">gamma</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="n">epsilon</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">planning_steps</span> <span class="o">=</span> <span class="n">planning_steps</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">select_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">s</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_q_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">target</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">s_next</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span><span class="n">target</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">learn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 1. 直接 RL</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_update</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 2. 学模型（确定性环境直接记忆即可）</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">visited</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 3. 规划：回放想象转移</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">planning_steps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">sp</span><span class="p">,</span> <span class="n">ap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">visited</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visited</span><span class="p">))]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rp</span><span class="p">,</span> <span class="n">sp_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[(</span><span class="n">sp</span><span class="p">,</span> <span class="n">ap</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">_q_update</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">ap</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">sp_next</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="dyna-教会我们什么又卡在哪里">Dyna 教会我们什么，又卡在哪里</h3>
+<p>Dyna 把核心洞察隔离了出来：<strong>学到一个模型，等于用算力换样本</strong>。它同时也把后续所有方法都要面对的麻烦摆上了台面：在错误的模型上做规划，会把偏差直接打进价值函数。表格化的确定性世界看不到这件事，但换成神经网络模型 + 长 horizon，误差会指数级累积。本文剩下的内容，本质上就是一连串针对这个问题的聪明回答。</p>
+<hr>
+<h2 id="三mbpo让你的想象力短一点">三、MBPO：让你的想象力短一点</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/fig4_mbpo_short_rollouts.png" alt="MBPO 短分支 rollout 与模型误差随长度增长" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Janner 等人在 NeurIPS 2019 提出的 <strong>Model-Based Policy Optimization（MBPO）</strong>，是 Dyna 思想在连续控制上最干净的现代版本。它的标题级洞察就两个字：<strong>短想象</strong>。</p>
+<p>右图说明了为什么：状态预测的累积误差大致随 rollout 长度$k$几何增长。到$k = 20$，即使是 5 个模型组成的 ensemble 也已经飘到没法用了。MBPO 的回答是：只在真实状态上<strong>branch 1-5 步</strong>（左图），然后把这些短想象转移交给 SAC 去做长程的信用分配——这正是 model-free 算法擅长的事情。</p>
+<h3 id="算法">算法</h3>
+<ol>
+<li>拿当前策略在真实环境跑一段，加进$\mathcal{D}_{\text{real}}$；</li>
+<li>在$\mathcal{D}_{\text{real}}$上拟合一个 <strong>5 个网络</strong>的概率动态模型 ensemble$f_\theta(s,a)\to(s',r)$；</li>
+<li>反复从$\mathcal{D}_{\text{real}}$里采初始状态，从 ensemble 里随机挑一个成员 branch$k$步，把想象转移加进$\mathcal{D}_{\text{model}}$；</li>
+<li>SAC 在$\mathcal{D}_{\text{real}}$和$\mathcal{D}_{\text{model}}$的混合数据上训练。</li>
+</ol>
+<p>Ensemble 是关键：成员之间的分歧既起到<strong>正则</strong>作用（数据稀疏的地方分歧最大），又隐式地提供<strong>认知不确定性</strong>让策略避开。</p>
+<h3 id="简化代码">简化代码</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">EnsembleDynamics</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;5 个概率动态模型，预测 (delta_s, reward)。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">heads</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span> <span class="o">+</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">state_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>  <span class="c1"># 均值 + log_std</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state_dim</span> <span class="o">=</span> <span class="n">state_dim</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">heads</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heads</span><span class="p">[</span><span class="n">idx</span><span class="p">](</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mu</span><span class="p">,</span> <span class="n">log_std</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span> <span class="o">*</span> <span class="n">log_std</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dim</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">reward</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dim</span><span class="p">:]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">s</span> <span class="o">+</span> <span class="n">delta</span><span class="p">,</span> <span class="n">reward</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="结果">结果</h3>
+<p>在 MuJoCo HalfCheetah 上，MBPO 用 <strong>约 10 万</strong>真实步达到 ~10000 的回报，而 SAC 要 ~100 万、PPO 要 ~160 万。经验上的最佳 rollout 长度是$k=1$，再长就被累积误差吞掉了。</p>
+<hr>
+<h2 id="四纯规划模型预测控制mpc">四、纯规划：模型预测控制（MPC）</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/fig5_mpc_planning.png" alt="模型预测控制：采样 -&gt; 评分 -&gt; 执行第一步 -&gt; 重新规划" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>如果模型够好，其实可以连&quot;策略&quot;都不要，<strong>每一步都重新从零规划一次</strong>。**模型预测控制（MPC）**是经典控制工程里的主力，把学习到的动态模型塞进去就是现代 MBRL 里非常常用的一招。</p>
+<p>循环：</p>
+<ol>
+<li>采样$N$条候选动作序列$a_{t:t+H}$（均匀、高斯，或者从 CEM/iCEM 提议分布里采）；</li>
+<li>把每条都用<strong>学到的模型</strong>前推$H$步，按预测回报打分；</li>
+<li><strong>只执行</strong>最优序列的<strong>第一个动作</strong>；</li>
+<li>观察真实下一状态，重新规划。</li>
+</ol>
+<p>图里画了 12 条候选轨迹（灰色）、最优一条（绿色），以及那唯一被高亮、真正发给执行机构的动作。关键点是：每次只执行一步，意味着模型只需要<strong>局部准确</strong>——长程开环里的累积误差根本没机会爆发。</p>
+<p>MPC 在 <strong>错误代价很高</strong>的场景（真实机器人、手术、自动驾驶）几乎是默认选择。它也是连接学习模型和经典规划文献的桥梁：PETS、PlaNet、TD-MPC 以及 Dreamer 的策略改进环，归结起来都是某种形式的&quot;在学习模型里跑 MPC&quot;。</p>
+<hr>
+<h2 id="五world-models在潜空间里做梦">五、World Models：在潜空间里做梦</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/fig2_world_model_vmc.png" alt="World Model V/M/C 架构" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>MBPO 之所以好用，是因为 MuJoCo 的状态只有十几到二十几维。可是要预测下一帧 Atari（$84\times 84\times 3$像素），就完全是另一回事——而且其中大多数像素（天空、计分板）跟控制毫无关系。<strong>World Models</strong>（Ha &amp; Schmidhuber, 2018）给出了完全不同的形态：</p>
+<blockquote>
+<p>把观察压成一个很小的潜空间编码，然后<strong>在潜空间里学动力学</strong>。</p>
+</blockquote>
+<p>三个组件，左到右就是上图：</p>
+<ul>
+<li><strong>V（Vision）</strong> —— 一个变分自编码器把每一帧$o_t$压到约 32 维的潜变量$z_t$。重建损失保证$z_t$里包含足够的场景信息。</li>
+<li><strong>M（Memory）</strong> —— 一个混合密度网络 RNN 建模$P(z_{t+1}\mid z_t, a_t, h_t)$，其中$h_t$是 RNN 的隐状态。M <strong>就是</strong>世界模型。</li>
+<li><strong>C（Controller）</strong> —— 一个故意做得很小的线性策略，把$(z_t, h_t)$映射成$a_t$。在 CarRacing 上它只有 <strong>867 个参数</strong>，而 DQN 是 170 万。</li>
+</ul>
+<h3 id="它为什么有效以及为什么这很惊人">它为什么有效——以及为什么这很惊人</h3>
+<p>控制器可以<strong>完全在梦里</strong>训练：从一个采样的$z$开始 rollout M，得到伪轨迹，用 CMA-ES 进化 C，直到评估之前都不碰真实环境。这个 867 参数的控制器在 CarRacing-v0 上拿到了接近人类的分数。更深一层的教训——也是 Dreamer / DreamerV3 / TD-MPC 都继承的——是<strong>学到一个有用的表示，本身就是问题的大半</strong>：V 和 M 摆好之后，控制几乎是 trivial 的。</p>
+<hr>
+<h2 id="六dreamer端到端的潜空间想象">六、Dreamer：端到端的潜空间想象</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/fig7_dreamer_latent.png" alt="Dreamer RSSM 在三个时间步上的潜空间动力学" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>World Models 把 V、M、C 分三阶段训练，意味着 VAE 是为像素重建优化的，而不是为控制器真正需要的特征优化的。<strong>Dreamer</strong>（Hafner 等人，ICLR 2020；DreamerV2 2021；DreamerV3 2023）把整个系统联合训练，并加了一块关键的架构：<strong>循环状态空间模型（RSSM）</strong>。</p>
+<h3 id="一图看懂-rssm">一图看懂 RSSM</h3>
+<p>图里画了三个时间步。每一步的潜状态都有两部分：</p>
+<p>-$h_t$<strong>（确定性）</strong> —— 一个 GRU 隐状态，承担长程记忆：$h_t = \mathrm{GRU}(h_{t-1}, z_{t-1}, a_{t-1})$。
+-$z_t$<strong>（随机）</strong> —— 一个小的离散类别或高斯潜变量，想象时从先验$p(z_t\mid h_t)$采样，训练时从后验$q(z_t\mid h_t, o_t)$采样。</p>
+<p>这种分离很重要。确定性的$h$负责记住过去，随机的$z$负责建模真正不确定的动力学（Pong 球飞出屏幕、Minecraft 箱子里随机的战利品）。所有 head（reward、value、训练时还有 observation）都接在$(h_t, z_t)$上——所以解码器损失会反传到动力学和表示里。</p>
+<h3 id="行为完全在想象中学">行为完全在想象中学</h3>
+<p>世界模型在真实数据上拟合好之后，Dreamer 用下面的方式训练 actor 和 critic：</p>
+<ol>
+<li>从真实 buffer 里采一批$(h_t, z_t)$作为起点；</li>
+<li>用 <strong>prior</strong> 动力学前推 15 步，每步用 actor 采样动作；</li>
+<li>在想象轨迹上 bootstrap 出价值目标，用 reparameterised 策略梯度更新 actor。</li>
+</ol>
+<p>这一步<strong>完全没有真实交互</strong>。一个 batch 真实数据可以喂出成千上万次想象梯度更新——还是 Dyna 的思想，但现在跑在学习到的潜空间里。</p>
+<h3 id="结果-1">结果</h3>
+<ul>
+<li><strong>DMControl Walker：</strong> 10 万步达到 ~900 分，SAC 要 100 万步。</li>
+<li><strong>Atari：</strong> DreamerV2 在 55 个游戏上追平 IQN/Rainbow，<strong>而且只要单卡 GPU</strong>。</li>
+<li><strong>Minecraft（DreamerV3，2023）：</strong> 第一个能从零挖到钻石的算法，没有演示数据，没有逐任务调参。</li>
+</ul>
+<p>DreamerV3 真正的卖点是<strong>鲁棒性</strong>：同一套 model-based 智能体，同一套超参数，在 150 多个任务（DMControl、Atari、Crafter、Minecraft）上击败了为单任务专门调参的 baseline。</p>
+<hr>
+<h2 id="七muzero不预测像素也能规划">七、MuZero：不预测像素也能规划</h2>
+<p>World Models 和 Dreamer 这条线的共同前提是&quot;预测观察&quot;。MuZero（Schrittwieser 等人，<em>Nature</em> 2020）注意到：要做<strong>规划</strong>，你其实不需要观察——你需要的是价值、策略、奖励。其它都是手段。</p>
+<p>MuZero 学三个小网络，全部跑在抽象的隐藏状态上：</p>
+<ul>
+<li><strong>表示函数：</strong>$s_0 = h(o_0)$，把真实观察编码成隐状态。</li>
+<li><strong>动力学函数：</strong>$s_{k+1}, r_{k+1} = g(s_k, a_k)$，纯粹在隐状态空间里转移。</li>
+<li><strong>预测函数：</strong>$p_k, v_k = f(s_k)$，输出策略 logits 和价值。</li>
+</ul>
+<p>隐状态$s_k$<strong>不需要</strong>对应真实环境里的任何东西，只要在它之上跑的蒙特卡洛树搜索（MCTS）能用就行。</p>
+<h3 id="损失函数">损失函数</h3>
+<p>把一条轨迹展开$K$步，MCTS 给出$z^v, z^p$，真实奖励是$z^r$，损失就是：</p>
+$$
+\mathcal{L} = \sum_{k=0}^{K} \Big[\ell^p(p_k, z_k^p) + \ell^v(v_k, z_k^v) + \ell^r(r_k, z_k^r)\Big].
+$$<p>注意，<strong>没有任何重建项</strong>。这个模型是<strong>隐式</strong>的——只要让 MCTS 的目标自洽，它就够了。</p>
+<h3 id="结果-2">结果</h3>
+<p>同一套算法、同一套超参数：</p>
+<ul>
+<li>**围棋、国际象棋、将棋：**追平或超过 AlphaZero ——<strong>而且不需要被告知规则</strong>。</li>
+<li>**Atari 57：**刷新 R2D2 的 SOTA。</li>
+<li>**MuZero Reanalyse / Sampled MuZero / EfficientZero（2021）：**在 Atari 上用 2 小时游戏时间达到人类水平。</li>
+</ul>
+<p>MuZero 把一个深刻的原则演示得最干净：<strong>模型只需要忠实到下游用法所要求的程度就够了。</strong></p>
+<hr>
+<h2 id="八大局观样本效率">八、大局观：样本效率</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/fig6_sample_efficiency.png" alt="MuJoCo HalfCheetah 上的样本效率曲线和达标步数对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>把这些方法叠在一张图上，结论就具体了。在 HalfCheetah 上，MBPO 和 Dreamer 用 <strong>8 万-15 万</strong>真实步达到的分数，SAC 要 60 万、PPO 要 160 万才能追上。每条 model-based 曲线都是同样的形状：先慢一段（在学模型），等想象更新开始携带有用梯度后立刻陡升。</p>
+<p>不过图里也诚实地展示了一个限制：model-based 不一定能<strong>超过</strong> model-free 的渐近水平，它是<strong>更快</strong>地达到同一水平。样本便宜的时候，model-free 凭简洁性常常更优；样本昂贵的时候——这才是经验上更有趣的设定——model-based 优势巨大。</p>
+<hr>
+<h2 id="九怎么选">九、怎么选</h2>
+<table>
+  <thead>
+      <tr>
+          <th>场景</th>
+          <th>方法</th>
+          <th>理由</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>小型离散环境，要快速迭代</td>
+          <td>Dyna-Q</td>
+          <td>表格化，立即就有效果</td>
+      </tr>
+      <tr>
+          <td>连续控制，状态维度中等</td>
+          <td>MBPO</td>
+          <td>短 rollout + SAC，10 倍样本效率</td>
+      </tr>
+      <tr>
+          <td>真实机器人，交互成本高</td>
+          <td>MPC + ensemble 动态（PETS/iCEM）</td>
+          <td>局部规划，永不信任长程开环</td>
+      </tr>
+      <tr>
+          <td>像素观察，预算有限</td>
+          <td>Dreamer / DreamerV3</td>
+          <td>潜空间动力学应付高维传感器</td>
+      </tr>
+      <tr>
+          <td>完全信息棋类 / 离散规划</td>
+          <td>MuZero</td>
+          <td>隐式模型 + MCTS，连规则都不用给</td>
+      </tr>
+      <tr>
+          <td>已经有又快又准的免费模拟器</td>
+          <td>PPO / SAC</td>
+          <td>没有模型误差要操心</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="十开放问题">十、开放问题</h2>
+<p>三个方向目前最活跃：</p>
+<ol>
+<li>**长程模型误差。**目前所有方法要么把 horizon 砍短（MBPO、MPC），要么把问题藏进潜空间（Dreamer）。两者都没有优雅地扩展到那种需要 1000 步信用分配 + 高保真动力学的任务。</li>
+<li>**随机和多模态世界。**RSSM 的随机$z$是一步，但要预测真正多模态的未来（驾驶、对话），仍然很难。</li>
+<li>**基础智能体的世界模型。**最近的工作（Genie、把 Sora 当世界模型用、V-JEPA）把大型生成式视频模型当作动力学组件；一个预训练好的世界模型能否像 LLM 那样跨任务迁移，是一个开放且重要的问题。</li>
+</ol>
+<hr>
+<h2 id="总结">总结</h2>
+<p>Model-Based RL 是一族<strong>用算力换样本</strong>的方法：</p>
+<ul>
+<li><strong>Dyna</strong> 引入了循环——真实和想象更新混合，把交互摊薄。</li>
+<li><strong>MBPO</strong> 证明了<strong>短</strong>想象比长想象更好用，因为模型误差会累积。</li>
+<li><strong>MPC</strong> 把模型当成一步预测器，每一步都重新规划。</li>
+<li><strong>World Models</strong> 把动力学学习搬进压缩潜空间，让&quot;像素环境&quot;变得可处理。</li>
+<li><strong>Dreamer / RSSM</strong> 把表示、动力学、策略联合训练，行为完全在想象中学习。</li>
+<li><strong>MuZero</strong> 干脆把重建丢掉了：模型只要在 MCTS 下自洽就行。</li>
+</ul>
+<p>贯穿始终的一课是：<strong>你预测什么，应该跟你怎么用这个预测匹配</strong>。像素重要就预测像素；下游只用$(r, v, p)$，那就只预测它们。这个原则正是让 DreamerV3、EfficientZero、TD-MPC2 这一波终于显得&quot;通用&quot;的关键。</p>
+<p><strong>下一篇：</strong><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/">第 6 部分</a>
+深入 <strong>PPO 与 TRPO</strong>——支撑工业级 RL（机器人操作、ChatGPT 的 RLHF）的信任域策略梯度方法。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>Sutton, R. S. (1990). <em>Integrated architectures for learning, planning, and reacting based on approximating dynamic programming</em>. ICML.</li>
+<li>Janner, M., Fu, J., Zhang, M., &amp; Levine, S. (2019). <em>When to trust your model: model-based policy optimization</em>. NeurIPS. <a href="https://arxiv.org/abs/1906.08253" target="_blank" rel="noopener noreferrer">arXiv:1906.08253 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Chua, K., Calandra, R., McAllister, R., &amp; Levine, S. (2018). <em>Deep reinforcement learning in a handful of trials using probabilistic dynamics models</em>（PETS）. NeurIPS. <a href="https://arxiv.org/abs/1805.12114" target="_blank" rel="noopener noreferrer">arXiv:1805.12114 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Ha, D., &amp; Schmidhuber, J. (2018). <em>World models</em>. NeurIPS. <a href="https://arxiv.org/abs/1803.10122" target="_blank" rel="noopener noreferrer">arXiv:1803.10122 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Hafner, D., Lillicrap, T., Ba, J., &amp; Norouzi, M. (2020). <em>Dream to control: learning behaviors by latent imagination</em>（Dreamer）. ICLR. <a href="https://arxiv.org/abs/1912.01603" target="_blank" rel="noopener noreferrer">arXiv:1912.01603 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Hafner, D., Lillicrap, T., Norouzi, M., &amp; Ba, J. (2021). <em>Mastering Atari with discrete world models</em>（DreamerV2）. ICLR. <a href="https://arxiv.org/abs/2010.02193" target="_blank" rel="noopener noreferrer">arXiv:2010.02193 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Hafner, D., et al. (2023). <em>Mastering diverse domains through world models</em>（DreamerV3）. <a href="https://arxiv.org/abs/2301.04104" target="_blank" rel="noopener noreferrer">arXiv:2301.04104 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Schrittwieser, J., et al. (2020). <em>Mastering Atari, Go, chess and shogi by planning with a learned model</em>（MuZero）. <em>Nature</em>. <a href="https://arxiv.org/abs/1911.08265" target="_blank" rel="noopener noreferrer">arXiv:1911.08265 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Ye, W., Liu, S., Kurutach, T., Abbeel, P., &amp; Gao, Y. (2021). <em>Mastering Atari games with limited data</em>（EfficientZero）. NeurIPS. <a href="https://arxiv.org/abs/2111.00210" target="_blank" rel="noopener noreferrer">arXiv:2111.00210 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Hansen, N., Wang, X., &amp; Su, H. (2022/2024). <em>Temporal difference learning for model predictive control</em>（TD-MPC / TD-MPC2）. <a href="https://arxiv.org/abs/2310.16828" target="_blank" rel="noopener noreferrer">arXiv:2310.16828 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">基础与核心概念</a>
+</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%8c-Q-Learning%e4%b8%8e%e6%b7%b1%e5%ba%a6Q%e7%bd%91%e7%bb%9c/">Q-Learning 与深度 Q 网络</a>
+</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%89-Policy-Gradient%e4%b8%8eActor-Critic%e6%96%b9%e6%b3%95/">Policy Gradient 与 Actor-Critic</a>
+</td>
+      </tr>
+      <tr>
+          <td>4</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e6%8e%a2%e7%b4%a2%e7%ad%96%e7%95%a5%e4%b8%8e%e5%a5%bd%e5%a5%87%e5%bf%83%e9%a9%b1%e5%8a%a8%e5%ad%a6%e4%b9%a0/">探索策略与好奇心驱动学习</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>5</strong></td>
+          <td><strong>Model-Based 强化学习与世界模型（本文）</strong></td>
+      </tr>
+      <tr>
+          <td>6</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/">PPO 与 TRPO</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#一两种范式同一个目标">一、两种范式，同一个目标</a>
+      <ul>
+        <li><a href="#核心权衡">核心权衡</a></li>
+        <li><a href="#现实中的样本效率">现实中的样本效率</a></li>
+        <li><a href="#什么时候上-model-based">什么时候上 Model-Based</a></li>
+      </ul>
+    </li>
+    <li><a href="#二dyna-q最早的蓝图">二、Dyna-Q：最早的蓝图</a>
+      <ul>
+        <li><a href="#参考实现">参考实现</a></li>
+        <li><a href="#dyna-教会我们什么又卡在哪里">Dyna 教会我们什么，又卡在哪里</a></li>
+      </ul>
+    </li>
+    <li><a href="#三mbpo让你的想象力短一点">三、MBPO：让你的想象力短一点</a>
+      <ul>
+        <li><a href="#算法">算法</a></li>
+        <li><a href="#简化代码">简化代码</a></li>
+        <li><a href="#结果">结果</a></li>
+      </ul>
+    </li>
+    <li><a href="#四纯规划模型预测控制mpc">四、纯规划：模型预测控制（MPC）</a></li>
+    <li><a href="#五world-models在潜空间里做梦">五、World Models：在潜空间里做梦</a>
+      <ul>
+        <li><a href="#它为什么有效以及为什么这很惊人">它为什么有效——以及为什么这很惊人</a></li>
+      </ul>
+    </li>
+    <li><a href="#六dreamer端到端的潜空间想象">六、Dreamer：端到端的潜空间想象</a>
+      <ul>
+        <li><a href="#一图看懂-rssm">一图看懂 RSSM</a></li>
+        <li><a href="#行为完全在想象中学">行为完全在想象中学</a></li>
+        <li><a href="#结果-1">结果</a></li>
+      </ul>
+    </li>
+    <li><a href="#七muzero不预测像素也能规划">七、MuZero：不预测像素也能规划</a>
+      <ul>
+        <li><a href="#损失函数">损失函数</a></li>
+        <li><a href="#结果-2">结果</a></li>
+      </ul>
+    </li>
+    <li><a href="#八大局观样本效率">八、大局观：样本效率</a></li>
+    <li><a href="#九怎么选">九、怎么选</a></li>
+    <li><a href="#十开放问题">十、开放问题</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">强化学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6600</strong></div>
+      <div class="row"><span>Published</span><strong>Aug 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

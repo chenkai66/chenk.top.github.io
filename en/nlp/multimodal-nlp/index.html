@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>NLP (11): Multimodal Large Language Models · Chen Kai Blog</title>
+<meta name="description" content="A deep dive into multimodal LLMs: contrastive vision-language pre-training with CLIP, parameter-efficient bridging with BLIP-2&#39;s Q-Former, visual instruction tuning with LLaVA, robust speech recognition with Whisper, GPT-4V capabilities, and the MMBench/MME/MMMU benchmark landscape — with reproducible code.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/nlp/multimodal-nlp/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/nlp/multimodal-nlp/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="NLP (11): Multimodal Large Language Models">
+<meta property="og:description" content="A deep dive into multimodal LLMs: contrastive vision-language pre-training with CLIP, parameter-efficient bridging with BLIP-2&#39;s Q-Former, visual instruction tuning with LLaVA, robust speech recognition with Whisper, GPT-4V capabilities, and the MMBench/MME/MMMU benchmark landscape — with reproducible code.">
+<meta property="og:url" content="https://www.chenk.top/en/nlp/multimodal-nlp/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-4);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">NLP</a>
+         · Chapter 11
+      </div>
+      <h1>NLP (11): Multimodal Large Language Models</h1>
+      <p class="deck">A deep dive into multimodal LLMs: contrastive vision-language pre-training with CLIP, parameter-efficient bridging with BLIP-2&#39;s Q-Former, visual instruction tuning with LLaVA, robust speech recognition with Whisper, GPT-4V capabilities, and the MMBench/MME/MMMU benchmark landscape — with reproducible code.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-11-20">November 20, 2025</time> · 17 min read · 3500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/nlp/" class="tag">#NLP</a><a href="/en/tags/multimodal/" class="tag">#Multimodal</a><a href="/en/tags/llm/" class="tag">#LLM</a><a href="/en/tags/clip/" class="tag">#CLIP</a><a href="/en/tags/blip-2/" class="tag">#BLIP-2</a><a href="/en/tags/llava/" class="tag">#LLaVA</a><a href="/en/tags/whisper/" class="tag">#Whisper</a><a href="/en/tags/vision-language/" class="tag">#Vision-Language</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Humans never perceive the world in one channel at a time. We watch a chart while reading the caption, hear a tone of voice while reading a face, glance at a screenshot while debating a bug. Pure-text language models are deaf and blind to all of that. <strong>Multimodal Large Language Models (MLLMs)</strong> close the gap by aligning images, audio, and video into the same representation space the language model already speaks.</p>
+<p>The story of the last four years can be told in three steps. <strong>CLIP</strong> (2021) showed that 400 M noisy image–text pairs from the web are enough to learn a single embedding space where text and image search each other by cosine similarity. <strong>BLIP-2</strong> (2023) made the alignment cheap: freeze a powerful vision encoder, freeze a powerful LLM, and learn a tiny ~188 M-parameter &ldquo;Q-Former&rdquo; between them. <strong>LLaVA / GPT-4V</strong> (2023–2024) replaced the bridge with a one-line projector and <strong>visual instruction tuning</strong> — feed the LLM image embeddings as if they were word embeddings, then fine-tune on GPT-4-generated visual conversations. The result is a single model that can read a chart, debug a screenshot, and describe a photograph with the fluency of a chat assistant.</p>
+<p>This article walks through that arc end-to-end: the math behind contrastive alignment, the architectures that scale, the audio side of the story (Whisper), what GPT-4V can and cannot do, and how to read the MMBench / MME / MMMU benchmark numbers — all with working code.</p>
+<h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li><strong>CLIP</strong> — InfoNCE contrastive loss, dual encoders, zero-shot classification, and how the temperature $\tau$ shapes training</li>
+<li><strong>BLIP-2</strong> — why Q-Former works, its 32 learnable queries, and the two-stage pre-training recipe</li>
+<li><strong>LLaVA</strong> — visual instruction tuning, why a 4 M-parameter linear projector can rival heavier connectors, and the GPT-4-distilled instruction data trick</li>
+<li><strong>Whisper</strong> — multilingual encoder–decoder ASR over log-mel spectrograms, special-token control, and model-size trade-offs</li>
+<li><strong>GPT-4V and frontier MLLMs</strong> — capability matrix, cross-domain reasoning, and known failure modes (counting, fine-grained grounding, hallucinations)</li>
+<li><strong>Evaluation</strong> — MMBench, MME, MMMU, SEED-Bench, POPE — what each measures and how to compare scores honestly</li>
+<li><strong>Practice</strong> — building a CLIP-based multimodal retrieval index, image captioning, VQA, and Whisper transcription pipelines</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Transformer architecture (see <a href="/en/nlp-attention-transformer/">Part 4</a>
+)</li>
+<li>Pre-training and instruction fine-tuning (see <a href="/en/nlp-bert-pretrained-models/">Parts 5</a>
+ and <a href="/en/nlp-fine-tuning-peft/">8</a>
+)</li>
+<li>Comfort with PyTorch and the Hugging Face ecosystem; some computer-vision intuition (patches, ViTs) is useful but not required</li>
+</ul>
+<hr>
+<h2 id="visionlanguage-models">Vision–Language Models</h2>
+<h3 id="clip-contrastive-visionlanguage-alignment">CLIP: Contrastive Vision–Language Alignment</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/fig1_clip_architecture.png" alt="CLIP dual encoder and in-batch contrastive matrix" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>CLIP (Radford et al., OpenAI 2021) trains two encoders side by side. An <strong>image encoder</strong> $f_I$ — a Vision Transformer (ViT-L/14) or a ResNet — turns an image $x$ into a vector $I = f_I(x) \in \mathbb{R}^{512}$. A <strong>text encoder</strong> $f_T$ — a 12-layer Transformer — turns a caption $t$ into the same-dimensional vector $T = f_T(t)$. Both are L2-normalised so that $I \cdot T$ is a cosine similarity. Training maximises this similarity for matching pairs and pushes it down for everything else.</p>
+<p>Concretely, with $N$ image–text pairs in a batch and similarity matrix $s_{ij} = (I_i \cdot T_j)/\tau$, CLIP minimises a symmetric InfoNCE loss:</p>
+$$\mathcal{L} = -\frac{1}{2N}\sum_{i=1}^{N}\Bigg[\log\frac{e^{s_{ii}}}{\sum_{j} e^{s_{ij}}} + \log\frac{e^{s_{ii}}}{\sum_{j} e^{s_{ji}}}\Bigg].$$<p>The two terms are the image-to-text and text-to-image classification losses — softmax over the $N$ candidates in the batch, with the diagonal as the correct class. The temperature $\tau \approx 0.07$ is a <em>learnable</em> scalar; it is initialised to $\log(1/\tau) = \log 100$ and clipped to prevent collapse. Larger batches give a harder negative pool: CLIP&rsquo;s 400 M-pair training used batches of 32 768 across hundreds of GPUs.</p>
+<p>Three properties fall out of this objective:</p>
+<ol>
+<li><strong>Zero-shot classification</strong> — to classify an image into one of $K$ labels, encode each label as <code>&quot;a photo of a {label}&quot;</code> and pick the text with highest cosine similarity. No labelled training examples needed.</li>
+<li><strong>Cross-modal retrieval</strong> — image-to-text and text-to-image search reduce to a dot-product index (FAISS, ScaNN, etc.).</li>
+<li><strong>Conditioning generative models</strong> — CLIP&rsquo;s image embeddings are the supervisory signal in DALL·E 2, Stable Diffusion&rsquo;s text encoder, and many image-to-image systems.</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">CLIPProcessor</span><span class="p">,</span> <span class="n">CLIPModel</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">CLIPModel</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&#34;openai/clip-vit-base-patch32&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">processor</span> <span class="o">=</span> <span class="n">CLIPProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&#34;openai/clip-vit-base-patch32&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&#34;cat.jpg&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;a photo of a cat&#34;</span><span class="p">,</span> <span class="s2">&#34;a photo of a dog&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">          <span class="s2">&#34;a photo of a car&#34;</span><span class="p">,</span> <span class="s2">&#34;a photo of a bird&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="n">inputs</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                       <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># logits_per_image is already scaled by 1/τ</span>
+</span></span><span class="line"><span class="cl"><span class="n">probs</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">logits_per_image</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">probs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">&gt;6.2%</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A typical run on a clean cat photo yields &gt;95% on <code>&quot;a photo of a cat&quot;</code> — without any training on <code>&quot;cat&quot;</code> examples.</p>
+<p><strong>When CLIP fails.</strong> CLIP is bag-of-words-ish: it confuses <em>&ldquo;a red cube on a blue sphere&rdquo;</em> with <em>&ldquo;a blue cube on a red sphere&rdquo;</em>. It struggles with counting (two vs. three), fine-grained categories (Yorkshire vs. Norwich terrier), and text inside images (use a model with explicit OCR). For Chinese, use Chinese-CLIP or Qwen-VL — the original WIT corpus is overwhelmingly English.</p>
+<h3 id="blip-2-bridging-frozen-vision-and-frozen-language">BLIP-2: Bridging Frozen Vision and Frozen Language</h3>
+<p>CLIP aligns; it does not generate text. <strong>BLIP-2</strong> (Li et al., ICML 2023) addresses generation while keeping pre-training cheap. Both the image encoder (ViT-g/14, 1 B parameters) and the LLM (OPT-2.7B / 6.7B or FlanT5) stay <strong>frozen</strong>. Only a small bridge — the <strong>Q-Former</strong> — is trained.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/fig2_blip2_qformer.png" alt="BLIP-2 architecture with Q-Former bridging frozen ViT and frozen LLM" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The Q-Former is a 12-layer Transformer with two crucial twists:</p>
+<ul>
+<li><strong>32 learnable query embeddings</strong> that act as the input — they have nothing to do with image tokens, they are just trainable vectors.</li>
+<li>A <strong>cross-attention layer</strong> in every block where the queries attend over the patch features coming out of the frozen ViT. The queries thus <em>pull</em> the most language-relevant visual information out of the frozen image features.</li>
+</ul>
+<p>After 12 layers the 32 queries become 32 &ldquo;soft visual tokens&rdquo; that are linearly projected to the LLM&rsquo;s embedding dimension and prepended to the text. To the LLM they look exactly like ordinary word embeddings.</p>
+<p>BLIP-2 trains in two stages:</p>
+<ol>
+<li><strong>Vision–language representation learning.</strong> The Q-Former is trained against the frozen ViT only, with three losses combined: image–text contrastive (ITC, à la CLIP), image–text matching (ITM, a binary classifier on hard negatives), and image-grounded text generation (ITG, a captioning loss). This stage teaches the queries what visual content is.</li>
+<li><strong>Vision-to-language generation.</strong> The Q-Former&rsquo;s output is plugged into the frozen LLM and trained with standard language-modelling loss on image-conditioned text. This stage teaches the queries to <em>speak the LLM&rsquo;s language</em>.</li>
+</ol>
+<p>The total trainable parameter count is <strong>~188 M</strong> — about 1.4% of OPT-6.7B. Yet BLIP-2 zero-shots VQA-v2 and image captioning competitively with much larger end-to-end-trained models.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">Blip2Processor</span><span class="p">,</span> <span class="n">Blip2ForConditionalGeneration</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">processor</span> <span class="o">=</span> <span class="n">Blip2Processor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&#34;Salesforce/blip2-opt-2.7b&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">Blip2ForConditionalGeneration</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Salesforce/blip2-opt-2.7b&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">torch_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">device_map</span><span class="o">=</span><span class="s2">&#34;auto&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&#34;street.jpg&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">prompt</span> <span class="o">=</span> <span class="s2">&#34;Question: What is happening in this photo? Answer:&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">inputs</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&#34;cuda&#34;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ids</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">processor</span><span class="o">.</span><span class="n">batch_decode</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="llava-visual-instruction-tuning">LLaVA: Visual Instruction Tuning</h3>
+<p>BLIP-2 pre-trains a clever bridge. LLaVA (Liu et al., NeurIPS 2023) does something more radical: replace the bridge with a <strong>single linear layer</strong> (or 2-layer MLP) and instead invest in <strong>visual instruction-following data</strong>.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/fig3_llava_architecture.png" alt="LLaVA — vision encoder, projector, LLM, and connector comparison" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The pipeline is almost embarrassingly simple. Take a frozen CLIP ViT-L/14, dump its 256 patch features $Z_v \in \mathbb{R}^{256 \times 1024}$, push them through a learned projector $W$ to land in the LLM&rsquo;s 4096-dim embedding space:</p>
+$$H_v = W \cdot Z_v.$$<p>Concatenate $H_v$ with the user&rsquo;s text token embeddings, feed everything to Vicuna, and predict the assistant&rsquo;s response autoregressively. Training proceeds in two stages:</p>
+<ol>
+<li><strong>Feature alignment.</strong> Train only $W$ on 558 K image–caption pairs (LAION/CC/SBU). The LLM learns nothing new — only the projector learns to map CLIP features into a space the frozen LLM can interpret.</li>
+<li><strong>End-to-end visual instruction tuning.</strong> Unfreeze the LLM and fine-tune $W$ + LLM together on <strong>158 K image–instruction pairs generated by GPT-4</strong> from COCO captions and bounding boxes. GPT-4 was prompted to produce three types of conversation: detailed descriptions, conversational Q&amp;A, and complex reasoning chains.</li>
+</ol>
+<p>The single linear projector is responsible for at most ~17 M parameters yet, on MMBench, LLaVA-1.5 with the MLP-2 connector reaches 80.0 — beating heavier Q-Former-based designs in their own benchmarks. The lesson: <strong>for instruction-following MLLMs, data quality and end-to-end fine-tuning matter more than the connector</strong>.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># LLaVA-1.5 inference via Transformers</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">LlavaForConditionalGeneration</span><span class="p">,</span> <span class="n">AutoProcessor</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">model_id</span> <span class="o">=</span> <span class="s2">&#34;llava-hf/llava-1.5-7b-hf&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">processor</span> <span class="o">=</span> <span class="n">AutoProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">LlavaForConditionalGeneration</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model_id</span><span class="p">,</span> <span class="n">torch_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">device_map</span><span class="o">=</span><span class="s2">&#34;auto&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&#34;ui_screenshot.png&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">prompt</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&#34;USER: &lt;image&gt;</span><span class="se">\n</span><span class="s2">What does this UI do, and is there a bug? &#34;</span>
+</span></span><span class="line"><span class="cl">          <span class="s2">&#34;Be specific. ASSISTANT:&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">inputs</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                   <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&#34;cuda&#34;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">do_sample</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">processor</span><span class="o">.</span><span class="n">batch_decode</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="visionlanguage-tasks-vqa-captioning-retrieval">Vision–Language Tasks: VQA, Captioning, Retrieval</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/fig4_vl_tasks.png" alt="VQA, image captioning, and cross-modal retrieval pipelines" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The three classical task families dominate evaluation and most practical use:</p>
+<ul>
+<li><strong>Visual Question Answering (VQA).</strong> Given an image and a question, produce an answer. Datasets: VQA-v2, OK-VQA (open-knowledge), GQA (compositional), TextVQA (requires OCR). Modern MLLMs handle all of these with a single instruction-tuned model.</li>
+<li><strong>Image Captioning.</strong> Generate a natural-language description. Datasets: COCO Captions, NoCaps, Flickr30K. Beam search with <code>num_beams=3</code> and <code>length_penalty&gt;1.0</code> typically gives a good detail/fluency trade-off.</li>
+<li><strong>Cross-modal Retrieval.</strong> Given a text query, return the most relevant images (or vice-versa). Reduces to nearest-neighbour search over normalised CLIP embeddings — production systems use FAISS-IVF or ScaNN with billions of items.</li>
+</ul>
+<h3 id="image-captioning">Image Captioning</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">BlipProcessor</span><span class="p">,</span> <span class="n">BlipForConditionalGeneration</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ImageCaptioner</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&#34;Salesforce/blip-image-captioning-large&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span> <span class="o">=</span> <span class="n">BlipProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">BlipForConditionalGeneration</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">caption</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">max_length</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">num_beams</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&#34;RGB&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># `prefix` enables conditional captioning, e.g. &#34;A photo of&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span> \
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">prefix</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="o">**</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">num_beams</span><span class="o">=</span><span class="n">num_beams</span><span class="p">,</span> <span class="n">length_penalty</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">cap</span> <span class="o">=</span> <span class="n">ImageCaptioner</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">cap</span><span class="o">.</span><span class="n">caption</span><span class="p">(</span><span class="s2">&#34;dog.jpg&#34;</span><span class="p">))</span>                        <span class="c1"># unconditional</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">cap</span><span class="o">.</span><span class="n">caption</span><span class="p">(</span><span class="s2">&#34;dog.jpg&#34;</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&#34;A photo of&#34;</span><span class="p">))</span>   <span class="c1"># conditional</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="visual-question-answering">Visual Question Answering</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">BlipProcessor</span><span class="p">,</span> <span class="n">BlipForQuestionAnswering</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">VQA</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&#34;Salesforce/blip-vqa-base&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span> <span class="o">=</span> <span class="n">BlipProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">BlipForQuestionAnswering</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">answer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">question</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&#34;RGB&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">question</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">vqa</span> <span class="o">=</span> <span class="n">VQA</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">vqa</span><span class="o">.</span><span class="n">answer</span><span class="p">(</span><span class="s2">&#34;market.jpg&#34;</span><span class="p">,</span> <span class="s2">&#34;How many apples are on the table?&#34;</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">vqa</span><span class="o">.</span><span class="n">answer</span><span class="p">(</span><span class="s2">&#34;market.jpg&#34;</span><span class="p">,</span> <span class="s2">&#34;What color is the basket?&#34;</span><span class="p">))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="production-ready-clip-retrieval">Production-Ready CLIP Retrieval</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">CLIPProcessor</span><span class="p">,</span> <span class="n">CLIPModel</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CLIPRetrieval</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Tiny CLIP-based image index. For &gt;1 M items use FAISS-IVF.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="s2">&#34;openai/clip-vit-base-patch32&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">&#34;cuda&#34;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&#34;cpu&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">CLIPModel</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">proc</span> <span class="o">=</span> <span class="n">CLIPProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embeds</span> <span class="o">=</span> <span class="p">[]</span>   <span class="c1"># list of np.ndarray of shape (512,)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">add_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">paths</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">batch_paths</span> <span class="o">=</span> <span class="n">paths</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">imgs</span> <span class="o">=</span> <span class="p">[</span><span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&#34;RGB&#34;</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">batch_paths</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">(</span><span class="n">images</span><span class="o">=</span><span class="n">imgs</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_image_features</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">emb</span> <span class="o">=</span> <span class="n">emb</span> <span class="o">/</span> <span class="n">emb</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">embeds</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">emb</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">batch_paths</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">search_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proc</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="p">[</span><span class="n">query</span><span class="p">],</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                           <span class="n">padding</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_text_features</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span> <span class="o">/</span> <span class="n">q</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sims</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embeds</span><span class="p">)</span> <span class="o">@</span> <span class="n">q</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sims</span> <span class="o">=</span> <span class="n">sims</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argpartition</span><span class="p">(</span><span class="o">-</span><span class="n">sims</span><span class="p">,</span> <span class="n">top_k</span><span class="p">)[:</span><span class="n">top_k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">sims</span><span class="p">[</span><span class="n">idx</span><span class="p">])]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">float</span><span class="p">(</span><span class="n">sims</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>For an index of &gt;1 M images, switch to FAISS with an IVF-PQ index — embeddings are 512-dim float32, so 1 M items occupy ~2 GB in raw form but compress to &lt;100 MB with PQ.</p>
+<hr>
+<h2 id="audio-whisper">Audio: Whisper</h2>
+<p>Speech is the second great non-text modality, and <strong>Whisper</strong> (Radford et al., ICML 2023) is the open-source workhorse. It is a vanilla encoder–decoder Transformer trained on <strong>680 K hours</strong> of weakly-supervised multilingual audio scraped from the internet, with a single objective and a single model that handles transcription, translation, language identification, and voice-activity detection.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/fig5_whisper_audio.png" alt="Log-mel spectrogram input and Whisper encoder–decoder" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The pipeline:</p>
+<ol>
+<li>Audio is resampled to <strong>16 kHz mono</strong>, then split into 30-second chunks. Short clips are padded with silence; long clips are processed with a sliding window.</li>
+<li>The chunk is converted to an <strong>80-channel log-mel spectrogram</strong> with a 25 ms window and 10 ms hop — 3000 frames per 30-second chunk.</li>
+<li>Two <strong>stride-2 Conv1D + GELU</strong> layers downsample to 1500 audio tokens, which the <strong>encoder</strong> (12–32 self-attention layers depending on size) processes.</li>
+<li>The <strong>decoder</strong> is autoregressive and prepended with control tokens: <code>&lt;|startoftranscript|&gt; &lt;|en|&gt; &lt;|transcribe|&gt; &lt;|notimestamps|&gt;</code>. Switching <code>&lt;|transcribe|&gt;</code> for <code>&lt;|translate|&gt;</code> makes the same model produce English translations of foreign-language audio.</li>
+</ol>
+<p>Model sizes: tiny (39 M), base (74 M), small (244 M), medium (769 M), large (1.55 B). For most production work, <strong><code>small</code> or <code>medium</code> on a GPU give 0.1–0.3× real-time latency with WER under 10% on common English audio</strong>. Use <code>large-v3</code> when accents, code-switching, or noise dominate.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">whisper</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">WhisperASR</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&#34;base&#34;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">whisper</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">transcribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">audio_path</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">task</span><span class="o">=</span><span class="s2">&#34;transcribe&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># task in {&#34;transcribe&#34;, &#34;translate&#34;}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">transcribe</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">audio_path</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">language</span><span class="o">=</span><span class="n">language</span><span class="p">,</span>           <span class="c1"># None -&gt; auto-detect</span>
+</span></span><span class="line"><span class="cl">            <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">word_timestamps</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>        <span class="c1"># adds per-word timing</span>
+</span></span><span class="line"><span class="cl">            <span class="n">condition_on_previous_text</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># safer on long audio</span>
+</span></span><span class="line"><span class="cl">            <span class="n">no_speech_threshold</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">asr</span> <span class="o">=</span> <span class="n">WhisperASR</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="s2">&#34;small&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">result</span> <span class="o">=</span> <span class="n">asr</span><span class="o">.</span><span class="n">transcribe</span><span class="p">(</span><span class="s2">&#34;meeting.mp3&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Detected language: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;language&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&#34;segments&#34;</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;[</span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">seg</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Practical notes.</strong> Set <code>condition_on_previous_text=False</code> on long recordings — otherwise an early hallucination cascades. For batched throughput, use <a href="https://github.com/SYSTRAN/faster-whisper" target="_blank" rel="noopener noreferrer"><code>faster-whisper</code> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ (CTranslate2 backend, 4–8× faster). For diarisation (who-spoke-when), pair Whisper with <code>pyannote.audio</code>.</p>
+<hr>
+<h2 id="gpt-4v-and-the-frontier-mllm-landscape">GPT-4V and the Frontier MLLM Landscape</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/fig6_gpt4v_examples.png" alt="GPT-4V capability matrix and example interactions" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>GPT-4V</strong> (and its successors GPT-4o and GPT-4.1) treat images as a first-class input modality alongside text. The model handles a broad mix of tasks out of the box:</p>
+<ul>
+<li><strong>OCR and document understanding</strong> — read receipts, forms, tables, screenshots.</li>
+<li><strong>Charts and graphs</strong> — extract values, summarise trends, answer comparative questions.</li>
+<li><strong>Diagrams and flowcharts</strong> — explain UML, system diagrams, hand-drawn whiteboards.</li>
+<li><strong>Code and UI</strong> — debug screenshots of code, suggest CSS fixes from a rendered page.</li>
+<li><strong>Visual reasoning</strong> — multi-image comparison, step-by-step math from a photo of an exam, scene safety reasoning.</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">base64</span><span class="o">,</span> <span class="nn">mimetypes</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">analyse_image</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;gpt-4o&#34;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mime</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">mimetypes</span><span class="o">.</span><span class="n">guess_type</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">messages</span><span class="o">=</span><span class="p">[{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">                <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">                <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;image_url&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="s2">&#34;image_url&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;url&#34;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&#34;data:</span><span class="si">{</span><span class="n">mime</span><span class="si">}</span><span class="s2">;base64,</span><span class="si">{</span><span class="n">b64</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                               <span class="s2">&#34;detail&#34;</span><span class="p">:</span> <span class="s2">&#34;high&#34;</span><span class="p">}},</span>
+</span></span><span class="line"><span class="cl">            <span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">max_tokens</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">temperature</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">analyse_image</span><span class="p">(</span><span class="s2">&#34;dashboard.png&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                    <span class="s2">&#34;Summarise the key metrics and any anomaly.&#34;</span><span class="p">))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The <code>detail</code> parameter (<code>&quot;low&quot; | &quot;high&quot; | &quot;auto&quot;</code>) trades cost for resolution — <code>&quot;high&quot;</code> re-tiles the image into 512-px patches and uses ~10× more vision tokens.</p>
+<p><strong>Open-weight alternatives</strong> worth knowing: LLaVA-1.6 (good baseline, easy to fine-tune), Qwen-VL-Max (strong on Chinese and OCR), InternVL (strong on grounding), CogVLM (strong on perception). All can be deployed locally for cost control or on-prem privacy.</p>
+<p><strong>Where MLLMs still struggle</strong> (consistently, across vendors):</p>
+<ul>
+<li><strong>Counting</strong> beyond ~5 objects.</li>
+<li><strong>Fine-grained spatial reasoning</strong> (&ldquo;which pen is closer to the cup?&rdquo;).</li>
+<li><strong>Reading dense text</strong> at low resolution — small fonts in screenshots.</li>
+<li><strong>Hallucinations of objects</strong> that are not in the image, especially when the prompt is leading (&ldquo;describe the dog&rdquo; when there is no dog).</li>
+</ul>
+<hr>
+<h2 id="video-understanding">Video Understanding</h2>
+<p>Video is a 4D tensor (time, height, width, channels) and naive frame-by-frame processing explodes the token budget. The dominant pattern in 2024 is:</p>
+<ol>
+<li><strong>Uniform frame sampling</strong> — pick $N \in \{8, 16, 32\}$ frames evenly across the clip.</li>
+<li><strong>Per-frame vision encoding</strong> with a frozen ViT, optionally with a temporal-pooling adapter (e.g., VideoLLaMA, Video-LLaVA) that mixes neighbouring frames before projection.</li>
+<li><strong>Concatenation</strong> of frame tokens (or pooled frame tokens) into the LLM&rsquo;s context, often with a temporal positional embedding so the model knows the order.</li>
+</ol>
+<p>For very long videos (hours), use a coarse-to-fine strategy: summarise short windows with a captioner, then run an LLM over the captions to retrieve the few seconds worth analysing in detail.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">cv2</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">sample_frames</span><span class="p">(</span><span class="n">video_path</span><span class="p">,</span> <span class="n">num_frames</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Uniformly sample frames as PIL.Image objects.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cap</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">VideoCapture</span><span class="p">(</span><span class="n">video_path</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">total</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">CAP_PROP_FRAME_COUNT</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">total</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cap</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Cannot read </span><span class="si">{</span><span class="n">video_path</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">total</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_frames</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">frames</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cap</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">CAP_PROP_POS_FRAMES</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ok</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="n">cap</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">        <span class="n">frame</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2RGB</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">frames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">frame</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cap</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">frames</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Models like Gemini 1.5 Pro accept native video input and handle hour-long clips by streaming tokens through their long-context attention.</p>
+<hr>
+<h2 id="evaluating-mllms-mmbench-mme-mmmu-seed-pope">Evaluating MLLMs: MMBench, MME, MMMU, SEED, POPE</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/fig7_mllm_benchmarks.png" alt="Multimodal benchmark comparison and capability radar" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Benchmark choice matters more than people admit. Each one stresses a different facet, and a single-number leaderboard is misleading.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Benchmark</th>
+          <th>What it measures</th>
+          <th>Format</th>
+          <th>Notes</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>MMBench</strong></td>
+          <td>20 ability dimensions: perception, reasoning, OCR, fine-grained recognition</td>
+          <td>Multiple choice (4 options)</td>
+          <td>&ldquo;Circular evaluation&rdquo; rotates option order to defeat letter bias.</td>
+      </tr>
+      <tr>
+          <td><strong>MME</strong></td>
+          <td>14 subtasks split into Perception (10) + Cognition (4)</td>
+          <td>Yes/No questions</td>
+          <td>Score is sum of accuracies (max 2800). Easy to game with &ldquo;always say yes&rdquo;.</td>
+      </tr>
+      <tr>
+          <td><strong>MMMU</strong></td>
+          <td>College-level questions across 30 subjects (medicine, engineering, art)</td>
+          <td>Open-ended + MCQ</td>
+          <td>The hardest of the lot in 2024 — frontier models still under 60%.</td>
+      </tr>
+      <tr>
+          <td><strong>SEED-Bench</strong></td>
+          <td>Spatial relations, instance counting, scene understanding, temporal</td>
+          <td>MCQ</td>
+          <td>Includes a video subset (SEED-Bench v2).</td>
+      </tr>
+      <tr>
+          <td><strong>POPE</strong></td>
+          <td>Object-hallucination probing</td>
+          <td>Yes/No about object presence</td>
+          <td>Pairs real and <em>fictional</em> objects to expose hallucination.</td>
+      </tr>
+      <tr>
+          <td><strong>TextVQA / DocVQA</strong></td>
+          <td>OCR-heavy reading comprehension</td>
+          <td>Open-ended</td>
+          <td>Tests whether the vision tower can read.</td>
+      </tr>
+      <tr>
+          <td><strong>RefCOCO</strong></td>
+          <td>Phrase grounding (return a bounding box)</td>
+          <td>Region prediction</td>
+          <td>Diagnostic for spatial precision.</td>
+      </tr>
+  </tbody>
+</table>
+<p>A good evaluation report includes at least one <strong>perception</strong> benchmark (MME, SEED), one <strong>reasoning</strong> benchmark (MMMU), one <strong>hallucination</strong> benchmark (POPE), and a domain-specific test for the actual deployment.</p>
+<hr>
+<h2 id="practical-tips-for-building-multimodal-applications">Practical Tips for Building Multimodal Applications</h2>
+<p>A few hard-won lessons from shipping MLLM systems:</p>
+<ul>
+<li><strong>Pre-process aggressively.</strong> Resize to the model&rsquo;s native resolution (CLIP: 224, LLaVA-1.5: 336, GPT-4V high-detail: 768). Larger inputs do not help and waste vision tokens.</li>
+<li><strong>Cache image embeddings.</strong> A CLIP encode is far cheaper than re-encoding the same image for every query — store the 512-d vector and reuse it.</li>
+<li><strong>Quantise the LLM half.</strong> 4-bit AWQ / GPTQ on the language model half of LLaVA-1.5 cuts VRAM from 14 GB to ~5 GB with &lt;1 MMBench point lost.</li>
+<li><strong>Keep prompts grounded.</strong> Phrasing matters enormously. <em>&ldquo;What color is the car?&rdquo;</em> is fine; <em>&ldquo;What color is the car if there is one?&rdquo;</em> drops hallucination on no-car images by ~40%. Always allow the model to say <em>&ldquo;I don&rsquo;t know&rdquo;</em> explicitly.</li>
+<li><strong>Watch for OCR drift.</strong> Many MLLMs OCR text inside images and then &ldquo;trust&rdquo; it — adversarial text in the corner of a photo can hijack the response. Sanitise inputs in security-sensitive deployments.</li>
+</ul>
+<hr>
+<h2 id="frequently-asked-questions">Frequently Asked Questions</h2>
+<h3 id="clip-vs-blip-vs-llava--when-do-i-pick-each">CLIP vs BLIP vs LLaVA — when do I pick each?</h3>
+<p>Use <strong>CLIP</strong> for retrieval, zero-shot classification, and any system that needs only a fixed embedding. Use <strong>BLIP-2</strong> when you want VQA / captioning with a frozen LLM and tight compute. Use <strong>LLaVA-style</strong> instruction-tuned MLLMs when you need conversational, instruction-following multimodal interaction.</p>
+<h3 id="why-does-blip-2-train-so-few-parameters">Why does BLIP-2 train so few parameters?</h3>
+<p>The expensive parts — a 1 B-parameter ViT and a 7 B-parameter LLM — are frozen. Only the 188 M-parameter Q-Former bridges them. The two-stage curriculum keeps the bridge focused: stage 1 grounds it in vision, stage 2 aligns its output to the LLM&rsquo;s vocabulary.</p>
+<h3 id="how-much-data-do-i-need-to-fine-tune">How much data do I need to fine-tune?</h3>
+<p>For domain adaptation of a pre-trained MLLM (LLaVA, Qwen-VL), 5 K – 50 K high-quality image–instruction pairs are typically enough with LoRA on the LLM and full training of the projector. For pre-training from scratch, think 10⁸–10⁹ pairs.</p>
+<h3 id="how-do-i-keep-vram-under-24-gb">How do I keep VRAM under 24 GB?</h3>
+<p>Combine three things: 4-bit quantisation of the LLM (<code>bitsandbytes</code> or AWQ), LoRA on attention projections, and gradient checkpointing. A 7B LLaVA fine-tunes comfortably on a single RTX 4090.</p>
+<h3 id="how-do-i-evaluate-honestly">How do I evaluate honestly?</h3>
+<p>Pick a <em>primary</em> benchmark aligned with your use case (e.g., DocVQA for documents), a <em>hallucination</em> benchmark (POPE), and a held-out internal test set. Always report at least three benchmarks — single-number rankings hide trade-offs.</p>
+<h3 id="can-i-use-clip-on-chinese-text">Can I use CLIP on Chinese text?</h3>
+<p>Original OpenAI CLIP is 95% English. For Chinese, use <strong>Chinese-CLIP</strong> (OFA-Sys), <strong>Qwen-VL</strong>, or <strong>Wukong-CLIP</strong>. They are drop-in replacements with the same API.</p>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<ul>
+<li><strong>Previous</strong>: <a href="/en/nlp-rag-knowledge-enhancement/">Part 10 — RAG and Knowledge Enhancement</a>
+</li>
+<li><strong>Next</strong>: <a href="/en/nlp-frontiers-applications/">Part 12 — Frontiers and Practical Applications</a>
+</li>
+<li><a href="/tags/NLP/">View all 12 parts in the NLP series</a>
+</li>
+</ul>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/nlp/rag-knowledge-enhancement/"><span class="title">NLP (10): RAG and Knowledge Enhancement Systems</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/nlp/frontiers-applications/"><span class="title">NLP (12): Frontiers and Practical Applications</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#visionlanguage-models">Vision–Language Models</a>
+      <ul>
+        <li><a href="#clip-contrastive-visionlanguage-alignment">CLIP: Contrastive Vision–Language Alignment</a></li>
+        <li><a href="#blip-2-bridging-frozen-vision-and-frozen-language">BLIP-2: Bridging Frozen Vision and Frozen Language</a></li>
+        <li><a href="#llava-visual-instruction-tuning">LLaVA: Visual Instruction Tuning</a></li>
+      </ul>
+    </li>
+    <li><a href="#visionlanguage-tasks-vqa-captioning-retrieval">Vision–Language Tasks: VQA, Captioning, Retrieval</a>
+      <ul>
+        <li><a href="#image-captioning">Image Captioning</a></li>
+        <li><a href="#visual-question-answering">Visual Question Answering</a></li>
+        <li><a href="#production-ready-clip-retrieval">Production-Ready CLIP Retrieval</a></li>
+      </ul>
+    </li>
+    <li><a href="#audio-whisper">Audio: Whisper</a></li>
+    <li><a href="#gpt-4v-and-the-frontier-mllm-landscape">GPT-4V and the Frontier MLLM Landscape</a></li>
+    <li><a href="#video-understanding">Video Understanding</a></li>
+    <li><a href="#evaluating-mllms-mmbench-mme-mmmu-seed-pope">Evaluating MLLMs: MMBench, MME, MMMU, SEED, POPE</a></li>
+    <li><a href="#practical-tips-for-building-multimodal-applications">Practical Tips for Building Multimodal Applications</a></li>
+    <li><a href="#frequently-asked-questions">Frequently Asked Questions</a>
+      <ul>
+        <li><a href="#clip-vs-blip-vs-llava--when-do-i-pick-each">CLIP vs BLIP vs LLaVA — when do I pick each?</a></li>
+        <li><a href="#why-does-blip-2-train-so-few-parameters">Why does BLIP-2 train so few parameters?</a></li>
+        <li><a href="#how-much-data-do-i-need-to-fine-tune">How much data do I need to fine-tune?</a></li>
+        <li><a href="#how-do-i-keep-vram-under-24-gb">How do I keep VRAM under 24 GB?</a></li>
+        <li><a href="#how-do-i-evaluate-honestly">How do I evaluate honestly?</a></li>
+        <li><a href="#can-i-use-clip-on-chinese-text">Can I use CLIP on Chinese text?</a></li>
+      </ul>
+    </li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">NLP</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>17 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3500</strong></div>
+      <div class="row"><span>Published</span><strong>Nov 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

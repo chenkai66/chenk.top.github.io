@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>推荐系统（十六）—— 工业级架构与最佳实践 · Chen Kai Blog</title>
+<meta name="description" content="工业级推荐系统全景：数据/训练/服务三大平面，召回-粗排-精排-重排序四级漏斗，多路召回与融合，Wide&amp;Deep/DeepFM/DIN 排序模型，特征仓库消除训练-服务偏差，A/B 测试方法论，金丝雀发布与回滚，团队角色分工。结合 YouTube、TikTok、淘宝、字节跳动等真实架构。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="推荐系统（十六）—— 工业级架构与最佳实践">
+<meta property="og:description" content="工业级推荐系统全景：数据/训练/服务三大平面，召回-粗排-精排-重排序四级漏斗，多路召回与融合，Wide&amp;Deep/DeepFM/DIN 排序模型，特征仓库消除训练-服务偏差，A/B 测试方法论，金丝雀发布与回滚，团队角色分工。结合 YouTube、TikTok、淘宝、字节跳动等真实架构。">
+<meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">推荐系统</a>
+         · Chapter 16
+      </div>
+      <h1>推荐系统（十六）—— 工业级架构与最佳实践</h1>
+      <p class="deck">工业级推荐系统全景：数据/训练/服务三大平面，召回-粗排-精排-重排序四级漏斗，多路召回与融合，Wide&amp;Deep/DeepFM/DIN 排序模型，特征仓库消除训练-服务偏差，A/B 测试方法论，金丝雀发布与回滚，团队角色分工。结合 YouTube、TikTok、淘宝、字节跳动等真实架构。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-01-15">January 15, 2026</time> · 18 min read · 8900 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/" class="tag">#推荐系统</a><a href="/zh/tags/%E5%B7%A5%E4%B8%9A%E6%9E%B6%E6%9E%84/" class="tag">#工业架构</a><a href="/zh/tags/%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/" class="tag">#最佳实践</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <blockquote>
+<p>工业级推荐系统最难的部分不是模型本身，而是<strong>模型周围的系统</strong>：消除训练-服务偏差的特征仓库、能在亿级用户面前及时拦下回归的金丝雀发布、能在 100 ms p95 预算内串联起四个 ML 模型的编排层。本文是系列的最后一篇，描述了所有大型互联网公司最终都收敛到的那套架构，以及每一层背后的取舍。</p>
+</blockquote>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li><strong>多阶段流水线</strong>——召回、粗排、精排、重排序，每一阶段的约束如何决定它的形态</li>
+<li><strong>多路召回</strong>——协同过滤、双塔深度模型、图遍历、实时行为信号的并行与融合</li>
+<li><strong>生产级排序模型</strong>——Wide &amp; Deep、DeepFM、DIN 的可运行实现</li>
+<li><strong>重排序策略</strong>——多样性（MMR）、业务规则、时效性加权</li>
+<li><strong>特征仓库</strong>——离线 + 在线双路径如何彻底解耦训练与服务</li>
+<li><strong>A/B 测试</strong>——一致性分流、比例 z 检验、实验该跑多久</li>
+<li><strong>性能优化</strong>——量化、蒸馏、预测缓存</li>
+<li><strong>部署与监控</strong>——金丝雀发布、漂移检测、自动回滚</li>
+<li><strong>团队分工</strong>——召回、排序、特征仓库、服务到底归谁</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>系列前面所有章节（特别是第 7、11、15 篇）</li>
+<li>分布式系统基本概念（负载均衡、消息队列）</li>
+<li>熟悉 Python、PyTorch 和 REST API</li>
+</ul>
+<hr>
+<h2 id="工业推荐系统全景">工业推荐系统全景</h2>
+<h3 id="架构总览">架构总览</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig1_industrial_pipeline.png" alt="工业级推荐系统三平面架构：数据平面、训练平面、服务平面，以及召回-粗排-精排-重排序漏斗" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>无论是 Google、Amazon，还是阿里、字节跳动，所有大型推荐系统最终都收敛到了同一套<strong>三平面架构</strong>：</p>
+<ol>
+<li><strong>数据平面</strong>：从日志和内容生产样本和特征，由 Hive、Spark、Flink、Kafka 组成。</li>
+<li><strong>训练平面</strong>：把样本变成模型，离线评估通过后写入模型注册中心。</li>
+<li><strong>服务平面</strong>：用户真正在等待的实时漏斗，是唯一有严格延迟预算的平面。</li>
+</ol>
+<p>服务平面本身是一个<strong>逐级收窄候选集、同时提高打分精度的漏斗</strong>：</p>
+<pre tabindex="0"><code>用户请求 → 召回 (10⁶ → 2K) → 粗排 (2K → 200) → 精排 (200 → 50) → 重排 (50 → 20) → 返回
+</code></pre><table>
+  <thead>
+      <tr>
+          <th>阶段</th>
+          <th>输入 → 输出</th>
+          <th>模型类别</th>
+          <th>延迟预算</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>召回</td>
+          <td>10⁶ → ~2,000</td>
+          <td>双塔 DNN、ANN、简单 CF</td>
+          <td>20-30 ms</td>
+      </tr>
+      <tr>
+          <td>粗排</td>
+          <td>~2,000 → ~200</td>
+          <td>浅层 DNN 或 XGBoost</td>
+          <td>10-20 ms</td>
+      </tr>
+      <tr>
+          <td>精排</td>
+          <td>~200 → ~50</td>
+          <td>Wide &amp; Deep、DeepFM、DIN</td>
+          <td>30-50 ms</td>
+      </tr>
+      <tr>
+          <td>重排</td>
+          <td>~50 → ~20</td>
+          <td>规则 + 轻量 ML</td>
+          <td>10-20 ms</td>
+      </tr>
+      <tr>
+          <td><strong>总计</strong></td>
+          <td></td>
+          <td></td>
+          <td><strong>&lt; 100 ms p95</strong></td>
+      </tr>
+  </tbody>
+</table>
+<p>可以把它想象成一个招聘漏斗：召回是简历筛选（快、撒大网），粗排是电话面试（粗筛），精排是 onsite（深度评估），重排是录用委员会（最后从团队搭配和多样性角度做调整）。</p>
+<h3 id="为什么是漏斗而不是一个大模型">为什么是漏斗而不是一个大模型？</h3>
+<p>朴素方案——用一个大模型给每个候选打分——单次请求要花数秒。漏斗能换来量级上的速度，是因为每一阶段都用了<strong>与其候选规模相匹配的模型</strong>：候选多用便宜的模型，候选少用贵的模型。召回阶段每个候选大约花 5 微秒，精排大约 250 微秒，乘起来才能塞进延迟预算。</p>
+<h3 id="关键设计原则">关键设计原则</h3>
+<p><strong>无状态服务</strong>：所有服务必须可水平扩展。状态（用户向量、最近行为）放在 Redis、KV 存储或特征仓库里，<strong>永远不要放进进程内存</strong>。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RankingService</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;无状态排序服务——可任意复制副本。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">feature_extractor</span> <span class="o">=</span> <span class="n">FeatureExtractor</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_extractor</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">scores</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>优雅降级</strong>：每个组件都必须有 fallback。深度召回超时就退回协同过滤，所有召回都失败就返回热门——用户绝对不能看到空白页。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FaultTolerantRecall</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channels</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="n">channels</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fallback</span> <span class="o">=</span> <span class="n">PopularItemsRecall</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">channel</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">channel</span><span class="o">.</span><span class="n">recall</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&#34;channel </span><span class="si">%s</span><span class="s2"> failed: </span><span class="si">%s</span><span class="s2">&#34;</span><span class="p">,</span> <span class="n">channel</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fallback</span><span class="o">.</span><span class="n">recall</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">deduplicate</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>强制延迟预算</strong>：每次调用都设激进的超时，由编排器强制执行。某个慢召回不能拖慢整条流水线，要的话就直接丢掉它的结果。</p>
+<hr>
+<h2 id="漏斗细节">漏斗细节</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig2_funnel.png" alt="召回、粗排、精排、重排序漏斗，标注了候选数量与每阶段延迟预算" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图展示了每一阶段的数量级缩减。两条规则值得记住：</p>
+<ul>
+<li><strong>召回阶段决定了质量上限</strong>：好物品没进入漏斗，再精的精排也救不回来。这就是为什么生产系统总是并行跑多路召回。</li>
+<li><strong>越窄的阶段允许越重的模型</strong>：精排在 200 个候选上可以跑一个 1 亿参数的 DIN；召回在百万候选上连两次 embedding 查表 + 一次内积都得抠成本。</li>
+</ul>
+<hr>
+<h2 id="多路召回">多路召回</h2>
+<p>单一召回策略一定会漏东西。协同过滤漏冷启动物品；内容召回漏惊喜发现；实时信号漏长期兴趣。所以工业系统普遍<strong>并行跑 3-5 路召回</strong>再融合结果。</p>
+<h3 id="通道一双塔深度召回">通道一：双塔深度召回</h3>
+<p>双塔架构是现代召回的主力。用户塔在请求时实时跑，物品塔离线跑、把所有物品向量灌进 ANN 索引（Faiss 或 HNSW）。线上每次召回就是一次 ANN 查询，5-10 ms。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TwoTowerRecall</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;双塔模型，物品向量离线索引。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">item_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_tower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tower</span><span class="p">(</span><span class="n">user_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_tower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tower</span><span class="p">(</span><span class="n">item_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_tower</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">in_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hidden</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">h</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_features</span><span class="p">,</span> <span class="n">ann_index</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">user_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_tower</span><span class="p">(</span><span class="n">user_features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># ann_index 例如是离线物品向量构建的 Faiss IVF-PQ 索引</span>
+</span></span><span class="line"><span class="cl">        <span class="n">_</span><span class="p">,</span> <span class="n">top_ids</span> <span class="o">=</span> <span class="n">ann_index</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">user_emb</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">top_k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">top_ids</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两个工程上的细节。其一，损失函数很关键：带 <strong>logQ 修正</strong>的 batch 内 sampled softmax 已经成为标配（YouTube 团队 RecSys 2019 那篇）——目的是抵消热门物品在 batch 中过采样带来的偏差。其二，物品索引必须随 embedding 漂移定期重建：高频品类小时级、其他场景天级。</p>
+<h3 id="通道二图召回">通道二：图召回</h3>
+<p>图召回通过多跳遍历找物品：用户 A 喜欢物品 X 和 Y；用户 B 喜欢 Y 和 Z；那么 Z 就是 A 的候选。这能发现纯 embedding 相似度漏掉的关联。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GraphRecall</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;基于共同用户的物品 Jaccard 相似度做物品到物品的召回。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interaction_graph</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">interaction_graph</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_similarity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_similarity</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_compute_similarity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sim</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&#34;type&#34;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&#34;item&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">users_a</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">                <span class="n">users_b</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                <span class="n">inter</span><span class="p">,</span> <span class="n">union</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">users_a</span> <span class="o">&amp;</span> <span class="n">users_b</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">users_a</span> <span class="o">|</span> <span class="n">users_b</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">union</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">sim</span><span class="p">[</span><span class="n">a</span><span class="p">][</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">inter</span> <span class="o">/</span> <span class="n">union</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">sim</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seen</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&#34;type&#34;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&#34;item&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">neighbour</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_similarity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                <span class="n">scores</span><span class="p">[</span><span class="n">neighbour</span><span class="p">]</span> <span class="o">+=</span> <span class="n">w</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[:</span><span class="n">top_k</span><span class="p">]]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="通道三实时行为召回">通道三：实时行为召回</h3>
+<p>这是一条捕捉用户<strong>此刻</strong>正在做什么的通道。如果用户刚刚连点了同品类的三个物品，下一刷就应该立刻反映出来，而不是等到第二天的离线训练。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">deque</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RealTimeBehaviorRecall</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;基于最近 30 分钟行为的召回，时间衰减 + 行为加权。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window_minutes</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">window_minutes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">deque</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">add_behavior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">action_type</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&#34;item&#34;</span><span class="p">:</span> <span class="n">item_id</span><span class="p">,</span> <span class="s2">&#34;action&#34;</span><span class="p">:</span> <span class="n">action_type</span><span class="p">,</span> <span class="s2">&#34;ts&#34;</span><span class="p">:</span> <span class="n">ts</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cutoff</span> <span class="o">=</span> <span class="n">ts</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span>
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="p">[</span><span class="n">user_id</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&#34;ts&#34;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">cutoff</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">500</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">weights</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;view&#34;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&#34;click&#34;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s2">&#34;purchase&#34;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="p">[]):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">age_min</span> <span class="o">=</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="n">b</span><span class="p">[</span><span class="s2">&#34;ts&#34;</span><span class="p">])</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mi">60</span>
+</span></span><span class="line"><span class="cl">            <span class="n">recency</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">age_min</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span><span class="p">[</span><span class="n">b</span><span class="p">[</span><span class="s2">&#34;item&#34;</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">recency</span> <span class="o">*</span> <span class="n">weights</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&#34;action&#34;</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[:</span><span class="n">top_k</span><span class="p">]]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="多路融合">多路融合</h3>
+<p>每条通道返回一个有序列表。融合时用<strong>基于排名的融合</strong>而不是原始分数（不同通道的分数没有可比性）：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span> <span class="n">as_completed</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultiChannelRecall</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="n">channels</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="ow">or</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="mf">1.0</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">channels</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">2000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">))</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">futures</span> <span class="o">=</span> <span class="p">{</span><span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">recall</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">name</span> <span class="o">=</span> <span class="n">futures</span><span class="p">[</span><span class="n">fut</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">results</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fut</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&#34;channel </span><span class="si">%s</span><span class="s2"> failed: </span><span class="si">%s</span><span class="s2">&#34;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">rank</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">scores</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">+=</span> <span class="n">w</span> <span class="o">/</span> <span class="p">(</span><span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># 倒数排名融合</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[:</span><span class="n">target</span><span class="p">]]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这就是搜索引擎里熟知的<strong>倒数排名融合（RRF）</strong>——对量纲差异很鲁棒。每条通道 25 ms 的超时是硬约束：慢的通道直接丢，绝不阻塞。</p>
+<hr>
+<h2 id="排序粗排与精排">排序：粗排与精排</h2>
+<h3 id="粗排">粗排</h3>
+<p>粗排把数千候选裁到数百，模型必须<strong>便宜</strong>。它的目的是<strong>廉价地剔除明显不对的候选</strong>——不是给出完美排序。两种方案最常见：</p>
+<ul>
+<li><strong>浅层双塔</strong>，物品侧离线算（和召回类似但带更丰富的特征）。</li>
+<li><strong>XGBoost 排序模型</strong>，跑在简单特征上（热度、CTR、用户/物品基础统计）。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">xgboost</span> <span class="k">as</span> <span class="nn">xgb</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CoarseRanker</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">XGBRanker</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">objective</span><span class="o">=</span><span class="s2">&#34;rank:pairwise&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">tree_method</span><span class="o">=</span><span class="s2">&#34;hist&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">max_depth</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">n_estimators</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">group</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一个常见错误是把粗排做得<strong>太好</strong>。如果它选出来的 200 已经基本就是精排会选的 200，那精排就没价值了。经验值是粗排 top-200 与精排的重合率维持在 0.7 左右——能筛掉明显垃圾，又给精排留下区分空间。</p>
+<h3 id="精排wide--deepdeepfmdin">精排：Wide &amp; Deep、DeepFM、DIN</h3>
+<p>精排在小候选集上跑重模型。生产环境里 CTR 预估有三大架构。</p>
+<p><strong>Wide &amp; Deep</strong>（Google 2016）把记忆能力（线性模型 + 交叉特征）和泛化能力（深度 MLP + embedding）结合起来：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">WideDeepRanking</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Google Wide &amp; Deep：线性记忆 + 深度泛化。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wide_dim</span><span class="p">,</span> <span class="n">embed_dims</span><span class="p">,</span> <span class="n">deep_hidden</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">wide</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">wide_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">vocab</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="ow">in</span> <span class="n">embed_dims</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">deep_in</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">dim</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">embed_dims</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">deep_in</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">deep_hidden</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">deep</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wide_feats</span><span class="p">,</span> <span class="n">sparse_ids</span><span class="p">,</span> <span class="n">dense_feats</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">wide_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wide</span><span class="p">(</span><span class="n">wide_feats</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">emb</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">ids</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">sparse_ids</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">deep_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deep</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">emb</span> <span class="o">+</span> <span class="p">[</span><span class="n">dense_feats</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">wide_out</span> <span class="o">+</span> <span class="n">deep_out</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>DeepFM</strong>（华为 2017）用因子分解机自动学两阶特征交叉，省掉了人工编排 wide 侧交叉特征的工作。如果你不想花精力人工调交叉特征，这是最合理的默认选择。</p>
+<p><strong>DIN（Deep Interest Network，阿里 2018）<strong>在用户行为序列上加了注意力。它不再把历史行为简单平均，而是</strong>对每个候选动态地把注意力放在与候选相似的历史行为上</strong>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DIN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Deep Interest Network：在用户行为序列上做注意力。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_dim</span><span class="p">,</span> <span class="n">user_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attention</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">item_dim</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">36</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">in_dim</span> <span class="o">=</span> <span class="n">item_dim</span> <span class="o">+</span> <span class="n">user_dim</span> <span class="o">+</span> <span class="n">item_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">in_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hidden</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">user_profile</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cand_exp</span> <span class="o">=</span> <span class="n">candidate</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">history</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">attn_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">[</span><span class="n">history</span><span class="p">,</span> <span class="n">cand_exp</span><span class="p">,</span> <span class="n">history</span> <span class="o">-</span> <span class="n">cand_exp</span><span class="p">,</span> <span class="n">history</span> <span class="o">*</span> <span class="n">cand_exp</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attention</span><span class="p">(</span><span class="n">attn_in</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">weighted</span> <span class="o">=</span> <span class="p">(</span><span class="n">history</span> <span class="o">*</span> <span class="n">weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">candidate</span><span class="p">,</span> <span class="n">weighted</span><span class="p">,</span> <span class="n">user_profile</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>注意力这个 trick 很关键：一个买过 50 本书、横跨 5 个品类的用户，并不存在一个&quot;平均兴趣&quot;——他只有按品类分别成立的兴趣。DIN 就是用注意力把这种按候选分别激活的兴趣解锁出来。</p>
+<hr>
+<h2 id="重排序">重排序</h2>
+<p>重排序是业务逻辑遇到算法输出的地方。三种模式几乎是每个生产系统的标配。</p>
+<h3 id="多样性mmr">多样性（MMR）</h3>
+<p>纯 CTR 优化产生的列表会高度同质——用户点了第一个就走人。**MMR（Maximal Marginal Relevance）**贪心选择&quot;既相关又与已选项多样&quot;的物品：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DiversityReranker</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lambda_div</span><span class="o">=</span><span class="mf">0.3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">=</span> <span class="n">lambda_div</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">rerank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">selected</span><span class="p">,</span> <span class="n">remaining</span> <span class="o">=</span> <span class="p">[],</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">features</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">top_k</span> <span class="ow">and</span> <span class="n">remaining</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">best_idx</span><span class="p">,</span> <span class="n">best_obj</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">sc</span><span class="p">,</span> <span class="n">ft</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">remaining</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">selected</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">diversity</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dist</span><span class="p">(</span><span class="n">ft</span><span class="p">,</span> <span class="n">s_ft</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">s_ft</span> <span class="ow">in</span> <span class="n">selected</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">diversity</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">                <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span><span class="p">)</span> <span class="o">*</span> <span class="n">sc</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">*</span> <span class="n">diversity</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">obj</span> <span class="o">&gt;</span> <span class="n">best_obj</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">best_obj</span><span class="p">,</span> <span class="n">best_idx</span> <span class="o">=</span> <span class="n">obj</span><span class="p">,</span> <span class="n">idx</span>
+</span></span><span class="line"><span class="cl">            <span class="n">selected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">remaining</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">best_idx</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">it</span> <span class="k">for</span> <span class="n">it</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">selected</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_dist</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">va</span><span class="p">,</span> <span class="n">vb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">values</span><span class="p">())),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">va</span> <span class="o">@</span> <span class="n">vb</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">va</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vb</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>多样性权重（典型取 0.2-0.3）本身就是个 A/B 参数。太低 feed 单调；太高 CTR 下降，因为相关性被牺牲了。</p>
+<h3 id="业务规则">业务规则</h3>
+<p>硬约束放这里，不要放进 ML 模型。下架过滤、合规要求、运营加权——这些是确定性规则，写成代码远比写成特征更容易审计。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BusinessRulesReranker</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">rules</span> <span class="o">=</span> <span class="n">rules</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">rerank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">meta</span><span class="p">,</span> <span class="n">adj</span><span class="p">,</span> <span class="n">ok</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="p">{}),</span> <span class="n">score</span><span class="p">,</span> <span class="kc">True</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="ow">not</span> <span class="n">rule</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">meta</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">ok</span> <span class="o">=</span> <span class="kc">False</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">break</span>
+</span></span><span class="line"><span class="cl">                <span class="n">adj</span> <span class="o">+=</span> <span class="n">rule</span><span class="o">.</span><span class="n">score_adjustment</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">,</span> <span class="n">adj</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">out</span><span class="p">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="时效性加权">时效性加权</h3>
+<p>新闻、视频、短内容场景里，新鲜度本身就是一个重要特征。指数衰减给最近内容一个有界的加权，既不会被旧内容压住，也不会让新内容彻底盖过老内容：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FreshnessReranker</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decay_hours</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">max_boost</span><span class="o">=</span><span class="mf">0.3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_boost</span> <span class="o">=</span> <span class="n">decay_hours</span><span class="p">,</span> <span class="n">max_boost</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">rerank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">now</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ts</span> <span class="o">=</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">ts</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">age_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="n">ts</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mi">3600</span>
+</span></span><span class="line"><span class="cl">                <span class="n">boost</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_boost</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">age_h</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">,</span> <span class="n">score</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">boost</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">,</span> <span class="n">score</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">out</span><span class="p">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="特征仓库">特征仓库</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig3_feature_store.png" alt="特征仓库架构：离线批处理路径与在线实时路径共享同一份特征定义" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>特征仓库是成熟推荐系统里<strong>最重要、却又最常被最后才动手建</strong>的基础设施。它的核心职责是<strong>消除训练-服务偏差</strong>：保证一个特征在离线训练时计算的语义，与它在线上服务时计算的语义<strong>完全一致</strong>。</p>
+<p>架构上是两条路径共享一份特征定义：</p>
+<ul>
+<li><strong>离线路径</strong>：Spark/Flink 跑在数据湖上，把特征物化成 Parquet 文件，喂给训练流水线。</li>
+<li><strong>在线路径</strong>：Flink 消费 Kafka 事件流，把聚合特征写入 Redis，线上 p99 &lt; 5 ms 取出。</li>
+</ul>
+<p>两条路径执行的是同一份特征定义（通常是 SQL 或 YAML）。改特征时两边一起改。如果没有这个纪律，迟早会发生这样的事：训练时用的特征语义和线上服务时不一致，AUC 静悄悄掉一两个点，等业务指标发现已经晚了。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FeatureStore</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Redis 后端的在线特征仓库，支持批量取。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">redis_client</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="mi">3600</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ttl</span> <span class="o">=</span> <span class="n">redis_client</span><span class="p">,</span> <span class="n">ttl</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">eid</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">setex</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">entity</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">eid</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ttl</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">batch_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">eids</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">entity</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&#34;</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">eids</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">mget</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">            <span class="p">[</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="k">else</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">n</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>值得了解的开源/商业方案：<strong>Feast</strong>（最流行的开源），<strong>Tecton</strong>（商业），阿里内部的 <strong>Feathr</strong>。底层都遵循同样的&quot;离线 + 在线双路径&quot;模式。</p>
+<h3 id="时间特征的循环编码">时间特征的循环编码</h3>
+<p>一个看起来很小、却影响很大的细节。23 点和 0 点在时间上相邻，但线性模型会把它们看成相差 23 个单位。用 <code>(sin, cos)</code> 编码可以让模型把它们看成邻居：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">temporal_features</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;hour_sin&#34;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span> <span class="o">/</span> <span class="mi">24</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;hour_cos&#34;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span> <span class="o">/</span> <span class="mi">24</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;dow_sin&#34;</span><span class="p">:</span>  <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">/</span> <span class="mi">7</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;dow_cos&#34;</span><span class="p">:</span>  <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">/</span> <span class="mi">7</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;is_weekend&#34;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="ab-测试框架">A/B 测试框架</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig4_ab_test_results.png" alt="A/B 测试结果：14 天对照组与实验组 CTR 趋势、置信带、显著性达到时点，以及各指标的提升分解" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A/B 测试是你发现&quot;离线 AUC 涨 3% 的模型，上线后实际跌 1.5%&ldquo;的唯一手段——这种事比想象中常见得多。三个属性必须保证：</p>
+<ul>
+<li><strong>一致性哈希分流</strong>：同一个用户必须始终被分到同一个分桶。中途换组既毁体验，又毁统计有效性。</li>
+<li><strong>预先注册的指标</strong>：包括&quot;护栏指标&rdquo;（延迟、错误率、营收），即使主指标涨了，护栏破了也不能上线。</li>
+<li><strong>事先做功效分析</strong>：开始实验前就要算清楚需要多少样本量。看到一个&quot;看起来不错&quot;的中间结果就提前停止，假阳率会爆炸式增长。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">norm</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ABTestFramework</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;生产级 A/B 框架：一致性分流 + 比例 z 检验。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">experiments</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span> <span class="o">=</span> <span class="p">{},</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exp_id</span><span class="p">,</span> <span class="n">variants_split</span><span class="p">):</span>  <span class="c1"># 例如 {&#34;control&#34;: 50, &#34;v1&#34;: 50}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">experiments</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">variants_split</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">assign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">exp_id</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">exp_id</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cum</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">variant</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiments</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">cum</span> <span class="o">+=</span> <span class="n">split</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">h</span> <span class="o">&lt;</span> <span class="n">cum</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="n">variant</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="s2">&#34;control&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">exp_id</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&#34;user&#34;</span><span class="p">:</span> <span class="n">user_id</span><span class="p">,</span> <span class="s2">&#34;variant&#34;</span><span class="p">:</span> <span class="n">variant</span><span class="p">,</span> <span class="s2">&#34;event&#34;</span><span class="p">:</span> <span class="n">event</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">analyse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exp_id</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stats</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;impr&#34;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&#34;click&#34;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">ev</span><span class="p">[</span><span class="s2">&#34;event&#34;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&#34;impression&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">stats</span><span class="p">[</span><span class="n">ev</span><span class="p">[</span><span class="s2">&#34;variant&#34;</span><span class="p">]][</span><span class="s2">&#34;impr&#34;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="n">ev</span><span class="p">[</span><span class="s2">&#34;event&#34;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&#34;click&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">stats</span><span class="p">[</span><span class="n">ev</span><span class="p">[</span><span class="s2">&#34;variant&#34;</span><span class="p">]][</span><span class="s2">&#34;click&#34;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="p">{},</span> <span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;control&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ctr</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;click&#34;</span><span class="p">]</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;ctr&#34;</span><span class="p">:</span> <span class="n">ctr</span><span class="p">,</span> <span class="o">**</span><span class="n">s</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">ctrl</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">&#34;control&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p_pool</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctrl</span><span class="p">[</span><span class="s2">&#34;click&#34;</span><span class="p">]</span> <span class="o">+</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;click&#34;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">ctrl</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">]</span> <span class="o">+</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">se</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p_pool</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p_pool</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">ctrl</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">                <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&#34;ctr&#34;</span><span class="p">]</span> <span class="o">-</span> <span class="n">out</span><span class="p">[</span><span class="s2">&#34;control&#34;</span><span class="p">][</span><span class="s2">&#34;ctr&#34;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">se</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="p">[</span><span class="s2">&#34;lift&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&#34;ctr&#34;</span><span class="p">]</span> <span class="o">-</span> <span class="n">out</span><span class="p">[</span><span class="s2">&#34;control&#34;</span><span class="p">][</span><span class="s2">&#34;ctr&#34;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s2">&#34;control&#34;</span><span class="p">][</span><span class="s2">&#34;ctr&#34;</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="p">[</span><span class="s2">&#34;p_value&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">z</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="p">[</span><span class="s2">&#34;significant&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;p_value&#34;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.05</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>**A/B 实验该跑多久？**至少要满足三个条件：(1) 覆盖一个完整的星期周期（一般两周）；(2) 达到功效分析算出的样本量；(3) 越过新奇效应（用户对新东西天然有点击冲动）。两周是最常见的答案，少于一周的实验都要打个问号。</p>
+<p><strong>常见陷阱</strong>：变体之间的网络效应（实验组用户通过共享内容影响对照组）、SUTVA 假设违反、不同用户群的异质处理效应、累积效应（实验组提升了长期留存但短期 CTR 下降）。这些问题的根本解法是分层实验平台——这也是为什么 Google、Meta、字节都自己搭了一套实验平台。</p>
+<hr>
+<h2 id="持续训练">持续训练</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig5_training_pipeline.png" alt="持续训练流水线：四种重训练触发条件、四阶段部署、监控反馈闭环" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>模型会衰减。用户行为漂移、物品池变化、季节性切换。上个月还是 SOTA 的模型，下个月不重训就会变成包袱。训练流水线必须自动跑，触发条件包括：</p>
+<ul>
+<li><strong>定时调度</strong>——精排日级，增量更新小时级，最易变特征近实时。</li>
+<li><strong>漂移检测</strong>——重要特征 PSI（Population Stability Index）超过 0.2 就触发，不等定时调度。</li>
+<li><strong>指标衰减</strong>——离线 AUC 相对上一个 checkpoint 下降超过 2%。</li>
+<li><strong>代码变更</strong>——新的特征定义或模型结构。</li>
+</ul>
+<p>训练的输出<strong>不是</strong>已部署的模型，而是<strong>模型注册中心里的一个带元数据的 artifact</strong>：版本号、训练数据窗口、离线指标、血缘信息。部署是一个独立的、有门禁的步骤。</p>
+<h3 id="部署影子--金丝雀--ab--全量">部署：影子 → 金丝雀 → A/B → 全量</h3>
+<p>新模型不可能从注册中心一步到 100% 流量。标准的阶梯式发布：</p>
+<ol>
+<li><strong>影子流量</strong>——0% 流量，但模型并行运行，预测结果记日志。这能在不影响用户的前提下抓出延迟回归、schema 不一致、服务 bug。</li>
+<li><strong>金丝雀</strong>——1-10% 流量跑 1-24 小时。护栏指标破线就自动回滚。</li>
+<li><strong>A/B 测试</strong>——50% 流量跑 1-2 周做正式统计验证。</li>
+<li><strong>全量</strong>——100% 流量。</li>
+</ol>
+<p>自动回滚没得商量。判断标准很硬：p95 延迟超 SLO、错误率超 1%、CTR 跌幅超 5%——任意一条触发就回滚并寻呼人工。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CanaryDeployment</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">deploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">initial_pct</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_offline</span><span class="p">(</span><span class="n">version</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&#34;offline validation failed&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">canary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deploy_canary</span><span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">traffic</span><span class="o">=</span><span class="n">initial_pct</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitor</span><span class="p">(</span><span class="n">canary</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">healthy</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">rollout</span><span class="p">(</span><span class="n">canary</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">rollback</span><span class="p">(</span><span class="n">canary</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="s2">&#34;canary failed&#34;</span><span class="p">,</span> <span class="n">metrics</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">healthy</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&#34;p95_latency&#34;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">100</span>
+</span></span><span class="line"><span class="cl">                <span class="ow">and</span> <span class="n">m</span><span class="p">[</span><span class="s2">&#34;error_rate&#34;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.01</span>
+</span></span><span class="line"><span class="cl">                <span class="ow">and</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;ctr_delta&#34;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mf">0.05</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="服务基础设施">服务基础设施</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig6_serving_infra.png" alt="服务基础设施：API 网关、负载均衡、推荐编排器，下游召回/排序/特征/缓存服务" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>服务栈分四层，每一层都是无状态、可水平扩展的：</p>
+<ul>
+<li><strong>API 网关 + 负载均衡</strong>（Nginx、Envoy 或云 LB）：处理 TLS、鉴权、限流、路由。</li>
+<li><strong>推荐编排器</strong>：无状态服务，串联整个漏斗，依次调用召回、排序、重排，再合并结果。</li>
+<li><strong>后端服务</strong>：召回服务背后是 Faiss/HNSW；排序服务跑 TF-Serving 或 Triton 在 GPU 上；特征服务用 Redis（热数据）+ HBase（冷数据）。</li>
+<li><strong>多层缓存</strong>：特征缓存、向量缓存、整次预测缓存。预测缓存命中率 30-50% 是常态，相应地节省同样比例的计算成本。</li>
+</ul>
+<h3 id="性能优化">性能优化</h3>
+<p>三种技术叠加可以拿到 5-10 倍加速，且几乎不损失质量：</p>
+<p><strong>量化</strong>（FP32 → INT8）：CPU 上 2-4 倍，GPU 上小幅提升。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.quantization</span> <span class="k">as</span> <span class="nn">quant</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">quantize</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">calibration_loader</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">qconfig</span> <span class="o">=</span> <span class="n">quant</span><span class="o">.</span><span class="n">get_default_qconfig</span><span class="p">(</span><span class="s2">&#34;fbgemm&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">quant</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">calibration_loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">model</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">quant</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>知识蒸馏</strong>：用一个小学生模型模仿大老师模型。学生不仅学硬标签，还学老师输出的软概率——后者携带了&quot;物品之间相对优劣&quot;的信息。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">distill_loss</span><span class="p">(</span><span class="n">student_logits</span><span class="p">,</span> <span class="n">teacher_logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">s_soft</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">student_logits</span> <span class="o">/</span> <span class="n">T</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">t_soft</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">teacher_logits</span> <span class="o">/</span> <span class="n">T</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">soft</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">s_soft</span><span class="p">,</span> <span class="n">t_soft</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;batchmean&#34;</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">T</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">hard</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">student_logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">soft</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">hard</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>预测缓存</strong>：针对长尾的重复请求。TTL 5 分钟是个不错的默认值——足够摊薄计算成本，又能反映新行为。</p>
+<p>标准配方是<strong>先蒸馏，再剪枝，最后量化</strong>。这个顺序能让每一步都保留前一步的质量收益。</p>
+<h3 id="监控">监控</h3>
+<p>三类指标，全部带告警：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RecommendationMonitor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">latency_ms</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s2">&#34;pred.latency&#34;</span><span class="p">,</span> <span class="n">latency_ms</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s2">&#34;pred.score_mean&#34;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">recent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">recent</span><span class="p">(</span><span class="s2">&#34;pred.latency&#34;</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">recent</span><span class="p">[</span><span class="s2">&#34;p95&#34;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">150</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="s2">&#34;high_latency&#34;</span><span class="p">,</span> <span class="n">recent</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">error_rate</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.05</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="s2">&#34;high_error_rate&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">recent</span><span class="p">(</span><span class="s2">&#34;pred.score_mean&#34;</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">baseline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">baseline</span><span class="p">(</span><span class="s2">&#34;pred.score_mean&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="s2">&#34;mean&#34;</span><span class="p">]</span> <span class="o">-</span> <span class="n">baseline</span><span class="p">[</span><span class="s2">&#34;mean&#34;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">baseline</span><span class="p">[</span><span class="s2">&#34;std&#34;</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="s2">&#34;distribution_shift&#34;</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>最隐蔽、也最有价值的告警是第三条——<strong>预测分布漂移</strong>。如果平均预测 CTR 突然偏离基线两个标准差，上游一定出了问题：某个特征损坏、某个 embedding 索引过期、某个模型悄悄发了错版本。等业务指标动起来再发现，已经损失一个小时了；分布监控能在分钟级把这种问题揪出来。</p>
+<hr>
+<h2 id="团队分工">团队分工</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/16-%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5/fig7_org_roles.png" alt="生产推荐团队的角色分工，以及各阶段的主要负责方" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>生产级推荐系统对一个人来说太大，对完全独立的小团队来说又耦合太深。实践中有效的角色边界是这样的：</p>
+<ul>
+<li><strong>算法工程师</strong>：负责模型代码、特征设计、A/B 实验。召回、排序、重排模型都他们写。</li>
+<li><strong>数据工程师</strong>：负责 ETL 流水线、样本生成、特征仓库的离线侧。他们是数据质量问题的防火墙。</li>
+<li><strong>MLOps / 平台工程师</strong>：负责训练基础设施、模型注册中心、CI/CD、服务运行时。让&quot;上线一个新模型&quot;从一个月变成一天。</li>
+<li><strong>SRE / 基础设施</strong>：负责延迟 SLO、容量规划、故障响应。凌晨三点被叫起来的就是他们。</li>
+<li><strong>分析师 / 研究</strong>：负责长期评估、因果推断、排序诊断。他们抓&quot;指标看着挺好但营收不动&quot;这种问题。</li>
+<li><strong>产品</strong>：负责业务 KPI 和内容政策。</li>
+</ul>
+<p>图右侧的矩阵列出了各阶段的主要负责方。规律是：<strong>每个阶段都至少有两个负责方</strong>——因为每个阶段同时有&quot;模型质量&quot;和&quot;运维&quot;两个维度。</p>
+<hr>
+<h2 id="工业级框架">工业级框架</h2>
+<p><strong>阿里 EasyRec（开源）</strong>：端到端框架，包含特征工程、预置模型（Wide &amp; Deep、DeepFM、DIN、MMoE）、PAI/MaxCompute 训练、PAI-EAS 部署。如果你已经在阿里云上，这是最快上到生产级 baseline 的路径。</p>
+<p><strong>Meta TorchRec</strong>：TorchRec 是开源的、支撑 Meta 内部推荐栈的库。强项是分片 embedding 表——这是大规模推荐训练里最难的分布式系统问题。</p>
+<p><strong>字节跳动 Monolith（开源）</strong>：面向十亿参数级在线学习设计。核心是无碰撞 embedding 哈希表和异步训练——能从生产日志近实时地更新模型。TikTok 推荐栈的一部分就在它上面。</p>
+<p><strong>YouTube 两阶段系统</strong>：经典论文是 Covington 等 2016 那篇——双塔深度候选生成 + 深度排序。后续演进里最有影响力的是 2019 年 sampled softmax 那篇，但两阶段的骨架仍然是大多数团队的模板。</p>
+<hr>
+<h2 id="常见问题-qa">常见问题 Q&amp;A</h2>
+<h3 id="召回路数应该有多少">召回路数应该有多少？</h3>
+<p>从三路开始：协同过滤、双塔深度、实时行为。专门通道（图、内容、地理、社交）只在离线分析显示&quot;现有通道遗漏了哪些好物品&quot;时才加。超过十路，时间和成本基本花在管道上而不是质量上了。</p>
+<h3 id="粗排到精排的合理收缩比是多少">粗排到精排的合理收缩比是多少？</h3>
+<p>通常 10:1（2,000 → 200 → 20）。要端到端监控 recall@K：粗排太激进会丢掉精排本来能挑出来的好物品；粗排太松又浪费精排的算力预算。</p>
+<h3 id="精排该多复杂">精排该多复杂？</h3>
+<p>从 Wide &amp; Deep 或 DeepFM 起步。只有在测出&quot;现有模型没充分利用序列信息&quot;（典型表现：历史丰富的用户预测分平淡）之后，才加 DIN 这种基于注意力的序列建模。每提升一档复杂度，都要让它服务成本的增加被指标提升 justify。</p>
+<h3 id="重排该用模型还是规则">重排该用模型还是规则？</h3>
+<p>混合用。硬约束（合规、库存、黑名单）用确定性规则——可审计。软优化（多样性、新鲜度、探索）用学习型重排。两者并存是常态。</p>
+<h3 id="量化剪枝蒸馏怎么选">量化、剪枝、蒸馏怎么选？</h3>
+<p>量化单位投入产出比最高（CPU 上 2-4 倍）。蒸馏在你需要的不只是更快、还要更小模型时是正解。剪枝最脆弱——能用，但需要小心地重训。推荐顺序：蒸馏 → 剪枝 → 量化。</p>
+<h3 id="如何处理新用户">如何处理新用户？</h3>
+<p>多级降级：(1) 全新用户给热门和趋势内容；(2) 知道一点画像后给基于画像的内容推荐；(3) 用 bandit 风格的探索在 3-10 次交互内积累信号；(4) ~50 次交互后切到完整的个性化模型。详见第 14 篇关于元学习的部分。</p>
+<h3 id="什么时候下线一个模型">什么时候下线一个模型？</h3>
+<p>满足两个条件：(a) 后继模型在主指标上 A/B 测试胜出，<strong>且</strong>没有任何护栏指标回退；(b) 新模型的运维成本可接受。无论如何，旧模型要保留 30 天可重新部署的状态，以应对滞后回归。</p>
+<hr>
+<h2 id="总结">总结</h2>
+<p>本文把工业级推荐系统的完整栈搭起来了：</p>
+<ul>
+<li><strong>三个平面</strong>——数据、训练、服务，平面之间接口清晰</li>
+<li><strong>四级漏斗</strong>——召回、粗排、精排、重排，把数亿用户塞进 100 ms 预算</li>
+<li><strong>多路召回 + RRF 融合</strong>，因为没有单一通道能覆盖全部质量</li>
+<li><strong>Wide &amp; Deep、DeepFM、DIN</strong> 作为精排的生产级架构</li>
+<li><strong>特征仓库</strong>用一份特征定义同时驱动离线训练和在线服务，消除偏差</li>
+<li><strong>A/B 测试</strong>做一致性分流、z 检验、预先注册护栏指标</li>
+<li><strong>持续训练</strong>由调度、漂移、指标衰减触发</li>
+<li><strong>金丝雀发布</strong>配合护栏指标自动回滚</li>
+<li><strong>服务基础设施</strong>——网关、编排器、GPU 模型服务、Redis 特征仓库、预测缓存</li>
+<li><strong>团队分工</strong>清晰映射到流水线各阶段</li>
+</ul>
+<p>工业实践里最有价值的一条经验也是最朴素的一条：<strong>从小处起步，凡事度量，由 A/B 决定留哪个</strong>。一个用热门 + 简单双塔召回 + DeepFM 精排 + 严格实验纪律的流水线，会跑赢一个没有 A/B 框架就上线的奇异 GNN。本文里讲的所有框架都不是竞争优势的来源——它们支撑起的那套迭代闭环才是。</p>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<p>本文是推荐系统 16 篇系列的<strong>第 16 篇（完结）</strong>。感谢你一路读到这里。</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: left">上一篇</th>
+          <th style="text-align: center"></th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left"><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%ba%94-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/">第十五篇：实时推荐与在线学习</a>
+</td>
+          <td style="text-align: center"><a href="/categories/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">所有文章</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>Covington, P., Adams, J., Sargin, E. &ldquo;Deep Neural Networks for YouTube Recommendations.&rdquo; RecSys 2016. <a href="https://research.google/pubs/pub45530/" target="_blank" rel="noopener noreferrer">paper <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Yi, X., et al. &ldquo;Sampling-Bias-Corrected Neural Modeling for Large Corpus Item Recommendations.&rdquo; RecSys 2019.（&ldquo;双塔 + logQ 修正&quot;那篇）</li>
+<li>Cheng, H., et al. &ldquo;Wide &amp; Deep Learning for Recommender Systems.&rdquo; DLRS 2016. <a href="https://arxiv.org/abs/1606.07792" target="_blank" rel="noopener noreferrer">arXiv:1606.07792 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Guo, H., et al. &ldquo;DeepFM: A Factorization-Machine based Neural Network for CTR Prediction.&rdquo; IJCAI 2017. <a href="https://arxiv.org/abs/1703.04247" target="_blank" rel="noopener noreferrer">arXiv:1703.04247 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Zhou, G., et al. &ldquo;Deep Interest Network for Click-Through Rate Prediction.&rdquo; KDD 2018. <a href="https://arxiv.org/abs/1706.06978" target="_blank" rel="noopener noreferrer">arXiv:1706.06978 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Liu, Z., et al. &ldquo;Monolith: Real Time Recommendation System With Collisionless Embedding Table.&rdquo; 2022. <a href="https://arxiv.org/abs/2209.07663" target="_blank" rel="noopener noreferrer">arXiv:2209.07663 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>阿里 EasyRec：<a href="https://github.com/alibaba/EasyRec" target="_blank" rel="noopener noreferrer">github.com/alibaba/EasyRec <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>TorchRec：<a href="https://github.com/pytorch/torchrec" target="_blank" rel="noopener noreferrer">github.com/pytorch/torchrec <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Feast（开源特征仓库）：<a href="https://feast.dev" target="_blank" rel="noopener noreferrer">feast.dev <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#工业推荐系统全景">工业推荐系统全景</a>
+      <ul>
+        <li><a href="#架构总览">架构总览</a></li>
+        <li><a href="#为什么是漏斗而不是一个大模型">为什么是漏斗而不是一个大模型？</a></li>
+        <li><a href="#关键设计原则">关键设计原则</a></li>
+      </ul>
+    </li>
+    <li><a href="#漏斗细节">漏斗细节</a></li>
+    <li><a href="#多路召回">多路召回</a>
+      <ul>
+        <li><a href="#通道一双塔深度召回">通道一：双塔深度召回</a></li>
+        <li><a href="#通道二图召回">通道二：图召回</a></li>
+        <li><a href="#通道三实时行为召回">通道三：实时行为召回</a></li>
+        <li><a href="#多路融合">多路融合</a></li>
+      </ul>
+    </li>
+    <li><a href="#排序粗排与精排">排序：粗排与精排</a>
+      <ul>
+        <li><a href="#粗排">粗排</a></li>
+        <li><a href="#精排wide--deepdeepfmdin">精排：Wide &amp; Deep、DeepFM、DIN</a></li>
+      </ul>
+    </li>
+    <li><a href="#重排序">重排序</a>
+      <ul>
+        <li><a href="#多样性mmr">多样性（MMR）</a></li>
+        <li><a href="#业务规则">业务规则</a></li>
+        <li><a href="#时效性加权">时效性加权</a></li>
+      </ul>
+    </li>
+    <li><a href="#特征仓库">特征仓库</a>
+      <ul>
+        <li><a href="#时间特征的循环编码">时间特征的循环编码</a></li>
+      </ul>
+    </li>
+    <li><a href="#ab-测试框架">A/B 测试框架</a></li>
+    <li><a href="#持续训练">持续训练</a>
+      <ul>
+        <li><a href="#部署影子--金丝雀--ab--全量">部署：影子 → 金丝雀 → A/B → 全量</a></li>
+      </ul>
+    </li>
+    <li><a href="#服务基础设施">服务基础设施</a>
+      <ul>
+        <li><a href="#性能优化">性能优化</a></li>
+        <li><a href="#监控">监控</a></li>
+      </ul>
+    </li>
+    <li><a href="#团队分工">团队分工</a></li>
+    <li><a href="#工业级框架">工业级框架</a></li>
+    <li><a href="#常见问题-qa">常见问题 Q&amp;A</a>
+      <ul>
+        <li><a href="#召回路数应该有多少">召回路数应该有多少？</a></li>
+        <li><a href="#粗排到精排的合理收缩比是多少">粗排到精排的合理收缩比是多少？</a></li>
+        <li><a href="#精排该多复杂">精排该多复杂？</a></li>
+        <li><a href="#重排该用模型还是规则">重排该用模型还是规则？</a></li>
+        <li><a href="#量化剪枝蒸馏怎么选">量化、剪枝、蒸馏怎么选？</a></li>
+        <li><a href="#如何处理新用户">如何处理新用户？</a></li>
+        <li><a href="#什么时候下线一个模型">什么时候下线一个模型？</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">推荐系统</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>18 min</strong></div>
+      <div class="row"><span>Word count</span><strong>8900</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

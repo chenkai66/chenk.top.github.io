@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>PDE and Machine Learning (7): Diffusion Models and Score Matching · Chen Kai Blog</title>
+<meta name="description" content="Diffusion models are PDE solvers in disguise. We derive the heat equation, Fokker-Planck, score matching, DDPM, and DDIM from a unified PDE perspective and visualise every step.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/pde-ml/07-diffusion-models/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/pde-ml/07-diffusion-models/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="PDE and Machine Learning (7): Diffusion Models and Score Matching">
+<meta property="og:description" content="Diffusion models are PDE solvers in disguise. We derive the heat equation, Fokker-Planck, score matching, DDPM, and DDIM from a unified PDE perspective and visualise every step.">
+<meta property="og:url" content="https://www.chenk.top/en/pde-ml/07-diffusion-models/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Pde and machine learning</a>
+         · Chapter 7
+      </div>
+      <h1>PDE and Machine Learning (7): Diffusion Models and Score Matching</h1>
+      <p class="deck">Diffusion models are PDE solvers in disguise. We derive the heat equation, Fokker-Planck, score matching, DDPM, and DDIM from a unified PDE perspective and visualise every step.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-07-30">July 30, 2024</time> · 10 min read · 2100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/pde/" class="tag">#PDE</a><a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a><a href="/en/tags/diffusion-models/" class="tag">#Diffusion Models</a><a href="/en/tags/score-matching/" class="tag">#Score Matching</a><a href="/en/tags/ddpm/" class="tag">#DDPM</a><a href="/en/tags/ddim/" class="tag">#DDIM</a><a href="/en/tags/sde/" class="tag">#SDE</a><a href="/en/tags/generative-models/" class="tag">#Generative Models</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <h2 id="what-this-article-covers">What This Article Covers</h2>
+<p>Since 2020, <strong>diffusion models</strong> have become the dominant paradigm in generative AI. From DALL·E 2 to Stable Diffusion to Sora, their generation quality and training stability are unmatched by GANs and VAEs. Beneath this success lies a remarkably clean mathematical structure: <strong>diffusion models are numerical solvers for partial differential equations</strong>.</p>
+<ul>
+<li>Adding Gaussian noise corresponds to integrating the <strong>Fokker–Planck equation</strong> forward in time.</li>
+<li>Learning to denoise is equivalent to learning the <strong>score function</strong> $\nabla\log p_t$.</li>
+<li>DDPM is a discretised <strong>reverse SDE</strong>; DDIM is the corresponding <strong>probability-flow ODE</strong>.</li>
+<li>Stable Diffusion is the same machinery, executed in a low-dimensional latent space.</li>
+</ul>
+<p><strong>What you will learn</strong></p>
+<ol>
+<li>The heat equation and Gaussian kernels — the mathematics of diffusion.</li>
+<li>SDEs and the Fokker–Planck equation — how probability density evolves.</li>
+<li>Score functions, score matching (DSM/SSM), and Langevin dynamics.</li>
+<li>DDPM as a discretised reverse SDE; DDIM as a probability-flow ODE.</li>
+<li>Latent diffusion (Stable Diffusion) and connections to scientific computing.</li>
+</ol>
+<p><strong>Prerequisites:</strong> multivariable calculus, basic probability (Gaussian, Bayes), neural network fundamentals.</p>
+<hr>
+<h2 id="1-heat-equation-and-diffusion-processes">1. Heat Equation and Diffusion Processes</h2>
+<h3 id="11-ficks-law-and-the-diffusion-equation">1.1 Fick&rsquo;s Law and the Diffusion Equation</h3>
+$$
+\mathbf{J} = -D\,\nabla u,
+$$$$
+\frac{\partial u}{\partial t} = D\,\nabla^2 u. \tag{1}
+$$<p>
+The Laplacian measures local &ldquo;curvature&rdquo; of $u$: where $u$ is concave (a hot spot), $\nabla^2 u < 0$ and $u$ decreases; where $u$ is convex (a cold spot), $u$ increases. The end state is uniform.</p>
+<h3 id="12-gaussian-kernels-fundamental-solutions">1.2 Gaussian Kernels: Fundamental Solutions</h3>
+$$
+G(\mathbf{x}, t) = \frac{1}{(4\pi D t)^{d/2}}\exp\!\left(-\frac{\|\mathbf{x}\|^2}{4Dt}\right). \tag{2}
+$$$$
+u(\mathbf{x}, t) = (G_t * u_0)(\mathbf{x}).
+$$<p>
+Diffusion = &ldquo;blur with a growing Gaussian&rdquo;. Conceptually, that is exactly what the forward noising in a diffusion model does.</p>
+<h3 id="13-fourier-perspective-diffusion-as-a-low-pass-filter">1.3 Fourier Perspective: Diffusion as a Low-Pass Filter</h3>
+$$
+\hat u(\mathbf{k}, t) = \hat u_0(\mathbf{k})\,e^{-D\|\mathbf{k}\|^2 t}.
+$$<p>
+High-frequency content (large $\|\mathbf{k}\|$) decays exponentially faster than low-frequency content. <strong>Diffusion is a low-pass filter</strong> — fine structure dies first, the coarse structure last. The reverse, denoising, must therefore reconstruct the high-frequency content; this is precisely what the score network does.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig1_forward_diffusion.png" alt="Forward diffusion turns structured data into isotropic Gaussian noise; the bottom row shows the marginal density $p_t$ converging to $\mathcal{N}(0, I)$ as predicted by the Fokker–Planck equation." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Forward diffusion turns structured data into isotropic Gaussian noise; the bottom row shows the marginal density $p_t$ converging to $\mathcal{N}(0, I)$ as predicted by the Fokker–Planck equation.</em></p>
+<hr>
+<h2 id="2-sdes-and-the-fokkerplanck-equation">2. SDEs and the Fokker–Planck Equation</h2>
+<p>The heat equation describes a <strong>deterministic</strong> evolution of densities. If we want to think of individual sample paths — which is what diffusion models actually generate — we need stochastic differential equations.</p>
+<h3 id="21-brownian-motion-and-itô-sdes">2.1 Brownian Motion and Itô SDEs</h3>
+$$
+d\mathbf{X}_t = f(\mathbf{X}_t, t)\,dt + g(t)\,d\mathbf{B}_t, \tag{3}
+$$<p>
+with <strong>drift</strong> $f$ (the deterministic pull) and <strong>diffusion coefficient</strong> $g$ (the noise amplitude).</p>
+<p>The two schedules dominating the diffusion-model literature are:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Schedule</th>
+          <th>Drift $f(\mathbf{x}, t)$</th>
+          <th>Diffusion $g(t)$</th>
+          <th>Stationary law</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Variance-Preserving (VP)</td>
+          <td>$-\tfrac{1}{2}\beta(t)\,\mathbf{x}$</td>
+          <td>$\sqrt{\beta(t)}$</td>
+          <td>$\mathcal{N}(\mathbf{0},\,\mathbf{I})$</td>
+      </tr>
+      <tr>
+          <td>Variance-Exploding (VE)</td>
+          <td>$0$</td>
+          <td>$\sqrt{d\sigma^2/dt}$</td>
+          <td>variance grows without bound</td>
+      </tr>
+  </tbody>
+</table>
+<p>DDPM is a discretisation of VP; the original NCSN of Song &amp; Ermon (2019) is a discretisation of VE.</p>
+<h3 id="22-the-fokkerplanck-equation">2.2 The Fokker–Planck Equation</h3>
+$$
+\boxed{\;\frac{\partial p}{\partial t} \;=\; -\nabla\!\cdot\!\bigl(f\,p\bigr) \;+\; \tfrac{1}{2}\,g^2\,\nabla^2 p\;.\;} \tag{4}
+$$$$
+d\varphi(\mathbf{X}_t) = \bigl(f\!\cdot\!\nabla\varphi + \tfrac{1}{2}g^2\nabla^2\varphi\bigr)\,dt + g\,\nabla\varphi\!\cdot\!d\mathbf{B}_t.
+$$<p>
+Taking expectations kills the martingale term, and writing $\mathbb{E}[\varphi(\mathbf{X}_t)] = \int \varphi\,p\,d\mathbf{x}$ then integrating by parts (using that $\varphi$ is arbitrary) yields (4). $\blacksquare$</p>
+<p><strong>Sanity check.</strong> Setting $f \equiv 0$ and $g^2/2 = D$ in (4) recovers the heat equation $\partial_t p = D\,\nabla^2 p$. The Fokker–Planck equation is exactly the heat equation plus a drift term.</p>
+<h3 id="23-the-kolmogorov-backward-equation">2.3 The Kolmogorov Backward Equation</h3>
+$$
+\partial_s u + f\!\cdot\!\nabla u + \tfrac{1}{2}g^2 \nabla^2 u = 0,
+$$<p>
+with terminal condition $u(T, \mathbf{x}) = g(\mathbf{x})$. The forward equation evolves densities forward in time; the backward equation evolves expectations backward. Together they are the Feynman–Kac correspondence — and the time-reversed forward SDE is exactly what we will use to <em>generate</em> samples.</p>
+<hr>
+<h2 id="3-score-based-generative-models">3. Score-Based Generative Models</h2>
+<h3 id="31-the-score-function">3.1 The Score Function</h3>
+$$
+\mathbf{s}(\mathbf{x}) \;:=\; \nabla_{\mathbf{x}}\,\log p(\mathbf{x}). \tag{5}
+$$<p>
+Three useful properties:</p>
+<ul>
+<li><strong>Normalisation-free.</strong> $\nabla \log(p / Z) = \nabla \log p$, so we never need the partition function.</li>
+<li><strong>Closed form for Gaussians.</strong> If $p = \mathcal{N}(\boldsymbol\mu, \sigma^2 \mathbf{I})$, then $\mathbf{s}(\mathbf{x}) = -(\mathbf{x} - \boldsymbol\mu) / \sigma^2$.</li>
+<li><strong>Zero mean.</strong> $\mathbb{E}_p[\mathbf{s}(\mathbf{x})] = \mathbf{0}$ (under mild regularity).</li>
+</ul>
+<p>Geometrically, the score is a vector field that always points <em>toward</em> high-probability regions and grows large in low-density valleys.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig3_score_field.png" alt="Score of a 2-mode Gaussian mixture: the field points uphill, away from low-density regions and toward the modes." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Score of a 2-mode Gaussian mixture: the field points uphill, away from low-density regions and toward the modes.</em></p>
+<h3 id="32-score-matching">3.2 Score Matching</h3>
+<p>Because $p$ is unknown we cannot directly minimise $\mathbb{E}_p\,\|\mathbf{s}_\theta - \nabla\log p\|^2$. There are three workable surrogates.</p>
+$$
+\mathcal{L}_{\text{ISM}}(\theta) = \mathbb{E}_p\Bigl[\,\tfrac{1}{2}\|\mathbf{s}_\theta(\mathbf{x})\|^2 + \mathrm{tr}\bigl(\nabla\mathbf{s}_\theta(\mathbf{x})\bigr)\Bigr].
+$$<p>
+The trace of the Jacobian is expensive in high dimensions.</p>
+$$
+\mathcal{L}_{\text{SSM}}(\theta) = \mathbb{E}_{\mathbf{v}, \mathbf{x}}\Bigl[\,\mathbf{v}^\top \nabla\mathbf{s}_\theta(\mathbf{x})\,\mathbf{v} + \tfrac{1}{2}(\mathbf{v}^\top \mathbf{s}_\theta(\mathbf{x}))^2\Bigr].
+$$<p>
+One Hessian–vector product per sample suffices.</p>
+$$
+\boxed{\;\mathcal{L}_{\text{DSM}}(\theta) = \mathbb{E}_{\mathbf{x}, \tilde{\mathbf{x}}}\Bigl[\bigl\|\mathbf{s}_\theta(\tilde{\mathbf{x}}) + \tfrac{\tilde{\mathbf{x}} - \mathbf{x}}{\sigma^2}\bigr\|^2\Bigr].\;} \tag{6}
+$$<p>
+Vincent showed (6) has the same minimiser as matching the <em>true</em> score of the noisy distribution $p_\sigma = p * \mathcal{N}(0, \sigma^2 \mathbf{I})$. As $\sigma \to 0$, $p_\sigma \to p$. In practice we anneal $\sigma$ during training.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig5_score_matching_loss.png" alt="Left: DSM loss decreases monotonically and plateaus. Right: the learned score matches the true $\nabla\log p$ in high-density regions; near low-density valleys (centre) it is intentionally smoothed by the noise level $\sigma$." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Left: DSM loss decreases monotonically and plateaus. Right: the learned score matches the true $\nabla\log p$ in high-density regions; near low-density valleys (centre) it is intentionally smoothed by the noise level $\sigma$.</em></p>
+<h3 id="33-langevin-dynamics">3.3 Langevin Dynamics</h3>
+$$
+\mathbf{x}_{k+1} = \mathbf{x}_k + \tfrac{\epsilon}{2}\,\mathbf{s}_\theta(\mathbf{x}_k) + \sqrt{\epsilon}\,\boldsymbol\eta_k,\qquad \boldsymbol\eta_k \sim \mathcal{N}(\mathbf{0}, \mathbf{I}). \tag{7}
+$$<p>
+As $\epsilon \to 0$ and $k \to \infty$ the chain converges to $p$. The deterministic term is <em>exploitation</em> (climb the score), the noise term is <em>exploration</em> (escape local maxima).</p>
+<h3 id="34-andersons-reverse-time-sde">3.4 Anderson&rsquo;s Reverse-Time SDE</h3>
+$$
+\boxed{\;d\mathbf{X}_t = \bigl[\,f(\mathbf{X}_t, t) - g(t)^2\,\nabla\log p_t(\mathbf{X}_t)\,\bigr]\,dt + g(t)\,d\bar{\mathbf{B}}_t,\;} \tag{8}
+$$<p>
+where $\bar{\mathbf{B}}_t$ is a Brownian motion in reverse time and $p_t$ is the marginal of (3) at time $t$. <strong>The only thing that depends on the data distribution is $\nabla\log p_t$ — exactly what the score network learns</strong>. Run (8) backward from $\mathbf{x}_T \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and you generate a sample from (approximately) the data distribution.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig2_reverse_diffusion.png" alt="Reverse diffusion runs from $t = T$ down to $t = 0$; the score network supplies the drift correction needed to reverse the noising process." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Reverse diffusion runs from $t = T$ down to $t = 0$; the score network supplies the drift correction needed to reverse the noising process.</em></p>
+<hr>
+<h2 id="4-from-continuous-theory-to-ddpm-and-ddim">4. From Continuous Theory to DDPM and DDIM</h2>
+<h3 id="41-ddpm-forward-process-in-closed-form">4.1 DDPM: Forward Process in Closed Form</h3>
+$$
+q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) = \mathcal{N}\bigl(\mathbf{x}_t;\,\sqrt{\alpha_t}\,\mathbf{x}_{t-1},\,\beta_t\mathbf{I}\bigr),
+$$$$
+\mathbf{x}_t = \sqrt{\bar\alpha_t}\,\mathbf{x}_0 + \sqrt{1 - \bar\alpha_t}\,\boldsymbol\epsilon,\qquad \boldsymbol\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{I}). \tag{9}
+$$<p>
+This is exactly the Euler–Maruyama discretisation of the VP-SDE, so $\bar\alpha_T \to 0$ and $\mathbf{x}_T \approx \mathcal{N}(\mathbf{0}, \mathbf{I})$.</p>
+<h3 id="42-the-ddpm-loss--weighted-dsm">4.2 The DDPM Loss = Weighted DSM</h3>
+$$
+\mathcal{L}_{\text{DDPM}}(\theta) = \mathbb{E}_{t,\,\mathbf{x}_0,\,\boldsymbol\epsilon}\Bigl[\,\bigl\|\boldsymbol\epsilon_\theta(\mathbf{x}_t, t) - \boldsymbol\epsilon\bigr\|^2\Bigr]. \tag{10}
+$$$$
+\nabla_{\mathbf{x}_t} \log q(\mathbf{x}_t \mid \mathbf{x}_0) = -\frac{\boldsymbol\epsilon}{\sqrt{1 - \bar\alpha_t}},
+$$<p>
+so the network is learning a scaled score: $\mathbf{s}_\theta(\mathbf{x}_t, t) = -\boldsymbol\epsilon_\theta(\mathbf{x}_t, t)/\sqrt{1 - \bar\alpha_t}$. (10) is precisely (6) with weights $w(t) = 1$.</p>
+<h3 id="43-ddim-the-probability-flow-ode">4.3 DDIM: The Probability-Flow ODE</h3>
+$$
+\boxed{\;\frac{d\mathbf{x}}{dt} = f(\mathbf{x}, t) - \tfrac{1}{2}\,g(t)^2\,\nabla\log p_t(\mathbf{x}).\;} \tag{11}
+$$<p>
+This is the <strong>probability-flow ODE</strong>. Marginals match because both (8) and (11) yield the same Fokker–Planck equation (4) for $p_t$. Solving (11) backward in time with a high-order ODE solver — Heun, RK4, DPM-Solver — is the basis of DDIM and its descendants. The result is <em>deterministic</em> (same noise → same image), supports much larger step sizes (25–50 vs 1000), and is exactly invertible (one can encode an image back to its latent noise).</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig4_ddpm_vs_ddim.png" alt="DDPM (left) injects fresh noise at each reverse step; DDIM (right) follows a deterministic flow under the same learned score, reaching the modes in far fewer steps." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>DDPM (left) injects fresh noise at each reverse step; DDIM (right) follows a deterministic flow under the same learned score, reaching the modes in far fewer steps.</em></p>
+<h3 id="44-a-unified-view">4.4 A Unified View</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Method</th>
+          <th>Process</th>
+          <th>Typical steps</th>
+          <th>Deterministic?</th>
+          <th>Strength</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>DDPM</td>
+          <td>Reverse SDE (8)</td>
+          <td>~1000</td>
+          <td>No</td>
+          <td>Diversity, simple training</td>
+      </tr>
+      <tr>
+          <td>DDIM</td>
+          <td>Probability-flow ODE (11)</td>
+          <td>~25–50</td>
+          <td>Yes</td>
+          <td>Speed, exact inversion</td>
+      </tr>
+      <tr>
+          <td>DPM-Solver</td>
+          <td>Higher-order ODE</td>
+          <td>~10–20</td>
+          <td>Yes</td>
+          <td>Even faster, same fidelity</td>
+      </tr>
+      <tr>
+          <td>EDM (Karras et al.)</td>
+          <td>Continuous, refined preconditioning</td>
+          <td>~30</td>
+          <td>Tunable</td>
+          <td>SOTA quality</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="45-the-pde--diffusion-model-map">4.5 The PDE → Diffusion Model Map</h3>
+<p>Putting it all together:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig6_pde_diffusion_bridge.png" alt="Heat equation $\to$ Fokker–Planck $\to$ forward SDE; Anderson&rsquo;s time-reversal needs $\nabla\log p_t$, which the score network learns by DSM; the same score then drives DDPM (SDE) or DDIM (ODE)." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Heat equation $\to$ Fokker–Planck $\to$ forward SDE; Anderson&rsquo;s time-reversal needs $\nabla\log p_t$, which the score network learns by DSM; the same score then drives DDPM (SDE) or DDIM (ODE).</em></p>
+<hr>
+<h2 id="5-latent-diffusion-stable-diffusion-in-one-picture">5. Latent Diffusion: Stable Diffusion in One Picture</h2>
+<p>Pixel-space diffusion on $512 \times 512$ images is expensive: every U-Net forward pass operates on ~$8\times 10^5$ floats. <strong>Latent Diffusion</strong> (Rombach et al., 2022) trains a VAE-like autoencoder $(\mathcal{E}, \mathcal{D})$ first to map images to an $\sim\!8\times$ smaller latent $\mathbf{z}_0 = \mathcal{E}(\mathbf{x})$, and runs the entire diffusion process <em>in latent space</em>. Decoding $\hat{\mathbf{x}} = \mathcal{D}(\mathbf{z}_0)$ is a single feed-forward pass.</p>
+<p>Conditioning (text, class labels, depth maps, ControlNet poses, …) enters the U-Net through cross-attention.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/07-Diffusion-Models/fig7_latent_diffusion.png" alt="Stable Diffusion = autoencoder &#43; diffusion in latent space &#43; cross-attention conditioning." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Stable Diffusion = autoencoder + diffusion in latent space + cross-attention conditioning.</em></p>
+<p>The compute saving is roughly $f^{2d}$ where $f$ is the spatial downsampling factor (typically 8) and $d=2$, i.e. ~$64\times$. It is the architectural trick that turned diffusion models into a consumer technology.</p>
+<hr>
+<h2 id="6-connection-to-scientific-computing">6. Connection to Scientific Computing</h2>
+<p>Score-based diffusion is not just a generative-modelling trick — it is a tool for sampling from arbitrary, possibly intractable, probability distributions. Two application directions are particularly relevant for the PDE community:</p>
+<ol>
+<li>
+<p><strong>Conditional generation under PDE constraints.</strong> Train a score model $\mathbf{s}_\theta(\mathbf{x}, t \mid \mathcal{C})$ where $\mathcal{C}$ encodes a PDE residual or boundary data. Reverse sampling produces fields that respect the constraint (in distribution). This is the basis of <em>diffusion posterior sampling</em> for inverse problems (Chung et al., 2023): tomography, super-resolution, deblurring, etc.</p>
+</li>
+<li>
+<p><strong>Surrogate samplers for Bayesian inference.</strong> Many Bayesian inverse problems require sampling from a posterior $p(\theta \mid \mathbf{y}) \propto p(\mathbf{y}\mid\theta)\,p(\theta)$. If we can train a score model on $(\theta, \mathbf{y})$ pairs from simulation, conditional reverse sampling replaces MCMC.</p>
+</li>
+</ol>
+<p>The unifying message: <strong>whenever you need to sample from a high-dimensional, multimodal distribution and you can afford to simulate forward dynamics, the diffusion-model recipe applies</strong>.</p>
+<hr>
+<h2 id="7-exercises">7. Exercises</h2>
+<p><strong>Exercise 1.</strong> Show the heat equation is the special case $f \equiv 0$, $g^2 / 2 = D$ of Fokker–Planck.</p>
+<blockquote>
+<p><em>Solution.</em> Substitute into (4): $\partial_t p = -\nabla\!\cdot\!(\mathbf{0}\cdot p) + D\nabla^2 p = D\nabla^2 p$. $\blacksquare$</p>
+</blockquote>
+<p><strong>Exercise 2.</strong> Explain why the DDPM loss equals (weighted) score matching.</p>
+<blockquote>
+<p><em>Solution.</em> From (9), $q(\mathbf{x}_t\mid\mathbf{x}_0) = \mathcal{N}(\sqrt{\bar\alpha_t}\,\mathbf{x}_0, (1-\bar\alpha_t)\mathbf{I})$, so $\nabla_{\mathbf{x}_t}\log q = -(\mathbf{x}_t - \sqrt{\bar\alpha_t}\,\mathbf{x}_0)/(1-\bar\alpha_t) = -\boldsymbol\epsilon/\sqrt{1-\bar\alpha_t}$. Predicting $\boldsymbol\epsilon$ is therefore predicting a scaled score, and (10) is (6) with $w(t)=1$. $\blacksquare$</p>
+</blockquote>
+<p><strong>Exercise 3.</strong> Why can DDIM use far fewer steps than DDPM?</p>
+<blockquote>
+<p><em>Solution.</em> DDIM solves a smooth deterministic ODE (11) and admits high-order multi-step methods (Heun, RK4, DPM-Solver). DDPM solves an SDE whose strong-order convergence is $\mathcal{O}(\sqrt{\Delta t})$, so the step size must remain small for accuracy. $\blacksquare$</p>
+</blockquote>
+<p><strong>Exercise 4.</strong> Interpret diffusion as a low-pass filter and explain why this is consistent with &ldquo;noise destroys high-frequency content first&rdquo;.</p>
+<blockquote>
+<p><em>Solution.</em> Fourier modes evolve as $\hat p(\mathbf{k}, t) \propto \exp(-D\|\mathbf{k}\|^2 t)$, so high-$\|\mathbf{k}\|$ content decays exponentially faster than low-$\|\mathbf{k}\|$ content. Since high $\|\mathbf{k}\|$ corresponds to fine detail, the fine structure is destroyed first; the coarse structure persists longer. $\blacksquare$</p>
+</blockquote>
+<p><strong>Exercise 5.</strong> Derive Anderson&rsquo;s reverse-time SDE drift in 1D for the OU process $dX_t = -\tfrac12 \beta X_t\,dt + \sqrt\beta\,dB_t$ with stationary $\mathcal{N}(0,1)$.</p>
+<blockquote>
+<p><em>Solution sketch.</em> In stationary regime $p_t(x) = \mathcal{N}(x;0,1)$, so $\nabla\log p_t(x) = -x$. Plug $f = -\tfrac12\beta x$, $g^2 = \beta$ into (8): drift $= -\tfrac12\beta x - \beta(-x) = \tfrac12\beta x$, i.e. the reverse process has a <em>positive</em> mean reversion away from zero — exactly what is needed to &ldquo;uncrunch&rdquo; the OU collapse to the origin. $\blacksquare$</p>
+</blockquote>
+<hr>
+<h2 id="references">References</h2>
+<p>[1] Song, Y., et al. (2020). <em>Score-based generative modeling through stochastic differential equations.</em> <a href="https://arxiv.org/abs/2011.13456" target="_blank" rel="noopener noreferrer">arXiv:2011.13456 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<p>[2] Ho, J., Jain, A., &amp; Abbeel, P. (2020). <em>Denoising diffusion probabilistic models.</em> NeurIPS. <a href="https://arxiv.org/abs/2006.11239" target="_blank" rel="noopener noreferrer">arXiv:2006.11239 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<p>[3] Song, J., Meng, C., &amp; Ermon, S. (2021). <em>Denoising diffusion implicit models.</em> ICLR. <a href="https://arxiv.org/abs/2010.02502" target="_blank" rel="noopener noreferrer">arXiv:2010.02502 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<p>[4] Song, Y., &amp; Ermon, S. (2019). <em>Generative modeling by estimating gradients of the data distribution.</em> NeurIPS. <a href="https://arxiv.org/abs/1907.05600" target="_blank" rel="noopener noreferrer">arXiv:1907.05600 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<p>[5] Karras, T., Aittala, M., Aila, T., &amp; Laine, S. (2022). <em>Elucidating the design space of diffusion-based generative models (EDM).</em> NeurIPS. <a href="https://arxiv.org/abs/2206.00364" target="_blank" rel="noopener noreferrer">arXiv:2206.00364 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<p>[6] Lu, C., et al. (2022). <em>DPM-Solver: a fast ODE solver for diffusion models.</em> NeurIPS. <a href="https://arxiv.org/abs/2206.00927" target="_blank" rel="noopener noreferrer">arXiv:2206.00927 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<p>[7] Rombach, R., et al. (2022). <em>High-resolution image synthesis with latent diffusion models.</em> CVPR. <a href="https://arxiv.org/abs/2112.10752" target="_blank" rel="noopener noreferrer">arXiv:2112.10752 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<p>[8] Anderson, B. D. O. (1982). <em>Reverse-time diffusion equation models.</em> Stochastic Processes and their Applications, 12(3), 313–326.</p>
+<p>[9] Hyvärinen, A. (2005). <em>Estimation of non-normalized statistical models by score matching.</em> JMLR.</p>
+<p>[10] Vincent, P. (2011). <em>A connection between score matching and denoising autoencoders.</em> Neural Computation.</p>
+<p>[11] Chung, H., et al. (2023). <em>Diffusion posterior sampling for general noisy inverse problems.</em> ICLR. <a href="https://arxiv.org/abs/2209.14687" target="_blank" rel="noopener noreferrer">arXiv:2209.14687 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<hr>
+<p><em>This is Part 7 of the <a href="/categories/PDE-and-Machine-Learning/">PDE and Machine Learning</a>
+ series. Next: <a href="/en/PDE-and-Machine-Learning-8-Reaction-Diffusion-Systems/">Part 8 — Reaction-Diffusion Systems and GNN</a>
+. Previous: <a href="/en/PDE-and-Machine-Learning-6-Continuous-Normalizing-Flows/">Part 6 — Continuous Normalizing Flows</a>
+.</em></p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-this-article-covers">What This Article Covers</a></li>
+    <li><a href="#1-heat-equation-and-diffusion-processes">1. Heat Equation and Diffusion Processes</a>
+      <ul>
+        <li><a href="#11-ficks-law-and-the-diffusion-equation">1.1 Fick&rsquo;s Law and the Diffusion Equation</a></li>
+        <li><a href="#12-gaussian-kernels-fundamental-solutions">1.2 Gaussian Kernels: Fundamental Solutions</a></li>
+        <li><a href="#13-fourier-perspective-diffusion-as-a-low-pass-filter">1.3 Fourier Perspective: Diffusion as a Low-Pass Filter</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-sdes-and-the-fokkerplanck-equation">2. SDEs and the Fokker–Planck Equation</a>
+      <ul>
+        <li><a href="#21-brownian-motion-and-itô-sdes">2.1 Brownian Motion and Itô SDEs</a></li>
+        <li><a href="#22-the-fokkerplanck-equation">2.2 The Fokker–Planck Equation</a></li>
+        <li><a href="#23-the-kolmogorov-backward-equation">2.3 The Kolmogorov Backward Equation</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-score-based-generative-models">3. Score-Based Generative Models</a>
+      <ul>
+        <li><a href="#31-the-score-function">3.1 The Score Function</a></li>
+        <li><a href="#32-score-matching">3.2 Score Matching</a></li>
+        <li><a href="#33-langevin-dynamics">3.3 Langevin Dynamics</a></li>
+        <li><a href="#34-andersons-reverse-time-sde">3.4 Anderson&rsquo;s Reverse-Time SDE</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-from-continuous-theory-to-ddpm-and-ddim">4. From Continuous Theory to DDPM and DDIM</a>
+      <ul>
+        <li><a href="#41-ddpm-forward-process-in-closed-form">4.1 DDPM: Forward Process in Closed Form</a></li>
+        <li><a href="#42-the-ddpm-loss--weighted-dsm">4.2 The DDPM Loss = Weighted DSM</a></li>
+        <li><a href="#43-ddim-the-probability-flow-ode">4.3 DDIM: The Probability-Flow ODE</a></li>
+        <li><a href="#44-a-unified-view">4.4 A Unified View</a></li>
+        <li><a href="#45-the-pde--diffusion-model-map">4.5 The PDE → Diffusion Model Map</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-latent-diffusion-stable-diffusion-in-one-picture">5. Latent Diffusion: Stable Diffusion in One Picture</a></li>
+    <li><a href="#6-connection-to-scientific-computing">6. Connection to Scientific Computing</a></li>
+    <li><a href="#7-exercises">7. Exercises</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Pde and machine learning</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2100</strong></div>
+      <div class="row"><span>Published</span><strong>Jul 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/aliyun-pai/03-pai-dlc-distributed-training/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain · Chen Kai Blog</title>
+<meta name="description" content="Submit a real multi-GPU training job on PAI-DLC, understand the resource pools (Lingjun vs general vs preemptible), and use AIMaster &#43; EasyCKPT so a flaky node doesn&#39;t cost you a day.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-pai/03-pai-dlc-distributed-training/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain">
+<meta property="og:description" content="Submit a real multi-GPU training job on PAI-DLC, understand the resource pools (Lingjun vs general vs preemptible), and use AIMaster &#43; EasyCKPT so a flaky node doesn&#39;t cost you a day.">
+<meta property="og:url" content="https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Aliyun PAI</a>
+         · Chapter 3
+      </div>
+      <h1>Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain</h1>
+      <p class="deck">Submit a real multi-GPU training job on PAI-DLC, understand the resource pools (Lingjun vs general vs preemptible), and use AIMaster &#43; EasyCKPT so a flaky node doesn&#39;t cost you a day.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-03-07">March 7, 2026</time> · 5 min read · 1000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/aliyun-pai/" class="tag">#Aliyun PAI</a><a href="/en/tags/pai-dlc/" class="tag">#PAI-DLC</a><a href="/en/tags/distributed-training/" class="tag">#Distributed Training</a><a href="/en/tags/llm/" class="tag">#LLM</a><a href="/en/tags/sft/" class="tag">#SFT</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/aliyun-pai/03-pai-dlc-distributed-training/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>A DSW notebook is for one engineer on one GPU. The moment you need eight GPUs across two nodes, or the moment training runs longer than the eight hours you&rsquo;ll keep the tab open, you switch to <strong>DLC</strong>. DLC is PAI&rsquo;s job-submission front-end for a managed Kubernetes cluster: you describe what you want (image, command, resources, data mounts), DLC schedules pods, runs them to completion, persists logs, and tells you what happened. The docs call this <em>Deep Learning Containers</em>; we just say &ldquo;DLC job&rdquo;.</p>
+<h2 id="what-the-docs-actually-claim">What the docs actually claim</h2>
+<p>The official DLC overview lists four bullets I want to highlight, because they matter:</p>
+<ul>
+<li><strong>Diverse compute</strong> — Lingjun AI computing service, ECS, ECI, Shenlong bare metal, Lingjun bare metal. Hybrid scheduling.</li>
+<li><strong>Multiple distributed job types</strong> — pre-built support for Megatron, DeepSpeed, PyTorch DDP, TensorFlow PS/Worker, Slurm, Ray, MPI, XGBoost. No need to build your own cluster.</li>
+<li><strong>Fault tolerance</strong> — AIMaster (the watchdog), EasyCKPT (the async checkpointer), SanityCheck (pre-flight node health), node self-healing.</li>
+<li><strong>Training acceleration</strong> — built-in framework with data parallelism, pipeline parallelism, operator splitting, automatic parallel-strategy exploration, topology-aware scheduling, optimized communication.</li>
+</ul>
+<p>The first and third bullets are what make DLC interesting compared to renting GPU ECS yourself.</p>
+<h2 id="the-job-lifecycle">The job lifecycle</h2>
+<p>A DLC job goes through six phases between submit and done:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/fig1_dlc_job_lifecycle.png" alt="DLC job lifecycle" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Two of those phases — <strong>scheduler places pods</strong> and <strong>mount OSS / NAS</strong> — are where almost all of the &ldquo;my job is stuck in PENDING&rdquo; tickets get filed. Stuck on schedule means your resource group is full; stuck on mount means your storage RAM role is wrong. Same as DSW, the diagnostic move is to spin up a tiny DSW with the same OSS mount and confirm <code>oss ls</code> works.</p>
+<h2 id="picking-a-resource-pool">Picking a resource pool</h2>
+<p>You submit to one of three pools. The docs mostly talk about quotas and bills; the practical decision is about how tolerant your job is.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/fig3_dlc_resource_pools.png" alt="DLC resource pools" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>For most teams the answer is general-purpose, pay-as-you-go. Lingjun makes sense once you&rsquo;re training above 8 GPUs and need RDMA between nodes — the docs note RDMA is configurable on Lingjun and gives &ldquo;accelerated inter-node communication&rdquo; (which is a polite way of saying NCCL AllReduce will be 5-10x faster than over standard ethernet). Preemptible is a cost saver for jobs that checkpoint cleanly, which thanks to EasyCKPT is most jobs.</p>
+<h2 id="a-real-distributed-job">A real distributed job</h2>
+<p>Here is the topology you build with a four-node, 2-GPU-per-node DLC job:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/fig2_dlc_distributed_topology.png" alt="DLC distributed training topology" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A minimal <code>PyTorchJob</code>-style submission via the SDK, scaled out from the MNIST notebook:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pai.job</span> <span class="kn">import</span> <span class="n">TrainingJob</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">job</span> <span class="o">=</span> <span class="n">TrainingJob</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">name</span><span class="o">=</span><span class="s2">&#34;mnist-ddp&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">image_uri</span><span class="o">=</span><span class="s2">&#34;dsw-registry-vpc.cn-shanghai.cr.aliyuncs.com/pai/&#34;</span>
+</span></span><span class="line"><span class="cl">              <span class="s2">&#34;modelscope:1.28.0-pytorch2.3.1tensorflow2.16.1-gpu-py311-cu121-ubuntu22.04&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">command</span><span class="o">=</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;torchrun --nproc_per_node=2 --nnodes=$WORLD_SIZE &#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;--node_rank=$RANK --master_addr=$MASTER_ADDR &#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;--master_port=$MASTER_PORT /mnt/data/code/train_ddp.py&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">job_type</span><span class="o">=</span><span class="s2">&#34;PyTorchJob&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">instance_count</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>                <span class="c1"># 4 worker nodes</span>
+</span></span><span class="line"><span class="cl">    <span class="n">instance_type</span><span class="o">=</span><span class="s2">&#34;ecs.gn7i-c16g1.4xlarge&#34;</span><span class="p">,</span>  <span class="c1"># 2 x A10 each</span>
+</span></span><span class="line"><span class="cl">    <span class="n">datasets</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;train&#34;</span><span class="p">:</span> <span class="s2">&#34;oss://your-bucket/datasets/mnist&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="n">code_uri</span><span class="o">=</span><span class="s2">&#34;oss://your-bucket/code/mnist-ddp.zip&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">output_uri</span><span class="o">=</span><span class="s2">&#34;oss://your-bucket/runs/mnist-ddp/&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">fault_tolerance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># turns on AIMaster</span>
+</span></span><span class="line"><span class="cl">    <span class="n">enable_easyckpt</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># async checkpoint</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">job</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A few things worth noting that are not obvious from a quick read of the docs:</p>
+<ul>
+<li><strong><code>$WORLD_SIZE</code>, <code>$RANK</code>, <code>$MASTER_ADDR</code>, <code>$MASTER_PORT</code></strong> are injected by DLC. You do not have to discover peers — DLC handles peer discovery and writes those env vars before your container starts. (See &ldquo;Built-in environment variables&rdquo; in the User Guide.)</li>
+<li><strong><code>fault_tolerance=True</code></strong> spins up an AIMaster sidecar that watches every worker. If a worker pod dies, AIMaster marks it, requests a replacement, and the surviving workers wait for it instead of crashing the whole job. This is the <em>single most important toggle</em> for jobs longer than a few hours.</li>
+<li><strong><code>enable_easyckpt=True</code></strong> swaps <code>torch.save</code> for an async path that writes to OSS without blocking the training step. On a 70B model this turns checkpointing from a 3-minute stall into about 10 seconds of overlap.</li>
+<li><strong>Image URL is region-specific.</strong> The <code>dsw-registry-vpc.cn-shanghai.cr.aliyuncs.com</code> prefix only works inside the Shanghai VPC; use the matching one for your region or pulls will time out.</li>
+</ul>
+<h2 id="watching-it-run">Watching it run</h2>
+<p>The console &ldquo;Training Jobs&rdquo; view gives you logs, GPU utilization, network throughput, and AIMaster events. From the SDK you can stream logs:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">tail_logs</span><span class="p">(</span><span class="n">follow</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>For longer jobs I forward logs to SLS (Log Service) and set CloudMonitor alerts on <code>gpu_util &lt; 0.3</code> for 15 minutes — that is the canonical signal that something is wedged on data loading or distributed init.</p>
+<h2 id="common-failures-and-what-they-actually-mean">Common failures and what they actually mean</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Symptom</th>
+          <th>Real cause</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Job stuck in <code>Pending</code> for &gt;5 min</td>
+          <td>Resource group full, or your quota is exhausted. Switch pool or reduce <code>instance_count</code>.</td>
+      </tr>
+      <tr>
+          <td><code>cannot mount oss://...</code> at startup</td>
+          <td>RAM role missing the <code>AliyunPAIAccessingOSSRole</code> attachment. Re-attach in workspace settings.</td>
+      </tr>
+      <tr>
+          <td>NCCL hangs at start of step 1</td>
+          <td>RDMA misconfig on Lingjun, or a flaky node. Enable <code>SanityCheck</code> to isolate before the run.</td>
+      </tr>
+      <tr>
+          <td>Loss explodes on resume from checkpoint</td>
+          <td>EasyCKPT saved optimizer state but you did not load it. Read the EasyCKPT load helper, not <code>torch.load</code>.</td>
+      </tr>
+      <tr>
+          <td>Job finishes but <code>output_uri</code> is empty</td>
+          <td>Your training script wrote to <code>/root</code> instead of the mounted OSS path. Recheck <code>OUTPUT_DIR</code>.</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="cost-reality">Cost reality</h2>
+<p>For a typical 7B SFT (4 x A10, 6 hours) on general-purpose pay-as-you-go you&rsquo;re looking at roughly the cost of an OK dinner in Shanghai. A 70B QLoRA (8 x A100 80 GB, 12 hours) is closer to a long weekend in Hangzhou. Preemptible cuts that 30-50% if your job can survive being killed every few hours — with EasyCKPT it can.</p>
+<h2 id="whats-next">What&rsquo;s next</h2>
+<p>Article 4 is <strong>EAS</strong> — taking whatever you trained and putting it behind an HTTP endpoint that auto-scales, mirrors traffic, and does not fall over at 3am. EAS is where most of your monthly Aliyun bill will live; it is worth getting right.</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/"><span class="title">Aliyun PAI (2): PAI-DSW — Notebooks That Don&#39;t Eat Your Weights</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/"><span class="title">Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-the-docs-actually-claim">What the docs actually claim</a></li>
+    <li><a href="#the-job-lifecycle">The job lifecycle</a></li>
+    <li><a href="#picking-a-resource-pool">Picking a resource pool</a></li>
+    <li><a href="#a-real-distributed-job">A real distributed job</a></li>
+    <li><a href="#watching-it-run">Watching it run</a></li>
+    <li><a href="#common-failures-and-what-they-actually-mean">Common failures and what they actually mean</a></li>
+    <li><a href="#cost-reality">Cost reality</a></li>
+    <li><a href="#whats-next">What&rsquo;s next</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Aliyun PAI</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>5 min</strong></div>
+      <div class="row"><span>Word count</span><strong>1000</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>操作系统基础深度解析 · Chen Kai Blog</title>
+<meta name="description" content="从内核态/用户态出发，把进程、虚拟内存、文件系统、I/O 栈、系统调用与调度器一次讲透。每一节都给出可在终端验证的命令和量级数字。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="操作系统基础深度解析">
+<meta property="og:description" content="从内核态/用户态出发，把进程、虚拟内存、文件系统、I/O 栈、系统调用与调度器一次讲透。每一节都给出可在终端验证的命令和量级数字。">
+<meta property="og:url" content="https://www.chenk.top/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+        
+      </div>
+      <h1>操作系统基础深度解析</h1>
+      <p class="deck">从内核态/用户态出发，把进程、虚拟内存、文件系统、I/O 栈、系统调用与调度器一次讲透。每一节都给出可在终端验证的命令和量级数字。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-08-28">August 28, 2022</time> · 18 min read · 9000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/operating-system/" class="tag">#Operating System</a><a href="/zh/tags/linux/" class="tag">#Linux</a><a href="/zh/tags/kernel/" class="tag">#Kernel</a><a href="/zh/tags/computer-fundamentals/" class="tag">#Computer Fundamentals</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>打开一个终端，敲下 <code>cat hello.txt</code>。在你按下回车的那一瞬间，发生了至少七层下钻：bash 解析命令 -&gt; fork+execve 启动 cat 进程 -&gt; 进程的内存被分配虚拟地址空间 -&gt; cat 调用 <code>read()</code> 触发 syscall -&gt; CPU 切到内核态 -&gt; VFS 转发到 ext4 -&gt; 块层给 NVMe 排好请求 -&gt; 硬件通过 DMA 把字节送回 -&gt; 中断把控制权交还给 cat -&gt; 字节经过页缓存复制到用户缓冲区 -&gt; 屏幕上出现内容。</p>
+<p>整个过程大概 100 微秒，你看到的只是最后那一帧。这篇文章的目标，是把这条路径上的<strong>每一层</strong>都拆开，让你在遇到性能问题、奇怪的权限问题、或者「为什么我的程序卡在 D 状态」时，能直接定位到是哪一层出了事。</p>
+<h2 id="读完你能做到">读完你能做到</h2>
+<ul>
+<li>准确说出 monolithic 与 microkernel 的真实差异，以及为什么 Linux 至今没有走 microkernel 路线。</li>
+<li>看到一个 <code>ps</code> 输出里的 <code>D</code>/<code>S</code>/<code>R</code>/<code>Z</code>，知道每个状态对应进程生命周期的哪一格、要等什么事件才能离开。</li>
+<li>理解一次「进程访问一个变量」背后 MMU/TLB/页表/page fault/swap 的完整链路，并能算出每一级的数量级开销。</li>
+<li>看明白 <code>ls -li</code> 输出里 inode、nlink、blocks 三列分别在说什么，能解释 <code>rm</code> 后空间没释放的原因。</li>
+<li>把一次 <code>read()</code> 系统调用从 glibc 一路追到 NVMe 队列，并能定位「为什么我的 IO 慢」是在哪一层。</li>
+<li>比较 FCFS / SJF / RR / CFS 四种调度策略的优劣，理解 Linux 为什么选 CFS 而不是 RR。</li>
+</ul>
+<h2 id="前置">前置</h2>
+<ul>
+<li>至少写过一些 C 或者用过 Python 调过 OS 接口（<code>os.read</code>、<code>os.fork</code> 之类）。</li>
+<li>用过 Linux，知道 <code>top</code>、<code>ps</code>、<code>strace</code>、<code>/proc</code> 大致是干嘛的。</li>
+<li>不要求看过《操作系统：三只小猪》，但看过会更顺。</li>
+</ul>
+<hr>
+<h1 id="1-操作系统到底在做什么">1. 操作系统到底在做什么</h1>
+<p>操作系统（Operating System，OS）这个名字其实有点误导人——它听上去像一个「系统」，实际上是一组解决<strong>多人共用一台机器</strong>这件事的代码集合。如果一台机器上永远只跑一个程序、永远只有一个用户、硬件永远不会出错，OS 大部分代码都可以删掉。OS 之所以复杂，是因为现实里：</p>
+<ul>
+<li><strong>CPU 只有几十个核</strong>，但要跑成百上千个进程 -&gt; 需要<strong>调度器</strong>。</li>
+<li><strong>物理内存只有几十 GB</strong>，但每个进程都希望「我独占整台机器的地址空间」 -&gt; 需要<strong>虚拟内存</strong>。</li>
+<li><strong>硬件型号上千种</strong>，但应用程序不想知道 NVMe 和 SATA 的区别 -&gt; 需要<strong>驱动 + VFS 抽象</strong>。</li>
+<li><strong>多个进程要共享文件、内存、socket</strong>，但不能互相破坏 -&gt; 需要<strong>权限 + 隔离</strong>。</li>
+</ul>
+<p>把这四件事记住，下面所有章节都能挂在它们底下。我们会按「最贴近 CPU 的部分先讲」的顺序展开：内核架构 -&gt; 进程 -&gt; 内存 -&gt; 文件 -&gt; I/O -&gt; 系统调用 -&gt; 调度。</p>
+<h1 id="2-内核架构单内核-vs-微内核">2. 内核架构：单内核 vs 微内核</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig1_kernel_architectures.png" alt="Monolithic vs Microkernel — what runs in kernel mode" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>「内核态」和「用户态」是 CPU 提供的硬件特性（x86 上是 ring 0 和 ring 3）。在内核态可以执行特权指令、直接访问任意物理内存、控制中断。用户态不行——你的浏览器、数据库、bash，全部跑在 ring 3，想访问硬件只能通过内核<strong>借</strong>。</p>
+<p>这一刀切下去之后，内核里到底应该塞多少东西？这就是单内核（monolithic）和微内核（microkernel）的核心分歧。</p>
+<h2 id="21-单内核什么都塞进去">2.1 单内核：什么都塞进去</h2>
+<p>Linux、FreeBSD、Windows NT（实际上是 hybrid）都属于这一派。<strong>调度器、内存管理、文件系统、TCP/IP 栈、设备驱动</strong>全部住在内核地址空间里，互相直接调函数，不需要走任何隔离机制。</p>
+<ul>
+<li><strong>优点：快。</strong> 文件系统模块要给网络栈传数据，就是一次普通的函数调用，没有任何边界开销。</li>
+<li><strong>缺点：脆弱。</strong> 任何一个驱动崩溃 = 整个内核 panic。Linux 内核里 70% 的代码是驱动，新硬件就是新风险。</li>
+<li><strong>缓解办法：模块化。</strong> Linux 把驱动做成可加载模块（<code>*.ko</code>），运行时 <code>insmod</code>/<code>rmmod</code>。但模块本身<strong>仍然在内核地址空间里</strong>，bug 一样能搞死内核——只是降低了编译和发布耦合。</li>
+</ul>
+<h2 id="22-微内核只留必需的">2.2 微内核：只留必需的</h2>
+<p>Mach、L4、seL4、QNX 走的是另一条路。内核里只留<strong>进程间通信（IPC）、调度、最低限度的内存管理</strong>，文件系统、网络栈、驱动<strong>全都做成普通用户态进程</strong>。</p>
+<ul>
+<li><strong>优点：隔离。</strong> 网卡驱动崩溃 = 一个用户进程崩溃，重启它即可，内核不动。seL4 甚至做了形式化证明：在它的规约下，内核保证不会崩溃。</li>
+<li><strong>缺点：慢。</strong> 一次「打开文件」原本是一个函数调用，现在变成「应用 -&gt; 内核 IPC -&gt; 文件服务进程 -&gt; 内核 IPC -&gt; 块设备服务进程」，每一跳都是一次上下文切换。</li>
+<li><strong>现实使用：</strong> QNX 在汽车、医疗、工业控制里跑了几十年；macOS / iOS 的 XNU 是 Mach 微内核 + BSD 单内核拼出来的「混合内核」；纯微内核在通用桌面 / 服务器上仍然是少数派。</li>
+</ul>
+<h2 id="23-为什么-linux-没换成微内核">2.3 为什么 Linux 没换成微内核</h2>
+<p>1990 年 Tanenbaum 和 Linus 的著名论战里，Tanenbaum 说「Linux 用单内核已经过时了」。三十多年过去，Linux 仍然是单内核。原因不浪漫：</p>
+<ul>
+<li><strong>性能数字说话。</strong> 微内核的 IPC 开销（即使在 L4 这种极致优化的实现上）也比函数调用大一个数量级。</li>
+<li><strong>生态惯性。</strong> 全世界几十万个 Linux 内核驱动重写一遍是不可能的。</li>
+<li><strong>「足够安全」的中间路线。</strong> 内核地址空间随机化（KASLR）、模块签名、eBPF 把不可信代码沙箱化、用户态文件系统（FUSE）等手段，让单内核也能在大部分场景下做到「驱动出 bug 不直接 panic」。</li>
+</ul>
+<p>记住这张图后，每次看到内核 oops 或 BSOD，你就知道：那是单内核的代价。每次看到一个驱动崩溃却没拖垮系统（比如手机 wifi 模块自己重启），那很可能是微内核思想在某个层面被借用了。</p>
+<h1 id="3-进程与状态机">3. 进程与状态机</h1>
+<p>进程是 OS 给「正在运行的程序」记账的单位。每个进程都有自己的：地址空间、文件描述符表、信号处理表、CPU 上下文（寄存器）、调度状态。当 OS 决定让一个进程下 CPU、让另一个进程上 CPU 的时候，就是把前者的寄存器存到内存里、把后者的寄存器从内存里恢复——这叫<strong>上下文切换</strong>，每次大概 1~5 微秒。</p>
+<h2 id="31-五状态生命周期">3.1 五状态生命周期</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig2_process_states.png" alt="Five-state process lifecycle" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>任何时刻，每个进程都恰好处于这五个状态之一：</p>
+<table>
+  <thead>
+      <tr>
+          <th>状态</th>
+          <th>Linux ps 列里的字母</th>
+          <th>含义</th>
+          <th>离开的事件</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>NEW</strong></td>
+          <td>(短暂)</td>
+          <td>正在创建（<code>fork</code> 和 <code>execve</code> 之间）</td>
+          <td>内核完成进程结构，转 READY</td>
+      </tr>
+      <tr>
+          <td><strong>READY</strong></td>
+          <td><code>R</code> (Runnable)</td>
+          <td>万事俱备，等 CPU</td>
+          <td>调度器选中 -&gt; RUNNING</td>
+      </tr>
+      <tr>
+          <td><strong>RUNNING</strong></td>
+          <td><code>R</code> (实际占着 CPU)</td>
+          <td>正在执行用户代码或内核代码</td>
+          <td>时间片用完 / 调用阻塞 syscall / 退出</td>
+      </tr>
+      <tr>
+          <td><strong>BLOCKED</strong></td>
+          <td><code>S</code> (可中断) / <code>D</code> (不可中断)</td>
+          <td>在等某个事件（I/O、锁、子进程）</td>
+          <td>事件到达 -&gt; READY</td>
+      </tr>
+      <tr>
+          <td><strong>TERMINATED</strong></td>
+          <td><code>Z</code> (Zombie)</td>
+          <td>跑完了但 PCB 还在等父进程 wait()</td>
+          <td>父进程读走退出码 -&gt; 完全消失</td>
+      </tr>
+  </tbody>
+</table>
+<p>值得专门记住两件事：</p>
+<ol>
+<li><strong>READY 和 RUNNING 在 ps 里都是 <code>R</code>。</strong> Linux 把「能跑」和「正在跑」合并显示，因为时间分辨率太短，区分意义不大。</li>
+<li><strong><code>D</code> 状态杀不掉。</strong> <code>kill -9</code> 都没用。这是因为进程正在内核里等一个不能取消的硬件操作（比如 NFS 读写卡死）。看到大量 <code>D</code> 进程，第一个怀疑对象是底层存储 / 网络。</li>
+</ol>
+<h2 id="32-上下文切换的真实开销">3.2 上下文切换的真实开销</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 用 vmstat 看切换频率（cs 列，单位是次/秒）</span>
+</span></span><span class="line"><span class="cl">vmstat <span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 用 perf 看一次切换的具体周期</span>
+</span></span><span class="line"><span class="cl">perf stat -e context-switches,task-clock sleep <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一次切换的直接成本约 1~5 微秒（保存/恢复寄存器、切页表、更新调度统计），间接成本是 <strong>缓存污染</strong>——新进程的工作集要重新加载到 L1/L2 cache，可能再多花几微秒到几十微秒。所以<strong>线程数远多于核心数</strong>几乎一定会变慢，不是因为 CPU 算不过来，而是因为切换在烧时间。</p>
+<h2 id="33-进程-vs-线程-vs-协程">3.3 进程 vs 线程 vs 协程</h2>
+<p>这三个词每天都在被混用。一句话区分：</p>
+<ul>
+<li><strong>进程</strong>：独立地址空间。隔离最好，创建最贵（fork 要复制页表）。</li>
+<li><strong>线程</strong>：同一地址空间。共享内存最方便，但要自己处理同步。Linux 上线程其实就是「共享更多东西的进程」，由 <code>clone()</code> 系统调用控制共享什么。</li>
+<li><strong>协程</strong>：用户态调度。OS 完全看不到，没有 syscall 开销，但需要程序自己交出 CPU（<code>await</code>）。一台机器上可以轻松跑几十万个协程。</li>
+</ul>
+<table>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>进程</th>
+          <th>线程</th>
+          <th>协程</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>调度者</td>
+          <td>OS 内核</td>
+          <td>OS 内核</td>
+          <td>用户态运行时</td>
+      </tr>
+      <tr>
+          <td>切换成本</td>
+          <td>~5 us</td>
+          <td>~3 us</td>
+          <td>~100 ns</td>
+      </tr>
+      <tr>
+          <td>内存隔离</td>
+          <td>强</td>
+          <td>无（同进程内）</td>
+          <td>无</td>
+      </tr>
+      <tr>
+          <td>适合场景</td>
+          <td>多服务、安全边界</td>
+          <td>计算密集 + 共享内存</td>
+          <td>高并发 I/O</td>
+      </tr>
+  </tbody>
+</table>
+<h1 id="4-虚拟内存每个进程都以为自己独占机器">4. 虚拟内存：每个进程都以为自己独占机器</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig3_virtual_memory.png" alt="Virtual memory &#43; paging" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>直接让进程访问物理地址有三个无解的问题：</p>
+<ol>
+<li><strong>冲突。</strong> 两个程序都想用 0x1000，谁让谁？</li>
+<li><strong>隔离。</strong> 进程 A 有没有办法读到进程 B 的密码？</li>
+<li><strong>超额。</strong> 32 个进程每个想用 4 GB，机器只有 16 GB，怎么办？</li>
+</ol>
+<p>虚拟内存把所有问题一起解决：每个进程拿到一份<strong>自己的虚拟地址空间</strong>（64 位下名义上 256 TB），由 MMU 硬件 + 内核维护的<strong>页表</strong>翻译成物理地址。</p>
+<h2 id="41-翻译流程">4.1 翻译流程</h2>
+<p>地址按页（page，通常 4 KiB）切分。一个虚拟地址 = <code>[VPN | offset]</code>，VPN 经过页表映射成 PFN（physical frame number），物理地址 = <code>[PFN | offset]</code>。</p>
+<ul>
+<li><strong>TLB（Translation Lookaside Buffer）：</strong> MMU 上的小缓存，通常几百到几千项。命中是 1 个 cycle，没命中要走页表（4 级页表 = 4 次内存访问 ~= 100 cycles）。</li>
+<li><strong>多级页表：</strong> 64 位下如果用单级页表，光页表本身就要占数 PB。Linux 现在用 5 级页表（PML5），按需展开，只为真正使用的虚拟地址范围分配页表项。</li>
+<li><strong>页表项里的标志位：</strong> R/W/X（权限）、Present（是否在物理内存里）、Dirty（写过没）、Accessed（最近访问过没）、User/Supervisor。这些位是<strong>所有内存安全和性能优化的基础</strong>——COW、mmap、swap、KSM 全都靠它们。</li>
+</ul>
+<h2 id="42-page-fault-路径">4.2 page fault 路径</h2>
+<p>如果 PTE 的 Present 位是 0，CPU 直接抛 <strong>page fault</strong> 异常，跳到内核处理。三种典型情况：</p>
+<ol>
+<li><strong>Minor fault（按需分配）：</strong> 进程 <code>malloc</code> 了 1 GB 但还没真正写过——内核此刻才真给它分配物理页，并把 PTE 写好。</li>
+<li><strong>Major fault（从 swap 调入）：</strong> 那一页之前被换到了磁盘上的 swap 空间，要把它读回内存。这是慢动作，10 ms 量级。</li>
+<li><strong>Segfault（非法访问）：</strong> 那一页根本不属于这个进程的合法地址范围 -&gt; 发 SIGSEGV，进程多半挂掉。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 看进程的 page fault 数</span>
+</span></span><span class="line"><span class="cl">ps -o min_flt,maj_flt,cmd -p &lt;pid&gt;
+</span></span><span class="line"><span class="cl"><span class="c1"># 看全机的 page fault 速率</span>
+</span></span><span class="line"><span class="cl">sar -B <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>maj_flt</code> 持续增长 = 在频繁换页，性能会塌方。这是「机器在 swap」的硬指标，比看 free 列直观得多。</p>
+<h2 id="43-一些每天都用但你可能没意识到是虚拟内存在干活的功能">4.3 一些每天都用、但你可能没意识到是虚拟内存在干活的功能</h2>
+<ul>
+<li><strong><code>fork()</code> 的 Copy-on-Write：</strong> fork 不真的复制 4 GB，而是把父子的所有页都标记为只读 + 共享，谁先写谁触发 fault，到时再复制那一页。</li>
+<li><strong><code>mmap()</code> 把文件映射成内存：</strong> 你以为在读内存，其实 OS 在按需读磁盘。<code>/usr/bin/python</code> 这种共享库，所有 Python 进程都映射到同一份物理页上。</li>
+<li><strong>OOM killer：</strong> 当物理 + swap 也不够用时，内核挑一个「分数最高」的进程杀掉。<code>/proc/&lt;pid&gt;/oom_score</code> 决定谁倒霉。</li>
+<li><strong>大页（huge pages）：</strong> 把页大小从 4 KiB 改到 2 MiB 或 1 GiB，TLB 覆盖范围放大 512 倍。数据库（PostgreSQL、Redis）经常配。</li>
+</ul>
+<p>数量级要记住：</p>
+<table>
+  <thead>
+      <tr>
+          <th>事件</th>
+          <th>时间</th>
+          <th>相对慢多少</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>L1 cache 命中</td>
+          <td>1 ns</td>
+          <td>1x</td>
+      </tr>
+      <tr>
+          <td>TLB 命中 + L1 命中</td>
+          <td>~1 ns</td>
+          <td>1x</td>
+      </tr>
+      <tr>
+          <td>TLB miss + 页表遍历</td>
+          <td>~30 ns</td>
+          <td>30x</td>
+      </tr>
+      <tr>
+          <td>RAM 访问</td>
+          <td>~100 ns</td>
+          <td>100x</td>
+      </tr>
+      <tr>
+          <td>page fault（minor，无 I/O）</td>
+          <td>~1 us</td>
+          <td>1,000x</td>
+      </tr>
+      <tr>
+          <td>page fault（major，从 SSD swap）</td>
+          <td>~80 us</td>
+          <td>80,000x</td>
+      </tr>
+      <tr>
+          <td>page fault（major，从 HDD swap）</td>
+          <td>~10 ms</td>
+          <td>10,000,000x</td>
+      </tr>
+  </tbody>
+</table>
+<p>「慢」是有量级的。性能优化的第一步永远是判断你在跟哪个量级打交道。</p>
+<h1 id="5-文件系统名字元数据数据是三件不同的事">5. 文件系统：名字、元数据、数据是三件不同的事</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig4_file_system.png" alt="Inode-based file system" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>很多人以为「文件 = 一段字节 + 一个名字」。这是用户视角。在内核里它分成三层：</p>
+<ol>
+<li><strong>目录项（dirent）：</strong> 名字 -&gt; inode 号的映射。目录就是「特殊的文件」，里面装着一堆 dirent。</li>
+<li><strong>inode：</strong> 文件的元数据 + 指向数据块的指针。<strong>没有名字。</strong></li>
+<li><strong>数据块（block）：</strong> 真正存字节的地方，通常 4 KiB 一块。</li>
+</ol>
+<p>把这三层分开，是 Unix 文件系统的设计精髓。它直接解释了一堆原本看着诡异的现象：</p>
+<h2 id="51-为什么-mv-在同一个分区里是瞬时的">5.1 为什么 <code>mv</code> 在同一个分区里是瞬时的？</h2>
+<p><code>mv a.txt b.txt</code>：只是把目录里 <code>a.txt -&gt; ino 42</code> 这条 dirent 改成 <code>b.txt -&gt; ino 42</code>。inode 没动，数据块更没动。零字节复制。跨分区就不行了，因为另一个文件系统的 inode 表是独立的，必须真复制。</p>
+<h2 id="52-为什么-rm-不一定真删数据">5.2 为什么 <code>rm</code> 不一定真删数据？</h2>
+<p><code>rm</code> 做的是 (1) 删 dirent (2) <code>nlink--</code>。当 <code>nlink</code> 减到 0 <strong>且</strong> 没有任何进程还打开着这个文件时，inode 才真正被释放，数据块才被标记为 free。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 一个文件被进程打开着，rm 之后空间不会立刻释放</span>
+</span></span><span class="line"><span class="cl">lsof <span class="p">|</span> grep deleted  <span class="c1"># 找出来这种「僵尸文件」</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这是一个常见的「磁盘满了但找不到大文件」的根因：日志被 logrotate 删了，但应用还开着 fd 在写。重启那个应用 = 释放空间。</p>
+<h2 id="53-硬链接-vs-软链接">5.3 硬链接 vs 软链接</h2>
+<ul>
+<li><strong>硬链接 (<code>ln a b</code>)：</strong> 在同一个 inode 上挂多个名字。<code>nlink</code> 加一。删任一个名字其他都还在。<strong>不能跨分区</strong>（inode 号在分区内才唯一）、<strong>不能链接目录</strong>（避免成环）。</li>
+<li><strong>软链接 (<code>ln -s a b</code>)：</strong> 一个独立的 inode，里面只存目标的路径字符串。可以跨分区、可以指向不存在的目标（dangling link）、被指目标删了它就坏了。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls -li  <span class="c1"># 第二列是 nlink。普通文件 1，目录至少 2（自己 + . 引用）</span>
+</span></span><span class="line"><span class="cl">stat foo
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="54-块指针为什么-inode-大小固定但能存超大文件">5.4 块指针：为什么 inode 大小固定，但能存超大文件？</h2>
+<p>经典 Unix inode 里有 12 个直接块指针（直接指数据块）+ 1 个一级间接 + 1 个二级间接 + 1 个三级间接。块大小 4 KiB 时：</p>
+<ul>
+<li>直接：12 * 4 KiB = 48 KiB</li>
+<li>一级间接：(4 KiB / 4 B) * 4 KiB = 4 MiB</li>
+<li>二级间接：~4 GiB</li>
+<li>三级间接：~4 TiB</li>
+</ul>
+<p>绝大多数文件 &lt; 48 KiB，所以小文件直接命中、零额外读。大文件付出 1~3 次额外 I/O 就能定位到任意 4 KiB。这是「为常见情况优化」最经典的例子之一。</p>
+<p>现代文件系统（ext4、xfs、btrfs、ZFS）改用 <strong>extent</strong>（连续区间）替代「指针指向单块」，进一步减少元数据开销，但「inode 是元数据 + 块定位结构」的核心不变。</p>
+<h2 id="55-vfs把所有文件状的东西都叫文件">5.5 VFS：把所有「文件状的东西」都叫文件</h2>
+<p>Linux 在文件系统之上加了一层 <strong>VFS（Virtual File System）</strong>，让不同的文件系统、网络挂载、伪文件系统都暴露同一套 <code>open/read/write/seek/close</code> 接口。这就是为什么你可以：</p>
+<ul>
+<li><code>cat /proc/cpuinfo</code> 读 CPU 信息（procfs，纯虚构的文件）</li>
+<li><code>cat /sys/class/net/eth0/address</code> 读 MAC 地址（sysfs）</li>
+<li><code>echo mem &gt; /sys/power/state</code> 让机器睡眠</li>
+<li>用 FUSE 把 SSH 远端目录挂载成本地路径</li>
+</ul>
+<p>「一切皆文件」不是哲学口号，是 VFS 把它实现出来的工程结果。</p>
+<h1 id="6-io-子系统一次-read-下钻七层">6. I/O 子系统：一次 read() 下钻七层</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig5_io_subsystem.png" alt="The I/O stack" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>read(fd, buf, 4096)</code> 看起来是一行代码，背后是一个七层下钻 + 一次中断回调。我们按层走一遍：</p>
+<ol>
+<li><strong>应用层。</strong> 调 glibc 的 <code>read()</code> 包装函数。</li>
+<li><strong>系统调用接口。</strong> 包装函数把寄存器准备好，执行 <code>syscall</code> 指令陷入内核。CPU 切到 ring 0，跳到 <code>entry_SYSCALL_64</code> 入口。</li>
+<li><strong>VFS。</strong> 内核根据 fd 找到 <code>struct file *</code>，按它指向的 <code>file_operations.read</code> 派发到具体文件系统。</li>
+<li><strong>具体文件系统（ext4）。</strong> 把文件偏移翻译成块号（走 inode 的 extent 树）。</li>
+<li><strong>页缓存（page cache）。</strong> 先看这块是不是已经在内存里。<strong>命中</strong>就直接 <code>copy_to_user(buf)</code> 返回，整个流程在几微秒内结束。<strong>这是 99% 的热数据走的路径。</strong></li>
+<li><strong>块层。</strong> 没命中，构造一个 BIO（块 I/O 描述符），交给块层调度。块层会<strong>合并</strong>相邻 BIO（电梯算法 / mq-deadline / kyber），减少机械硬盘的寻道。</li>
+<li><strong>设备驱动。</strong> NVMe 驱动把 BIO 翻译成 NVMe 命令，提交到硬件队列（submission queue）。</li>
+<li><strong>硬件。</strong> SSD 控制器执行命令，通过 <strong>DMA</strong> 把数据直接写到内核分配好的物理页里（不走 CPU），完成后<strong>触发中断</strong>通知 CPU。</li>
+</ol>
+<p>中断处理把数据复制到用户 buf，唤醒之前 sleep 的进程。控制权回到 read() 调用者。</p>
+<h2 id="61-为什么这么多层">6.1 为什么这么多层</h2>
+<p>每一层都对应一个抽象：</p>
+<table>
+  <thead>
+      <tr>
+          <th>层</th>
+          <th>抽象的是</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>系统调用接口</td>
+          <td>用户态/内核态权限边界</td>
+      </tr>
+      <tr>
+          <td>VFS</td>
+          <td>不同文件系统的 API 差异</td>
+      </tr>
+      <tr>
+          <td>文件系统</td>
+          <td>字节流 -&gt; 磁盘块的映射</td>
+      </tr>
+      <tr>
+          <td>页缓存</td>
+          <td>慢设备 + 快内存的速度差</td>
+      </tr>
+      <tr>
+          <td>块层</td>
+          <td>重排请求以优化设备</td>
+      </tr>
+      <tr>
+          <td>驱动</td>
+          <td>不同硬件的命令集差异</td>
+      </tr>
+  </tbody>
+</table>
+<p>少了哪一层，应用程序都要自己解决那个抽象。这就是为什么直接绕过 OS 写一个数据库引擎并不会比走 OS 快——OS 的这些优化都是几十年沉淀下来的。</p>
+<h2 id="62-同步异步io_uring">6.2 同步、异步、io_uring</h2>
+<p>经典 <code>read()</code> 是<strong>阻塞同步</strong>：调用者一直挂着等数据。这对一个进程一次只做一件 I/O 的程序很合适，但对要同时管 1 万个连接的服务器来说就挂掉了——每个连接一个线程？10000 个线程的上下文切换会把 CPU 跑冒烟。</p>
+<p>历代解法：</p>
+<ul>
+<li><strong><code>select</code>/<code>poll</code>/<code>epoll</code>：</strong> 一个线程同时盯多个 fd，谁就绪了通知。<strong>只能告诉你「现在可以发 read 了」，read 本身仍然是同步。</strong></li>
+<li><strong><code>aio</code>：</strong> Linux 早年的真正异步 I/O，但只支持 direct I/O，bug 很多，没真正流行起来。</li>
+<li><strong><code>io_uring</code>（Linux 5.1+）：</strong> 现代答案。用户态和内核共享两个环形队列（提交 + 完成），单次 syscall 可以提交几十个 I/O，内核完成后写回完成队列，用户态自己来取。系统调用次数指数级下降，是高性能 I/O 库（QUIC 服务器、新一代数据库）的首选。</li>
+</ul>
+<h2 id="63-慢-io的诊断顺序">6.3 「慢 IO」的诊断顺序</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 应用层视角</span>
+</span></span><span class="line"><span class="cl">strace -e <span class="nv">trace</span><span class="o">=</span>read,write -T -p &lt;pid&gt;   <span class="c1"># -T 显示每个 syscall 用了多少时间</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 块层视角</span>
+</span></span><span class="line"><span class="cl">iostat -x <span class="m">1</span>                              <span class="c1"># await 列：单次 IO 平均耗时</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 设备层视角</span>
+</span></span><span class="line"><span class="cl">iostat -x <span class="m">1</span> <span class="p">|</span> awk <span class="s1">&#39;/nvme|sda/ {print}&#39;</span>   <span class="c1"># %util、svctm</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 页缓存命中率</span>
+</span></span><span class="line"><span class="cl">cat /proc/meminfo <span class="p">|</span> grep -E <span class="s1">&#39;Cached|Buffers&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从应用追到设备，定位「慢」是哪一层带来的。常见误区：看到 CPU 不忙就以为系统闲着——其实可能整台机器都在等 I/O，<code>vmstat</code> 的 <code>wa</code> 列才是真相。</p>
+<h1 id="7-系统调用用户态唯一合法的求救信号">7. 系统调用：用户态唯一合法的求救信号</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig6_syscall_interface.png" alt="The system call boundary" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>用户态程序想做任何「特权」操作（读文件、发包、申请新内存、创建进程），都必须通过系统调用。这是操作系统能保证安全的根本机制——CPU 在 ring 3 时根本执行不了某些指令，唯一切到 ring 0 的方式就是 <code>syscall</code> / <code>int 0x80</code> / <code>sysenter</code> 这类<strong>陷阱指令</strong>。</p>
+<h2 id="71-一次-syscall-的步骤">7.1 一次 syscall 的步骤</h2>
+<ol>
+<li><strong>C 库包装。</strong> 应用代码里的 <code>read(fd, buf, n)</code> 是 glibc 的普通函数。</li>
+<li><strong>寄存器准备。</strong> glibc 把 syscall 号放进 <code>rax</code>（Linux x86_64 约定），参数放进 <code>rdi</code>、<code>rsi</code>、<code>rdx</code>、<code>r10</code>、<code>r8</code>、<code>r9</code>。</li>
+<li><strong><code>syscall</code> 指令。</strong> CPU 把当前 RIP/RSP/EFLAGS 保存到 MSR，切换到 ring 0，跳到内核早就注册好的入口 <code>entry_SYSCALL_64</code>。</li>
+<li><strong>派发。</strong> 内核以 <code>rax</code> 为下标查 <code>sys_call_table</code>，跳到对应的内核函数（如 <code>sys_read</code>）。</li>
+<li><strong>执行。</strong> 走 VFS、文件系统、块层 ……（见上一章）。</li>
+<li><strong>返回。</strong> 结果写到 <code>rax</code>，执行 <code>sysret</code> 切回 ring 3。</li>
+</ol>
+<h2 id="72-syscall-的真实开销">7.2 syscall 的真实开销</h2>
+<p>一次「空 syscall」（什么都不做的 <code>getpid()</code>）在现代 CPU 上大约 100 ns。看上去不多，但相对来说：</p>
+<ul>
+<li><strong>普通函数调用：</strong> ~1 ns。<strong>syscall 比函数调用慢 100 倍。</strong></li>
+<li><strong>缓存影响：</strong> mode 切换会污染 L1/L2，下面几百个指令的 IPC 会下降。</li>
+<li><strong>Spectre/Meltdown 缓解（KPTI）：</strong> 切换时要刷 TLB，开销又被推高 30~50%。</li>
+</ul>
+<p>这就是为什么所有高性能 I/O 库都在<strong>批量化</strong> syscall：<code>sendmmsg</code> 一次发多个包、<code>io_uring</code> 一次提交多个 I/O、<code>vmsplice</code> 直接搬页表。本质都是「摊薄那 100 ns」。</p>
+<h2 id="73-用-strace-看-syscall">7.3 用 strace 看 syscall</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 看一个程序总共调了哪些 syscall、各多少次、各多慢</span>
+</span></span><span class="line"><span class="cl">strace -c ls /tmp
+</span></span><span class="line"><span class="cl"><span class="c1"># 实时跟一个运行中的进程</span>
+</span></span><span class="line"><span class="cl">strace -p &lt;pid&gt; -e <span class="nv">trace</span><span class="o">=</span>network
+</span></span><span class="line"><span class="cl"><span class="c1"># 跟踪 fork 出来的子进程</span>
+</span></span><span class="line"><span class="cl">strace -f ./run.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>写性能问题的诊断里，<code>strace -c</code> 通常 30 秒内告诉你瓶颈在哪——如果 <code>read</code> 占 80%，问题在 I/O；<code>futex</code> 占 80%，是锁争用；<code>epoll_wait</code> 占 80%，那大概率是健康的（在等事件）。</p>
+<h1 id="8-调度器四种策略同一组任务">8. 调度器：四种策略，同一组任务</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig7_schedulers.png" alt="Four schedulers, same workload" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>调度器决定「下一刻 CPU 让谁跑」。用同样的三个任务（P1 burst=8、P2 burst=4、P3 burst=2，依次到达）跑一遍四种经典策略，对比直观：</p>
+<h2 id="81-fcfs--先来先服务">8.1 FCFS — 先来先服务</h2>
+<p>谁先来谁先跑，跑完才让位。实现一行代码。问题叫<strong>护航效应（convoy effect）</strong>：一个 CPU-bound 长任务卡在前面，后面所有短任务都饿着。上图里 P3 等到 t=12 才跑，平均等待时间 5.67。</p>
+<p>适用场景：批处理后台、单任务系统。<strong>绝不用于交互式系统。</strong></p>
+<h2 id="82-sjf--最短作业优先">8.2 SJF — 最短作业优先</h2>
+<p>每次从就绪队列里挑剩余 burst 最短的。<strong>理论上平均等待时间最优</strong>。问题有两个：</p>
+<ol>
+<li><strong>谁知道未来 burst 多长？</strong> 不知道。只能用历史平均估计（Linux 早年的 nice + 老化算法）。</li>
+<li><strong>饥饿。</strong> 长任务可能永远等不到——只要短任务源源不断进来。</li>
+</ol>
+<h2 id="83-round-robin--时间片轮转">8.3 Round Robin — 时间片轮转</h2>
+<p>每个进程跑固定时长（quantum，通常 10~100 ms），到点就强制换下一个。<strong>没有饥饿、响应均匀</strong>——这就是早期分时操作系统能让二十个人共用一台机器的原因。</p>
+<p>调参的核心是 quantum：</p>
+<ul>
+<li>太小（&lt; 1 ms）：上下文切换占比过高，吞吐塌方。</li>
+<li>太大（&gt; 1 s）：交互响应卡顿，长任务又把 CPU 霸占了，退化成 FCFS。</li>
+</ul>
+<p>上图 quantum=2 时平均等待 4.33。</p>
+<h2 id="84-cfs--linux-现役">8.4 CFS — Linux 现役</h2>
+<p>Linux 从 2.6.23 开始用 CFS（Completely Fair Scheduler）。核心思想：<strong>给每个进程记一个 vruntime（虚拟运行时间），永远调度 vruntime 最小的那个</strong>。vruntime 按 nice 值加权——nice 高的进程 vruntime 涨得快，于是被调度的频率低。</p>
+<p>实现细节：</p>
+<ul>
+<li>用红黑树按 vruntime 排序，pick 最小是 O(log n)。</li>
+<li>没有固定 quantum，而是「目标时延 / 进程数」动态分配。8 个 runnable 进程、目标 6 ms -&gt; 每人跑 0.75 ms。</li>
+<li>I/O-bound 进程因为大部分时间在 sleep，vruntime 涨得慢，<strong>自动获得高优先级</strong>——这正是「交互式优先」的天然实现，不需要专门分类。</li>
+</ul>
+<p>上图 CFS 的等待时间最低（4.0）且最均匀。短任务 P3 1 单位等待就完成了。</p>
+<blockquote>
+<p>2024 年 Linux 6.6 引入了 EEVDF（Earliest Eligible Virtual Deadline First），是 CFS 的改进版，更适合现代 NUMA + 大量小任务的工作负载。思想一脉相承，工程细节不同。</p>
+</blockquote>
+<h2 id="85-实时调度">8.5 实时调度</h2>
+<p>CFS 是「公平调度」，对实时任务（音视频、机器人控制、汽车）不够。Linux 还有：</p>
+<ul>
+<li><strong><code>SCHED_FIFO</code>：</strong> 严格优先级，最高优先级的实时任务一上来就霸占 CPU 直到自己 sleep / 让出。</li>
+<li><strong><code>SCHED_RR</code>：</strong> 同优先级用 RR 切换。</li>
+<li><strong><code>SCHED_DEADLINE</code>（3.14+）：</strong> 给任务声明 (runtime, deadline, period)，内核保证在 deadline 前给到 runtime。基于 EDF 算法。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 看一个进程的调度类</span>
+</span></span><span class="line"><span class="cl">chrt -p &lt;pid&gt;
+</span></span><span class="line"><span class="cl"><span class="c1"># 用 SCHED_FIFO 优先级 50 跑一个程序</span>
+</span></span><span class="line"><span class="cl">chrt -f <span class="m">50</span> ./mybin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="9-把-7-张图串成一次完整的-cat-hellotxt">9. 把 7 张图串成一次完整的 <code>cat hello.txt</code></h1>
+<p>回到开头那个 <code>cat hello.txt</code>，用学过的所有零件复述一遍：</p>
+<ol>
+<li><strong>bash 解析命令</strong> -&gt; 调用 <code>fork()</code>：内核给新进程分配 PCB、复制虚拟地址空间（COW，所以瞬时完成）。父子都从 fork 返回。</li>
+<li><strong>子进程调 <code>execve(&quot;/bin/cat&quot;, ...)</code></strong>：清掉自己当前的虚拟地址空间，重新 mmap <code>/bin/cat</code> 的代码段、加载动态链接器、启动 main()。<strong>这一步发生了 N 次 minor page fault</strong>——cat 的代码页是按需分配的。</li>
+<li><strong>cat 调用 <code>open(&quot;hello.txt&quot;)</code></strong> -&gt; syscall（用户态切内核态，约 100 ns） -&gt; VFS -&gt; ext4 -&gt; 找到 dirent 「hello.txt -&gt; ino 1234」 -&gt; 读 inode 1234 进内存 -&gt; 返回 fd。</li>
+<li><strong>cat 调用 <code>read(fd, buf, 4096)</code></strong> -&gt; syscall -&gt; VFS -&gt; ext4：把文件偏移 0 翻译成 LBA 19528 -&gt; 查页缓存：<strong>未命中</strong> -&gt; 构造 BIO -&gt; 块层调度 -&gt; NVMe 驱动 -&gt; 硬件 DMA 把 4096 字节搬到内核页。</li>
+<li><strong>中断回调</strong> -&gt; 唤醒 cat（从 BLOCKED 切回 READY） -&gt; 调度器（CFS）选中它 -&gt; 上下文切换 -&gt; cat 在内核里执行 <code>copy_to_user(buf, page, 4096)</code> -&gt; 返回用户态。</li>
+<li><strong>cat 调用 <code>write(1, buf, n)</code></strong> -&gt; syscall -&gt; VFS -&gt; /dev/pts/0（伪终端） -&gt; tty 子系统 -&gt; 终端模拟器 -&gt; 屏幕。</li>
+<li><strong>cat 调用 <code>_exit(0)</code></strong> -&gt; syscall -&gt; 内核回收资源、把退出码塞 PCB、转 ZOMBIE -&gt; bash <code>wait()</code> 收尸。</li>
+</ol>
+<p>整个过程涉及：4 次主要 syscall、若干次 page fault、一次 NVMe 完整 I/O、若干次上下文切换、CFS 几次调度决策。<strong>每一步都对应了一张图。</strong> 这就是「理解操作系统」的真正含义——不是背概念，而是看一个具体动作，能说出底层每一步在干什么。</p>
+<h1 id="10-接下来读什么">10. 接下来读什么</h1>
+<p>按「越来越底」的顺序：</p>
+<ul>
+<li><strong>入门：</strong> <em>Operating Systems: Three Easy Pieces</em>（OSTEP，免费在线，强烈推荐）。</li>
+<li><strong>Linux 内核细节：</strong> <em>Understanding the Linux Kernel</em>（旧但经典）；新一点用 <em>Linux Kernel Development</em> (Robert Love)。</li>
+<li><strong>性能视角：</strong> Brendan Gregg 的 <em>Systems Performance</em> 和他的网站，是当代性能工程的圣经。</li>
+<li><strong>微内核 / 形式化：</strong> seL4 的论文 <em>seL4: Formal Verification of an OS Kernel</em>。</li>
+<li><strong>想动手：</strong> xv6（MIT 6.S081 的教学 OS），代码 1 万行就能跑起来一个真正的多进程内核。</li>
+<li><strong>Linux 子系统专题：</strong> 内核源码树里 <code>Documentation/</code> 是被严重低估的资料库；<code>/proc</code> 和 <code>/sys</code> 是活的文档。</li>
+</ul>
+<blockquote>
+<p>「操作系统」这个领域的好处是它的概念五十年没大变。你今天学的进程模型、虚拟内存、文件系统抽象，回到 1985 年的 BSD 同样适用，到 2050 年大概率还在。投入回报极高的一笔学习。</p>
+</blockquote>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#读完你能做到">读完你能做到</a></li>
+    <li><a href="#前置">前置</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#21-单内核什么都塞进去">2.1 单内核：什么都塞进去</a></li>
+    <li><a href="#22-微内核只留必需的">2.2 微内核：只留必需的</a></li>
+    <li><a href="#23-为什么-linux-没换成微内核">2.3 为什么 Linux 没换成微内核</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#31-五状态生命周期">3.1 五状态生命周期</a></li>
+    <li><a href="#32-上下文切换的真实开销">3.2 上下文切换的真实开销</a></li>
+    <li><a href="#33-进程-vs-线程-vs-协程">3.3 进程 vs 线程 vs 协程</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#41-翻译流程">4.1 翻译流程</a></li>
+    <li><a href="#42-page-fault-路径">4.2 page fault 路径</a></li>
+    <li><a href="#43-一些每天都用但你可能没意识到是虚拟内存在干活的功能">4.3 一些每天都用、但你可能没意识到是虚拟内存在干活的功能</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#51-为什么-mv-在同一个分区里是瞬时的">5.1 为什么 <code>mv</code> 在同一个分区里是瞬时的？</a></li>
+    <li><a href="#52-为什么-rm-不一定真删数据">5.2 为什么 <code>rm</code> 不一定真删数据？</a></li>
+    <li><a href="#53-硬链接-vs-软链接">5.3 硬链接 vs 软链接</a></li>
+    <li><a href="#54-块指针为什么-inode-大小固定但能存超大文件">5.4 块指针：为什么 inode 大小固定，但能存超大文件？</a></li>
+    <li><a href="#55-vfs把所有文件状的东西都叫文件">5.5 VFS：把所有「文件状的东西」都叫文件</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#61-为什么这么多层">6.1 为什么这么多层</a></li>
+    <li><a href="#62-同步异步io_uring">6.2 同步、异步、io_uring</a></li>
+    <li><a href="#63-慢-io的诊断顺序">6.3 「慢 IO」的诊断顺序</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#71-一次-syscall-的步骤">7.1 一次 syscall 的步骤</a></li>
+    <li><a href="#72-syscall-的真实开销">7.2 syscall 的真实开销</a></li>
+    <li><a href="#73-用-strace-看-syscall">7.3 用 strace 看 syscall</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#81-fcfs--先来先服务">8.1 FCFS — 先来先服务</a></li>
+    <li><a href="#82-sjf--最短作业优先">8.2 SJF — 最短作业优先</a></li>
+    <li><a href="#83-round-robin--时间片轮转">8.3 Round Robin — 时间片轮转</a></li>
+    <li><a href="#84-cfs--linux-现役">8.4 CFS — Linux 现役</a></li>
+    <li><a href="#85-实时调度">8.5 实时调度</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>18 min</strong></div>
+      <div class="row"><span>Word count</span><strong>9000</strong></div>
+      <div class="row"><span>Published</span><strong>Aug 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

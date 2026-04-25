@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Machine Learning Mathematical Derivations (12): XGBoost and LightGBM · Chen Kai Blog</title>
+<meta name="description" content="Derive XGBoost&#39;s second-order Taylor expansion, regularised objective and split-gain formula, then explore LightGBM&#39;s histogram algorithm, GOSS sampling and EFB bundling for industrial-scale gradient boosting.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/ml-math-derivations/12-xgboost-and-lightgbm/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/ml-math-derivations/12-xgboost-and-lightgbm/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Machine Learning Mathematical Derivations (12): XGBoost and LightGBM">
+<meta property="og:description" content="Derive XGBoost&#39;s second-order Taylor expansion, regularised objective and split-gain formula, then explore LightGBM&#39;s histogram algorithm, GOSS sampling and EFB bundling for industrial-scale gradient boosting.">
+<meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/12-xgboost-and-lightgbm/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Ml mathematical derivations</a>
+         · Chapter 12
+      </div>
+      <h1>Machine Learning Mathematical Derivations (12): XGBoost and LightGBM</h1>
+      <p class="deck">Derive XGBoost&#39;s second-order Taylor expansion, regularised objective and split-gain formula, then explore LightGBM&#39;s histogram algorithm, GOSS sampling and EFB bundling for industrial-scale gradient boosting.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-01-31">January 31, 2026</time> · 14 min read · 3000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/gradient-boosting/" class="tag">#Gradient Boosting</a><a href="/en/tags/xgboost/" class="tag">#XGBoost</a><a href="/en/tags/lightgbm/" class="tag">#LightGBM</a><a href="/en/tags/regularization/" class="tag">#Regularization</a><a href="/en/tags/histogram-algorithm/" class="tag">#Histogram Algorithm</a><a href="/en/tags/mathematical-derivation/" class="tag">#Mathematical Derivation</a><a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>XGBoost and LightGBM are the two libraries that quietly win most tabular-data battles &mdash; on Kaggle leaderboards, in fraud-detection pipelines, in ad ranking, in churn models. They share the same backbone (gradient-boosted trees, Part 11) but make very different engineering bets:</p>
+<ul>
+<li><strong>XGBoost</strong> sharpens the <em>math</em>: it brings the second derivative of the loss into the objective, regularises the tree itself, and turns split selection into a closed-form score.</li>
+<li><strong>LightGBM</strong> sharpens the <em>systems</em>: it bins features into a small histogram, grows trees leaf-by-leaf, throws away uninformative samples (GOSS) and bundles mutually exclusive sparse features (EFB).</li>
+</ul>
+<p>The result is two tools that look interchangeable from the API but behave very differently when $N$ or $d$ becomes large. This post derives every formula behind those choices so you can read a tuning guide and know <em>why</em> each knob exists.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>How XGBoost&rsquo;s second-order Taylor expansion produces a closed-form optimal leaf weight and a structure score for any tree.</li>
+<li>Why the split-gain formula carries a built-in pruning penalty $\gamma$.</li>
+<li>How LightGBM&rsquo;s histogram algorithm cuts the per-feature split cost from $O(N)$ to $O(K)$ and unlocks the histogram-subtraction trick.</li>
+<li>The exact statistical claim of GOSS and the constructive procedure of EFB.</li>
+<li>When level-wise growth dominates leaf-wise growth, and the opposite.</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>GBDT fundamentals (Part 11 of this series).</li>
+<li>First- and second-order Taylor expansion.</li>
+<li>Decision-tree splitting via impurity / gain.</li>
+</ul>
+<hr>
+<h2 id="boosting-in-one-picture">Boosting in one picture</h2>
+<p>Before any formulas, look at what gradient boosting actually does. We start from a constant prediction (the mean of $y$) and ask each new tree to model the <em>current residual</em>. Early trees absorb the gross structure; later trees clean up local mistakes.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/fig1_boosting_iterations.png" alt="Gradient boosting as iterative residual fitting" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>After one tree the fit is a coarse step function and residuals are huge; after a hundred small-step trees ($\eta = 0.1$) the ensemble has captured the underlying $\sin(1.5x) + 0.35x$ trend and the residuals are essentially noise. XGBoost and LightGBM differ only in <em>how</em> they fit each tree &mdash; the iterative skeleton above is identical.</p>
+<hr>
+<h2 id="xgboost-extreme-gradient-boosting">XGBoost: extreme gradient boosting</h2>
+<h3 id="regularised-objective">Regularised objective</h3>
+<p>Plain GBDT minimises empirical loss only. XGBoost adds a tree-complexity term so that the optimiser knows what a &ldquo;good&rdquo; tree looks like <em>as a function</em>:</p>
+$$
+\mathcal{L}^{(t)} \;=\; \sum_{i=1}^N L\bigl(y_i,\; \hat y_i^{(t-1)} + f_t(\mathbf{x}_i)\bigr) \;+\; \Omega(f_t),
+$$<p>where $\hat y_i^{(t-1)}$ is the prediction from the first $t-1$ rounds, $f_t$ is the new tree to be fitted, and</p>
+$$
+\Omega(f_t) \;=\; \gamma\, T \;+\; \tfrac{1}{2}\lambda \sum_{j=1}^T w_j^2.
+$$<ul>
+<li>$T$ is the number of leaves; the $\gamma T$ term is a <strong>per-leaf cost</strong> that acts as a soft pruning threshold.</li>
+<li>$w_j$ is the prediction stored at leaf $j$; the $\tfrac{1}{2}\lambda \sum w_j^2$ term is <strong>L2 shrinkage on leaf weights</strong>.</li>
+</ul>
+<h3 id="second-order-taylor-expansion">Second-order Taylor expansion</h3>
+<p>Expand the per-sample loss around the current prediction $\hat y_i^{(t-1)}$:</p>
+$$
+L\bigl(y_i,\; \hat y_i^{(t-1)} + f_t(\mathbf{x}_i)\bigr)
+\;\approx\; L\bigl(y_i,\; \hat y_i^{(t-1)}\bigr) + g_i\, f_t(\mathbf{x}_i) + \tfrac{1}{2}h_i\, f_t(\mathbf{x}_i)^2,
+$$<p>with the gradient and Hessian</p>
+$$
+g_i \;=\; \partial L / \partial \hat y_i^{(t-1)}, \qquad h_i \;=\; \partial^2 L / \partial (\hat y_i^{(t-1)})^2.
+$$<p>Dropping the constant zeroth-order term, the surrogate objective for round $t$ is purely quadratic in $f_t$:</p>
+$$
+\widetilde{\mathcal{L}}^{(t)} \;=\; \sum_{i=1}^N \Bigl[g_i\, f_t(\mathbf{x}_i) + \tfrac{1}{2}h_i\, f_t(\mathbf{x}_i)^2\Bigr] + \Omega(f_t).
+$$<p>This is the single design choice that separates XGBoost from classic GBDT: the second derivative $h_i$ enters the objective, giving Newton-style curvature information <em>for free</em>.</p>
+<h3 id="optimal-leaf-weight-and-structure-score">Optimal leaf weight and structure score</h3>
+<p>Represent the tree by a leaf-assignment $q : \mathbb{R}^d \to \{1,\ldots,T\}$ and weights $\mathbf{w}$. Group samples by their leaf, $I_j = \{ i : q(\mathbf{x}_i) = j \}$, and let</p>
+$$
+G_j = \sum_{i \in I_j} g_i, \qquad H_j = \sum_{i \in I_j} h_i.
+$$<p>The objective decouples across leaves:</p>
+$$
+\widetilde{\mathcal{L}}^{(t)} \;=\; \sum_{j=1}^T \Bigl[G_j\, w_j + \tfrac{1}{2}(H_j + \lambda)\, w_j^2\Bigr] + \gamma T.
+$$<p>Each leaf is now an independent quadratic in $w_j$. Setting $\partial / \partial w_j = 0$:</p>
+$$
+\boxed{\,w_j^{*} \;=\; -\frac{G_j}{H_j + \lambda}\,}
+$$<p>Substituting back gives the <strong>structure score</strong> &mdash; the best loss this tree shape can possibly achieve:</p>
+$$
+\widetilde{\mathcal{L}}^{*}(q) \;=\; -\frac{1}{2}\sum_{j=1}^{T}\frac{G_j^2}{H_j + \lambda} \;+\; \gamma T.
+$$<p>Lower is better. The score is a property of the <em>structure</em> $q$ alone &mdash; weights are already optimised away. This converts tree learning into a structure search.</p>
+<h3 id="split-gain">Split gain</h3>
+<p>When considering whether to split a leaf into a left ($I_L$) and right ($I_R$) child, the change in structure score is</p>
+$$
+\boxed{\;\text{Gain} \;=\; \frac{1}{2}\!\left[\frac{G_L^2}{H_L+\lambda} + \frac{G_R^2}{H_R+\lambda} - \frac{(G_L+G_R)^2}{H_L+H_R+\lambda}\right] - \gamma\;}
+$$<p>Two consequences worth pausing on:</p>
+<ol>
+<li>The bracket is the <strong>drop in the structure-score sum</strong>; it is always $\ge 0$ (Cauchy&ndash;Schwarz / variance reduction) before subtracting $\gamma$.</li>
+<li>The constant $\gamma$ enters as a <strong>threshold</strong>: if the structural improvement does not exceed $\gamma$, the split is rejected. There is no separate post-hoc pruning step &mdash; pruning is built into the gain.</li>
+</ol>
+<h3 id="gradients-for-the-standard-losses">Gradients for the standard losses</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Loss</th>
+          <th>$g_i$</th>
+          <th>$h_i$</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Squared, $\tfrac{1}{2}(y-\hat y)^2$</td>
+          <td>$\hat y_i - y_i$</td>
+          <td>$1$</td>
+      </tr>
+      <tr>
+          <td>Logistic, $-y\log p - (1-y)\log(1-p)$, $p = \sigma(\hat y)$</td>
+          <td>$p_i - y_i$</td>
+          <td>$p_i(1-p_i)$</td>
+      </tr>
+      <tr>
+          <td>Softmax (class $c$)</td>
+          <td>$p_{ic} - \mathbb{1}[y_i = c]$</td>
+          <td>$p_{ic}(1-p_{ic})$</td>
+      </tr>
+  </tbody>
+</table>
+<p>For squared loss $h_i = 1$, so the second-order objective collapses to ordinary residual fitting &mdash; XGBoost reduces to GBDT. For logistic and softmax the Hessian carries real information ($p(1-p)$ vanishes near saturation), and the Newton step pays off.</p>
+<h3 id="split-finding-algorithms">Split-finding algorithms</h3>
+<p>Once the gain formula is in hand, the only remaining question is <em>how</em> to enumerate candidate splits. Pre-sorting every feature gives the exact algorithm and an $O(N)$ cost per feature per node; the <em>approximate</em> algorithm proposes a small number of candidate quantiles (weighted by $h_i$, since $h_i$ acts as the per-sample importance in the quadratic). The <strong>sparsity-aware</strong> variant learns a default direction at each split for missing values and only iterates over non-missing entries &mdash; a quiet but huge win on sparse one-hot data.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/fig2_split_finding.png" alt="XGBoost exact pre-sorted scan vs LightGBM histogram scan" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The left panel scans every distinct value ($N-1$ candidates). The right panel buckets the same data into $K = 32$ bins and only evaluates $K-1$ candidate splits &mdash; yet picks essentially the same threshold and the same gain. That is the core LightGBM bet: most of the resolution in $N$ is wasted.</p>
+<hr>
+<h2 id="lightgbm-efficient-gradient-boosting">LightGBM: efficient gradient boosting</h2>
+<h3 id="histogram-algorithm">Histogram algorithm</h3>
+<p>LightGBM discretises every feature into $K$ integer bins (default 255) once, before training. For each leaf and each feature it then builds a histogram of $(G_b, H_b)$:</p>
+$$
+G_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} g_i, \qquad H_b \;=\; \sum_{i:\, \text{bin}(x_{ij}) = b} h_i.
+$$<p>Per-feature complexity collapses from $O(N)$ to $O(K)$ for both memory and split search:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Aspect</th>
+          <th>Exact (XGBoost)</th>
+          <th>Histogram (LightGBM)</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Memory per feature</td>
+          <td>$O(N)$</td>
+          <td>$O(K)$</td>
+      </tr>
+      <tr>
+          <td>Split search per feature</td>
+          <td>$O(N)$</td>
+          <td>$O(K)$</td>
+      </tr>
+      <tr>
+          <td>Cache-friendliness</td>
+          <td>poor (random access into pre-sort)</td>
+          <td>excellent (contiguous bins)</td>
+      </tr>
+  </tbody>
+</table>
+<p>There is also a <strong>histogram subtraction</strong> trick: once the histogram of one child is known, the sibling&rsquo;s histogram is just <em>parent minus child</em>. The cost of building both children is the cost of building one. In a deep tree this halves the work at every level.</p>
+<h3 id="leaf-wise-vs-level-wise-growth">Leaf-wise vs level-wise growth</h3>
+<p>XGBoost&rsquo;s default growth is <strong>level-wise</strong> (BFS): split every node at the current depth before going deeper. LightGBM is <strong>leaf-wise</strong> (best-first): always split the single leaf with the highest gain.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/fig5_growth.png" alt="Leaf-wise vs level-wise tree growth" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>For the same node budget, level-wise produces a balanced tree of depth $\log_2 T$ while leaf-wise can produce a long thin chain that sinks deep into one region of the input space. Leaf-wise usually achieves lower training loss with the same number of leaves &mdash; but it overfits aggressively unless you cap <code>max_depth</code> and <code>min_data_in_leaf</code>.</p>
+<h3 id="goss-gradient-based-one-side-sampling">GOSS: gradient-based one-side sampling</h3>
+<p>The Hessian-weighted gradient $g_i$ tells you exactly how much sample $i$ contributes to the next split. Most samples in a well-fit ensemble have $|g_i| \approx 0$ (they are already well predicted). Throwing them away costs almost nothing &mdash; <em>if</em> you compensate so that the $G$ and $H$ statistics remain unbiased.</p>
+<p>GOSS does this in three steps with constants $a, b \in (0, 1)$:</p>
+<ol>
+<li>Sort by $|g_i|$ descending; keep the top $a\cdot N$ samples (call this set $A$).</li>
+<li>Randomly sample $b \cdot N$ samples from the remaining $(1-a) N$ (call this set $B$).</li>
+<li>When computing $G_L, H_L, G_R, H_R$, weight every sample in $B$ by $\dfrac{1-a}{b}$ to undo the subsampling.</li>
+</ol>
+<p>The effective gain estimator becomes</p>
+$$
+\widetilde{\text{Gain}} \;=\; \frac{1}{2}\!\left[\frac{(G_L^A + \tfrac{1-a}{b}G_L^B)^2}{H_L^A + \tfrac{1-a}{b}H_L^B + \lambda} + \frac{(G_R^A + \tfrac{1-a}{b}G_R^B)^2}{H_R^A + \tfrac{1-a}{b}H_R^B + \lambda} - \cdots \right].
+$$<p>The LightGBM paper proves that the variance introduced by this subsampling is $O(1/\sqrt{n_l})$ for a leaf with $n_l$ samples &mdash; it shrinks faster than the natural sampling noise of the tree itself.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/fig3_goss.png" alt="GOSS keeps the informative tail and reweights the rest" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The right panel is the punchline: with $a = 0.20$ and $b = 0.10$, only <strong>30% of samples</strong> are touched per iteration, yet the reweighted total $G$ matches the full-data $G$ in expectation.</p>
+<h3 id="efb-exclusive-feature-bundling">EFB: exclusive feature bundling</h3>
+<p>High-dimensional sparse features (one-hot category dummies, bag-of-words, click flags) rarely fire together &mdash; if a row has <code>country = JP</code> it cannot also have <code>country = US</code>. EFB exploits this <strong>mutual exclusivity</strong> to compress the feature axis.</p>
+<p>Concretely, EFB constructs a <em>conflict graph</em>: features are nodes, and an edge between $f_i$ and $f_j$ is weighted by the number of rows where they are <em>both</em> non-zero. Bundling features with no edges between them is a graph-colouring problem, solved greedily: visit features in descending degree order and place each one in the first existing bundle that contains no conflicting neighbour.</p>
+<p>Once a bundle $\{f_{i_1}, f_{i_2}, \ldots\}$ is chosen, its members are merged into one column $\tilde f$ via integer offsets so their bins remain disjoint:</p>
+$$
+\tilde f_n \;=\; \begin{cases} \text{bin}(x_{n, i_k}) + o_k & \text{if } x_{n, i_k} \neq 0 \\ 0 & \text{otherwise} \end{cases}, \qquad o_k = \sum_{r < k} K_{i_r}.
+$$<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/fig4_efb.png" alt="EFB merges sparse exclusive features into one bundle" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Panel A shows a near-exclusive sparse block (think: 6 one-hot dummies). Panel B&rsquo;s red edges mark features that violate exclusivity; nodes are coloured by the bundle the greedy colourer assigned. Panel C shows the merged column: each original feature occupies a disjoint slice of the bin space, so the histogram for $\tilde f$ recovers exactly the per-feature statistics &mdash; but now there is <em>one</em> feature instead of three or four.</p>
+<p>In high-dimensional sparse problems EFB routinely cuts the effective $d$ by 5&ndash;10$\times$, which directly multiplies the histogram-construction speedup.</p>
+<hr>
+<h2 id="two-definitions-of-important">Two definitions of &ldquo;important&rdquo;</h2>
+<p>XGBoost and LightGBM both expose feature importances, but they answer different questions.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/fig6_feature_importance.png" alt="Feature importance: XGBoost gain vs LightGBM split count" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>XGBoost (gain)</strong> sums the gain term every time a feature is used for a split. It rewards features that produce <em>one or two huge splits</em>.</li>
+<li><strong>LightGBM (split count)</strong> counts how many splits use each feature. It rewards features that are picked <em>often</em>, even if each split is modest.</li>
+</ul>
+<p>The two rankings disagree &mdash; and both are correct, just for different questions. Use gain when you ask &ldquo;which features moved the loss?&rdquo;, split count when you ask &ldquo;which features did the model rely on across iterations?&rdquo;. For a model-agnostic alternative, SHAP values measure the marginal contribution to each prediction.</p>
+<hr>
+<h2 id="xgboost-vs-lightgbm-at-a-glance">XGBoost vs LightGBM at a glance</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Dimension</th>
+          <th>XGBoost</th>
+          <th>LightGBM</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Split strategy</td>
+          <td>Level-wise (BFS)</td>
+          <td>Leaf-wise (best-first)</td>
+      </tr>
+      <tr>
+          <td>Base algorithm</td>
+          <td>Pre-sorted exact / quantile sketch</td>
+          <td>Histogram, $K$ bins</td>
+      </tr>
+      <tr>
+          <td>Memory per feature</td>
+          <td>$O(N)$</td>
+          <td>$O(K)$</td>
+      </tr>
+      <tr>
+          <td>Sample efficiency</td>
+          <td>Row + column subsampling</td>
+          <td>GOSS</td>
+      </tr>
+      <tr>
+          <td>Sparse / categorical</td>
+          <td>Sparsity-aware default direction</td>
+          <td>EFB + native categorical</td>
+      </tr>
+      <tr>
+          <td>Failure mode</td>
+          <td>Slower on huge $N$</td>
+          <td>Overfits without <code>max_depth</code></td>
+      </tr>
+      <tr>
+          <td>Sweet spot</td>
+          <td>Small / medium $N$, careful tuning</td>
+          <td>Large $N$, large $d$, sparse features</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="training-cost-in-practice">Training cost in practice</h3>
+<p>The histogram + GOSS + EFB stack is what LightGBM trades into raw throughput:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/fig7_time_vs_accuracy.png" alt="Training time vs dataset size and Pareto view" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>At $N = 10^4$ all three libraries are within seconds of each other &mdash; the choice doesn&rsquo;t matter. At $N = 10^6$ LightGBM is roughly $5\times$ faster than XGBoost for indistinguishable test accuracy. CatBoost lands between them on speed but owns the categorical-heavy regime through ordered boosting.</p>
+<hr>
+<h2 id="a-minimal-xgboost-in-numpy">A minimal XGBoost in NumPy</h2>
+<p>The simplest implementation that captures the second-order objective, the closed-form leaf weight, the gain-based split and the $\gamma$-pruning behaviour:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">XGBoostTree</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;A single XGBoost tree: closed-form leaf weights + gain-based splits.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">min_child_weight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lambda_</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span> <span class="o">=</span> <span class="n">max_depth</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">min_child_weight</span> <span class="o">=</span> <span class="n">min_child_weight</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="n">lambda_</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tree</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tree</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_gain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">GL</span><span class="p">,</span> <span class="n">HL</span><span class="p">,</span> <span class="n">GR</span><span class="p">,</span> <span class="n">HR</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">H</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">GL</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">HL</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="o">+</span> <span class="n">GR</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">HR</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="o">-</span> <span class="n">G</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">H</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_best_split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">N</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">G</span><span class="p">,</span> <span class="n">H</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">h</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">best_gain</span><span class="p">,</span> <span class="n">best</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">xs</span><span class="p">,</span> <span class="n">gs</span><span class="p">,</span> <span class="n">hs</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">order</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">g</span><span class="p">[</span><span class="n">order</span><span class="p">],</span> <span class="n">h</span><span class="p">[</span><span class="n">order</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">GL</span><span class="p">,</span> <span class="n">HL</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">GL</span> <span class="o">+=</span> <span class="n">gs</span><span class="p">[</span><span class="n">i</span><span class="p">];</span> <span class="n">HL</span> <span class="o">+=</span> <span class="n">hs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="n">GR</span><span class="p">,</span> <span class="n">HR</span> <span class="o">=</span> <span class="n">G</span> <span class="o">-</span> <span class="n">GL</span><span class="p">,</span> <span class="n">H</span> <span class="o">-</span> <span class="n">HL</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">xs</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">HL</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_child_weight</span> <span class="ow">or</span> <span class="n">HR</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_child_weight</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">                <span class="n">gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gain</span><span class="p">(</span><span class="n">GL</span><span class="p">,</span> <span class="n">HL</span><span class="p">,</span> <span class="n">GR</span><span class="p">,</span> <span class="n">HR</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">H</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">gain</span> <span class="o">&gt;</span> <span class="n">best_gain</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">best_gain</span> <span class="o">=</span> <span class="n">gain</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">best</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">xs</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">best</span><span class="p">,</span> <span class="n">best_gain</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">G</span><span class="p">,</span> <span class="n">H</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">h</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">leaf_weight</span> <span class="o">=</span> <span class="o">-</span><span class="n">G</span> <span class="o">/</span> <span class="p">(</span><span class="n">H</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span><span class="p">)</span>            <span class="c1"># closed form</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">depth</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;w&#34;</span><span class="p">:</span> <span class="n">leaf_weight</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">split</span><span class="p">,</span> <span class="n">gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_best_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">gain</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>                    <span class="c1"># gamma-pruning here</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;w&#34;</span><span class="p">:</span> <span class="n">leaf_weight</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">j</span><span class="p">,</span> <span class="n">thr</span> <span class="o">=</span> <span class="n">split</span>
+</span></span><span class="line"><span class="cl">        <span class="n">m</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">thr</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;f&#34;</span><span class="p">:</span> <span class="n">j</span><span class="p">,</span> <span class="s2">&#34;t&#34;</span><span class="p">:</span> <span class="n">thr</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;L&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">m</span><span class="p">],</span> <span class="n">g</span><span class="p">[</span><span class="n">m</span><span class="p">],</span> <span class="n">h</span><span class="p">[</span><span class="n">m</span><span class="p">],</span> <span class="n">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;R&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="o">~</span><span class="n">m</span><span class="p">],</span> <span class="n">g</span><span class="p">[</span><span class="o">~</span><span class="n">m</span><span class="p">],</span> <span class="n">h</span><span class="p">[</span><span class="o">~</span><span class="n">m</span><span class="p">],</span> <span class="n">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">X</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_pred</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="s2">&#34;w&#34;</span> <span class="ow">in</span> <span class="n">n</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">n</span><span class="p">[</span><span class="s2">&#34;w&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">[</span><span class="s2">&#34;L&#34;</span><span class="p">]</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="n">n</span><span class="p">[</span><span class="s2">&#34;f&#34;</span><span class="p">]]</span> <span class="o">&lt;=</span> <span class="n">n</span><span class="p">[</span><span class="s2">&#34;t&#34;</span><span class="p">]</span> <span class="k">else</span> <span class="n">n</span><span class="p">[</span><span class="s2">&#34;R&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">XGBoost</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Additive ensemble with second-order gradient/Hessian boosting.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">gamma</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lambda_</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">objective</span><span class="o">=</span><span class="s2">&#34;mse&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span> <span class="o">=</span> <span class="n">n_estimators</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">=</span> <span class="n">lr</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span> <span class="o">=</span> <span class="n">max_depth</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="n">lambda_</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">objective</span> <span class="o">=</span> <span class="n">objective</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="p">[],</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_gh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective</span> <span class="o">==</span> <span class="s2">&#34;mse&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">p</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">p</span><span class="p">))</span>                     <span class="c1"># logistic</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">s</span> <span class="o">-</span> <span class="n">y</span><span class="p">,</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">s</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective</span> <span class="o">==</span> <span class="s2">&#34;mse&#34;</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">g</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gh</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">pred</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">tree</span> <span class="o">=</span> <span class="n">XGBoostTree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                               <span class="n">lambda_</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">trees</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">pred</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">*</span> <span class="n">tree</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">trees</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">p</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">*</span> <span class="n">t</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">p</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The whole second-order machinery fits in fewer than 100 lines because once you have the gain formula, the algorithm is just &ldquo;find the best split, recurse, repeat&rdquo;.</p>
+<hr>
+<h2 id="qa-highlights">Q&amp;A highlights</h2>
+<h3 id="why-second-order-information-at-all">Why second-order information at all?</h3>
+<p>The first-order term tells you the direction; the second-order term tells you the curvature, i.e. how big a step is safe. Newton&rsquo;s method converges quadratically near the optimum exactly because of this. On a per-leaf basis it gives a <em>closed-form</em> optimal weight $-G/(H+\lambda)$ instead of a learning-rate-sensitive guess.</p>
+<h3 id="why-does-xgboost-prune-through-gamma-rather-than-after-the-fact">Why does XGBoost prune through $\gamma$ rather than after the fact?</h3>
+<p>Because the structure score is exactly the loss with $\gamma T$ subtracted. A split that fails to beat $\gamma$ is a split that <em>increases</em> the regularised loss. Refusing it is not a heuristic &mdash; it is the correct decision under the objective.</p>
+<h3 id="when-does-leaf-wise-hurt-you">When does leaf-wise hurt you?</h3>
+<p>On small datasets where the highest-gain leaf can chase noise. The fix is <code>max_depth</code> plus <code>min_data_in_leaf</code> (sometimes 100&ndash;1000 on small data). On large datasets leaf-wise is almost free lunch.</p>
+<h3 id="tuning-order">Tuning order?</h3>
+<ol>
+<li>Set <code>learning_rate = 0.05</code>&ndash;<code>0.1</code> and use early stopping to pick <code>n_estimators</code>.</li>
+<li>Tune tree shape: <code>max_depth</code> (or <code>num_leaves</code> for LightGBM), <code>min_child_weight</code> / <code>min_data_in_leaf</code>.</li>
+<li>Tune regularisation: <code>gamma</code>, <code>lambda</code>, plus subsampling (<code>subsample</code>, <code>colsample_bytree</code>).</li>
+<li>If still under-fitting, drop <code>learning_rate</code> and grow <code>n_estimators</code>.</li>
+</ol>
+<h3 id="gbdt-vs-deep-learning">GBDT vs deep learning?</h3>
+<p>Tabular: GBDT wins almost always. Unstructured (image, text, audio): deep learning wins. The crossover lives somewhere around &ldquo;you have a learned representation&rdquo; &mdash; once features are dense and continuous, deep nets become competitive.</p>
+<hr>
+<h2 id="exercises">Exercises</h2>
+<p><strong>Exercise 1 &ndash; second-order gradients.</strong>
+For squared loss $L = \tfrac{1}{2}(y - \hat y)^2$ with $y = 5$ and $\hat y = 3$: $g = \hat y - y = -2$, $h = 1$. The Newton step at a single leaf with $\lambda = 0$ is $w^* = -g/h = 2$, exactly the residual.</p>
+<p><strong>Exercise 2 &ndash; split gain.</strong>
+A leaf has $G = -2$, $H = 10$. A candidate split sends $G_L = -1.5, H_L = 6$ left and $G_R = -0.5, H_R = 4$ right. With $\lambda = 1, \gamma = 0.5$:</p>
+$$
+\text{Gain} = \tfrac{1}{2}\!\left[\tfrac{2.25}{7} + \tfrac{0.25}{5} - \tfrac{4}{11}\right] - 0.5 \approx -0.50.
+$$<p>The structural improvement does not pay for $\gamma$ &mdash; skip the split. Increasing $\gamma$ tightens the threshold; decreasing $\lambda$ relaxes it.</p>
+<p><strong>Exercise 3 &ndash; GOSS sample budget.</strong>
+With $N = 1000$, $a = 0.2$, $b = 0.1$: keep $200$ large-gradient samples plus $0.1 \cdot 800 = 80$ small-gradient samples. Effective sample size $= 280$ ($28\%$). Reweight factor for the small set: $(1 - a)/b = 8$.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Chen, T., &amp; Guestrin, C. (2016). <em>XGBoost: A Scalable Tree Boosting System</em>. KDD.</li>
+<li>Ke, G., Meng, Q., Finley, T., et al. (2017). <em>LightGBM: A Highly Efficient Gradient Boosting Decision Tree</em>. NeurIPS.</li>
+<li>Prokhorenkova, L., Gusev, G., Vorobev, A., et al. (2018). <em>CatBoost: Unbiased Boosting with Categorical Features</em>. NeurIPS.</li>
+<li>Friedman, J. H. (2001). <em>Greedy function approximation: a gradient boosting machine</em>. Annals of Statistics.</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<ul>
+<li>Previous: <a href="/en/Machine-Learning-Mathematical-Derivations-11-Ensemble-Learning/">Part 11 &ndash; Ensemble Learning</a>
+</li>
+<li>Next: <a href="/en/Machine-Learning-Mathematical-Derivations-13-EM-Algorithm-and-GMM/">Part 13 &ndash; EM Algorithm and GMM</a>
+</li>
+<li><a href="/tags/Machine-Learning/">View all 20 parts in this series</a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#boosting-in-one-picture">Boosting in one picture</a></li>
+    <li><a href="#xgboost-extreme-gradient-boosting">XGBoost: extreme gradient boosting</a>
+      <ul>
+        <li><a href="#regularised-objective">Regularised objective</a></li>
+        <li><a href="#second-order-taylor-expansion">Second-order Taylor expansion</a></li>
+        <li><a href="#optimal-leaf-weight-and-structure-score">Optimal leaf weight and structure score</a></li>
+        <li><a href="#split-gain">Split gain</a></li>
+        <li><a href="#gradients-for-the-standard-losses">Gradients for the standard losses</a></li>
+        <li><a href="#split-finding-algorithms">Split-finding algorithms</a></li>
+      </ul>
+    </li>
+    <li><a href="#lightgbm-efficient-gradient-boosting">LightGBM: efficient gradient boosting</a>
+      <ul>
+        <li><a href="#histogram-algorithm">Histogram algorithm</a></li>
+        <li><a href="#leaf-wise-vs-level-wise-growth">Leaf-wise vs level-wise growth</a></li>
+        <li><a href="#goss-gradient-based-one-side-sampling">GOSS: gradient-based one-side sampling</a></li>
+        <li><a href="#efb-exclusive-feature-bundling">EFB: exclusive feature bundling</a></li>
+      </ul>
+    </li>
+    <li><a href="#two-definitions-of-important">Two definitions of &ldquo;important&rdquo;</a></li>
+    <li><a href="#xgboost-vs-lightgbm-at-a-glance">XGBoost vs LightGBM at a glance</a>
+      <ul>
+        <li><a href="#training-cost-in-practice">Training cost in practice</a></li>
+      </ul>
+    </li>
+    <li><a href="#a-minimal-xgboost-in-numpy">A minimal XGBoost in NumPy</a></li>
+    <li><a href="#qa-highlights">Q&amp;A highlights</a>
+      <ul>
+        <li><a href="#why-second-order-information-at-all">Why second-order information at all?</a></li>
+        <li><a href="#why-does-xgboost-prune-through-gamma-rather-than-after-the-fact">Why does XGBoost prune through  rather than after the fact?</a></li>
+        <li><a href="#when-does-leaf-wise-hurt-you">When does leaf-wise hurt you?</a></li>
+        <li><a href="#tuning-order">Tuning order?</a></li>
+        <li><a href="#gbdt-vs-deep-learning">GBDT vs deep learning?</a></li>
+      </ul>
+    </li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Ml mathematical derivations</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3000</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

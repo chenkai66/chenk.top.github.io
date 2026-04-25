@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/terraform-agents/02-provider-and-state-setup/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS · Chen Kai Blog</title>
+<meta name="description" content="Pinning the alicloud provider, picking between AK/SK, AssumeRole, and ECS RAM role auth, putting tfstate on OSS with Tablestore locking, and the workspace pattern that keeps dev/staging/prod from stomping each other. Plus the dozen failure modes that bite first-timers.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS">
+<meta property="og:description" content="Pinning the alicloud provider, picking between AK/SK, AssumeRole, and ECS RAM role auth, putting tfstate on OSS with Tablestore locking, and the workspace pattern that keeps dev/staging/prod from stomping each other. Plus the dozen failure modes that bite first-timers.">
+<meta property="og:url" content="https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-3);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Terraform Agents</a>
+         · Chapter 2
+      </div>
+      <h1>Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS</h1>
+      <p class="deck">Pinning the alicloud provider, picking between AK/SK, AssumeRole, and ECS RAM role auth, putting tfstate on OSS with Tablestore locking, and the workspace pattern that keeps dev/staging/prod from stomping each other. Plus the dozen failure modes that bite first-timers.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-03-14">March 14, 2026</time> · 10 min read · 2000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/terraform/" class="tag">#Terraform</a><a href="/en/tags/alibaba-cloud/" class="tag">#Alibaba Cloud</a><a href="/en/tags/infrastructure-as-code/" class="tag">#Infrastructure as Code</a><a href="/en/tags/ai-agents/" class="tag">#AI Agents</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/terraform-agents/02-provider-and-state-setup/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>This is the article where you stop reading and start typing. By the end you will have:</p>
+<ol>
+<li>The <code>alicloud</code> Terraform provider installed and version-pinned</li>
+<li>Authentication wired up — through the right method, not the convenient one</li>
+<li>Remote state on an OSS bucket with Tablestore-based locking</li>
+<li>Three workspaces (<code>dev</code>, <code>staging</code>, <code>prod</code>) that share a backend but isolate state</li>
+<li>A working <code>terraform plan</code> against an empty config</li>
+</ol>
+<p>Nothing here provisions an agent yet. We&rsquo;re laying the foundation that every later article assumes.</p>
+<h2 id="step-0-install-terraform">Step 0: install Terraform</h2>
+<p>I won&rsquo;t dwell — the official <code>Install Terraform</code> doc covers all OSes. On macOS:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">brew tap hashicorp/tap
+</span></span><span class="line"><span class="cl">brew install hashicorp/tap/terraform
+</span></span><span class="line"><span class="cl">terraform version
+</span></span><span class="line"><span class="cl"><span class="c1"># Terraform v1.9.x</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># on darwin_arm64</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Pin to a recent stable. The Aliyun docs are tested against <code>&gt;= 0.12</code>, but on a fresh project you should use <code>&gt;= 1.9</code>. There are real ergonomic improvements in newer versions (<code>for_each</code>, <code>optional()</code>, refined <code>moved</code> blocks).</p>
+<h2 id="step-1-pin-the-provider">Step 1: pin the provider</h2>
+<p>Create a project directory and a <code>versions.tf</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="c1"># versions.tf
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">terraform</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  required_version</span> <span class="o">=</span><span class="n"> &#34;&gt;</span><span class="o">=</span> <span class="m">1</span><span class="p">.</span><span class="m">9</span><span class="err">&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">required_providers</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    alicloud</span> <span class="o">=</span> {
+</span></span><span class="line"><span class="cl"><span class="n">      source</span>  <span class="o">=</span> <span class="s2">&#34;aliyun/alicloud&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      version</span> <span class="o">=</span> <span class="s2">&#34;~&gt; 1.230&#34;</span><span class="c1">   # any 1.230.x — minor patches OK, no major bumps
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    }
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The <code>~&gt; 1.230</code> constraint allows <code>1.230.0</code> through <code>1.230.x</code> but blocks <code>1.231.0</code>. This is the right default. Once you commit <code>.terraform.lock.hcl</code> to git (Terraform creates it on <code>terraform init</code>), you also lock the <em>exact</em> provider version and its checksum. If a teammate runs <code>terraform init</code> later, they get the same provider — bit-identical.</p>
+<p>Pinning early is cheap insurance. The alicloud provider has shipped breaking changes between minor versions (last big one was the OSS bucket schema rework around 1.220). You will eventually need to upgrade — do it deliberately, in a PR, with the diff in plan output, not by accident on a teammate&rsquo;s laptop.</p>
+<h2 id="step-2-authenticate--three-options-ranked">Step 2: authenticate — three options, ranked</h2>
+<p>The provider needs Aliyun credentials. There are three real choices, in increasing order of professional acceptability:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/fig2_auth_methods.png" alt="Three ways to authenticate the alicloud provider" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="option-a-static-aksk-only-on-a-personal-laptop">Option A: static AK/SK (only on a personal laptop)</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">ALICLOUD_ACCESS_KEY</span><span class="o">=</span><span class="s2">&#34;LTAI5tXXXXXXXXXXXXXX&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">ALICLOUD_SECRET_KEY</span><span class="o">=</span><span class="s2">&#34;XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">ALICLOUD_REGION</span><span class="o">=</span><span class="s2">&#34;cn-shanghai&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The provider auto-discovers these env vars. Do not — under any circumstances — write the keys into your <code>.tf</code> files. The state file does not store the secret; the <code>provider {}</code> block does, and that block is committed to git.</p>
+<p>If the AK/SK is for a sub-account scoped to only the resources Terraform manages, this is acceptable for a solo project. For anything shared, skip to option B.</p>
+<h3 id="option-b-assumerole-ci-runners">Option B: AssumeRole (CI runners)</h3>
+<p>CI runners shouldn&rsquo;t carry long-lived AKs. Instead, give the CI runner an AK with one permission only — <code>sts:AssumeRole</code> on a target role — and have Terraform assume that role at apply time:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">provider</span> <span class="s2">&#34;alicloud&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  region</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">region</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">assume_role</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    role_arn</span>           <span class="o">=</span> <span class="s2">&#34;acs:ram::${var.account_id}:role/TerraformDeployRole&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    session_name</span>       <span class="o">=</span> <span class="s2">&#34;ci-${var.commit_sha}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    session_expiration</span> <span class="o">=</span> <span class="m">3600</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The role has the actual write permissions; the AK only has the right to assume it. STS sessions are short-lived (one hour by default), audit-logged in ActionTrail, and can be revoked instantly by detaching the trust policy. This is the model GitLab CI, GitHub Actions, and Jenkins runners should use.</p>
+<h3 id="option-c-ecs-ram-role-the-bastion--iac-service-runner">Option C: ECS RAM role (the bastion / IaC service runner)</h3>
+<p>If <code>terraform apply</code> runs on an Aliyun ECS instance — say, your team&rsquo;s ops bastion or the Aliyun-hosted IaC Service runner — attach a RAM role to the instance and the provider picks credentials up automatically from instance metadata:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">provider</span> <span class="s2">&#34;alicloud&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  region</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">region</span><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">  # No assume_role block, no env vars — provider auto-detects from
+</span></span></span><span class="line"><span class="cl"><span class="c1">  # http://100.100.100.200/latest/meta-data/ram/security-credentials/
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Zero secrets in any config, in any env var, in any file. Rotation is automatic. This is the gold standard.</p>
+<blockquote>
+<p><strong>Real-world tip:</strong> Whatever you pick, set <code>ALICLOUD_REGION</code> (or <code>provider { region = ... }</code>) explicitly. If unset, the provider does not pick a default — you get a confusing &ldquo;Region must be specified&rdquo; error on <code>terraform plan</code> that has tripped me up more than once.</p>
+</blockquote>
+<h2 id="step-3-state--why-local-tfstate-is-a-footgun">Step 3: state — why local tfstate is a footgun</h2>
+<p>When you run <code>terraform apply</code>, by default Terraform writes <code>terraform.tfstate</code> in the current directory. That file is the source of truth for what infrastructure exists. Three things will go wrong:</p>
+<ol>
+<li><strong>Loss.</strong> Delete the directory and Terraform thinks nothing exists. Next <code>apply</code> tries to recreate everything (or fails on duplicates).</li>
+<li><strong>Conflict.</strong> Two engineers running <code>apply</code> simultaneously can corrupt the state file.</li>
+<li><strong>Secrets in plaintext.</strong> Some resource attributes (database passwords, key material) end up in tfstate. Leaving it on a laptop is bad. Committing it to git is worse — and people do.</li>
+</ol>
+<p>The fix is <strong>remote state</strong> with <strong>state locking</strong>. On Aliyun, the canonical setup is OSS + Tablestore:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/fig1_state_backend.png" alt="Remote state on OSS with Tablestore locking" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>OSS holds the actual <code>terraform.tfstate</code> file (with versioning enabled — recovery is one CLI command if something corrupts). Tablestore holds a tiny &ldquo;lock&rdquo; row that Terraform writes before any apply and deletes after. If a second <code>apply</code> starts while the first holds the lock, the second one waits or fails — never both running at once.</p>
+<h2 id="step-4-bootstrap-the-backend-chicken-and-egg">Step 4: bootstrap the backend (chicken-and-egg)</h2>
+<p>The OSS bucket and Tablestore that hold our backend&hellip; need to exist before the backend can use them. The honest workflow is to provision them in a tiny one-off <code>bootstrap/</code> directory using a <em>local</em> state file, then never touch it again.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="c1"># bootstrap/main.tf — run once, store local tfstate in this directory only
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">provider</span> <span class="s2">&#34;alicloud&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  region</span> <span class="o">=</span> <span class="s2">&#34;cn-shanghai&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_oss_bucket&#34; &#34;tfstate&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  bucket</span> <span class="o">=</span> <span class="s2">&#34;ck-tfstate-prod&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  acl</span>    <span class="o">=</span> <span class="s2">&#34;private&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">versioning</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    status</span> <span class="o">=</span> <span class="s2">&#34;Enabled&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">server_side_encryption_rule</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    sse_algorithm</span> <span class="o">=</span> <span class="s2">&#34;KMS&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">lifecycle</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    prevent_destroy</span> <span class="o">=</span> <span class="kt">true</span><span class="c1">   # never let terraform destroy this bucket
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_ots_instance&#34; &#34;tflock&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>        <span class="o">=</span> <span class="s2">&#34;tf-state-lock&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Terraform state lock&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  instance_type</span> <span class="o">=</span> <span class="s2">&#34;Capacity&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_ots_table&#34; &#34;tflock&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  instance_name</span> <span class="o">=</span> <span class="k">alicloud_ots_instance</span><span class="p">.</span><span class="k">tflock</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  table_name</span>    <span class="o">=</span> <span class="s2">&#34;TerraformLock&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">primary_key</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    name</span> <span class="o">=</span> <span class="s2">&#34;LockID&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    type</span> <span class="o">=</span> <span class="s2">&#34;String&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl"><span class="n">  time_to_live</span>  <span class="o">=</span> <span class="err">-</span><span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="n">  max_version</span>   <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>terraform init &amp;&amp; terraform apply</code> from inside <code>bootstrap/</code>. About 30 seconds. Then archive the local tfstate somewhere (I keep it in 1Password as a sanity backup) and never run from this directory again.</p>
+<h2 id="step-5-configure-the-backend">Step 5: configure the backend</h2>
+<p>Back in your real project, add:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="c1"># backend.tf
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">terraform</span> {
+</span></span><span class="line"><span class="cl">  <span class="k">backend</span> <span class="s2">&#34;oss&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    bucket</span>              <span class="o">=</span> <span class="s2">&#34;ck-tfstate-prod&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    prefix</span>              <span class="o">=</span> <span class="s2">&#34;agents/&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    key</span>                 <span class="o">=</span> <span class="s2">&#34;terraform.tfstate&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    region</span>              <span class="o">=</span> <span class="s2">&#34;cn-shanghai&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    tablestore_endpoint</span> <span class="o">=</span> <span class="s2">&#34;https://tf-state-lock.cn-shanghai.ots.aliyuncs.com&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    tablestore_table</span>    <span class="o">=</span> <span class="s2">&#34;TerraformLock&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    encrypt</span>             <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The <code>prefix</code> lets you stash multiple state files in one bucket — handy when you split your infra into multiple Terraform projects later. <code>encrypt = true</code> enables OSS-side encryption (we already turned on the bucket-level KMS rule, but defense-in-depth never hurts).</p>
+<p>Run:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform init
+</span></span><span class="line"><span class="cl"><span class="c1"># Initializing the backend...</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Successfully configured the backend &#34;oss&#34;!</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Initializing provider plugins...</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># - Installing aliyun/alicloud v1.230.x...</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If this fails with &ldquo;AccessDenied&rdquo;, your auth role doesn&rsquo;t have <code>oss:GetObject</code>/<code>PutObject</code> on the bucket. The minimum role policy is:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;Version&#34;</span><span class="p">:</span> <span class="s2">&#34;1&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;Statement&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Effect&#34;</span><span class="p">:</span> <span class="s2">&#34;Allow&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Action&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;oss:GetObject&#34;</span><span class="p">,</span> <span class="s2">&#34;oss:PutObject&#34;</span><span class="p">,</span> <span class="s2">&#34;oss:DeleteObject&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Resource&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;acs:oss:*:*:ck-tfstate-prod/agents/*&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Effect&#34;</span><span class="p">:</span> <span class="s2">&#34;Allow&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Action&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;ots:GetRow&#34;</span><span class="p">,</span> <span class="s2">&#34;ots:PutRow&#34;</span><span class="p">,</span> <span class="s2">&#34;ots:DeleteRow&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Resource&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;acs:ots:*:*:instance/tf-state-lock/table/TerraformLock&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Apply this to the role you authenticate with. Don&rsquo;t grant <code>oss:*</code> — least privilege matters even for backend roles, because that role is in your CI runner.</p>
+<h2 id="step-6-workspaces-for-env-isolation">Step 6: workspaces for env isolation</h2>
+<p>A workspace is a separate state file inside the same backend. The default workspace is — usefully — called <code>default</code>. Create the others you need:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform workspace new dev
+</span></span><span class="line"><span class="cl">terraform workspace new staging
+</span></span><span class="line"><span class="cl">terraform workspace new prod
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">terraform workspace list
+</span></span><span class="line"><span class="cl"><span class="c1">#   default</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># * prod</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   dev</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   staging</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">terraform workspace <span class="k">select</span> dev
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Inside HCL, <code>terraform.workspace</code> resolves to the current workspace name, which lets you parameterise resource sizes:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">locals</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  is_prod</span> <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  ecs_count</span>        <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span> <span class="err">?</span> <span class="m">3</span> <span class="err">:</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="n">  ecs_instance_type</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span> <span class="err">?</span> <span class="s2">&#34;ecs.c7.xlarge&#34; : &#34;ecs.c7.large&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  rds_class</span>         <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span> <span class="err">?</span> <span class="s2">&#34;pg.x4.large.2c&#34; : &#34;pg.n2.medium.1c&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A clean alternative is one <code>*.tfvars</code> file per env:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform plan -var-file<span class="o">=</span>env/dev.tfvars
+</span></span><span class="line"><span class="cl">terraform plan -var-file<span class="o">=</span>env/prod.tfvars
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>I use <code>tfvars</code> files for &ldquo;configuration that obviously differs&rdquo; (CIDR blocks, region, instance counts) and <code>terraform.workspace</code> only for the conditional <code>is_prod</code> toggle. Mixing both is fine — pick one as the primary mechanism per project.</p>
+<h2 id="step-7-the-five-command-loop">Step 7: the five-command loop</h2>
+<p>Day-to-day Terraform is just five commands:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/02-provider-and-state-setup/fig3_init_apply_loop.png" alt="The five-command loop you&rsquo;ll run hundreds of times" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform fmt        <span class="c1"># normalise indentation; pre-commit hook</span>
+</span></span><span class="line"><span class="cl">terraform validate   <span class="c1"># static schema check; runs in &lt;1s</span>
+</span></span><span class="line"><span class="cl">terraform plan       <span class="c1"># diff desired vs real; READ THIS CAREFULLY</span>
+</span></span><span class="line"><span class="cl">terraform apply      <span class="c1"># send the API calls</span>
+</span></span><span class="line"><span class="cl">terraform show       <span class="c1"># inspect current state</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Three rules:</p>
+<ol>
+<li><strong>Always read the plan output before applying.</strong> It tells you exactly what&rsquo;s about to happen — which resources will create (<code>+</code>), update in-place (<code>~</code>), force replace (<code>-/+</code>), or destroy (<code>-</code>). The replace-in-place arrows in particular hide downtime.</li>
+<li><strong>Make <code>plan</code> and <code>apply</code> two steps in CI.</strong> Run <code>terraform plan -out=tfplan</code>, post the plan output to the PR, get human approval, then <code>terraform apply tfplan</code> on merge. Never auto-apply on push.</li>
+<li><strong>Don&rsquo;t rush past <code>state</code>.</strong> <code>terraform state list</code> shows everything you currently manage; <code>terraform state show &lt;addr&gt;</code> shows one resource&rsquo;s full attributes. When you&rsquo;re debugging weird drift, this is where you start.</li>
+</ol>
+<h2 id="the-eight-failure-modes-you-will-hit-on-day-one">The eight failure modes you will hit on day one</h2>
+<p>In the order they happened to me:</p>
+<ol>
+<li><strong><code>Error: Failed to query available provider packages</code> on <code>terraform init</code>.</strong> GFW. Set <code>HTTPS_PROXY</code> or use the official <code>Configure an acceleration solution for Terraform initialization</code> doc — the registry mirror is <code>https://mirrors.aliyun.com/terraform/</code>.</li>
+<li><strong><code>Error: state lock</code>.</strong> You hit Ctrl-C during a previous apply and the lock is stale. Run <code>terraform force-unlock &lt;LOCK_ID&gt;</code> (the ID is in the error). Verify nothing&rsquo;s running first.</li>
+<li><strong><code>Error: Region must be specified</code>.</strong> Set <code>ALICLOUD_REGION</code> env var or <code>region</code> in the <code>provider</code> block.</li>
+<li><strong><code>AccessDenied</code> on backend init.</strong> RAM permissions on the OSS bucket prefix. Re-check step 5&rsquo;s policy.</li>
+<li><strong><code>InvalidParameter.NotFound</code> on Tablestore.</strong> You bootstrapped the wrong region. Tablestore endpoint and OSS bucket region must match.</li>
+<li><strong><code>Provider produced inconsistent result after apply</code>.</strong> Almost always a stale <code>.terraform/</code> cache after a provider version bump. <code>rm -rf .terraform .terraform.lock.hcl &amp;&amp; terraform init</code>.</li>
+<li><strong><code>Resource already exists</code>.</strong> You created the resource by hand in the console. Either delete it or import: <code>terraform import alicloud_vpc.main vpc-uf6xxxxxx</code>.</li>
+<li><strong>A <code>terraform plan</code> diff you didn&rsquo;t expect on a freshly-applied resource.</strong> &ldquo;Drift&rdquo;. Either someone touched the resource in the console, or the provider&rsquo;s read logic differs from create. Look at the specific attributes in the diff; usually the fix is to set the attribute explicitly so Terraform stops &ldquo;noticing&rdquo; the difference.</li>
+</ol>
+<blockquote>
+<p><strong>Real-world tip:</strong> Run <code>terraform plan</code> immediately after every <code>apply</code>, even on no changes. The plan should be empty. If it isn&rsquo;t, you have drift, and the longer you let drift live the harder it is to reconcile.</p>
+</blockquote>
+<h2 id="whats-next">What&rsquo;s next</h2>
+<p>Article 3 builds the first real piece of infrastructure: a reusable <code>vpc-baseline</code> module. VPC, three vSwitches across three zones, NAT gateway, EIP, security group baseline, KMS key. We will use it in every subsequent article and it is the single most copy-pasted module in my agent stacks.</p>
+<p>If this article worked end-to-end for you, you should now be able to run <code>terraform init</code>, <code>terraform workspace select dev</code>, <code>terraform plan</code> and see &ldquo;No changes.&rdquo; That&rsquo;s the foundation. Everything else stacks on top of it.</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/"><span class="title">Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/"><span class="title">Terraform for AI Agents (3): A Reusable VPC and Security Baseline</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#step-0-install-terraform">Step 0: install Terraform</a></li>
+    <li><a href="#step-1-pin-the-provider">Step 1: pin the provider</a></li>
+    <li><a href="#step-2-authenticate--three-options-ranked">Step 2: authenticate — three options, ranked</a>
+      <ul>
+        <li><a href="#option-a-static-aksk-only-on-a-personal-laptop">Option A: static AK/SK (only on a personal laptop)</a></li>
+        <li><a href="#option-b-assumerole-ci-runners">Option B: AssumeRole (CI runners)</a></li>
+        <li><a href="#option-c-ecs-ram-role-the-bastion--iac-service-runner">Option C: ECS RAM role (the bastion / IaC service runner)</a></li>
+      </ul>
+    </li>
+    <li><a href="#step-3-state--why-local-tfstate-is-a-footgun">Step 3: state — why local tfstate is a footgun</a></li>
+    <li><a href="#step-4-bootstrap-the-backend-chicken-and-egg">Step 4: bootstrap the backend (chicken-and-egg)</a></li>
+    <li><a href="#step-5-configure-the-backend">Step 5: configure the backend</a></li>
+    <li><a href="#step-6-workspaces-for-env-isolation">Step 6: workspaces for env isolation</a></li>
+    <li><a href="#step-7-the-five-command-loop">Step 7: the five-command loop</a></li>
+    <li><a href="#the-eight-failure-modes-you-will-hit-on-day-one">The eight failure modes you will hit on day one</a></li>
+    <li><a href="#whats-next">What&rsquo;s next</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Terraform Agents</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2000</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

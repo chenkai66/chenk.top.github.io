@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>强化学习（十）：离线强化学习 · Chen Kai Blog</title>
+<meta name="description" content="离线强化学习从固定数据集学习策略，无需任何在线交互。本文系统讲解分布偏移、外推误差，以及 CQL、BCQ、IQL、Decision Transformer 四类主流方法，配有完整的 CQL PyTorch 实现与 D4RL 基准对比。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习（十）：离线强化学习">
+<meta property="og:description" content="离线强化学习从固定数据集学习策略，无需任何在线交互。本文系统讲解分布偏移、外推误差，以及 CQL、BCQ、IQL、Decision Transformer 四类主流方法，配有完整的 CQL PyTorch 实现与 D4RL 基准对比。">
+<meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">强化学习</a>
+         · Chapter 10
+      </div>
+      <h1>强化学习（十）：离线强化学习</h1>
+      <p class="deck">离线强化学习从固定数据集学习策略，无需任何在线交互。本文系统讲解分布偏移、外推误差，以及 CQL、BCQ、IQL、Decision Transformer 四类主流方法，配有完整的 CQL PyTorch 实现与 D4RL 基准对比。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-09-15">September 15, 2025</time> · 12 min read · 5700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" class="tag">#强化学习</a><a href="/zh/tags/%E7%A6%BB%E7%BA%BFrl/" class="tag">#离线RL</a><a href="/zh/tags/cql/" class="tag">#CQL</a><a href="/zh/tags/decision-transformer/" class="tag">#Decision Transformer</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>到目前为止，我们学过的每一个 RL 算法都依赖同一个循环：行动—观察—更新。这个循环让 RL 能够工作，但也让它在很多场景里根本无法落地。自动驾驶不能靠真实撞车来学习路口的处理；医疗决策模型不能在病人身上跑随机策略；产线上的机器人没有几千次失败抓取可以浪费。</p>
+<p>但是这些场景里都有一样东西不缺——日志：上百万小时的人类驾驶数据、几十年的脱敏病历、TB 级的行为克隆数据。<strong>离线强化学习</strong>（Offline RL，又称 Batch RL）的问题是：<strong>在完全不与环境交互的前提下</strong>，能不能从一个固定数据集里训练出一个强策略？</p>
+<p>答案是&quot;可以，但前提是足够小心&quot;。这个&quot;小心&quot;的来源，就是本文的核心主题——产生数据的<em>行为策略</em>与我们想要学的<em>目标策略</em>之间的<strong>分布偏移</strong>。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>为什么把任何一个标准 off-policy 算法直接搬到离线设定下都会失败：外推误差、价值高估、和&quot;死亡螺旋&quot;。</li>
+<li><strong>CQL</strong>（Conservative Q-Learning）：用一个悲观正则项把 Q 值压成真实价值的下界。</li>
+<li><strong>BCQ</strong>（Batch-Constrained Q-Learning）：用 VAE 限制策略只能从行为分布里挑动作。</li>
+<li><strong>IQL</strong>（Implicit Q-Learning）：用期望分位数回归彻底绕开 OOD 动作。</li>
+<li><strong>Decision Transformer</strong>：把 RL 重写成&quot;按目标回报做条件的序列建模&quot;。</li>
+<li>在 D4RL 基准上，<strong>这几类方法各自适合什么样的数据</strong>。</li>
+<li>一份<strong>可直接运行</strong>的 CQL PyTorch 实现。</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>Q-learning、目标网络、Actor-Critic（<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%8c-q-learning%e4%b8%8e%e6%b7%b1%e5%ba%a6q%e7%bd%91%e7%bb%9c/">第 2 部分</a>
+ 到 <a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-ppo%e4%b8%8etrpo-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/">第 6 部分</a>
+）。</li>
+<li>熟悉 Bellman 最优算子和重要性采样。</li>
+<li>PyTorch、Gym/Gymnasium 接口。</li>
+</ul>
+<hr>
+<h2 id="1-离线-rl-真正难在哪">1. 离线 RL 真正难在哪</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig1_online_vs_offline.png" alt="在线 vs 离线 RL：缺失的反馈回路" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>在<strong>在线</strong> RL 里，策略和数据分布是耦合在一起的。一旦策略对某个动作产生高估，下一轮采样就会暴露这个错误，Bellman 更新会立刻把它压回去。<strong>离线</strong> RL 里数据是冻结的，没有第二次机会：模型对未见动作犯下的任何错误都会永远留在 Q 函数里，而 <code>argmax</code> 算子会非常乐意去利用它。</p>
+<h3 id="11-分布偏移">1.1 分布偏移</h3>
+<p>设产生数据集 $\mathcal{D}=\{(s_i,a_i,r_i,s_i')\}_{i=1}^N$ 的行为策略是 $\pi_\beta$，我们要学的策略是 $\pi_\theta$。两者的状态-动作访问分布通常不一样：</p>
+$$d_{\pi_\theta}(s,a)\neq d_{\pi_\beta}(s,a).$$<p>只要 $\pi_\theta$ 想要选择某个 $\pi_\beta(a\mid s)\approx 0$ 的动作，问题就来了：Q 网络从来没有为这个动作算过 TD 目标，它给出的任何值都纯粹是从一个对其他区域拟合的神经网络外推出来的——而神经网络的外推几乎总是离谱的。</p>
+<h3 id="12-外推误差与死亡螺旋">1.2 外推误差与死亡螺旋</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig2_distribution_shift.png" alt="分布偏移导致 OOD 动作上的 Q 值被严重高估" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Q-learning 的更新公式是</p>
+$$Q(s,a)\leftarrow r + \gamma\,\max_{a'}Q(s',a').$$<p><code>max</code> 算子专门挑选<strong>最乐观</strong>的那一个外推值。哪怕 Q 函数只对一个 OOD 动作高估了 $\epsilon$，这个偏差就会成为前一时刻的 bootstrap 目标，再成为更前一时刻的目标……一路传播回去。在标准基准上，这种发散通常<strong>几千步就能观察到</strong>（<a href="https://arxiv.org/abs/1812.02900" target="_blank" rel="noopener noreferrer">Fujimoto 等, 2019 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+）。上图右侧那张图就是要记住的画面：绿色是真实 Q 函数，红色是网络相信的 Q 函数，策略会沿着 OOD 那个虚假的山峰一路走到悬崖外。</p>
+<p>后面要讲的三类算法都在攻击这个问题，区别只在于<strong>它们究竟约束了什么</strong>：</p>
+<table>
+  <thead>
+      <tr>
+          <th>类别</th>
+          <th>一句话总结</th>
+          <th>约束对象</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>策略约束</strong>（BCQ、BEAR、TD3+BC）</td>
+          <td>&ldquo;只在数据见过的地方动作&rdquo;</td>
+          <td>$\pi_\theta$</td>
+      </tr>
+      <tr>
+          <td><strong>价值悲观</strong>（CQL、MOPO）</td>
+          <td>&ldquo;对没见过的 Q 值不要相信&rdquo;</td>
+          <td>$Q$</td>
+      </tr>
+      <tr>
+          <td><strong>样本内学习</strong>（IQL、AWAC）</td>
+          <td>&ldquo;压根不去查 OOD 动作&rdquo;</td>
+          <td>损失函数本身</td>
+      </tr>
+      <tr>
+          <td><strong>序列建模</strong>（Decision Transformer 等）</td>
+          <td>&ldquo;干脆绕过 Bellman&rdquo;</td>
+          <td>问题的整个范式</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="2-cql保守-q-learning">2. CQL：保守 Q-Learning</h2>
+<p>CQL（<a href="https://arxiv.org/abs/2006.04779" target="_blank" rel="noopener noreferrer">Kumar 等, 2020 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+）是目前业界最常用的离线 RL 基线。它不改网络结构、不改 actor、不改数据 pipeline，只在损失里加一项。</p>
+<h3 id="21-一句话原理">2.1 一句话原理</h3>
+<blockquote>
+<p><strong>把策略可能选择的所有动作的 Q 值往下压；再把数据里出现过的动作的 Q 值拉回来。</strong> 净效果是：Q 函数恰好在&quot;它没有证据的地方&quot;显得悲观。</p>
+</blockquote>
+<h3 id="22-目标函数">2.2 目标函数</h3>
+<p>在普通 TD 损失 $\mathcal{L}_{\mathrm{TD}}$ 之外，CQL 多加一项：</p>
+$$\mathcal{L}_{\mathrm{CQL}} \;=\; \alpha\,\Big[\,\underbrace{\log\sum_{a}\exp Q(s,a)}_{\text{压低所有动作}} \;-\; \underbrace{\mathbb{E}_{a\sim\mathcal{D}}\big[Q(s,a)\big]}_{\text{把数据动作拉回来}}\Big] \;+\; \mathcal{L}_{\mathrm{TD}}.$$<p><code>logsumexp</code> 是一个对动作的&quot;软最大&quot;。最小化它会把<em>所有</em>动作的 Q 值往下拽。再减去数据分布下的期望，相当于把&quot;在数据里出现过&quot;的动作浮回原位。OOD 动作只感受到向下的力。</p>
+<p>CQL 的核心定理（<a href="https://arxiv.org/abs/2006.04779" target="_blank" rel="noopener noreferrer">原文 Thm 3.2 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+）说，当 $\alpha$ 足够大时，</p>
+$$\hat{Q}^{\pi}(s,a)\;\leq\;Q^{\pi}(s,a)\quad\forall (s,a).$$<p>一个<strong>真实价值的下界</strong>正是我们想要的：任何最大化下界的策略都不可能选出灾难性动作，因为对它来说那种动作没有任何&quot;看上去的好处&quot;。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig4_cql_penalty.png" alt="CQL：正则项把 OOD 区域的 Q 值往下压，让 argmax 留在数据支撑集里" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>左图是普通 SAC critic 在离线数据上的表现：argmax 直接逃到 OOD 那个虚假高峰上去了。右图是 CQL 修正后的样子：橙色阴影是悲观惩罚的部分，新的 argmax 安静地落在数据支撑集里面。</p>
+<h3 id="23-工程上的几个细节">2.3 工程上的几个细节</h3>
+<ul>
+<li>连续动作下 <code>logsumexp</code> 没法精确算，实现里通常用 <code>n_random</code> 个均匀样本加 <code>n_actor</code> 个当前策略的样本来近似，10～20 个就够。</li>
+<li>原论文里的 &ldquo;CQL($\mathcal{H}$)&rdquo; 变体加了一个拉格朗日项来自动调 $\alpha$，让差值 $\mathbb{E}_{a\sim\pi}Q-\mathbb{E}_{a\sim\mathcal{D}}Q$ 维持在某个目标附近——<code>d3rlpy</code> 和 <code>JaxRL</code> 默认就是这个版本。</li>
+<li>经验上 CQL 在 D4RL 的 <code>medium-replay</code> / <code>medium</code> 上很稳，但在 <code>medium-expert</code> 上略偏保守，那里 IQL 或 DT 通常会赢。</li>
+</ul>
+<h3 id="24-一份完整的-cql-实现">2.4 一份完整的 CQL 实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">QNetwork</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;孪生 Q 网络（Clipped Double Q），用来抑制高估。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">q1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlp</span><span class="p">(</span><span class="n">state_dim</span> <span class="o">+</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">q2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mlp</span><span class="p">(</span><span class="n">state_dim</span> <span class="o">+</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_mlp</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sa</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">q1</span><span class="p">(</span><span class="n">sa</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">q2</span><span class="p">(</span><span class="n">sa</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GaussianPolicy</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;SAC 风格的 tanh-squashed 高斯策略。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">trunk</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">log_std</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">log_std</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_std</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span> <span class="o">=</span> <span class="n">log_std</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">normal</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z</span> <span class="o">=</span> <span class="n">normal</span><span class="o">.</span><span class="n">rsample</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">action</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># tanh 变换的雅可比项</span>
+</span></span><span class="line"><span class="cl">        <span class="n">log_prob</span> <span class="o">=</span> <span class="p">(</span><span class="n">normal</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                    <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">action</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-6</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">action</span><span class="p">,</span> <span class="n">log_prob</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CQLAgent</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;在 SAC 之上加一个 CQL 正则项。cql_weight 就是公式里的 alpha。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">cql_weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">n_random</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">=</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">tau</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">cql_weight</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_random</span> <span class="o">=</span> <span class="n">cql_weight</span><span class="p">,</span> <span class="n">n_random</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span> <span class="o">=</span> <span class="n">action_dim</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">q_net</span> <span class="o">=</span> <span class="n">QNetwork</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target_q</span> <span class="o">=</span> <span class="n">QNetwork</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target_q</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q_net</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="n">GaussianPolicy</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">q_opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q_net</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pi_opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># ---------- 与普通 SAC 唯一不同的地方就在这里 ------------</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_cql_penalty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">q1_data</span><span class="p">,</span> <span class="n">q2_data</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;对动作做 logsumexp，再减去数据上的 Q 平均。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">b</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># (1) [-1, 1] 上的均匀随机动作</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rand_a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_random</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">)</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># (2) 当前策略在 s 处采样的动作</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rep_s</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_random</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pi_a</span><span class="p">,</span> <span class="n">pi_lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">rep_s</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">def</span> <span class="nf">_q</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_net</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">q1_rand</span><span class="p">,</span> <span class="n">q2_rand</span> <span class="o">=</span> <span class="n">_q</span><span class="p">(</span><span class="n">rep_s</span><span class="p">,</span> <span class="n">rand_a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q1_pi</span><span class="p">,</span>   <span class="n">q2_pi</span>   <span class="o">=</span> <span class="n">_q</span><span class="p">(</span><span class="n">rep_s</span><span class="p">,</span> <span class="n">pi_a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 重要性加权 logsumexp（Kumar 等, Eq. 4）</span>
+</span></span><span class="line"><span class="cl">        <span class="n">log_pi_uniform</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">2.0</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cat1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">q1_rand</span> <span class="o">-</span> <span class="n">log_pi_uniform</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                          <span class="n">q1_pi</span>   <span class="o">-</span> <span class="n">pi_lp</span><span class="o">.</span><span class="n">detach</span><span class="p">()],</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cat2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">q2_rand</span> <span class="o">-</span> <span class="n">log_pi_uniform</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                          <span class="n">q2_pi</span>   <span class="o">-</span> <span class="n">pi_lp</span><span class="o">.</span><span class="n">detach</span><span class="p">()],</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">lse1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">cat1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">lse2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">cat2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">((</span><span class="n">lse1</span> <span class="o">-</span> <span class="n">q1_data</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">lse2</span> <span class="o">-</span> <span class="n">q2_data</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">,</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">next_states</span><span class="p">,</span> <span class="n">dones</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 1. Bellman 目标（clipped double Q + 熵奖励）</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">next_a</span><span class="p">,</span> <span class="n">next_lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">next_states</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">tq1</span><span class="p">,</span> <span class="n">tq2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_q</span><span class="p">(</span><span class="n">next_states</span><span class="p">,</span> <span class="n">next_a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">target_q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">tq1</span><span class="p">,</span> <span class="n">tq2</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">next_lp</span>
+</span></span><span class="line"><span class="cl">            <span class="n">target</span> <span class="o">=</span> <span class="n">rewards</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">dones</span><span class="p">)</span> <span class="o">*</span> <span class="n">target_q</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">q1</span><span class="p">,</span> <span class="n">q2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_net</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">td_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">q1</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span> <span class="o">+</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">q2</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cql</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cql_penalty</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">q1</span><span class="p">,</span> <span class="n">q2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q_loss</span> <span class="o">=</span> <span class="n">td_loss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cql_weight</span> <span class="o">*</span> <span class="n">cql</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">q_opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">q_opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 2. Actor 更新（标准 SAC）</span>
+</span></span><span class="line"><span class="cl">        <span class="n">a</span><span class="p">,</span> <span class="n">lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q1_a</span><span class="p">,</span> <span class="n">q2_a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_net</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pi_loss</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">lp</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">q1_a</span><span class="p">,</span> <span class="n">q2_a</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pi_opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pi_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pi_opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 3. 目标 Q 的 Polyak 平均</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">tp</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q_net</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                             <span class="bp">self</span><span class="o">.</span><span class="n">target_q</span><span class="o">.</span><span class="n">parameters</span><span class="p">()):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tp</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">mul_</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">)</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;td&#34;</span><span class="p">:</span> <span class="n">td_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;cql&#34;</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;pi&#34;</span><span class="p">:</span>  <span class="n">pi_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>接一个离线 replay buffer（用 <code>minari</code> 或 <code>d4rl-pybullet</code> 加载 D4RL 数据），训练大约 1M 梯度步，应该就能复现下面基准图里的数字。</p>
+<hr>
+<h2 id="3-bcq用生成模型限制候选动作">3. BCQ：用生成模型限制候选动作</h2>
+<p>CQL 约束的是<em>价值</em>；BCQ（<a href="https://arxiv.org/abs/1812.02900" target="_blank" rel="noopener noreferrer">Fujimoto 等, 2019 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+）直接约束<em>策略本身</em>。它的思路非常直接：<strong>永远不要在行为策略不会产生的动作上查询 Q 函数</strong>。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig3_bcq_architecture.png" alt="BCQ：VAE 提候选，扰动网络做小幅修正，最后用 argmax 选一个" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>整套架构有三块：</p>
+<ol>
+<li><strong>条件 VAE</strong> $G_\omega(s)$：在 $\mathcal{D}$ 上用标准 ELBO 训练，建模 $\pi_\beta(a\mid s)$。从它采样得到的动作，天然就在行为流形上。</li>
+<li><strong>扰动网络</strong> $\xi_\phi(s,a)\in[-\Phi,\Phi]^{\dim(a)}$：对每个 VAE 候选加一个小幅、有界的修正。$\Phi$ 取小（一般 0.05）保证候选不会偏离数据；$\Phi=0$ 时 BCQ 就退化成加权模仿。</li>
+<li><strong>孪生 Q 网络</strong>：对 $N$ 个修正后的候选打分，argmax 决定真正执行的动作。</li>
+</ol>
+<p>精妙之处在于，扰动网络的目标是<strong>最大化 Q</strong>——所以 BCQ 既享受到了策略改进的红利（不止是模仿），又避免了 OOD 外推（候选动作动不出数据流形）。代价是 pipeline 比较复杂——四个网络，而且 VAE 必须训得好，否则候选本身就有偏。</p>
+<hr>
+<h2 id="4-iql从根上避开-bootstrap-问题">4. IQL：从根上避开 bootstrap 问题</h2>
+<p>IQL（<a href="https://arxiv.org/abs/2110.06169" target="_blank" rel="noopener noreferrer">Kostrikov 等, 2022 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+）是这几个方法里最优雅的。它的洞见非常干脆：离线 RL 的所有毛病都来自 Bellman 目标里的 $\max_{a'}Q(s',a')$，因为 OOD 动作就是从这里钻进来的。那……干脆别用这个 max。</p>
+<p>IQL 单独学一个状态价值函数 $V(s)$，<strong>只在数据里出现过的状态-动作对</strong>上做<strong>期望分位数回归</strong>：</p>
+$$\mathcal{L}_V \;=\; \mathbb{E}_{(s,a)\sim\mathcal{D}}\big[L_2^{\tau}\big(Q(s,a)-V(s)\big)\big],\qquad L_2^{\tau}(u)=\big|\tau-\mathbb{1}(u<0)\big|\,u^{2}.$$<p>$\tau=0.5$ 时这就是普通 MSE，$V$ 学到的是<em>均值</em>。$\tau\to 1$ 时它对&quot;低估&quot;的惩罚远大于对&quot;高估&quot;的惩罚，于是 $V$ 收敛到 $Q(s,a)$ 在数据里出现过的动作上的<strong>上分位数</strong>。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig5_iql_expectile.png" alt="IQL 的非对称期望分位数损失：调高 tau 会让 V 逼近 max_a Q，但全程不离开数据" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>当 $\tau\approx 0.7$～$0.9$ 时，$V(s)$ 已经是 $\max_a Q(s,a)$ 的极好代理——而它的计算<strong>只用到了数据里出现过的动作</strong>。Bellman 目标变成</p>
+$$y \;=\; r + \gamma\,V(s'),$$<p>没有 max、没有策略采样、没有外推。Actor 通过<strong>优势加权回归</strong>（Advantage-Weighted Regression）恢复出来：</p>
+$$\mathcal{L}_\pi \;=\; -\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\exp\big(\beta\,(Q(s,a)-V(s))\big)\,\log\pi_\theta(a\mid s)\big].$$<p>IQL 是当下离线 RL 算法里&quot;动得最少&quot;的一个，在 D4RL 的 AntMaze、Adroit 等&quot;好数据稀疏 + max 最危险&quot;的环境里持续霸榜。</p>
+<hr>
+<h2 id="5-decision-transformer把-rl-当成序列建模">5. Decision Transformer：把 RL 当成序列建模</h2>
+<p>如果都已经放弃 Bellman 方程了，何必停在 IQL 这一步？<strong>Decision Transformer</strong>（<a href="https://arxiv.org/abs/2106.01345" target="_blank" rel="noopener noreferrer">Chen 等, 2021 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+）连价值函数都不要了，直接把 RL 改写成&quot;下一个 token 预测&quot;的问题。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig6_decision_transformer.png" alt="Decision Transformer：以 (return-to-go, state, action) 三元组为 token，喂给一个因果 Transformer" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>把一条轨迹排成 $(\hat{R}_1, s_1, a_1, \hat{R}_2, s_2, a_2, \ldots)$ 的序列，其中 $\hat{R}_t = \sum_{t'\geq t} r_{t'}$ 是从 $t$ 时刻起的<strong>剩余回报</strong>（return-to-go）。一个标准 GPT 风格的因果 Transformer 用交叉熵或 MSE 学着在已有 token 的条件下预测 $a_t$。</p>
+<p>测试时把<em>你期望</em>的剩余回报放进 $\hat{R}_1$，然后让模型自回归往下生成动作。$\hat{R}_1$ 就像一个旋钮：要更激进的策略，就给一个更大的目标回报。</p>
+<p><strong>这条路线的好处：</strong></p>
+<ul>
+<li>没有 bootstrap，自然就没有外推误差。</li>
+<li>长上下文让模型&quot;免费&quot;获得部分可观测下的历史条件。</li>
+<li>Transformer 的所有工程红利都直接拿来用（LayerNorm、RoPE、FlashAttention、混合精度）。</li>
+<li>一套范式从 D4RL 一路 scale 到 Atari 再到大规模多任务（如 <em>Gato</em>）。</li>
+</ul>
+<p><strong>代价：</strong></p>
+<ul>
+<li>永远超不过数据里出现过的最佳回报：如果 $\mathcal{D}$ 里没有任何一条轨迹得到过 90 分，你向模型要 90 分，得到的就是垃圾。</li>
+<li>没有显式的因果信用分配——它学的是&quot;在某个回报条件下模仿轨迹&quot;，而不是&quot;哪个动作<em>导致了</em>结果&quot;。</li>
+<li>在小基准上要追平 CQL/IQL 的分数，通常要更大的模型和更多的数据。</li>
+</ul>
+<hr>
+<h2 id="6-真实数据d4rl-基准对比">6. 真实数据：D4RL 基准对比</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/10-%E7%A6%BB%E7%BA%BF%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig7_d4rl_benchmark.png" alt="D4RL MuJoCo 运动控制：BC、BCQ、CQL、IQL、DT 在三种数据质量上的表现" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图整理自 CQL（<a href="https://arxiv.org/abs/2006.04779" target="_blank" rel="noopener noreferrer">Kumar 等, 2020 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+）、IQL（<a href="https://arxiv.org/abs/2110.06169" target="_blank" rel="noopener noreferrer">Kostrikov 等, 2022 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+）和 DT（<a href="https://arxiv.org/abs/2106.01345" target="_blank" rel="noopener noreferrer">Chen 等, 2021 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+）原论文里在 <a href="https://arxiv.org/abs/2004.07219" target="_blank" rel="noopener noreferrer">D4RL <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ MuJoCo 运动控制套件（<code>hopper</code>、<code>halfcheetah</code>、<code>walker2d</code> 取平均）上的代表性归一化分数。100 表示专家水平，0 表示随机策略。</p>
+<p>三个值得记住的结论：</p>
+<ol>
+<li><strong><code>medium-replay</code> 是最考验保守性的数据。</strong> 这种数据来自训练早期的 SAC 检查点——动作很差，但有大量&quot;从坏状态恢复&quot;的转移。CQL 和 IQL 在这种数据上能把 BC 的分数<em>翻一倍</em>；DT 因为没有价值 bootstrap，没办法&quot;拼接&quot;不同轨迹里的好片段，所以落后。</li>
+<li><strong><code>medium-expert</code> 是 DT 的主场。</strong> 数据里已经有近似最优的轨迹时，序列建模的简单性胜出。</li>
+<li><strong>IQL 是最稳的。</strong> 它几乎不会在某个单一数据集上拿第一，但也几乎不会跌出前三，且训练过程在四种里最稳定。</li>
+</ol>
+<p>如果不知道选哪个：默认选 <strong>IQL</strong>（最稳）或 <strong>CQL</strong>（最简单）；当数据已经接近专家水平时考虑 <strong>DT</strong>。</p>
+<hr>
+<h2 id="7-常见问题">7. 常见问题</h2>
+<p><strong>Q: 离线 RL 在什么情况下会彻底失败？</strong>
+有三种典型失败模式：(i) <strong>数据覆盖太窄</strong>——只有专家轨迹、没有恢复样本，策略学不会处理自己的失误；(ii) <strong>数据质量极低</strong>——长程任务上的随机策略数据；(iii) <strong>测试环境漂移</strong>——评估 MDP 的转移动力学和产生 $\mathcal{D}$ 的环境不一样。</p>
+<p><strong>Q: CQL 的 $\alpha$ 怎么调？</strong>
+经验范围：专家数据 $\alpha=0.5$～$1.0$，中等数据 $1.0$～$5.0$，随机/replay 数据 $5.0$～$10.0$。更省心的做法是用原论文的拉格朗日变体，让 $\alpha$ 自动追踪一个目标 gap（通常设为 5～10）。</p>
+<p><strong>Q: 离线 RL 和模仿学习到底有什么本质差别？</strong>
+行为克隆（BC）忽略奖励，只能逼近示范者，永远超不过它。离线 RL 利用奖励信号，可以<strong>拼接</strong>（stitching）不同轨迹里的好片段，得到一个比 $\mathcal{D}$ 里任何单条轨迹都更好的策略。经典的拼接例子：A 轨迹笨拙地走到状态 $s$ 但之后做得很好，B 轨迹高效到达 $s$ 但之后做得很差——离线 RL 可以学出&quot;B 的开头 + A 的结尾&quot;，BC 永远学不出来。</p>
+<p><strong>Q: 是不是该直接上基于模型的离线方法？</strong>
+对高维连续控制，MOPO/MOReL/COMBO 也很有竞争力，但需要额外学一个动力学模型并附带它自己的悲观项。它们在数据少的时候有优势（模型提供归纳偏置），但工程成本明显更高。在 2025 年，模型无关的 CQL/IQL 仍是默认起点。</p>
+<p><strong>Q: 离线到在线（offline-to-online）微调怎么做？</strong>
+最近两年 IQL 在这个方向上拉开差距。<strong>AWAC</strong>、<strong>Cal-QL</strong>、<strong>RLPD</strong> 等方法用离线策略初始化，然后用少量在线数据继续训练。CQL 初始化往往太保守，反而拖累微调；IQL 或 AWAC 初始化通常效果更好。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>Levine, Kumar, Tucker, Fu. <a href="https://arxiv.org/abs/2005.01643" target="_blank" rel="noopener noreferrer">Offline Reinforcement Learning: Tutorial, Review, and Perspectives on Open Problems <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. 2020.</li>
+<li>Fujimoto, Meger, Precup. <a href="https://arxiv.org/abs/1812.02900" target="_blank" rel="noopener noreferrer">Off-Policy Deep Reinforcement Learning without Exploration (BCQ) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. ICML 2019.</li>
+<li>Kumar, Zhou, Tucker, Levine. <a href="https://arxiv.org/abs/2006.04779" target="_blank" rel="noopener noreferrer">Conservative Q-Learning for Offline Reinforcement Learning (CQL) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. NeurIPS 2020.</li>
+<li>Kostrikov, Nair, Levine. <a href="https://arxiv.org/abs/2110.06169" target="_blank" rel="noopener noreferrer">Offline Reinforcement Learning with Implicit Q-Learning (IQL) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. ICLR 2022.</li>
+<li>Chen 等. <a href="https://arxiv.org/abs/2106.01345" target="_blank" rel="noopener noreferrer">Decision Transformer: Reinforcement Learning via Sequence Modeling <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. NeurIPS 2021.</li>
+<li>Fu, Kumar, Nachum, Tucker, Levine. <a href="https://arxiv.org/abs/2004.07219" target="_blank" rel="noopener noreferrer">D4RL: Datasets for Deep Data-Driven RL <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. 2020.</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<ul>
+<li><strong>上一篇</strong>：<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b9%9d-%e5%a4%9a%e6%99%ba%e8%83%bd%e4%bd%93%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0/">第 9 部分 —— 多智能体强化学习</a>
+</li>
+<li><strong>下一篇</strong>：<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%b8%80-%e5%b1%82%e6%ac%a1%e5%8c%96%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e5%85%83%e5%ad%a6%e4%b9%a0/">第 11 部分 —— 层次化强化学习与元学习</a>
+</li>
+<li><a href="/tags/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0/">查看强化学习系列全部 12 篇</a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#1-离线-rl-真正难在哪">1. 离线 RL 真正难在哪</a>
+      <ul>
+        <li><a href="#11-分布偏移">1.1 分布偏移</a></li>
+        <li><a href="#12-外推误差与死亡螺旋">1.2 外推误差与死亡螺旋</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-cql保守-q-learning">2. CQL：保守 Q-Learning</a>
+      <ul>
+        <li><a href="#21-一句话原理">2.1 一句话原理</a></li>
+        <li><a href="#22-目标函数">2.2 目标函数</a></li>
+        <li><a href="#23-工程上的几个细节">2.3 工程上的几个细节</a></li>
+        <li><a href="#24-一份完整的-cql-实现">2.4 一份完整的 CQL 实现</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-bcq用生成模型限制候选动作">3. BCQ：用生成模型限制候选动作</a></li>
+    <li><a href="#4-iql从根上避开-bootstrap-问题">4. IQL：从根上避开 bootstrap 问题</a></li>
+    <li><a href="#5-decision-transformer把-rl-当成序列建模">5. Decision Transformer：把 RL 当成序列建模</a></li>
+    <li><a href="#6-真实数据d4rl-基准对比">6. 真实数据：D4RL 基准对比</a></li>
+    <li><a href="#7-常见问题">7. 常见问题</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">强化学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5700</strong></div>
+      <div class="row"><span>Published</span><strong>Sep 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

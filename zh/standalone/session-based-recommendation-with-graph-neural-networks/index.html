@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="zh" data-translation="/en/standalone/session-based-recommendation-with-graph-neural-networks/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>SR-GNN —— Session-based Recommendation with Graph Neural Networks · Chen Kai Blog</title>
+<meta name="description" content="SR-GNN 把一段点击会话拆成有向加权图，再用门控 GNN 做下一跳预测。本文系统讲清会话图构建、GGNN 更新、局部&#43;全局池化、训练细节、基准对比，以及决定要不要在生产里用它的几类失败模式。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/standalone/session-based-recommendation-with-graph-neural-networks/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/session-based-recommendation-with-graph-neural-networks/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/session-based-recommendation-with-graph-neural-networks/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/zh/standalone/session-based-recommendation-with-graph-neural-networks/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="SR-GNN —— Session-based Recommendation with Graph Neural Networks">
+<meta property="og:description" content="SR-GNN 把一段点击会话拆成有向加权图，再用门控 GNN 做下一跳预测。本文系统讲清会话图构建、GGNN 更新、局部&#43;全局池化、训练细节、基准对比，以及决定要不要在生产里用它的几类失败模式。">
+<meta property="og:url" content="https://www.chenk.top/zh/standalone/session-based-recommendation-with-graph-neural-networks/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+        
+      </div>
+      <h1>SR-GNN —— Session-based Recommendation with Graph Neural Networks</h1>
+      <p class="deck">SR-GNN 把一段点击会话拆成有向加权图，再用门控 GNN 做下一跳预测。本文系统讲清会话图构建、GGNN 更新、局部&#43;全局池化、训练细节、基准对比，以及决定要不要在生产里用它的几类失败模式。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-12-27">December 27, 2022</time> · 12 min read · 5700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90/" class="tag">#序列推荐</a><a href="/zh/tags/gnn/" class="tag">#GNN</a><a href="/zh/tags/%E4%BC%9A%E8%AF%9D%E6%8E%A8%E8%8D%90/" class="tag">#会话推荐</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/en/standalone/session-based-recommendation-with-graph-neural-networks/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>用户依次点击 <strong>A、B、C、B、D</strong>。把它喂给一个序列模型，得到的是五个 token 折叠出的隐状态；交给 <strong>SR-GNN</strong>，得到的是一张有向图——边 <code>B -&gt; C</code> 即便用户回到 <code>B</code> 也仍然存在，节点 <code>B</code> 只出现一次（它的入边和出邻居都会贡献到它的表示上），整段点击的拓扑都被原样保留在邻接矩阵里。这就是 <a href="https://arxiv.org/abs/1811.00855" target="_blank" rel="noopener noreferrer">SR-GNN（Wu 等, AAAI 2019） <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ 在多个会话推荐基准上稳稳压过 GRU4Rec、NARM 等纯序列模型的根本原因。</p>
+<p>这篇笔记把 SR-GNN 从头到尾拆开讲：会话图怎么建、门控 GNN（GGNN）在图上做了什么、会话向量为什么要做&quot;局部+全局&quot;两路融合、打分和训练有哪些坑，以及它在哪些情况下会崩——目的不是说服你用它，而是让你能准确判断什么时候<strong>不要</strong>用它。</p>
+<h2 id="你会学到什么">你会学到什么</h2>
+<ul>
+<li>怎么从点击流构造一张有向加权会话图，以及入/出邻接矩阵怎么喂给 GGNN</li>
+<li>门控 GNN 更新可以拆成&quot;先聚合消息、再走 GRU 单元&quot;两步</li>
+<li>会话池化为什么要做局部+全局，以及注意力为什么要锚定在最后一个点击上</li>
+<li>训练目标、几个<strong>真正合理</strong>的超参数，以及在这种小图上 BPTT 究竟意味着什么</li>
+<li>在带回访、长度中等的会话上，图视角为什么稳赢序列模型</li>
+<li>几类典型失败模式（短会话、流行度坍塌、冷启动物品、超大物品池）和对应的修法</li>
+<li>几个值得知道的常见变体（attention 化的 GGNN、时间间隔边、多任务头），以及它们在什么场景下真正有用</li>
+</ul>
+<h2 id="前置准备">前置准备</h2>
+<ul>
+<li>熟悉消息传递与 GNN 基础术语（邻接矩阵、传播步数）</li>
+<li>了解 GRU/LSTM 的门控结构</li>
+<li>会用推荐评测指标 Recall@K、MRR@K，知道 sampled softmax 是干什么的</li>
+</ul>
+<hr>
+<h2 id="1-背景会话推荐到底特殊在哪">1. 背景：会话推荐到底特殊在哪</h2>
+<p><strong>会话推荐</strong>的限制条件比常见 CF 苛刻得多：没有稳定的长期用户画像可用，能看到的就是当前这一段短点击序列 $s = [v_{s,1}, v_{s,2}, \dots, v_{s,n}]$，物品池为 $V = \{v_1, \dots, v_{|V|}\}$，目标是预测下一跳 $v_{s,n+1}$。模型最终输出在 $|V|$ 上的打分向量 $\hat z$，取 top-$K$ 推荐。</p>
+<p>这种设定让传统 CF 和纯 RNN 都不太顺手，原因有两点：</p>
+<ul>
+<li><strong>上下文极短</strong>：典型会话只有 2&ndash;10 个点击，模型必须从极少的信号里反推用户当下的&quot;意图&quot;。</li>
+<li><strong>物品会重复出现，意图也不单调</strong>：用户会反复比较，绕回来再点同一个商品。同一物品在一段会话里出现多次是常态，&ldquo;靠后的点击&quot;也未必比&quot;靠前的点击&quot;代表更稳定的偏好。</li>
+</ul>
+<p>纯序列模型把这些点击压成一个隐状态，就不可避免地丢掉了&quot;重复访问的物品之间还有结构信息&quot;这一事实。SR-GNN 的贡献，就是把这种结构原原本本以图的形式保留下来，剩下交给消息传递。</p>
+<h2 id="2-会话图的构建">2. 会话图的构建</h2>
+<p>对每段会话 $s$，SR-GNN 构造有向图 $G_s = (V_s, E_s)$，节点集 $V_s$ 是这段会话里<strong>去重后</strong>的物品（不论某物品被点击几次，作为节点只出现一次），边集 $E_s$ 包含每一次观察到的转移 $u \to v$。边权按起点的出度归一化：</p>
+$$
+w_{u \to v} \;=\; \frac{\#(u \to v)}{\mathrm{outdeg}(u)} \, .
+$$<p>由此自然得到两张邻接矩阵：<strong>入度</strong>邻接 $A^{(\text{in})}$（第 $i$ 行告诉节点 $i$ 谁会喂信息给它）和<strong>出度</strong>邻接 $A^{(\text{out})}$（第 $i$ 行告诉节点 $i$ 它会喂信息给谁）。两张矩阵横着拼成 $|V_s| \times 2|V_s|$ 的 $A_s$，作为 GGNN 真正消费的输入。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/session-based-recommendation-with-graph-neural-networks/fig1_session_graph.png" alt="会话图构建：点击流 A,B,C,B,D 对应的有向加权图；即使用户回到 B，所有跳转关系也都被保留" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>具体看点击流 <code>A, B, C, B, D</code> 的边权计算：</p>
+<table>
+  <thead>
+      <tr>
+          <th>边</th>
+          <th>出现次数</th>
+          <th>起点出度</th>
+          <th>边权</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>$A \to B$</td>
+          <td>1</td>
+          <td>1</td>
+          <td>1.00</td>
+      </tr>
+      <tr>
+          <td>$B \to C$</td>
+          <td>1</td>
+          <td>2</td>
+          <td>0.50</td>
+      </tr>
+      <tr>
+          <td>$C \to B$</td>
+          <td>1</td>
+          <td>1</td>
+          <td>1.00</td>
+      </tr>
+      <tr>
+          <td>$B \to D$</td>
+          <td>1</td>
+          <td>2</td>
+          <td>0.50</td>
+      </tr>
+  </tbody>
+</table>
+<p>如果直接用 GRU 跑这串序列，第二次访问 <code>B</code> 时新的隐状态会把&rdquo;<code>B -&gt; C</code>&ldquo;这条转移悄悄覆盖掉；图的视角则一字不漏地保留下来。</p>
+<h2 id="3-门控-gnn-的传播">3. 门控 GNN 的传播</h2>
+<p>每个物品 $v$ 都有一个 $d$ 维向量 $h_v$，从全局物品表 $V \in \mathbb{R}^{|V|\times d}$ 里查出来。SR-GNN 在会话图上跑 $T$ 轮消息传递，用的是 <strong>门控图神经网络 GGNN</strong>（Li 等, 2016）——本质上就是一个以&quot;聚合后的消息&quot;为输入的 GRU 单元。</p>
+<p>第 $t$ 步，节点 $i$ 收到的聚合消息是</p>
+$$
+a_t^{(i)} \;=\; A_{s,i:}\, \big[h_1^{(t-1)}, \dots, h_n^{(t-1)}\big]^\top\, W_a \;+\; b,
+$$<p>其中 $A_{s,i:}$ 是拼接邻接 $[A^{(\text{in})}\,|\,A^{(\text{out})}]$ 的第 $i$ 行。然后用 GRU 风格的门做状态更新：</p>
+$$
+\begin{aligned}
+z_t &\;=\; \sigma\!\big(W_z\, a_t + U_z\, h_{t-1}\big), \\
+r_t &\;=\; \sigma\!\big(W_r\, a_t + U_r\, h_{t-1}\big), \\
+\tilde h_t &\;=\; \tanh\!\big(W\, a_t + U\, (r_t \odot h_{t-1})\big), \\
+h_t &\;=\; (1 - z_t)\, h_{t-1} \;+\; z_t\, \tilde h_t \, .
+\end{aligned}
+$$<p>重置门 $r_t$ 决定旧状态有多少能进入候选状态；更新门 $z_t$ 决定旧状态和新候选怎么混合。直觉跟普通 GRU 完全一样，只是这里的&quot;下一个输入&quot;换成了图上的聚合消息 $a_t$，而不是序列里的下一个 token。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/session-based-recommendation-with-graph-neural-networks/fig2_architecture.png" alt="SR-GNN 端到端流程：会话图 -&gt; GGNN 传播 -&gt; 节点表示 -&gt; 注意力池化 -&gt; 物品池 softmax" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>跑完 $T$ 步之后，每个节点都拿到一个&quot;看过自己邻居、看过会话里所有环路结构、也看过每条转移触发频次&quot;的向量 $h_v$。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/session-based-recommendation-with-graph-neural-networks/fig3_ggnn_update.png" alt="门控 GNN 单步更新：入/出邻接行先聚合出消息 $a_t$，再驱动一个 GRU 风格的状态更新" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>实战中要注意的几点：</p>
+<ul>
+<li><strong>传播步数 $T$</strong>：原论文在 Yoochoose 和 Diginetica 上都只用 $T = 1$。把 $T$ 调大几乎没有提升——会话图本来就只有 10 个节点上下，一步传播信号就饱和了。</li>
+<li><strong>参数共享</strong>：GRU 单元的所有参数 $(W_z, U_z, W_r, U_r, W, U, W_a, b)$ 在所有节点、所有会话之间共享。整个模型里&quot;会话相关&quot;的部分只有物品表里被查到的那些行。</li>
+<li><strong>重复访问</strong>：因为节点去重，两次点击 <code>B</code> 在传播过程中共享同一个嵌入。次序信息要等到下一步的池化阶段才显式恢复。</li>
+</ul>
+<h2 id="4-会话表示的拼装">4. 会话表示的拼装</h2>
+<p>拿到节点表示 $\{h_1, \dots, h_n\}$ 之后，要压成一个会话向量 $s_h$。最朴素的做法——&ldquo;直接用 $h_n$&quot;——在短会话上表现意外地不差，但等于把 GGNN 学到的东西全扔掉。论文的设计是<strong>两路视图</strong>线性融合。</p>
+<p><strong>局部意图。</strong> 直接用最后一个点击的嵌入：</p>
+$$
+s_l \;=\; h_n \, .
+$$<p>这是用户&quot;此刻在想什么&quot;的最强单一信号。</p>
+<p><strong>全局上下文。</strong> 在所有节点表示上做一次软注意力，<strong>注意力的查询锚定在 $h_n$ 上</strong>：</p>
+$$
+\alpha_i \;=\; q^\top\, \sigma\!\big(W_1\, h_n \;+\; W_2\, h_i \;+\; c\big), \qquad
+s_g \;=\; \sum_{i=1}^{n} \alpha_i\, h_i \, .
+$$<p>这里 $q \in \mathbb{R}^d$ 是一个可学习的查询向量，$W_1, W_2 \in \mathbb{R}^{d\times d}$ 把&quot;最后一次点击&quot;和&quot;会话里的每个物品&quot;投到同一个打分空间里。和最后一次点击越相关的物品，权重越大；被新意图盖过去的物品，权重越小。</p>
+<p><strong>最终会话向量。</strong> 拼接后线性投影：</p>
+$$
+s_h \;=\; W_3\, [\,s_l \,;\, s_g\,], \qquad W_3 \in \mathbb{R}^{d \times 2d} \, .
+$$<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/session-based-recommendation-with-graph-neural-networks/fig4_attention_pooling.png" alt="会话池化：注意力权重锚定在最后一次点击上；局部意图 &#43; 全局上下文线性融合成会话向量" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>局部+全局的拆分思路在 NARM、STAMP 里也能看到，但 SR-GNN 多了一层关键差别：它进入全局求和的 $h_i$ 已经是<strong>结构感知</strong>的图嵌入，不是原始物品嵌入。这一步差距贡献了大部分实际收益。</p>
+<h2 id="5-打分与训练">5. 打分与训练</h2>
+<p>有了会话向量 $s_h$ 和物品表 $V \in \mathbb{R}^{|V|\times d}$，候选物品的打分就是内积：</p>
+$$
+\hat z_i \;=\; s_h^\top\, v_i, \qquad
+\hat y \;=\; \mathrm{softmax}(\hat z) \, .
+$$<p>训练目标是对真实下一跳的交叉熵：</p>
+$$
+\mathcal{L} \;=\; -\sum_{i=1}^{|V|} y_i \log \hat y_i \, .
+$$<p>几个真正会影响实现的细节：</p>
+<ul>
+<li><strong>BPTT 但是图很小</strong>：梯度会沿着 $T$ 步 GGNN 反传。考虑到 $T$ 通常就是 1、节点数最多十几个，反传的代价跟&quot;序列模型在几百个 token 上跑 BPTT&quot;完全不是一个量级。</li>
+<li><strong>优化器</strong>：Adam，$\eta = 10^{-3}$，$(\beta_1, \beta_2) = (0.9, 0.999)$，所有矩阵 L2 衰减 $10^{-5}$。</li>
+<li><strong>嵌入维度</strong>：$d = 100$ 是默认值。在 Yoochoose 1/64 和 Diginetica 上把它放大到 256 或 512 只会过拟合，Recall@20 不会涨。</li>
+<li><strong>批处理</strong>：会话长度不齐，实现里需要把每个 batch 补齐到最大长度并加 mask。官方仓库 <a href="https://github.com/CRIPAC-DIG/SR-GNN/tree/master" target="_blank" rel="noopener noreferrer">https://github.com/CRIPAC-DIG/SR-GNN/tree/master <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ 把这一段处理得很干净，自己重写时建议直接抄它的 mask 逻辑。</li>
+<li><strong>超大物品池</strong>：当 $|V| > 10^5$ 时，全量 softmax 会变成瓶颈。把它换成 sampled softmax 或两塔召回头，SR-GNN 主体一行都不用动。</li>
+</ul>
+<h2 id="6-图视角凭什么压过序列基线">6. 图视角凭什么压过序列基线</h2>
+<p>纯序列的写法是 $h_t = \mathrm{GRU}(h_{t-1}, v_t)$。它有三个内生缺陷，恰好被图视角逐一规避：</p>
+<ul>
+<li><strong>回访就丢转移</strong>。 当用户点击 <code>A -&gt; B -&gt; C -&gt; B</code>，序列模型在第二次到达 <code>B</code> 时会用新隐状态覆盖旧的，关于 <code>B -&gt; C</code> 的信息悄悄消失。会话图把 $B \to C$ 和 $C \to B$ 同时显式保留，GGNN 把两条边都当作节点 <code>B</code> 的邻接结构来看。</li>
+<li><strong>关系结构得靠梯度自己学</strong>。 序列模型必须凭梯度信号&quot;悟到&quot;&ldquo;不同位置上的同一物品其实是同一回事&rdquo;；图的邻接矩阵则把这一事实直接塞进了模型架构。</li>
+<li><strong>信息只能单向流动</strong>。 RNN 是从左到右的；图通过入/出邻接拆分让信息<strong>双向</strong>传播，<code>D</code> 想从前驱 <code>B</code> 拉信息不需要等到反向一遍才能拿到。</li>
+</ul>
+<p>这些差距在基准上是看得见的。SR-GNN 在标准评测——Yoochoose 1/64、Yoochoose 1/4、Diginetica 上的 Recall@20 和 MRR@20 都全面压过 POP / Item-KNN / FPMC / GRU4Rec / NARM / STAMP：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/session-based-recommendation-with-graph-neural-networks/fig5_benchmark_perf.png" alt="基准对比：SR-GNN vs 序列推荐基线在 Yoochoose 1/64、Yoochoose 1/4、Diginetica 上的 Recall@20 与 MRR@20" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>提升幅度最大的是 Diginetica——它的会话普遍更长、回访也更多，正是序列模型丢转移最严重的场景。</p>
+<h2 id="7-超参数与训练配方">7. 超参数与训练配方</h2>
+<p>论文给出的默认值在 SR-GNN 这类任务里调得相当扎实，迁移到新数据集时几乎不用改：</p>
+<table>
+  <thead>
+      <tr>
+          <th>超参</th>
+          <th>取值</th>
+          <th>说明</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>嵌入维度 $d$</td>
+          <td>100</td>
+          <td>64&ndash;128 是甜区；256+ 在常见 SBR 数据上必过拟合</td>
+      </tr>
+      <tr>
+          <td>GGNN 传播步数 $T$</td>
+          <td>1</td>
+          <td>在 Diginetica 上 $T=2$ 略好，Yoochoose 上反而下降</td>
+      </tr>
+      <tr>
+          <td>优化器</td>
+          <td>Adam</td>
+          <td>$\eta = 10^{-3}$，$(\beta_1, \beta_2) = (0.9, 0.999)$</td>
+      </tr>
+      <tr>
+          <td>学习率衰减</td>
+          <td>每 3 轮 ×0.1</td>
+          <td>第 3 轮起开始衰减，Recall@20 通常能再涨 0.5&ndash;1.0 个点</td>
+      </tr>
+      <tr>
+          <td>Batch size</td>
+          <td>100</td>
+          <td>50&ndash;200 都可以，敏感度低</td>
+      </tr>
+      <tr>
+          <td>L2 权重衰减</td>
+          <td>$10^{-5}$</td>
+          <td>对所有 $W_*$ 与物品表都加</td>
+      </tr>
+      <tr>
+          <td>Dropout</td>
+          <td>GGNN 内不加；物品表 0.5</td>
+          <td>物品表 dropout 主要在评估时正则化长尾</td>
+      </tr>
+      <tr>
+          <td>Early stopping</td>
+          <td>监控 Recall@20，patience 5</td>
+          <td>多数实验在 8&ndash;12 轮收敛</td>
+      </tr>
+  </tbody>
+</table>
+<p>一个容易踩的坑：官方预处理会<strong>过滤长度为 1 的会话</strong>和<strong>过滤出现次数 &lt; 5 的物品</strong>。如果你直接拿论文数字对比、却没有这两步过滤，Recall@20 会比公布值低 3&ndash;5 个点，然后浪费一周去调模型而不是数据。</p>
+<h2 id="8-失败模式与修法">8. 失败模式与修法</h2>
+<p>SR-GNN 不是 SBR 的万能药。下面四类问题在生产里几乎一定会遇到，应该当成 checklist。</p>
+<h3 id="81-流行度坍塌">8.1 流行度坍塌</h3>
+<p><strong>症状</strong>：Recall@20 看起来还行，但 top-$K$ 列表来回就那 5&ndash;10 个全站爆款，会话之间几乎没差别。多样性指标（intra-list distance、coverage@K）惨不忍睹。</p>
+<p><strong>原因</strong>：交叉熵 + 全量 softmax 天然偏向流行物品——它们出现在大多数正样本里，模型学到的最低损失策略就是&quot;哪个流行就推哪个&rdquo;。</p>
+<p><strong>修法</strong>：</p>
+<ul>
+<li>给打分加<strong>流行度惩罚</strong>：$\hat z_i \mathrel{-}= \lambda \log \mathrm{freq}(i)$，$\lambda$ 在 $[0.1, 1.0]$ 之间按&quot;召回率/多样性&quot;的取舍调。</li>
+<li>用<strong>逆倾向加权</strong>的 softmax，把训练时流行正样本的权重压低。</li>
+<li><strong>按流行度分布采样负样本</strong>，强迫模型去区分自己默认会推的爆款。</li>
+</ul>
+<h3 id="82-极短会话n-le-3效果差">8.2 极短会话（$n \le 3$）效果差</h3>
+<p><strong>症状</strong>：长度 ≥ 5 的会话表现优秀，但长度 2&ndash;3 的会话被一个简单的共点击基线吊打。</p>
+<p><strong>原因</strong>：长度 2 的会话图就 2 个节点 1 条边，根本没有图结构可言；池化也退化成&quot;用 $h_n$&quot;。</p>
+<p><strong>修法</strong>：</p>
+<ul>
+<li><strong>混合服务</strong>：长度 ≤ 3 的会话路由到 <strong>item-KNN 或共点击模型</strong>，只有长度 ≥ 4 的会话才走 SR-GNN。在每个长度桶上一般都比单一模型强。</li>
+<li><strong>图增强</strong>：把最后一次点击与全站共点击图里它的 top-$k$ 邻居挂上边，给短会话&quot;借&quot;一些结构。</li>
+<li><strong>预训练物品嵌入</strong>：先在全站共点击图上跑 DeepWalk / node2vec，再把结果作为 SR-GNN 物品表的初始化。短会话从一开始就拿到信息丰富的嵌入，而不是随机噪声。</li>
+</ul>
+<h3 id="83-小数据集上过拟合">8.3 小数据集上过拟合</h3>
+<p><strong>症状</strong>：训练 Recall@20 一路涨；验证 Recall@20 在第 4 轮就停滞，之后开始下滑。</p>
+<p><strong>原因</strong>：物品表 $V \in \mathbb{R}^{|V|\times d}$ 是参数量最大的一块，在小数据集上很容易把长尾物品的身份&quot;背下来&rdquo;。</p>
+<p><strong>修法</strong>：</p>
+<ul>
+<li>把 $d$ 从 100 降到 50。</li>
+<li>训练时给<strong>物品表加 dropout 0.5&ndash;0.7</strong>，同一会话内 mask 一致。</li>
+<li>L2 权重衰减加到 $10^{-4}$。</li>
+<li>early stopping patience 从 5 降到 3。</li>
+</ul>
+<h3 id="84-冷启动物品">8.4 冷启动物品</h3>
+<p><strong>症状</strong>：训练时出现次数少于 5 次的物品几乎从不被推荐，无论会话向量长什么样，它们的内积都很小。</p>
+<p><strong>原因</strong>：这些物品在 $V$ 里的对应行几乎拿不到梯度，一直停留在初始化附近。</p>
+<p><strong>修法</strong>：</p>
+<ul>
+<li>接入<strong>内容特征</strong>（标题文本嵌入、品类、品牌等）作为旁路，令 $v_i = V[i] + g(\text{content}_i)$。冷启动物品的行就能从 $g$ 那里继承到先验。</li>
+<li>用<strong>两塔召回</strong>做候选生成，把 SR-GNN 留给精排。</li>
+</ul>
+<h2 id="9-几个值得知道的变体">9. 几个值得知道的变体</h2>
+<p>下面这些扩展是后续 SBR 论文和工业系统反复出现的&quot;标配套件&quot;：</p>
+<h3 id="91-注意力化的消息传递">9.1 注意力化的消息传递</h3>
+<p>把固定的 $A_s$ 换成按边计算的注意力权重：</p>
+$$
+\alpha_{ij} \;=\; \mathrm{softmax}_j\!\big(\mathrm{LeakyReLU}(a^\top [W h_i \,||\, W h_j])\big),
+\qquad a_t^{(i)} \;=\; \sum_{j \in \mathcal N(i)} \alpha_{ij}\, W h_j \, .
+$$<p>本质就是把 GAT 塞进 GGNN 单元里。当不同转移的&quot;重要程度&quot;差异较大时有用。</p>
+<h3 id="92-时间间隔作为边特征">9.2 时间间隔作为边特征</h3>
+<p>会话长度从几秒到几分钟都有；2 秒内的连点和间隔 5 分钟的两次点击信号强度完全不一样。把时间间隔 $\Delta t_{u \to v}$ 编进边权：</p>
+$$
+w_{u \to v} \;=\; \exp\!\big(-\beta \cdot \Delta t_{u \to v}\big) \cdot \frac{\#(u \to v)}{\mathrm{outdeg}(u)} \, .
+$$<p>让 $\beta$ 可学习，最终值通常会落在 $0.05$&ndash;$0.2$ 之间（$\Delta t$ 以秒为单位时）。</p>
+<h3 id="93-多任务头">9.3 多任务头</h3>
+<p>在同一个 $s_h$ 上加辅助损失：</p>
+<ul>
+<li>预测<strong>会话长度</strong>（对 $\log n$ 做回归）。</li>
+<li>预测<strong>用户是否会在 24 小时内回来</strong>（二分类）。</li>
+<li>预测<strong>下一次点击的品类</strong>。</li>
+</ul>
+<p>辅助任务能给会话向量加一层正则化，在主任务损失噪声较大时有帮助。权重保持小（$0.05$&ndash;$0.2$），它们是辅助信号，不是主目标。</p>
+<h2 id="10-什么场景该用-sr-gnn什么场景换别的">10. 什么场景该用 SR-GNN，什么场景换别的</h2>
+<table>
+  <thead>
+      <tr>
+          <th>场景</th>
+          <th>建议</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>长会话且有回访（$n \ge 5$）</td>
+          <td>SR-GNN，最舒服的甜区</td>
+      </tr>
+      <tr>
+          <td>极短会话（$n \le 3$）</td>
+          <td>item-KNN 或共点击，SR-GNN 没图可用</td>
+      </tr>
+      <tr>
+          <td>重度冷启动</td>
+          <td>两塔 + 内容特征召回，SR-GNN 仅用于精排</td>
+      </tr>
+      <tr>
+          <td>实时延迟预算 &lt; 5 ms</td>
+          <td>缓存物品邻居表示，或蒸馏成 MLP 头</td>
+      </tr>
+      <tr>
+          <td>物品池 $</td>
+          <td>V</td>
+      </tr>
+      <tr>
+          <td>有强长期用户历史</td>
+          <td>看 SASRec、BERT4Rec 这一支带用户嵌入的序列模型</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="五点小结">五点小结</h2>
+<ul>
+<li><strong>会话即图</strong>。点击流变成有向加权图，回访和环路被原样保留在邻接里，而不是被隐状态盖掉。</li>
+<li><strong>GGNN = 图消息上的 GRU</strong>。先在入/出邻接上聚合一个消息 $a_t$，再走重置门、更新门、候选状态。一步传播一般就够。</li>
+<li><strong>局部 + 全局池化</strong>。会话向量由&quot;最后一次点击&quot;（短期意图）和&quot;以最后点击为查询的注意力求和&quot;（全局上下文）线性融合而成。</li>
+<li><strong>交叉熵训练 + 内积打分</strong>。整套训练范式毫无花活——真正赢的是&quot;嵌入里编码了图结构&quot;这件事。</li>
+<li><strong>甜区是中等长度且带回访的会话</strong>。出了这个范围——长度 ≤ 3、冷启动、超大物品池——别在 SR-GNN 内部硬调，换成合适的搭档（KNN、内容塔、采样 softmax）才是正解。</li>
+</ul>
+<p>更进一步的洞察是<strong>结构上的</strong>：会话推荐根本不是&quot;披着推荐外衣的序列问题&quot;，而是&quot;带序列先验的图问题&quot;。一旦接受了这个视角，这条线后面所有进展——注意力化的 GNN（GC-SAN）、双曲嵌入（HCGR）、LLM 增强的会话模型（LLMGR）——读起来都会顺很多。</p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你会学到什么">你会学到什么</a></li>
+    <li><a href="#前置准备">前置准备</a></li>
+    <li><a href="#1-背景会话推荐到底特殊在哪">1. 背景：会话推荐到底特殊在哪</a></li>
+    <li><a href="#2-会话图的构建">2. 会话图的构建</a></li>
+    <li><a href="#3-门控-gnn-的传播">3. 门控 GNN 的传播</a></li>
+    <li><a href="#4-会话表示的拼装">4. 会话表示的拼装</a></li>
+    <li><a href="#5-打分与训练">5. 打分与训练</a></li>
+    <li><a href="#6-图视角凭什么压过序列基线">6. 图视角凭什么压过序列基线</a></li>
+    <li><a href="#7-超参数与训练配方">7. 超参数与训练配方</a></li>
+    <li><a href="#8-失败模式与修法">8. 失败模式与修法</a>
+      <ul>
+        <li><a href="#81-流行度坍塌">8.1 流行度坍塌</a></li>
+        <li><a href="#82-极短会话n-le-3效果差">8.2 极短会话（）效果差</a></li>
+        <li><a href="#83-小数据集上过拟合">8.3 小数据集上过拟合</a></li>
+        <li><a href="#84-冷启动物品">8.4 冷启动物品</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-几个值得知道的变体">9. 几个值得知道的变体</a>
+      <ul>
+        <li><a href="#91-注意力化的消息传递">9.1 注意力化的消息传递</a></li>
+        <li><a href="#92-时间间隔作为边特征">9.2 时间间隔作为边特征</a></li>
+        <li><a href="#93-多任务头">9.3 多任务头</a></li>
+      </ul>
+    </li>
+    <li><a href="#10-什么场景该用-sr-gnn什么场景换别的">10. 什么场景该用 SR-GNN，什么场景换别的</a></li>
+    <li><a href="#五点小结">五点小结</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5700</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

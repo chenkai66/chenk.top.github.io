@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>强化学习（十一）：层次化强化学习与元学习 · Chen Kai Blog</title>
+<meta name="description" content="层次化强化学习（Options、MAXQ、Feudal Networks、目标条件策略）与元强化学习（MAML、FOMAML、RL²）的系统讲解：时序抽象、半马尔可夫过程、Manager-Worker 架构、二阶元梯度与循环式元学习器，附带 PyTorch 实现。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习（十一）：层次化强化学习与元学习">
+<meta property="og:description" content="层次化强化学习（Options、MAXQ、Feudal Networks、目标条件策略）与元强化学习（MAML、FOMAML、RL²）的系统讲解：时序抽象、半马尔可夫过程、Manager-Worker 架构、二阶元梯度与循环式元学习器，附带 PyTorch 实现。">
+<meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">强化学习</a>
+         · Chapter 11
+      </div>
+      <h1>强化学习（十一）：层次化强化学习与元学习</h1>
+      <p class="deck">层次化强化学习（Options、MAXQ、Feudal Networks、目标条件策略）与元强化学习（MAML、FOMAML、RL²）的系统讲解：时序抽象、半马尔可夫过程、Manager-Worker 架构、二阶元梯度与循环式元学习器，附带 PyTorch 实现。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-09-20">September 20, 2025</time> · 12 min read · 5600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" class="tag">#强化学习</a><a href="/zh/tags/%E5%B1%82%E6%AC%A1%E5%8C%96rl/" class="tag">#层次化RL</a><a href="/zh/tags/%E5%85%83%E5%AD%A6%E4%B9%A0/" class="tag">#元学习</a><a href="/zh/tags/maml/" class="tag">#MAML</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>普通强化学习把每个问题都当作一串&quot;原子动作&quot;在做：观察状态、选动作、拿奖励，循环往复。这种做法在短回合、稠密奖励的玩具任务上还能凑合，但一旦遇到人类觉得&quot;轻而易举&quot;的真实任务就立刻露怯。&ldquo;做一顿早餐&quot;显然不是一次决策，而是一棵子任务树——<em>煮咖啡、煎蛋、烤面包、装盘上桌</em>——每个分支本身就是一个小策略。<strong>层次化强化学习（HRL）</strong> 让智能体把宏动作（macro-action）当成一等公民，从而能在多个时间尺度上同时思考和行动。</p>
+<p>普通强化学习的另一道硬伤是：每个新任务都得从头学。会骑自行车的人改骑摩托车只要一个下午，而不是一千万环境步数。<strong>元强化学习（Meta-RL）</strong> 试图弥补这一点：在一组任务的<em>分布</em>上训练，使得遇到新任务时只需要少量回合（甚至只需要 RNN 走一遍 forward）就能完成适应。</p>
+<p>这两条思路其实是同一种洞见在不同维度上的体现：层次化在<em>时间维度</em>上抽象，元学习在<em>任务维度</em>上抽象，二者都在压缩学习问题的有效维数。FuN、HIRO、MAML、RL² 等近年的代表工作，往往同时使用这两种武器。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li><strong>Options 框架</strong>——半马尔可夫过程与 intra-option Q-learning</li>
+<li><strong>MAXQ</strong>——沿任务树做值函数分解</li>
+<li><strong>Feudal RL</strong>（FuN、HIRO）——用连续子目标替代离散选项的 Manager-Worker 架构</li>
+<li><strong>目标条件 RL</strong>——通用值函数与 HER（事后经验回放）</li>
+<li><strong>MAML / FOMAML</strong>——学一个能&quot;几步就适应&quot;的初始化</li>
+<li><strong>RL²</strong>——把内层 RL 算法折叠进 RNN 的隐藏状态</li>
+<li><strong>可运行代码</strong>——Four Rooms 上的 intra-option Q-learning 与 2D 导航上的 MAML 策略梯度</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>Q-learning、策略梯度与值函数（<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">第 1&ndash;6 部分</a>
+）</li>
+<li>熟悉 RNN 展开与二阶自动微分</li>
+<li>PyTorch</li>
+</ul>
+<hr>
+<h2 id="一层次化options-框架">一、层次化：Options 框架</h2>
+<h3 id="为什么需要时序抽象">为什么需要时序抽象</h3>
+<p>扁平策略每一环境步做一次决策，因此在长度为 $T$ 的回合上，credit assignment 路径长度是 $T$，探索树叶子数是 $|\mathcal{A}|^T$，二者都呈指数膨胀。引入平均长度为 $\bar k$ 的宏动作之后，决策次数被压缩到 $T/\bar k$，探索树缩到 $|\mathcal{O}|^{T/\bar k}$，其中 $\mathcal{O}$ 是一个通常很小的选项集合。下图给出了两种视角的对比。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/fig1_options_framework.png" alt="Options 框架：时序对比与三元组 (I, π, β)" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>除了渐近复杂度的论证，层次化还有三个非常实用的好处：</p>
+<ol>
+<li><strong>模块化</strong>——在某个任务上学到的选项可以在新任务上直接复用，例如&quot;穿过门口&quot;这个选项可以服务于一切导航问题。</li>
+<li><strong>可解释性</strong>——高层策略往往足够小，可以人工检查；决策只发生在语义上有意义的&quot;关键节点&quot;上。</li>
+<li><strong>奖励塑形</strong>——子目标天然提供稠密的内在奖励，即使外部奖励极稀疏也学得动。</li>
+</ol>
+<h3 id="option-三元组">Option 三元组</h3>
+<p>按照 Sutton, Precup &amp; Singh（1999）的定义，一个 <strong>Option</strong> 是一个时序扩展动作</p>
+$$
+o = \langle \mathcal{I}, \pi_o, \beta \rangle,
+$$<p>其中 $\mathcal{I} \subseteq \mathcal{S}$ 是允许启动该选项的状态集合，$\pi_o(a \mid s)$ 是选项的内部策略，$\beta(s) \in [0, 1]$ 是终止概率。引入选项之后，原 MDP 升级为<strong>半马尔可夫决策过程（semi-MDP）</strong>：高层策略 $\mu(o \mid s)$ 选定一个选项，选项内部一直运行直到 $\beta$ 触发，下一次高层决策才会发生。</p>
+<h3 id="intra-option-q-learning">Intra-Option Q-Learning</h3>
+<p>最朴素的做法是等到选项终止再 bootstrap 更新 $Q(s, o)$，但这非常浪费——一个选项可能跑几十步，中间所有的转移都被白白扔掉。<strong>Intra-option Q-learning</strong>（Sutton 等，1999）在<em>每一步</em>都更新 $Q(s, o)$，关键观察是：同一个转移 $(s, a, r, s')$ 对于&quot;在 $s$ 上会选 $a$&ldquo;的<em>所有</em>选项都是有效的训练样本：</p>
+$$
+Q(s, o) \leftarrow Q(s, o) + \alpha \big[r + \gamma U(s', o) - Q(s, o)\big],
+$$<p>其中**延续值（continuation value）**为</p>
+$$
+U(s', o) = (1 - \beta(s'))\, Q(s', o) + \beta(s')\, \max_{o'} Q(s', o').
+$$<p>延续值的设计很优雅：如果选项还会继续跑，就沿用它自己的 Q 值；如果它在 $s'$ 处终止，就把控制权交还给高层策略，挑当前最好的下一选项。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">IntraOptionQLearning</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;离散选项集合上的 intra-option Q-learning。
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    每一条原始转移都会更新 (1) 当前选项的高层 Q(s, o)，以及
+</span></span></span><span class="line"><span class="cl"><span class="s2">    (2) 该选项的内部 Q 表，从而隐式地修正其内部策略。
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">env</span><span class="p">,</span> <span class="n">options</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">epsilon</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">)))</span>     <span class="c1"># Q(s, o)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">n_actions</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_select_option</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">available</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                     <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">can_initiate</span><span class="p">(</span><span class="n">state</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">available</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">available</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">available</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">available</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">q</span><span class="p">)])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train_episode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total_reward</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">oid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_option</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">oid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">break</span>
+</span></span><span class="line"><span class="cl">            <span class="n">option</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="n">oid</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="ow">not</span> <span class="n">option</span><span class="o">.</span><span class="n">should_terminate</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">action</span> <span class="o">=</span> <span class="n">option</span><span class="o">.</span><span class="n">act</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">next_state</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total_reward</span> <span class="o">+=</span> <span class="n">reward</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="c1"># 延续值 U(s&#39;, o)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">option</span><span class="o">.</span><span class="n">should_terminate</span><span class="p">(</span><span class="n">next_state</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">][</span><span class="n">oid</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="c1"># 高层更新</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">oid</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">reward</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">U</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">oid</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="c1"># 内部策略更新（在原始动作上的扁平 Q）</span>
+</span></span><span class="line"><span class="cl">                <span class="n">td</span> <span class="o">=</span> <span class="p">(</span><span class="n">reward</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span>
+</span></span><span class="line"><span class="cl">                      <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span><span class="p">[</span><span class="n">next_state</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                      <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">action</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">action</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">td</span>
+</span></span><span class="line"><span class="cl">                <span class="n">option</span><span class="o">.</span><span class="n">policy</span><span class="p">[</span><span class="n">state</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span><span class="p">[</span><span class="n">state</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="n">state</span> <span class="o">=</span> <span class="n">next_state</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">return</span> <span class="n">total_reward</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">total_reward</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在经典的 Four Rooms 实验中，配上四个手工设计的&quot;穿过门口&quot;选项后，intra-option Q-learning 比扁平 Q-learning 快 3&ndash;5 倍收敛，而且学到的选项可以直接迁移到新的目标位置。</p>
+<h3 id="maxq沿任务树做值函数分解">MAXQ：沿任务树做值函数分解</h3>
+<p>Options 把层次结构<em>隐藏</em>在选项集合里，而 <strong>MAXQ</strong>（Dietterich, 2000）把它<em>显式</em>地写出来。智能体被给定一棵子任务的有向无环图，对每个复合任务 $i$ 和它的子任务 $a$，值函数被分解为</p>
+$$
+Q_i(s, a) = V_a(s) + C_i(s, a),
+$$<p>其中 $V_a(s)$ 是完成<em>子任务</em> $a$ 的价值，$C_i(s, a)$ 是<strong>完成函数（completion function）</strong>——子任务结束后继续完成父任务 $i$ 的额外价值。由于 $V_a$ 只依赖于 $a$，所有调用 $a$ 的父任务都能共用同一份 $V_a$，这正是样本效率提升的来源。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/fig6_task_decomposition.png" alt="MAXQ 任务层次：原语在多个父任务间共用" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>代价是：MAXQ 只能保证<strong>递归最优（recursive optimality）</strong>，而不是全局最优——也就是说，它只在给定的任务分解下最优。如果你的任务图无法表达真正的最优策略，MAXQ 就找不到它。</p>
+<hr>
+<h2 id="二feudal-rl用连续子目标替代离散选项">二、Feudal RL：用连续子目标替代离散选项</h2>
+<p>离散选项集合在连续控制或像素输入下很难手工列举。<strong>Feudal Networks（FuN，Vezhnevets 等，2017）</strong> 与 <strong>HIRO（Nachum 等，2018）</strong> 把离散选项集换成由高层 Manager 输出的<em>连续目标向量</em>。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/fig2_feudal_architecture.png" alt="Feudal RL：Manager 每 c 步设一次目标，Worker 每步执行" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Manager 看到状态 $s_t$，每 $c$ 步（FuN 取 $c = 10$）输出一个目标 $g_t \in \mathbb{R}^d$。Worker 是一个目标条件策略 $\pi_\phi(a \mid s, g)$，它在向目标移动时获得<strong>内在奖励</strong></p>
+$$
+r^{\text{int}}_t = \cos\!\big(s_{t+c} - s_t,\, g_t\big),
+$$<p>而 Manager 直接根据<em>外部</em>环境奖励训练。这种解耦正是 Feudal 架构吸引人的地方：Worker 在稠密、几何的内在奖励上学习运动控制，Manager 则专注于长时序的信用分配，且其有效时序长度只有 $T/c$。</p>
+<h3 id="hiro-的子目标重标注">HIRO 的子目标重标注</h3>
+<p>Feudal 训练有一个鸡生蛋的问题：Worker 还在学习，所以是非平稳的，回放池里旧的目标已经不再对应 Worker 当前能达到的状态了。HIRO 用**子目标重标注（subgoal relabelling）**来解决：从回放池采到 $(s_t, g_t, a_{t:t+c}, s_{t+c})$ 后，把 $g_t$ 替换成最能解释 Worker 实际产生的动作序列的那个目标，</p>
+$$
+\tilde g_t = \arg\max_{g} \log \pi_\phi(a_{t:t+c} \mid s_{t:t+c},\, g).
+$$<p>这一步把 Worker 的训练数据&quot;拉回&quot;到当前参数下的同分布上，从而显著稳定了 Manager 的离线训练。</p>
+<hr>
+<h2 id="三目标条件-rl-与-her">三、目标条件 RL 与 HER</h2>
+<p>目标条件策略 $\pi(a \mid s, g)$ 值得单独一节，因为它是层次化与元学习的桥梁——同一个网络可以追求多个目标，目标 $g$ 只是个额外输入。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/fig3_goal_conditioned.png" alt="目标条件策略与 4 条来自同一网络的轨迹" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>经典的形式化是 <strong>Universal Value Function Approximators（UVFA，Schaul 等，2015）</strong>：学习 $V(s, g)$ 或 $Q(s, a, g)$，而不是普通的 $V(s), Q(s, a)$。如果不加额外技巧，UVFA 在稀疏奖励下会非常痛苦：探索过程中绝大多数目标根本到达不了，奖励信号几乎全是零。</p>
+<p><strong>Hindsight Experience Replay（HER，Andrychowicz 等，2017）</strong> 是对此的标准补救。当一个回合<em>没有</em>达到目标 $g$ 时，把这条轨迹重新打标成它<em>确实</em>达到的目标（通常是终态），把一次失败变成&quot;对另一个任务的成功演示&rdquo;：</p>
+$$
+(s_t, a_t, r, s_{t+1}, g) \;\longrightarrow\; (s_t, a_t, r', s_{t+1},\, g' = s_T).
+$$<p>配合离线方法（DDPG、SAC），HER 把&quot;稀疏奖励的目标到达&quot;从几乎不可能做到了&quot;日常操作&rdquo;。</p>
+<hr>
+<h2 id="四meta-rl学习如何学习">四、Meta-RL：学习如何学习</h2>
+<p>元 RL 假设有一个<em>任务分布</em> $p(\mathcal{T})$，而不是单个 MDP。元训练阶段，智能体见过许多任务 $\mathcal{T}_i \sim p(\mathcal{T})$；元测试阶段，它要面对一个全新任务，并尽可能少花交互就完成适应。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/fig5_meta_rl_distribution.png" alt="任务分布与在新任务上的适应曲线" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>主流方法分为两大家族：</p>
+<ul>
+<li><strong>基于优化（optimization-based）</strong>：MAML、Reptile、ANIL——适应 = 在测试任务上跑几步梯度。</li>
+<li><strong>基于上下文 / 循环（context-based）</strong>：RL²、PEARL——适应 = 数据流入时更新 RNN 隐藏状态，测试时无需任何梯度。</li>
+</ul>
+<h3 id="maml学一个好的初始化">MAML——学一个好的初始化</h3>
+<p><strong>Model-Agnostic Meta-Learning（MAML，Finn 等，2017）</strong> 的元目标是寻找参数 $\theta$，使得在任一任务 $\mathcal{T}_i$ 上做一步（或几步）内层 SGD 就能取得高回报：</p>
+$$
+\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}(\theta),
+\qquad
+\theta \leftarrow \theta - \beta \nabla_\theta \sum_{i} \mathcal{L}_{\mathcal{T}_i}(\theta_i').
+$$<p>外层梯度<em>穿过</em>内层更新做反传，因此包含一个 Hessian 项 $\nabla^2 \mathcal{L}$。这正是 MAML 昂贵的原因，也催生了 <strong>FOMAML</strong>——直接忽略二阶项。经验上 FOMAML 比 MAML 大约快 $10\times$，最终回报损失不到 5%。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/fig4_maml_inner_outer_loop.png" alt="MAML 在参数空间中的几何意义与两层循环算法" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>左图给出了最有用的直觉：元训练<em>不是</em>在找一个对任何单一任务都最优的初始化，而是在找一个&quot;甜区&quot;——从这里出发，一步梯度就能落到每个任务的特定最优解附近。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span><span class="lnt">88
+</span><span class="lnt">89
+</span><span class="lnt">90
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GaussianPolicy</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;连续控制下的对角高斯策略。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">action_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">trunk</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">log_std</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">action_dim</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">h</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_std</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dist</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">a</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">rsample</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">a</span><span class="p">,</span> <span class="n">dist</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MAML</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;REINFORCE 风格策略梯度的一阶或二阶 MAML。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">inner_lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">outer_lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">first_order</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="n">policy</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">inner_lr</span> <span class="o">=</span> <span class="n">inner_lr</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">first_order</span> <span class="o">=</span> <span class="n">first_order</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">outer_lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_rollout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">a</span><span class="p">,</span> <span class="n">lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">state</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rewards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">log_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">break</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_returns</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">G</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">rewards</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">G</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">G</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">out</span> <span class="o">-</span> <span class="n">out</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">returns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_returns</span><span class="p">(</span><span class="n">rewards</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span> <span class="o">*</span> <span class="n">returns</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">adapt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;在 env 上做一步内层更新，返回适应后的参数列表。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rollout</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">create_graph</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_order</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">p</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">inner_lr</span> <span class="o">*</span> <span class="n">g</span>
+</span></span><span class="line"><span class="cl">                <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">grads</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">meta_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_envs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">meta_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">env</span> <span class="ow">in</span> <span class="n">task_envs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">adapted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># 暂存原参数，把适应后的参数装入网络做评估前向</span>
+</span></span><span class="line"><span class="cl">            <span class="n">backup</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">()]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">adapted</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">data</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rollout</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">meta_loss</span> <span class="o">=</span> <span class="n">meta_loss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">backup</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">b</span>
+</span></span><span class="line"><span class="cl">        <span class="n">meta_loss</span> <span class="o">=</span> <span class="n">meta_loss</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">task_envs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">meta_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">meta_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>上面的实现采用&quot;换权重再前向&quot;的方式来做元评估，而不是真正的 functional forward——这是最易读的版本，对小网络已经足够。研究规模的 MAML 建议改用 <code>higher</code> 或 <code>torch.func.functional_call</code> 这类官方/第三方的函数式 API。</p>
+<h3 id="rl把算法本身折叠进-rnn">RL²——把算法本身折叠进 RNN</h3>
+<p><strong>RL²</strong>（Duan 等，2016；Wang 等，2016）走了另一条路：测试时智能体的参数完全冻结，所有适应都由 RNN 的隐藏状态来完成。循环策略接收的输入被增广为</p>
+$$
+x_t = (s_t,\, a_{t-1},\, r_{t-1},\, d_{t-1}),
+$$<p>也就是状态加上<em>前一步的动作、奖励、终止标志</em>。在一个元试验内的多个回合里，隐藏状态 $h_t$ 不断累积关于当前任务的信息——本质上在做一种隐式的贝叶斯后验更新。元训练阶段，外层优化器（PPO 或 A2C）调整 RNN 权重，使得这套&quot;内置的 RL 算法&quot;在 $p(\mathcal{T})$ 上具有良好样本效率。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/11-%E5%B1%82%E6%AC%A1%E5%8C%96%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%85%83%E5%AD%A6%E4%B9%A0/fig7_rl_squared.png" alt="RL² 在跨多个回合的元试验上的展开" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>RL² 有两个非常吸引人的属性：(i) 测试时零梯度计算，每步适应只是一次 forward；(ii) 适应过程是<em>学出来</em>的，原则上能在训练分布上超过任何手工设计的优化器。代价是元训练阶段的信用分配极其困难——梯度要穿过几十甚至上百步、横跨多个回合的循环展开。</p>
+<hr>
+<h2 id="五常见问题">五、常见问题</h2>
+<p><strong>Options 框架到底为什么能加速？</strong>
+三个叠加效应：(i) 有效时序长度从 $T$ 缩到 $T/\bar k$；(ii) 高层分支因子 $|\mathcal{O}|$ 通常远小于 $|\mathcal{A}|$；(iii) intra-option 学习意味着每条原始转移都会更新<em>所有</em>&ldquo;在该状态会选这个动作&quot;的选项的 Q，而不只是当前控制中的那个。</p>
+<p><strong>层次化最优 vs 全局最优有什么区别？</strong>
+层次化最优是给定分解（选项集合或任务树）下的最优策略；全局最优是底层扁平 MDP 上的最优策略。两者只要分解无法表达真正的最优策略就会发生分歧——例如一个最少跑 10 步才能终止的选项，无法实现一个需要每 3 步切换行为的策略。</p>
+<p><strong>MAML 为什么需要二阶梯度？FOMAML 损失多少？</strong>
+元损失是 $\mathcal{L}_{\mathcal{T}_i}(\theta_i')$，其中 $\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}(\theta)$。对 $\theta$ 求导得到 $(I - \alpha \nabla^2_\theta \mathcal{L}_{\mathcal{T}_i})\, \nabla_{\theta_i'} \mathcal{L}_{\mathcal{T}_i}(\theta_i')$，里面带 Hessian。FOMAML 直接丢掉 $-\alpha \nabla^2 \mathcal{L}$ 这个因子（即把 $\theta_i'$ 当作 stop-gradient）。原论文报告标准 few-shot 基准上的性能损失小于 5%。</p>
+<p><strong>MAML 与 RL² 该怎么选？</strong>
+能在适应时算梯度、且任务分布广到一个固定策略覆盖不全时，选 MAML；任务族窄、贪婪利用就能赢（例如 arms 会变化的多臂老虎机），或测试时无法做梯度时，选 RL²。PEARL 用一个独立的编码器推断任务嵌入，常常是个不错的折中。</p>
+<p><strong>HER 为什么必须配离线方法？</strong>
+HER 修改了某条转移所对应的目标，而 on-policy 方法假定数据是由&quot;当前策略 + 当前目标&quot;产生的——一旦改了目标，这一假定就破了。离线方法（DQN、DDPG、SAC）只需要在更新时知道 $\pi(a \mid s, g')$，而这个量是可计算的，所以重标注是无害的。</p>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<ul>
+<li><strong>上一篇</strong>：<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e7%a6%bb%e7%ba%bf%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0/">第 10 部分 —— 离线强化学习</a>
+</li>
+<li><strong>下一篇</strong>：<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-RLHF%e4%b8%8e%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e5%ba%94%e7%94%a8/">第 12 部分 —— RLHF 与大语言模型应用</a>
+</li>
+<li><a href="/tags/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0/">查看强化学习系列全部 12 篇</a>
+</li>
+</ul>
+<h2 id="参考文献">参考文献</h2>
+<ol>
+<li>Sutton, Precup &amp; Singh. <em>Between MDPs and semi-MDPs: A framework for temporal abstraction in reinforcement learning.</em> Artificial Intelligence, 1999.</li>
+<li>Dietterich. <em>Hierarchical Reinforcement Learning with the MAXQ Value Function Decomposition.</em> JAIR, 2000.</li>
+<li>Vezhnevets et al. <em>FeUdal Networks for Hierarchical Reinforcement Learning.</em> ICML 2017. arXiv:1703.01161.</li>
+<li>Nachum et al. <em>Data-Efficient Hierarchical Reinforcement Learning (HIRO).</em> NeurIPS 2018. arXiv:1805.08296.</li>
+<li>Schaul et al. <em>Universal Value Function Approximators.</em> ICML 2015.</li>
+<li>Andrychowicz et al. <em>Hindsight Experience Replay.</em> NeurIPS 2017. arXiv:1707.01495.</li>
+<li>Finn, Abbeel &amp; Levine. <em>Model-Agnostic Meta-Learning for Fast Adaptation of Deep Networks.</em> ICML 2017. arXiv:1703.03400.</li>
+<li>Duan et al. <em>RL²: Fast Reinforcement Learning via Slow Reinforcement Learning.</em> 2016. arXiv:1611.02779.</li>
+<li>Wang et al. <em>Learning to reinforcement learn.</em> 2016. arXiv:1611.05763.</li>
+<li>Rakelly et al. <em>Efficient Off-Policy Meta-RL via Probabilistic Context Variables (PEARL).</em> ICML 2019.</li>
+</ol>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#一层次化options-框架">一、层次化：Options 框架</a>
+      <ul>
+        <li><a href="#为什么需要时序抽象">为什么需要时序抽象</a></li>
+        <li><a href="#option-三元组">Option 三元组</a></li>
+        <li><a href="#intra-option-q-learning">Intra-Option Q-Learning</a></li>
+        <li><a href="#maxq沿任务树做值函数分解">MAXQ：沿任务树做值函数分解</a></li>
+      </ul>
+    </li>
+    <li><a href="#二feudal-rl用连续子目标替代离散选项">二、Feudal RL：用连续子目标替代离散选项</a>
+      <ul>
+        <li><a href="#hiro-的子目标重标注">HIRO 的子目标重标注</a></li>
+      </ul>
+    </li>
+    <li><a href="#三目标条件-rl-与-her">三、目标条件 RL 与 HER</a></li>
+    <li><a href="#四meta-rl学习如何学习">四、Meta-RL：学习如何学习</a>
+      <ul>
+        <li><a href="#maml学一个好的初始化">MAML——学一个好的初始化</a></li>
+        <li><a href="#rl把算法本身折叠进-rnn">RL²——把算法本身折叠进 RNN</a></li>
+      </ul>
+    </li>
+    <li><a href="#五常见问题">五、常见问题</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">强化学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5600</strong></div>
+      <div class="row"><span>Published</span><strong>Sep 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

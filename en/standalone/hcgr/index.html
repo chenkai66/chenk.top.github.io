@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>HCGR: Hyperbolic Contrastive Graph Representation Learning for Session-based Recommendation · Chen Kai Blog</title>
+<meta name="description" content="HCGR embeds session graphs in the Lorentz model of hyperbolic space and trains them with InfoNCE-style contrastive learning. This review unpacks why hierarchical session intent fits hyperbolic geometry, how Lorentz attention works in tangent space, and what the ablations actually prove.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/standalone/hcgr/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/hcgr/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="HCGR: Hyperbolic Contrastive Graph Representation Learning for Session-based Recommendation">
+<meta property="og:description" content="HCGR embeds session graphs in the Lorentz model of hyperbolic space and trains them with InfoNCE-style contrastive learning. This review unpacks why hierarchical session intent fits hyperbolic geometry, how Lorentz attention works in tangent space, and what the ablations actually prove.">
+<meta property="og:url" content="https://www.chenk.top/en/standalone/hcgr/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
+        
+      </div>
+      <h1>HCGR: Hyperbolic Contrastive Graph Representation Learning for Session-based Recommendation</h1>
+      <p class="deck">HCGR embeds session graphs in the Lorentz model of hyperbolic space and trains them with InfoNCE-style contrastive learning. This review unpacks why hierarchical session intent fits hyperbolic geometry, how Lorentz attention works in tangent space, and what the ablations actually prove.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2023-12-16">December 16, 2023</time> · 11 min read · 2400 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/contrastive-learning/" class="tag">#Contrastive Learning</a><a href="/en/tags/recommender-systems/" class="tag">#Recommender Systems</a><a href="/en/tags/gnn/" class="tag">#GNN</a><a href="/en/tags/hyperbolic-geometry/" class="tag">#Hyperbolic Geometry</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>A user opens a sneaker app, taps &ldquo;running shoes&rdquo;, drills into a brand, then a price band, then a single SKU. That trajectory is a <em>tree</em>: each click narrows the candidate set roughly multiplicatively. In Euclidean space you need many dimensions to keep all the leaves of that tree apart, because Euclidean volume only grows polynomially with radius. In hyperbolic space volume grows <em>exponentially</em> with radius, so the tree fits naturally — a few dimensions are enough to keep the whole long tail untangled.</p>
+<p><a href="https://arxiv.org/abs/2107.05366" target="_blank" rel="noopener noreferrer"><strong>HCGR</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ (Guo et al., 2021) takes this seriously. It embeds session-graph nodes on the <strong>Lorentz hyperboloid</strong>, runs an attention-weighted GNN aggregator in the tangent space, and adds a contrastive auxiliary loss that pulls together two augmented views of the same session while pushing other sessions away. The result is a session recommender that beats strong Euclidean GNN baselines like SR-GNN and GCE-GNN, with the largest gains exactly where hyperbolic geometry should help: long-tail items and deep-hierarchy datasets like Last.FM.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>Why session intent has the structure that hyperbolic geometry was built for</li>
+<li>The Lorentz model: distance, tangent space, exponential and logarithmic maps in a form you can implement</li>
+<li>How HCGR does GNN aggregation and attention without ever leaving the manifold</li>
+<li>The two-view contrastive objective and how it interacts with hyperbolic distance</li>
+<li>How to read HCGR-style ablations critically (Euclidean vs hyperbolic at <em>matched</em> capacity, with vs without contrastive)</li>
+<li>When this machinery is worth its complexity, and when plain SR-GNN is enough</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Session-based recommendation basics (ideally SR-GNN or GCE-GNN)</li>
+<li>Standard GNN message passing</li>
+<li>Light differential-geometry intuition; we keep formulas operational rather than rigorous</li>
+</ul>
+<hr>
+<h2 id="1-why-session-intent-fits-hyperbolic-geometry">1. Why session intent fits hyperbolic geometry</h2>
+<p>Three properties of session-recommendation data keep showing up:</p>
+<ol>
+<li><strong>Power-law popularity.</strong> A handful of head items absorb most clicks; the long tail is enormous and sparsely interacted.</li>
+<li><strong>Taxonomic narrowing.</strong> A session usually walks down a tree: category → subcategory → attribute → SKU.</li>
+<li><strong>Exponential branching.</strong> As you move from a coarse concept outward, the number of fine-grained candidates explodes.</li>
+</ol>
+<p>These are the defining properties of <em>trees</em>, and trees do not embed cleanly in Euclidean space. To see why, take a balanced binary tree of depth $L$. It has $2^L$ leaves but only $L$ &ldquo;ring&rdquo; levels. In a 2D Euclidean plane, the number of points that fit at radius $r$ with separation $\delta$ is $O(r/\delta)$ — linear. In hyperbolic space the boundary of the disk at radius $r$ has length $\sinh(r) \sim e^r$, so it fits $O(e^r/\delta)$ separated points — exponential. The tree fits; nothing has to be squeezed.</p>
+<p>{% asset_img fig1_poincare_vs_euclidean.png &ldquo;Embedding the same depth-4 binary tree in the Euclidean plane (left) and the Poincaré disk (right). On the disk, every leaf has room because the boundary expands exponentially.&rdquo; %}</p>
+<p>The picture above is the elevator pitch for hyperbolic embeddings. On the left, the Euclidean tree runs out of room at depth 4 — leaves crowd together and the embedding has to either grow the radius or invent extra dimensions. On the right, the Poincaré disk pushes leaves toward the boundary where exponential length absorbs them with even spacing.</p>
+<h2 id="2-session-graphs-briefly">2. Session graphs, briefly</h2>
+<p>HCGR is a <em>graph</em> model. Given a session $s = [v_1, v_2, \dots, v_n]$ it constructs a directed session graph $G_s = (V_s, E_s)$ where:</p>
+<ul>
+<li>nodes are unique items in the session,</li>
+<li>edges are observed transitions $v_i \to v_{i+1}$, optionally weighted by frequency.</li>
+</ul>
+<p>This is the SR-GNN-family setup, and HCGR keeps everything that already works about it: local transition structure is captured by message passing on $G_s$. The only thing HCGR changes is the <em>geometry of the embeddings</em> and the <em>training signal</em>.</p>
+<h2 id="3-the-lorentz-model-in-operational-form">3. The Lorentz model in operational form</h2>
+<p>There are several equivalent models of hyperbolic geometry — the Poincaré ball, the Klein model, and the Lorentz (a.k.a. hyperboloid) model. HCGR uses <strong>Lorentz</strong> because its formulas are more numerically stable than the Poincaré ball&rsquo;s and gradients behave better near the boundary.</p>
+<h3 id="31-the-hyperboloid">3.1 The hyperboloid</h3>
+<p>Define the Lorentzian inner product on $\mathbb{R}^{d+1}$:</p>
+$$
+\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \;=\; -x_0 y_0 + \sum_{i=1}^{d} x_i y_i.
+$$<p>The hyperboloid (curvature $c = -1$ for simplicity) is the upper sheet:</p>
+$$
+\mathbb{H}^d \;=\; \bigl\{\, \mathbf{x} \in \mathbb{R}^{d+1} \;:\; \langle \mathbf{x}, \mathbf{x} \rangle_{\mathcal{L}} = -1,\; x_0 > 0 \,\bigr\}.
+$$<p>Concretely, an embedding is a $(d+1)$-vector that lives on this curved surface. The &ldquo;extra&rdquo; dimension is the price you pay to write hyperbolic operations as clean linear algebra in an ambient Euclidean space.</p>
+<h3 id="32-distance">3.2 Distance</h3>
+<p>The Lorentz distance is</p>
+$$
+d_{\mathcal{L}}(\mathbf{x}, \mathbf{y}) \;=\; \mathrm{arcosh}\!\bigl( -\langle \mathbf{x}, \mathbf{y} \rangle_{\mathcal{L}} \bigr).
+$$<p>The key qualitative fact: $d_{\mathcal{L}}$ grows roughly like $\mathrm{arcosh}$ of an inner product that itself can grow exponentially with how far points are pushed up the hyperboloid. So distances expand fast, which is exactly what we want when we are trying to keep an exponentially branching tree apart.</p>
+<h3 id="33-tangent-space-exp-and-log">3.3 Tangent space, exp and log</h3>
+<p>You cannot do gradient descent directly on a curved manifold without leaving it. The standard trick is to operate in the <strong>tangent space</strong> at a base point (usually the origin $\mathbf{o} = (1, 0, \dots, 0)$), which is locally Euclidean, then map back.</p>
+<ul>
+<li><strong>Logarithmic map</strong> $\log_{\mathbf{o}}: \mathbb{H}^d \to T_{\mathbf{o}}\mathbb{H}^d$ — projects a manifold point into the tangent plane.</li>
+<li><strong>Exponential map</strong> $\exp_{\mathbf{o}}: T_{\mathbf{o}}\mathbb{H}^d \to \mathbb{H}^d$ — its inverse, lifts a tangent vector back onto the manifold.</li>
+</ul>
+<p>You don&rsquo;t need the closed forms by heart. The pattern that matters: anything you would do in a Euclidean GNN — sum, attention, MLP — happens in the tangent space, and you <code>exp_map</code> the result back. This is the only way &ldquo;addition&rdquo; makes sense on the hyperboloid.</p>
+<h2 id="4-hcgr-end-to-end">4. HCGR end-to-end</h2>
+<p>Here is the full pipeline before we dive into pieces:</p>
+<p>{% asset_img fig2_hcgr_architecture.png &ldquo;HCGR pipeline: session sequence → session graph → Lorentz embeddings → tangent-space attention aggregation → session readout → next-item scoring (CE) plus a contrastive auxiliary on two augmented views.&rdquo; %}</p>
+<p>Three things are happening in parallel:</p>
+<ol>
+<li><strong>Geometric backbone.</strong> Items live on $\mathbb{H}^d$. All updates are pulled into the tangent space, recombined, then pushed back.</li>
+<li><strong>Recommendation head.</strong> A session readout produces $\mathbf{s}$, and the next-item score is the negative Lorentz distance to each candidate item embedding. Cross-entropy supervises the click target.</li>
+<li><strong>Contrastive head.</strong> Two augmented views of $G_s$ are encoded into $\mathbf{s}^a$ and $\mathbf{s}^b$. An InfoNCE loss pulls them together and pushes other sessions in the batch away.</li>
+</ol>
+<h3 id="41-hyperbolic-gnn-aggregation">4.1 Hyperbolic GNN aggregation</h3>
+<p>In a vanilla GAT-style aggregator you would do $\mathbf{h}_i = \sigma\!\bigl(\sum_{j \in \mathcal{N}(i)} \alpha_{ij} W \mathbf{h}_j\bigr)$. You cannot sum points on the hyperboloid directly: their sum doesn&rsquo;t lie on the manifold. HCGR does the obvious workaround:</p>
+$$
+\mathbf{h}_i^{(l+1)} \;=\; \exp_{\mathbf{o}}\!\Biggl( \sum_{j \in \mathcal{N}(i)} \alpha_{ij}^{(l)} \, \log_{\mathbf{o}}\!\bigl(\mathbf{h}_j^{(l)}\bigr) \Biggr).
+$$<p>Read it from inside out: bring neighbours into the tangent space, attention-weighted-sum them there, exp them back. Attention weights $\alpha_{ij}$ are computed from the tangent vectors with the standard GAT trick (a learned linear layer on concatenated features, softmax over neighbours).</p>
+<p>A separate parallel-transport step is needed if you want to move tangent vectors between different base points — HCGR uses it to keep multi-layer aggregation consistent — but conceptually nothing changes.</p>
+<h3 id="42-non-linearity-that-respects-curvature">4.2 Non-linearity that respects curvature</h3>
+<p>Plain ReLU on a hyperboloid coordinate vector is meaningless. HCGR threads the activation through the tangent map of one layer&rsquo;s curvature and the exp map of the next layer&rsquo;s:</p>
+$$
+\sigma_{\mathbb{H}}^{l \to l+1}(\mathbf{x}) \;=\; \exp_{\mathbf{o}}^{c_{l+1}}\!\Bigl(\, \sigma\!\bigl(\, \log_{\mathbf{o}}^{c_l}(\mathbf{x})\,\bigr)\, \Bigr).
+$$<p>This is the standard &ldquo;tangent-space activation&rdquo; pattern from hyperbolic neural networks. It lets you stack layers with different curvatures while keeping every intermediate state on a valid manifold.</p>
+<h2 id="5-the-contrastive-auxiliary">5. The contrastive auxiliary</h2>
+<p>Session graphs are noisy. A real session has accidental clicks, repeated items, exploration, and back-tracks. Pure cross-entropy on the next item amplifies that noise: anything that helps predict the click target is reinforced, even if the <em>representation</em> of the session is brittle. Contrastive learning fixes this by enforcing a structural property of the encoder: two perturbations of the <em>same</em> session should land in the same place; two <em>different</em> sessions should not.</p>
+<p>{% asset_img fig3_contrastive_views.png &ldquo;Two-view contrastive scheme. Edge dropout and node dropout each produce one view; both views go through the HCGR encoder; InfoNCE pulls the positive pair together and pushes negatives apart, all measured by Lorentz distance in the disk.&rdquo; %}</p>
+<h3 id="51-augmentations">5.1 Augmentations</h3>
+<p>HCGR uses graph-level augmentations on the session graph $G_s$:</p>
+<ul>
+<li><strong>Edge dropout</strong> — drop a random fraction of transitions.</li>
+<li><strong>Node dropout</strong> — remove a small set of items and inherit their incoming/outgoing edges where appropriate.</li>
+</ul>
+<p>Two independent augmentations of $G_s$ produce views $G_s^a$ and $G_s^b$. Both are encoded by the same HCGR network into session vectors $\mathbf{s}^a, \mathbf{s}^b \in \mathbb{H}^d$.</p>
+<h3 id="52-infonce-in-hyperbolic-space">5.2 InfoNCE in hyperbolic space</h3>
+<p>The contrastive loss is the standard InfoNCE form, but with similarity defined through hyperbolic distance:</p>
+$$
+\mathcal{L}_{\mathrm{cl}} \;=\; -\, \log \frac{\exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b) / \tau \bigr)}{\sum_{k} \exp\!\bigl( \mathrm{sim}(\mathbf{s}^a, \mathbf{s}^b_k) / \tau \bigr)},
+$$<p>where $\mathrm{sim}(\mathbf{u}, \mathbf{v}) = -\, d_{\mathcal{L}}(\mathbf{u}, \mathbf{v})$ (or, for stability, an inner product in the tangent space at $\mathbf{o}$) and $\tau$ is the InfoNCE temperature. The denominator runs over all sessions in the mini-batch, treating other sessions as negatives.</p>
+<h3 id="53-total-objective">5.3 Total objective</h3>
+<p>The recommendation cross-entropy and contrastive auxiliary are simply added:</p>
+$$
+\mathcal{L} \;=\; \mathcal{L}_{\mathrm{rec}} \;+\; \lambda \, \mathcal{L}_{\mathrm{cl}}.
+$$<p>A typical $\lambda$ is small (0.05–0.2). The contrastive loss is <em>regularising</em> the encoder, not replacing the supervision; making it too large hurts ranking quality.</p>
+<h2 id="6-distance-and-dimension-the-capacity-argument">6. Distance and dimension: the capacity argument</h2>
+<p>Whether HCGR is &ldquo;really&rdquo; using hyperbolic geometry or just stacking parameters comes down to one question: does the same hierarchy fit in fewer dimensions?</p>
+<p>{% asset_img fig4_distance_growth.png &ldquo;Left: pairwise distance grows linearly in the Euclidean plane (blue) but exponentially with radius in the hyperbolic plane (purple). Right: capacity for hierarchical structure grows much faster with embedding dimension in hyperbolic space.&rdquo; %}</p>
+<p>The left panel is the geometry: $\sinh(r)$ versus $r$. Past $r \approx 1.5$ the curves diverge sharply, so two items at the periphery of the manifold are pushed apart almost for free. The right panel is the practical consequence in a recommender: at $d = 16$ Euclidean embeddings still struggle to keep a deep taxonomy untangled, while a 16-dim hyperbolic embedding has room to spare. This is why HCGR usually wins more on long-tail-heavy datasets (Last.FM) than on shorter, fatter sessions (Yoochoose).</p>
+<h2 id="7-what-the-numbers-actually-show">7. What the numbers actually show</h2>
+<p>{% asset_img fig5_performance.png &ldquo;Indicative Recall@20 and MRR@20 across three standard session datasets. The hyperbolic-only ablation already beats Euclidean baselines; full HCGR (hyperbolic + contrastive) widens the gap.&rdquo; %}</p>
+<p>Two patterns are worth flagging from the paper&rsquo;s own ablations:</p>
+<ul>
+<li><strong>Geometry alone helps.</strong> Replacing the Euclidean GNN with the Lorentz aggregator (no contrastive loss) already moves Recall@20 by a meaningful margin. This is the cleanest evidence that the gain is <em>geometric</em>, not just &ldquo;more parameters in a fashionable shape&rdquo;.</li>
+<li><strong>Contrastive on top is consistent.</strong> The contrastive auxiliary delivers further improvement across all three datasets. The lift is largest where session graphs are noisiest, which is also where you would expect view-based augmentation to help most.</li>
+</ul>
+<h2 id="8-reading-hcgr-style-results-critically">8. Reading HCGR-style results critically</h2>
+<p>If you&rsquo;re reviewing HCGR or any other hyperbolic recommender, here is the checklist I run through:</p>
+<ol>
+<li><strong>Matched capacity.</strong> Compare Euclidean and hyperbolic at the <em>same</em> embedding dimension and the <em>same</em> parameter count. Hyperbolic often wins at lower $d$ but ties at high $d$ — the headline matters less than the curve.</li>
+<li><strong>Where the gain lives.</strong> Ask for a head-vs-tail breakdown. The whole motivation of hyperbolic geometry is the long tail; if all of the gain is on head items, something else is doing the work.</li>
+<li><strong>Ablation of each piece.</strong> Hyperbolic alone, contrastive alone, both. Without this, you cannot tell whether it&rsquo;s the geometry or the contrastive trick.</li>
+<li><strong>Reproducibility.</strong> Lorentz optimisation can be touchy. Look for fixed seeds, multiple runs, and at least one mention of stability tricks (clipping, careful initialisation near the origin, projection back to the manifold).</li>
+<li><strong>Curvature sensitivity.</strong> Curvature $c$ is a hyperparameter. If results require fine curvature tuning per dataset, deployment will be painful.</li>
+</ol>
+<h2 id="9-practical-takeaways">9. Practical takeaways</h2>
+<p>If you&rsquo;re considering this for a real session recommender:</p>
+<ul>
+<li><strong>Start Euclidean.</strong> A well-tuned SR-GNN or GCE-GNN is a strong baseline. Don&rsquo;t pay for hyperbolic complexity until you have a clean Euclidean number.</li>
+<li><strong>Bring in hyperbolic when your data is genuinely hierarchical.</strong> Catalogue with deep taxonomy, heavy long tail, multi-level intent — these are the wins.</li>
+<li><strong>Add contrastive whenever you can define meaningful augmentations.</strong> Edge dropout is almost free and tends to help on its own, even with Euclidean encoders.</li>
+<li><strong>Budget for instability.</strong> Manifold projection, gradient clipping, and a warm-up schedule on $\lambda$ are all worth implementing from day one. Hyperbolic optimisation diverges quietly.</li>
+<li><strong>Tune three knobs deliberately.</strong> Curvature $c$, contrastive temperature $\tau$, and contrastive weight $\lambda$. The other dials matter much less.</li>
+</ul>
+<h2 id="10-limitations-and-open-questions">10. Limitations and open questions</h2>
+<p>The paper is honest about the costs, and so should we be:</p>
+<ul>
+<li><strong>Computational overhead.</strong> Every layer pays for <code>log_map</code> and <code>exp_map</code>. On large catalogues with deep encoders the hit is real.</li>
+<li><strong>Optimisation fragility.</strong> Naive SGD can fall off the manifold; Riemannian optimisers help but add a second-order configuration burden.</li>
+<li><strong>Tooling gap.</strong> PyTorch and TensorFlow are Euclidean by default. Geoopt and similar libraries close the gap, but you are off the well-trodden path.</li>
+<li><strong>Interpretability.</strong> &ldquo;Closer in Lorentz distance&rdquo; is harder to explain to a product team than &ldquo;cosine similarity above threshold&rdquo;.</li>
+</ul>
+<p>For most teams, the right reading of HCGR is: <em>the geometry is the contribution, the contrastive part is a portable trick.</em> Steal the contrastive auxiliary for your existing Euclidean recommender first; pay the hyperbolic tax only when the data shape clearly demands it.</p>
+<h2 id="references">References</h2>
+<ul>
+<li>Guo, Tang, Yu, Xu, Yu, Yang, Lu. <em>HCGR: Hyperbolic Contrastive Graph Representation Learning for Session-based Recommendation</em>. 2021. <a href="https://arxiv.org/abs/2107.05366" target="_blank" rel="noopener noreferrer">arXiv:2107.05366 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Wu et al. <em>Session-based Recommendation with Graph Neural Networks (SR-GNN)</em>. AAAI 2019.</li>
+<li>Wang et al. <em>Global Context Enhanced Graph Neural Networks for Session-based Recommendation (GCE-GNN)</em>. SIGIR 2020.</li>
+<li>Nickel and Kiela. <em>Poincaré Embeddings for Learning Hierarchical Representations</em>. NeurIPS 2017.</li>
+<li>Ganea, Bécigneul, Hofmann. <em>Hyperbolic Neural Networks</em>. NeurIPS 2018.</li>
+<li>Chen et al. <em>A Simple Framework for Contrastive Learning of Visual Representations (SimCLR)</em>. ICML 2020.</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-why-session-intent-fits-hyperbolic-geometry">1. Why session intent fits hyperbolic geometry</a></li>
+    <li><a href="#2-session-graphs-briefly">2. Session graphs, briefly</a></li>
+    <li><a href="#3-the-lorentz-model-in-operational-form">3. The Lorentz model in operational form</a>
+      <ul>
+        <li><a href="#31-the-hyperboloid">3.1 The hyperboloid</a></li>
+        <li><a href="#32-distance">3.2 Distance</a></li>
+        <li><a href="#33-tangent-space-exp-and-log">3.3 Tangent space, exp and log</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-hcgr-end-to-end">4. HCGR end-to-end</a>
+      <ul>
+        <li><a href="#41-hyperbolic-gnn-aggregation">4.1 Hyperbolic GNN aggregation</a></li>
+        <li><a href="#42-non-linearity-that-respects-curvature">4.2 Non-linearity that respects curvature</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-the-contrastive-auxiliary">5. The contrastive auxiliary</a>
+      <ul>
+        <li><a href="#51-augmentations">5.1 Augmentations</a></li>
+        <li><a href="#52-infonce-in-hyperbolic-space">5.2 InfoNCE in hyperbolic space</a></li>
+        <li><a href="#53-total-objective">5.3 Total objective</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-distance-and-dimension-the-capacity-argument">6. Distance and dimension: the capacity argument</a></li>
+    <li><a href="#7-what-the-numbers-actually-show">7. What the numbers actually show</a></li>
+    <li><a href="#8-reading-hcgr-style-results-critically">8. Reading HCGR-style results critically</a></li>
+    <li><a href="#9-practical-takeaways">9. Practical takeaways</a></li>
+    <li><a href="#10-limitations-and-open-questions">10. Limitations and open questions</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2400</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2023</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

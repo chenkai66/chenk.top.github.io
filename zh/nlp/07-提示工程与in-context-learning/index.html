@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>自然语言处理（七）：提示工程与In-Context Learning · Chen Kai Blog</title>
+<meta name="description" content="从提示结构、思维链到 Self-Consistency 与 ReAct：一套关于 In-Context Learning 的工作原理、必须正面应对的方差问题，以及能扩展到生产系统的提示模式。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="自然语言处理（七）：提示工程与In-Context Learning">
+<meta property="og:description" content="从提示结构、思维链到 Self-Consistency 与 ReAct：一套关于 In-Context Learning 的工作原理、必须正面应对的方差问题，以及能扩展到生产系统的提示模式。">
+<meta property="og:url" content="https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">自然语言处理</a>
+         · Chapter 7
+      </div>
+      <h1>自然语言处理（七）：提示工程与In-Context Learning</h1>
+      <p class="deck">从提示结构、思维链到 Self-Consistency 与 ReAct：一套关于 In-Context Learning 的工作原理、必须正面应对的方差问题，以及能扩展到生产系统的提示模式。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-10-31">October 31, 2025</time> · 16 min read · 7600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/nlp/" class="tag">#NLP</a><a href="/zh/tags/%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/" class="tag">#提示工程</a><a href="/zh/tags/llm/" class="tag">#LLM</a><a href="/zh/tags/in-context-learning/" class="tag">#In-Context Learning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>同一个模型，可以给出一针见血的分析，也能一本正经地胡说八道。区别几乎从不在权重，而在你怎么问。一句&quot;分析一下这段文本&quot;换来的多半是泛泛的总结；同样的请求加上一个角色、两条干净的示例和一段严格的输出 schema，得到的就是下游解析器能直接消费的 JSON。<strong>提示工程的意义，是把这种差距从&quot;碰运气&quot;变成可重复、可度量的工程实践。</strong></p>
+<p>让这一切发生的机制叫做 In-Context Learning（上下文学习，ICL）。当你把示例塞进提示，模型并没有重新训练，它只是把这几条示例作为前缀，让一次前向计算的条件分布发生改变——本质上是从示例里<strong>推断出任务</strong>。理解 ICL 能做什么、不能做什么，决定了你是在和模型对抗，还是在驾驭它。</p>
+<p>这一篇是 NLP 系列的第 7 部分，默认你已经大致清楚 Transformer 解码器是怎么逐 token 生成的（第 4 部分），以及自回归语言模型是什么（第 6 部分）。下文所有结论都尽量贴着已有研究，但要提前说明：提示工程领域的文献噪声相当大，很多数字都强烈依赖具体模型和数据集。图里的柱状图请当成&quot;示意形状&quot;看，而不是任何一个 benchmark 的精确数字。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li><strong>提示结构</strong>：构成一个完整提示的五个可组合块（system、指令、示例、查询、格式说明）各自的用途。</li>
+<li><strong>三种范式</strong>：零样本、少样本、思维链——分别适合什么场景，token 成本是多少。</li>
+<li><strong>ICL 的工作理论</strong>：为什么&quot;不训练&quot;也能&quot;学&quot;，模型究竟在示例里捕捉了什么信号。</li>
+<li><strong>方差问题</strong>：示例顺序和格式带来的准确率波动到底有多大，怎么测。</li>
+<li><strong>Self-Consistency</strong>：用采样把一个随机解码器变成集成方法。</li>
+<li><strong>ReAct</strong>：把推理和工具调用穿插起来，这是现代 Agent 的基本骨架。</li>
+<li><strong>小型提示系统</strong>：注册表、A/B 评估、版本治理——让一组提示能在团队里活过半年。</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>熟悉大语言模型——见<a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%85%ad-GPT%e4%b8%8e%e7%94%9f%e6%88%90%e5%bc%8f%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b/">第 6 部分：GPT 与生成式模型</a>
+。</li>
+<li>基础 Python，能看懂短代码。</li>
+<li>任意一个 LLM API（OpenAI、Anthropic 或开源权重模型）。</li>
+</ul>
+<hr>
+<h2 id="1-一个提示由什么组成">1. 一个提示由什么组成</h2>
+<p>提示本质上是<strong>一段模型要去条件化的文本字符串</strong>。所谓的 system / user 角色、function 描述、检索结果，都只是 API 在 tokenize 之前拼成的一段结构化文本。把提示当成&quot;带命名块的纯文本&quot;是最干净的心智模型。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8EIn-Context-Learning/fig1_prompt_anatomy.png" alt="结构化提示的解剖图" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>下面五个块不是必须全部出现，但生产环境里的提示通常包含其中的一个子集，顺序也大致如此：</p>
+<ol>
+<li><strong>System / 角色</strong>：设定人格、拒答策略、语气、长度预算。请求间稳定，因此对 KV 缓存和 prompt cache 友好。</li>
+<li><strong>任务指令</strong>：用一句祈使句说明目标。</li>
+<li><strong>少样本示例</strong>：输入-输出示例对，是 ICL 的主要信号来源。</li>
+<li><strong>用户查询</strong>：要处理的实际输入。</li>
+<li><strong>格式说明</strong>：固定输出形态的 schema（JSON、可正则匹配的标签、表格等）。</li>
+</ol>
+<p>一个务实的提示构造器：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nd">@dataclass</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Prompt</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">system</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">instruction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">format_spec</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;[SYSTEM]</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">instruction</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;[TASK]</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">instruction</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">examples</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">shots</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="sa">f</span><span class="s2">&#34;Input: </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="se">\n</span><span class="s2">Output: </span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s2">&#34;</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">examples</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;[EXAMPLES]</span><span class="se">\n</span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">format_spec</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;[FORMAT]</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">format_spec</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;[INPUT]</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="si">}</span><span class="se">\n</span><span class="s2">Output:&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="s2">&#34;</span><span class="se">\n\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两个新手常忽略的细节：</p>
+<ul>
+<li><strong>顺序很重要</strong>。把示例放在格式说明之后、查询之前，往往比塞在最顶部要好——解码器有显著的&quot;近因偏置&quot;，越靠近查询的内容影响越大。</li>
+<li><strong>稳定前缀，可变后缀</strong>。所有不变的内容（system、示例、格式）放在最前面，方便 KV 缓存或 prompt cache 复用；变化的输入放在最后。</li>
+</ul>
+<h3 id="四条经得起生产考验的原则">四条经得起生产考验的原则</h3>
+<p>我做了不少提示之后，下面四条仍然是我会教别人的：</p>
+<ol>
+<li><strong>清晰胜过聪明</strong>。把&quot;分析这段文本&quot;换成&quot;将文本分类为 {正面, 负面, 中性} 之一，并以 JSON 返回&quot;。你在和模型脑中所有可能的解读竞争，含糊就是把话语权交给它。</li>
+<li><strong>具体性买的是确定性</strong>。把&quot;做什么&quot;和&quot;不要做什么&quot;都讲清楚，并明确不确定时怎么输出（&ldquo;如果文档里找不到答案，请返回 <code>{\&quot;answer\&quot;: null}</code>&quot;）。模型对负向约束的遵守比想象中好。</li>
+<li><strong>上下文要完整</strong>。如果回答需要某个模型不一定知道的定义，就把它带上。比错答便宜得多。</li>
+<li><strong>角色设定按需使用</strong>。&ldquo;你是一名资深安全审计员&quot;在代码评审任务上确实能收紧输出分布，<strong>但它不是咒语</strong>——通用任务别套，徒增 token。</li>
+</ol>
+<hr>
+<h2 id="2-零样本少样本思维链">2. 零样本、少样本、思维链</h2>
+<p>这是其他所有技巧赖以构建的三种基线框架。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8EIn-Context-Learning/fig2_prompting_paradigms.png" alt="三种提示范式" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="零样本">零样本</h3>
+<p>只描述任务，不提供示例。模型完全靠预训练和指令微调期间见过的知识。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">zero_shot</span> <span class="o">=</span> <span class="s2">&#34;&#34;&#34;请将以下句子的情感分类为 positive、negative 或 neutral 之一。
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">句子：这部电影剧情精彩、表演出色。
+</span></span></span><span class="line"><span class="cl"><span class="s2">情感：&#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>零样本适合那些模型本来就熟悉的任务（情感、翻译、短文本摘要），并且你在乎延迟和成本。它的弱点是<strong>输出格式不稳定</strong>——模型可能输出 &ldquo;Positive sentiment&rdquo;、&ldquo;POSITIVE&rdquo;，甚至是一段分析。用一句严格的格式约束钉死它（&ldquo;只回复 {positive, negative, neutral} 中的一个单词&rdquo;）。</p>
+<h3 id="少样本">少样本</h3>
+<p>少样本就是在查询前面放 $k$ 条示例，是 ICL 的教科书设定。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">few_shot</span> <span class="o">=</span> <span class="s2">&#34;&#34;&#34;将句子的情感分类为 positive、negative 或 neutral：
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">句子：今天天气真好，阳光明媚。
+</span></span></span><span class="line"><span class="cl"><span class="s2">情感：positive
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">句子：这个产品质量差、价格还贵。
+</span></span></span><span class="line"><span class="cl"><span class="s2">情感：negative
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">句子：明天会下雨。
+</span></span></span><span class="line"><span class="cl"><span class="s2">情感：neutral
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">句子：这家餐厅的服务令人印象深刻。
+</span></span></span><span class="line"><span class="cl"><span class="s2">情感：&#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>示例其实在做三件事：</p>
+<ul>
+<li><strong>任务识别</strong>：消除歧义。&ldquo;翻译&quot;可能指音译、改写或重写，两条示例就能说清你要的是哪种。</li>
+<li><strong>格式对齐</strong>：每条示例的输出侧就是模板，模型会照抄。</li>
+<li><strong>标签空间锚定</strong>：示例里出现过的标签集合事实上变成了模型的输出词表，即使你从没显式列举过。</li>
+</ul>
+<p>一个反直觉的发现：<strong>示例里&quot;标签是否正确&quot;远没有想象中那么重要</strong>。Min 等人（2022）发现把少样本示例的金标随机打乱，在不少任务上几乎不掉点——真正起作用的是<strong>输入分布和标签空间</strong>。这并不是说&quot;标签不重要&rdquo;，而是说不要在标签正确性上过度打磨；要在覆盖度和格式上下功夫。</p>
+<h3 id="思维链chain-of-thought">思维链（Chain-of-Thought）</h3>
+<p>对于多步任务，让模型<strong>先把推理过程写出来再给答案</strong>。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">问题：一本书有 120 页。第一天读了 30 页，第二天读了第一天的两倍，
+</span></span><span class="line"><span class="cl">第三天读了剩下页数的一半。第三天读了多少页？
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">让我们一步步来想：
+</span></span><span class="line"><span class="cl">1. 第一天：30 页。
+</span></span><span class="line"><span class="cl">2. 第二天：2 × 30 = 60 页。
+</span></span><span class="line"><span class="cl">3. 累计已读：30 + 60 = 90 页。
+</span></span><span class="line"><span class="cl">4. 剩下：120 − 90 = 30 页。
+</span></span><span class="line"><span class="cl">5. 第三天：30 / 2 = 15 页。
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">答案：15 页。
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>机制并不神秘。每一个生成出来的 token 都会<strong>改变下一个 token 的条件上下文</strong>。模型是自回归的，把中间状态（&ldquo;累计已读：90&rdquo;）显式写出来，后面所有 token——包括最终答案——就能直接用上这个状态。如果不写出来，模型就只能在一次定深网络的前向中算出全部中间量。CoT 实际上是用输出 token 的成本，<strong>买到了串行计算量</strong>。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8EIn-Context-Learning/fig3_cot_flow.png" alt="思维链推理流程" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+$$P(a \mid x) \;=\; \sum_z P(z \mid x)\, P(a \mid x, z).$$<p>
+贪心 CoT 就是只采一个 $z$ 然后赌它对。<strong>Self-Consistency</strong>（第 5 节）是用采样去近似这个求和。</p>
+<p>CoT 什么时候有用，什么时候反而拖后腿：</p>
+<ul>
+<li><strong>有用</strong>：算术、多跳问答、代码推理，凡是有中间状态的任务。</li>
+<li><strong>持平或更糟</strong>：简单分类、检索、单条事实查询。推理铺垫只是徒增 token 和延迟，还多了一次&quot;被自己说服走错&quot;的机会。</li>
+<li><strong>现代有&quot;思考&quot;模式的推理模型</strong>（在 CoT 风格轨迹上专门训练过的长上下文推理模型）已经把这种行为内化了，显式 CoT 提示仍然有用，但提升幅度比 2022 年那一代 GPT-3 时代要小。</li>
+</ul>
+<hr>
+<h2 id="3-icl-为什么会工作">3. ICL 为什么会工作</h2>
+<p>往提示里塞几条示例，模型权重又没动，行为为什么变了？目前业界没有单一定论，但有三种互补的解释，合在一起最接近共识。</p>
+<p><strong>1. 隐式任务推断</strong>。预训练 LM 在训练数据里见过大量以文本形式表达的任务（问答对、代码-注释对、原文-译文对）。推理时，提示里的示例相当于做一次<strong>贝叶斯后验更新</strong>：让 $P(\text{task} \mid \text{prompt})$ 收敛到那个最匹配的&quot;任务&rdquo;。这是 Xie 等人（2022）的视角。</p>
+<p><strong>2. 注意力内的隐式梯度下降</strong>。一系列工作（Akyurek 等、von Oswald 等，2022-2023）证明，attention 层在某些玩具设置下可以实现<strong>对提示中编码的线性回归任务做一步梯度下降</strong>。机制结论只在 toy setting 严格成立，但&quot;注意力在做某种快速适应&quot;这个直觉非常有用。</p>
+<p><strong>3. 模式匹配 + 复制</strong>。最朴素的解释：induction head（Olsson 等，2022）会复制上下文中早些时候出现的模式。少样本提示给了模型一个可以复制的模式。</p>
+<p>不管你更喜欢哪种解释，实际推论是相同的：</p>
+<ul>
+<li><strong>示例数量越多越好，但收益急速衰减</strong>。大部分增益来自前 2-4 条。</li>
+<li><strong>覆盖度比正确率重要</strong>。能覆盖输入空间的示例比单条很巧妙的示例更有用。</li>
+<li><strong>打平时近的赢</strong>。提示中最后一条示例对模型影响最大。</li>
+<li><strong>位置偏置真实存在</strong>。多选题任务上，模型常常系统性地偏向 A 选项或最近一个选项，具体看模型。</li>
+</ul>
+<hr>
+<h2 id="4-方差问题必须正面应对的事">4. 方差问题：必须正面应对的事</h2>
+<p>下面这件事很少出现在宣传材料里，但它是真的：<strong>仅仅改一改示例顺序、把 <code>Q:</code> 换成 <code>Input:</code>、给答案加不加引号，准确率就能波动 10-30 个点</strong>。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8EIn-Context-Learning/fig5_prompt_sensitivity.png" alt="提示对格式与顺序的敏感度" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Lu 等人（2022）把这个现象叫做<strong>顺序敏感性</strong>，他们证明在分类任务上，同一个模型、同一组示例，不同排列下的准确率能从接近随机一直跨到接近 SOTA。Sclar 等人（2024）把这个工作扩展到了<strong>格式敏感性</strong>——把 <code>Q:/A:</code> 换成 <code>Question:/Answer:</code>，准确率能差出两位数。</p>
+<p>落到实处：</p>
+<ul>
+<li><strong>永远在至少 50-100 条留出样本上做评估</strong>。单个轶事什么都说明不了。</li>
+<li><strong>比较两个提示时跑多个种子或多个示例顺序</strong>。报中位数，不要报最好成绩。</li>
+<li><strong>格式尽早冻结</strong>，每次改动当成一次有版本号的事件，而不是&quot;顺手调一下&rdquo;。</li>
+</ul>
+<p>一个最小评估骨架：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">statistics</span><span class="o">,</span> <span class="nn">random</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">build_prompt</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">],</span> <span class="nb">str</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model_call</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cases</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">examples_pool</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">n_seeds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;跑 n_seeds 次不同的示例采样，返回准确率中位数与波动范围。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">accs</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">seed</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_seeds</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rng</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">shots</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">examples_pool</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">correct</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="k">case</span> <span class="ow">in</span> <span class="n">cases</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="n">model_call</span><span class="p">(</span><span class="n">build_prompt</span><span class="p">(</span><span class="k">case</span><span class="p">[</span><span class="s2">&#34;input&#34;</span><span class="p">],</span> <span class="n">shots</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="k">case</span><span class="p">[</span><span class="s2">&#34;expected&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                <span class="n">correct</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">        <span class="n">accs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">correct</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cases</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;median&#34;</span><span class="p">:</span> <span class="n">statistics</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">accs</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;min&#34;</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">accs</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;max&#34;</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">accs</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;spread&#34;</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">accs</span><span class="p">)</span> <span class="o">-</span> <span class="nb">min</span><span class="p">(</span><span class="n">accs</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果 <code>spread &gt; 0.05</code>，你的提示就还不稳定，任何一次跑出来的数字都是噪音。</p>
+<h3 id="示例到底要给多少条">示例到底要给多少条</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8EIn-Context-Learning/fig4_shots_saturation.png" alt="准确率随示例数 k 的饱和曲线" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>各类任务上的形状基本一致：前几条示例增益巨大，到 $k \approx 4$ 至 $8$ 收益饱和，超过 $k \approx 16$ 基本只是在烧 token。两条经验：</p>
+<ul>
+<li>类别数 $\le 5$ 的分类任务，$k = 2 \times \text{类别数}$ 是不错的默认值。</li>
+<li>生成任务上，$2$-$3$ 条高质量示例几乎总是吊打 $10$ 条平庸示例。</li>
+</ul>
+<p>挑示例时记住两点：<strong>输入侧覆盖广</strong>、<strong>输出侧干净无歧义</strong>。模型会忠实复制你的格式，包括格式里的 bug。</p>
+<hr>
+<h2 id="5-self-consistency把解码器变成集成">5. Self-Consistency：把解码器变成集成</h2>
+<p>一条 CoT 链可能在第二步就走偏，错误一路传到结尾。Self-Consistency（Wang 等，2022）的解法只有一句话：<strong>对同一个问题采样 $k$ 条不同的推理链，然后对最终答案多数投票</strong>。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8EIn-Context-Learning/fig7_self_consistency.png" alt="Self-Consistency：多路径采样、多数投票" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+$$\hat{a} \;=\; \arg\max_a \sum_{i=1}^{k} \mathbb{1}[a_i = a].$$<p>这是对边际 $\sum_z P(z \mid x)\, P(a \mid x, z)$ 的一次蒙特卡洛近似。它之所以有效，是因为<strong>错误倾向于多样、正确倾向于收敛</strong>——错的推理链往往各自走到不同的错答案上，对的推理链则会汇聚到同一个答案。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">self_consistency</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model_call</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">extract_answer</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;采样 k 条 CoT，对最终答案做多数投票。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">answers</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">model_call</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">answers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extract_answer</span><span class="p">(</span><span class="n">out</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">counts</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">answers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">top</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;answer&#34;</span><span class="p">:</span> <span class="n">top</span><span class="p">,</span> <span class="s2">&#34;confidence&#34;</span><span class="p">:</span> <span class="n">n</span> <span class="o">/</span> <span class="n">k</span><span class="p">,</span> <span class="s2">&#34;votes&#34;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">counts</span><span class="p">)}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两点上线之后才会体会到的细节：</p>
+<ul>
+<li><strong>温度很关键</strong>。建议 $T \in [0.5, 0.9]$。$T = 0$ 时所有样本会塌成同一条链，集成退化为单点。</li>
+<li><strong>得票率就是你的置信度信号</strong>。5/5 一致和 3/5 险胜的可信度差很多。把这个数字暴露给下游消费者，这是最便宜的可靠性指标之一。</li>
+</ul>
+<p><strong>Tree of Thoughts</strong>（Yao 等，2023）是它的推广：不再独立采线性链，而是搜索一棵推理树，对低分分支剪枝。能力更强但成本也更高，等 Self-Consistency 真饱和了再上。</p>
+<hr>
+<h2 id="6-react推理--行动">6. ReAct：推理 + 行动</h2>
+<p>Self-Consistency 提升的是&quot;模型用已有知识能做到什么&quot;。<strong>ReAct</strong>（Yao 等，2022）解决的是更难的问题：当模型需要<strong>外部信息或外部动作</strong>时怎么办？这个模式在输出里穿插三种块：</p>
+<ul>
+<li><strong>Thought（思考）</strong>：用自然语言对当前状态做推理。</li>
+<li><strong>Action（行动）</strong>：一次结构化工具调用，例如 <code>search(&quot;...&quot;); calc(&quot;...&quot;); read_file(&quot;...&quot;)</code>。</li>
+<li><strong>Observation（观察）</strong>：工具的输出，作为下一轮的上下文喂回去。</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8EIn-Context-Learning/fig6_react_pattern.png" alt="ReAct：Thought / Action / Observation 闭环" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>循环在模型输出 <code>Answer:</code> 而不是 <code>Action:</code> 时终止。现代 Agent 框架（LangChain Agents、OpenAI 的 function calling、Anthropic 的 tool use）本质上都是这个模板的变体——只不过把&quot;结构化工具调用&quot;从自由文本里搬到了一个 JSON 字段里。</p>
+<p>一个抓住要害的最小实现：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">re</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ReActAgent</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_call</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">tools</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]]):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model_call</span> <span class="o">=</span> <span class="n">model_call</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tools</span> <span class="o">=</span> <span class="n">tools</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_system</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">names</span> <span class="o">=</span> <span class="s2">&#34;, &#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tools</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;你可以调用以下工具：&#34;</span> <span class="o">+</span> <span class="n">names</span> <span class="o">+</span> <span class="s2">&#34;。</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;严格使用如下格式：</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Thought: &lt;推理&gt;</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Action: &lt;tool&gt;(&lt;参数&gt;)</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Observation: &lt;工具结果&gt;</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;...重复...</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;Answer: &lt;最终答案&gt;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">question</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ctx</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_system</span><span class="p">()</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">Question: </span><span class="si">{</span><span class="n">question</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_call</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">Observation:&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ctx</span> <span class="o">+=</span> <span class="n">out</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="s2">&#34;Answer:&#34;</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;Answer:&#34;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&#34;Action:\s*(\w+)\((.*?)\)&#34;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="s2">&#34;(无法解析 Action)&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="n">name</span><span class="p">,</span> <span class="n">arg</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tools</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">arg</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tools</span> \
+</span></span><span class="line"><span class="cl">                  <span class="k">else</span> <span class="sa">f</span><span class="s2">&#34;未知工具：</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ctx</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&#34;</span><span class="se">\n</span><span class="s2">Observation: </span><span class="si">{</span><span class="n">obs</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="s2">&#34;(达到最大步数)&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>生产里真正会咬人的三件事：</p>
+<ul>
+<li><strong>Stop token</strong>：在 <code>\nObservation:</code> 处停止生成，否则模型会自己幻觉出工具结果。</li>
+<li><strong>工具异常处理</strong>：把工具调用包起来，把<strong>异常信息</strong>当成观察喂回去。模型经常能据此自我纠正。</li>
+<li><strong>步数预算</strong>：必须给上限。没有预算的 Agent 会循环到把你账户烧穿。</li>
+</ul>
+<hr>
+<h2 id="7-构建一个提示系统">7. 构建一个提示系统</h2>
+<p>几个写得好的提示是<strong>脚本</strong>；能撑过团队换人、模型升级、四个月 A/B 实验的，才叫<strong>系统</strong>。区别在三个习惯。</p>
+<h3 id="把提示当代码对待">把提示当代码对待</h3>
+<p>加版本号、走代码评审、放进仓库，而不是堆在一份共享文档里。一个最小注册表：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PromptRegistry</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">root</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;latest&#34;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">@</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="n">name</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">.txt&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>每个调用点都打上 <code>(prompt_name, version)</code> 标签。改提示时升版本号，老代码继续用老提示直到你迁移它。</p>
+<h3 id="上线前必须有评估">上线前必须有评估</h3>
+<p>每个进生产的提示，应该有三件配套：</p>
+<ul>
+<li>一个 <strong>golden set</strong>：50-200 条输入和期望输出（或评分细则）。</li>
+<li>一个<strong>自动评估器</strong>：精确匹配、JSON schema 校验，或是 LLM-as-judge（评判用的提示也要钉死版本）。</li>
+<li>一个 <strong>CI 回归门</strong>：跑当前提示和新提示，准确率掉了就拒绝合入。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">regression_check</span><span class="p">(</span><span class="n">old_prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                     <span class="n">cases</span><span class="p">,</span> <span class="n">model_call</span><span class="p">,</span> <span class="n">judge</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">old_acc</span> <span class="o">=</span> <span class="n">mean</span><span class="p">(</span><span class="n">judge</span><span class="p">(</span><span class="k">case</span><span class="p">,</span> <span class="n">model_call</span><span class="p">(</span><span class="n">old_prompt</span> <span class="o">+</span> <span class="k">case</span><span class="o">.</span><span class="n">input</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                   <span class="k">for</span> <span class="k">case</span> <span class="ow">in</span> <span class="n">cases</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">new_acc</span> <span class="o">=</span> <span class="n">mean</span><span class="p">(</span><span class="n">judge</span><span class="p">(</span><span class="k">case</span><span class="p">,</span> <span class="n">model_call</span><span class="p">(</span><span class="n">new_prompt</span> <span class="o">+</span> <span class="k">case</span><span class="o">.</span><span class="n">input</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                   <span class="k">for</span> <span class="k">case</span> <span class="ow">in</span> <span class="n">cases</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">new_acc</span> <span class="o">&gt;=</span> <span class="n">old_acc</span> <span class="o">-</span> <span class="mf">0.01</span>   <span class="c1"># 容忍 1pp 的回归预算</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="有意识地组合技巧">有意识地组合技巧</h3>
+<p>最大的增益通常来自堆叠：</p>
+<ul>
+<li><strong>角色 + 少样本 + 格式说明</strong>：任何结构化输出任务的标准三件套。</li>
+<li><strong>CoT + Self-Consistency</strong>：任何&quot;答错代价高&quot;的推理任务。</li>
+<li><strong>ReAct + 检索</strong>：任何依赖模型不知道的事实的任务。</li>
+</ul>
+<p>但不要为了堆而堆。每个块都要花 token、加延迟，并多一个出错的地方。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_advanced</span><span class="p">(</span><span class="n">question</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                   <span class="o">*</span><span class="p">,</span> <span class="n">role</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span><span class="p">,</span> <span class="n">use_cot</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">role</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;你是 </span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">。&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&#34;请解决以下问题。&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">examples</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Q: </span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;question&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">use_cot</span> <span class="ow">and</span> <span class="s2">&#34;reasoning&#34;</span> <span class="ow">in</span> <span class="n">ex</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Reasoning: </span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;reasoning&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;A: </span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;answer&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">use_cot</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&#34;先一步步推理，再在以 &#39;A:&#39; 开头的一行里给出最终答案。&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Q: </span><span class="si">{</span><span class="n">question</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="实战一个能上线的情感分类器">实战：一个能上线的情感分类器</h2>
+<p>把上面所有东西串起来，做一个不大但完整的小例子。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">re</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">SYSTEM</span> <span class="o">=</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;你是一个严谨的文本分类器。只输出合法的 JSON，不要任何解释。&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">EXAMPLES</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="s2">&#34;这部电影很棒，演技精湛、节奏紧凑。&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">     <span class="p">{</span><span class="s2">&#34;sentiment&#34;</span><span class="p">:</span> <span class="s2">&#34;positive&#34;</span><span class="p">,</span> <span class="s2">&#34;confidence&#34;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">}),</span>
+</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="s2">&#34;电池只能撑三小时，App 还经常崩。&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">     <span class="p">{</span><span class="s2">&#34;sentiment&#34;</span><span class="p">:</span> <span class="s2">&#34;negative&#34;</span><span class="p">,</span> <span class="s2">&#34;confidence&#34;</span><span class="p">:</span> <span class="mf">0.92</span><span class="p">}),</span>
+</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="s2">&#34;快递周二送到。&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">     <span class="p">{</span><span class="s2">&#34;sentiment&#34;</span><span class="p">:</span> <span class="s2">&#34;neutral&#34;</span><span class="p">,</span> <span class="s2">&#34;confidence&#34;</span><span class="p">:</span> <span class="mf">0.88</span><span class="p">}),</span>
+</span></span><span class="line"><span class="cl"><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">FORMAT_SPEC</span> <span class="o">=</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;严格输出：{&#34;sentiment&#34;: &#34;&lt;positive|negative|neutral&gt;&#34;, &#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;&#34;confidence&#34;: &lt;0.0-1.0&gt;}&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_prompt</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">shots</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;Text: </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="se">\n</span><span class="s2">Output: </span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="si">}</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">EXAMPLES</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;[SYSTEM]</span><span class="se">\n</span><span class="si">{</span><span class="n">SYSTEM</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;[FORMAT]</span><span class="se">\n</span><span class="si">{</span><span class="n">FORMAT_SPEC</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;[EXAMPLES]</span><span class="se">\n</span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;[INPUT]</span><span class="se">\n</span><span class="s2">Text: </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="se">\n</span><span class="s2">Output:&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&#34;\{.*\}&#34;</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="k">if</span> <span class="n">m</span> <span class="k">else</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">    <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">classify</span><span class="p">(</span><span class="n">model_call</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;对情感分类器叠 Self-Consistency。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">prompt</span> <span class="o">=</span> <span class="n">build_prompt</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">labels</span><span class="p">,</span> <span class="n">confs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">parsed</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="n">model_call</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">parsed</span> <span class="ow">and</span> <span class="s2">&#34;sentiment&#34;</span> <span class="ow">in</span> <span class="n">parsed</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed</span><span class="p">[</span><span class="s2">&#34;sentiment&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">confs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">parsed</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;confidence&#34;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="ow">not</span> <span class="n">labels</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;sentiment&#34;</span><span class="p">:</span> <span class="s2">&#34;unknown&#34;</span><span class="p">,</span> <span class="s2">&#34;confidence&#34;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&#34;votes&#34;</span><span class="p">:</span> <span class="p">{}}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">counts</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">top</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;sentiment&#34;</span><span class="p">:</span> <span class="n">top</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;confidence&#34;</span><span class="p">:</span> <span class="n">n</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;model_confidence&#34;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">confs</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">confs</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;votes&#34;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">counts</span><span class="p">)}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这段代码里能找到本文每一节的影子：一个角色（system）、一段格式说明、三条覆盖广的少样本示例、一个能容忍模型噪音的解析器，再用 Self-Consistency 抑制标签翻转。没什么花活，但把它们组合起来，就是一个 60% 流水线和一个 90% 流水线之间的差距。</p>
+<hr>
+<h2 id="常见问题">常见问题</h2>
+<h3 id="提示是不是越长越好">提示是不是越长越好？</h3>
+<p>不是。过了某个点，多余的上下文反而分散注意力，并把延迟和成本拉高。先短，再按评估集结果有针对性地加。</p>
+<h3 id="示例给多少条合适">示例给多少条合适？</h3>
+<p>分类 2-5 条、生成 1-3 条。超过 8 条很少有用，反而经常因为格式问题引入额外方差。永远要在数据上验证，别凭感觉。</p>
+<h3 id="cot-在所有任务上都有效吗">CoT 在所有任务上都有效吗？</h3>
+<p>不。它对多步推理（数学、逻辑、代码、多跳问答）效果突出，对简单分类或事实查询往往只是徒增噪声和 token。</p>
+<h3 id="温度怎么调">温度怎么调？</h3>
+<p>确定性输出（分类、抽取）：$T \in [0.0, 0.2]$；平衡的生成：$T \in [0.5, 0.7]$；Self-Consistency 采样：$T \in [0.7, 0.9]$——你<strong>就是要</strong>路径多样性。</p>
+<h3 id="提示工程能取代微调吗">提示工程能取代微调吗？</h3>
+<p>能取代过去需要微调的相当大一部分场景，特别是 instruction following 类任务。需要微调的几种情形：(a) 大规模下要求行为高度一致，提示漂移不可接受；(b) 想用一个更小更便宜的模型在你的领域里追平大模型；(c) 基础模型抗拒的某种行为改造。</p>
+<h3 id="示例顺序到底有多大影响">示例顺序到底有多大影响？</h3>
+<p>比应该的大很多。近因偏置是真实的——最后一条示例影响最大。比较两个提示一定要跑多个顺序、报中位数。</p>
+<h3 id="要不要担心-prompt-injection">要不要担心 Prompt Injection？</h3>
+<p>要。任何时刻，只要你的提示拼进了不受你控制的文本（用户输入、检索回来的文档、工具输出），就要把这些当成数据，<strong>绝不允许它们改写你的指令</strong>。这是个独立话题，后面 Agent 与安全相关的内容会专门讨论。</p>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+          <th>链接</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>5</td>
+          <td>BERT 与预训练模型</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%ba%94-BERT%e4%b8%8e%e9%a2%84%e8%ae%ad%e7%bb%83%e6%a8%a1%e5%9e%8b/">&lt;&ndash; 阅读</a>
+</td>
+      </tr>
+      <tr>
+          <td>6</td>
+          <td>GPT 与生成式语言模型</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%85%ad-GPT%e4%b8%8e%e7%94%9f%e6%88%90%e5%bc%8f%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b/">&lt;&ndash; 上一篇</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>7</strong></td>
+          <td><strong>提示工程与 In-Context Learning（本文）</strong></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td>8</td>
+          <td>模型微调与 PEFT</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%85%ab-%e6%a8%a1%e5%9e%8b%e5%be%ae%e8%b0%83%e4%b8%8ePEFT/">下一篇 &ndash;&gt;</a>
+</td>
+      </tr>
+      <tr>
+          <td>9</td>
+          <td>大语言模型架构深度解析</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%b9%9d-%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e6%9e%b6%e6%9e%84%e6%b7%b1%e5%ba%a6%e8%a7%a3%e6%9e%90/">阅读 &ndash;&gt;</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#1-一个提示由什么组成">1. 一个提示由什么组成</a>
+      <ul>
+        <li><a href="#四条经得起生产考验的原则">四条经得起生产考验的原则</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-零样本少样本思维链">2. 零样本、少样本、思维链</a>
+      <ul>
+        <li><a href="#零样本">零样本</a></li>
+        <li><a href="#少样本">少样本</a></li>
+        <li><a href="#思维链chain-of-thought">思维链（Chain-of-Thought）</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-icl-为什么会工作">3. ICL 为什么会工作</a></li>
+    <li><a href="#4-方差问题必须正面应对的事">4. 方差问题：必须正面应对的事</a>
+      <ul>
+        <li><a href="#示例到底要给多少条">示例到底要给多少条</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-self-consistency把解码器变成集成">5. Self-Consistency：把解码器变成集成</a></li>
+    <li><a href="#6-react推理--行动">6. ReAct：推理 + 行动</a></li>
+    <li><a href="#7-构建一个提示系统">7. 构建一个提示系统</a>
+      <ul>
+        <li><a href="#把提示当代码对待">把提示当代码对待</a></li>
+        <li><a href="#上线前必须有评估">上线前必须有评估</a></li>
+        <li><a href="#有意识地组合技巧">有意识地组合技巧</a></li>
+      </ul>
+    </li>
+    <li><a href="#实战一个能上线的情感分类器">实战：一个能上线的情感分类器</a></li>
+    <li><a href="#常见问题">常见问题</a>
+      <ul>
+        <li><a href="#提示是不是越长越好">提示是不是越长越好？</a></li>
+        <li><a href="#示例给多少条合适">示例给多少条合适？</a></li>
+        <li><a href="#cot-在所有任务上都有效吗">CoT 在所有任务上都有效吗？</a></li>
+        <li><a href="#温度怎么调">温度怎么调？</a></li>
+        <li><a href="#提示工程能取代微调吗">提示工程能取代微调吗？</a></li>
+        <li><a href="#示例顺序到底有多大影响">示例顺序到底有多大影响？</a></li>
+        <li><a href="#要不要担心-prompt-injection">要不要担心 Prompt Injection？</a></li>
+      </ul>
+    </li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">自然语言处理</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>16 min</strong></div>
+      <div class="row"><span>Word count</span><strong>7600</strong></div>
+      <div class="row"><span>Published</span><strong>Oct 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

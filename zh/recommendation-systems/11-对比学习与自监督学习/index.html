@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>推荐系统（十一）—— 对比学习与自监督学习 · Chen Kai Blog</title>
+<meta name="description" content="对比学习在推荐系统里到底怎么用？这一篇把 InfoNCE、温度系数、SimCLR/MoCo 的负样本来源、SGL 的图增广、CL4SRec 的序列增广、XSimGCL 的极简噪声扰动讲清楚，配 PyTorch 实现与原理图。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="推荐系统（十一）—— 对比学习与自监督学习">
+<meta property="og:description" content="对比学习在推荐系统里到底怎么用？这一篇把 InfoNCE、温度系数、SimCLR/MoCo 的负样本来源、SGL 的图增广、CL4SRec 的序列增广、XSimGCL 的极简噪声扰动讲清楚，配 PyTorch 实现与原理图。">
+<meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">推荐系统</a>
+         · Chapter 11
+      </div>
+      <h1>推荐系统（十一）—— 对比学习与自监督学习</h1>
+      <p class="deck">对比学习在推荐系统里到底怎么用？这一篇把 InfoNCE、温度系数、SimCLR/MoCo 的负样本来源、SGL 的图增广、CL4SRec 的序列增广、XSimGCL 的极简噪声扰动讲清楚，配 PyTorch 实现与原理图。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-12-31">December 31, 2025</time> · 14 min read · 7000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/" class="tag">#推荐系统</a><a href="/zh/tags/%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0/" class="tag">#对比学习</a><a href="/zh/tags/%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/" class="tag">#自监督学习</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>经典推荐模型只学一种信号：用户有没有点、看完没、买没买。这种监督信号很宝贵，但也极其稀疏——大多数用户接触不到目录里 1% 的物品，大多数物品也接触不到 0.1% 的用户，新上线的用户和物品则干脆没有任何记录。直接拿这种稀疏标签去优化，几乎注定会在头部过拟合、在尾部沉默。</p>
+<p>对比学习换了一笔交易：它不再问&quot;这个样本的标签是什么&quot;，改问&quot;哪两个样本应该长得像、哪两个应该长得不一样&quot;。这个问题的答案可以从数据本身免费得到——把同一个用户/物品/序列以两种不同方式扰动一下，扰动出的两个版本就是一对正样本，同一个 batch 里其他样本则全是负样本。模型由此学习到几何结构：相似的东西在 embedding 空间里靠近，不相似的远离。等几何结构学好了，下游有监督的推荐头只要轻轻一推就够了。</p>
+<p>本文先把对比学习这台机器的核心零件拆开讲清楚——InfoNCE、温度系数、增广策略——再分别介绍推荐里真正用得上的四类做法：<strong>SimCLR 风格</strong>的 batch 内对比、<strong>MoCo 风格</strong>的队列对比、<strong>SGL</strong> 的图增广、<strong>CL4SRec</strong> 的序列增广。最后我们看一个有点反直觉的结论：<strong>XSimGCL</strong> 把所有花哨的增广都丢掉，只往 embedding 上加一点噪声，效果反而更好。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li><strong>为什么</strong>对比学习处理稀疏性、冷启动、流行度偏置的思路和&quot;再多收点数据&quot;完全不同</li>
+<li><strong>InfoNCE 细讲</strong>：损失从哪来、温度系数 $\tau$ 为什么如此关键、它对梯度的形状意味着什么</li>
+<li><strong>SimCLR vs MoCo</strong>：batch 内负样本 vs 动量编码器 + 队列负样本，分别什么时候用</li>
+<li><strong>SGL</strong>（Wu 等，SIGIR 2021）：节点丢弃、边丢弃、随机游走子图三种图视图</li>
+<li><strong>CL4SRec</strong>（Xie 等，ICDE 2022）：crop / mask / reorder 三种序列增广</li>
+<li><strong>SimGCL / XSimGCL</strong>（Yu 等，2022/2023）：为什么一个简单的 embedding 噪声扰动能打平精心设计的图增广</li>
+<li>每一块都有可读的 <strong>PyTorch</strong> 实现</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>PyTorch 基本功（Module、autograd、损失函数）</li>
+<li>图神经网络，特别是 LightGCN（<a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%83-%e5%9b%be%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c/">第 7 篇</a>
+）</li>
+<li>Embedding 空间与相似度（<a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%94-%e5%b5%8c%e5%85%a5%e6%8a%80%e6%9c%af/">第 5 篇</a>
+）</li>
+</ul>
+<hr>
+<h2 id="为什么推荐系统需要对比学习">为什么推荐系统需要对比学习</h2>
+<h3 id="重新审视稀疏性">重新审视稀疏性</h3>
+<p>稀疏性不是简单的&quot;标签太少&quot;，它是结构性的：</p>
+<ol>
+<li><strong>冷启动</strong>：新用户/新物品的交互数为零，任何依赖它们做特征的模型（矩阵分解、双塔、GNN）都无法把它们放到 embedding 空间里有意义的位置。</li>
+<li><strong>头部过拟合</strong>：长尾点击分布下，损失被几个热门物品主导。一个把热门物品背下来的模型在训练集上看起来很好，��尾部物品却毫无判别力。</li>
+<li><strong>流行度偏置</strong>：即便候选池里有多样性，最终的打分头依然会把热门物品推到前面——因为这就是训练损失奖励的方向。整个系统会塌缩到&quot;什么都推同样几个东西&quot;。</li>
+</ol>
+<h3 id="对比学习换来的是什么">对比学习换来的是什么</h3>
+<p>对比学习用一笔不同的交易：放弃昂贵的标签，换来便宜得多的&quot;扰动一致性&quot;信号。设想把一个用户的行为子图随机丢掉 20% 的边再编码一次，再用不同的丢边方式编码第二次。两个视图，同一个用户。规则很简单：<strong>这两个 embedding 应该几乎一模一样</strong>，而 batch 里其他用户的 embedding 应该和它们都不一样。</p>
+<p>这一个目标同时给你三样东西：</p>
+<ul>
+<li><strong>一份免费的训练信号</strong>，量可以无限大（任何用户都能扰动任意多次）</li>
+<li><strong>一种表示先验</strong>：模型学到的特征是那些在扰动下还能保持的——根据定义就是<em>鲁棒</em>的特征，恰好是冷启动和长尾物品最需要的</li>
+<li><strong>一个对抗塌缩的正则项</strong>：损失明确地把不同用户在 embedding 空间里推开，不让它们都挤到热门物品周围</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/fig1_contrastive_pairs.png" alt="锚点用户被拉近两个增广视图（正样本），同时被推离 batch 内其他用户（负样本）" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图基本上把对比学习的全部直觉讲完了。蓝色锚点是某个用户，两个绿色点是同一用户的两个增广视图，把它们拉到一起；琥珀色点是同一 batch 里其他用户，把它们推开。对每个用户、每个 batch 都做这件事，整个 embedding 空间就会被塑造成&quot;语义相似 = embedding 相似&quot;的几何结构。</p>
+<hr>
+<h2 id="infonce真正在干活的损失函数">InfoNCE：真正在干活的损失函数</h2>
+<p>几乎所有对比式推荐模型用的都是 <strong>InfoNCE</strong> 损失（van den Oord 等，2018）的某种变体。给定锚点 $x$、正样本 $x^+$、一组负样本 $\{x_i^-\}$，编码器 $f$，相似度 $\mathrm{sim}(\cdot,\cdot) = z\cdot z'$（在 $\ell_2$ 归一化后的 embedding 上做点积）：</p>
+$$
+\mathcal{L}_{\text{InfoNCE}} = -\log \frac{\exp\!\big(\mathrm{sim}(f(x), f(x^+)) / \tau\big)}{\exp\!\big(\mathrm{sim}(f(x), f(x^+)) / \tau\big) + \sum_{i} \exp\!\big(\mathrm{sim}(f(x), f(x_i^-)) / \tau\big)}
+$$<p>这其实就是一个 $(N+1)$ 类分类器的交叉熵，正确类别是&quot;那个正样本&quot;。分子让正样本的概率变大；分母强迫模型把正样本<em>排在</em>所有负样本之前。这种排序压力，就是阻止&quot;所有 embedding 塌缩到同一个向量&quot;这个平凡解的关键。</p>
+<h3 id="温度系数被严重低估的旋钮">温度系数：被严重低估的旋钮</h3>
+<p>温度 $\tau$ 控制 softmax 区分正负的锐利程度。它不是一个装饰性超参，它会改变损失到底在优化什么。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/fig2_contrastive_loss.png" alt="左：不同温度下，InfoNCE 损失随正样本相似度的变化；右：相同情况下损失对正样本相似度的梯度" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>从右边那张图能直接读出两点结论：</p>
+<ul>
+<li><strong>小 $\tau$（0.05）</strong>：梯度在判决边界附近极其陡峭。模型几乎把全部容量都花在最难的负样本上——那些与正样本相似度几乎一样高的样本。这有利于学细粒度区分，但当那些&quot;困难负样本&quot;其实是被误标的（比如缺失非随机的点击），训练就会不稳定。</li>
+<li><strong>大 $\tau$（1.0）</strong>：梯度在所有负样本上摊薄，连容易的也分到一份。优化平滑，但聚类松散。</li>
+<li><strong>推荐场景的甜点区大致在 $\tau \in [0.1, 0.2]$</strong>——足够锐利能学到有用对比，又足够柔和不被噪声带跑。</li>
+</ul>
+<p>一个简单的脑模型：$1/\tau$ 是&quot;放大倍数&quot;。把 $\tau$ 减半，每对相似度的差距就被放大一倍，梯度推近-正样本和近-负样本分开的力度也翻一倍。</p>
+<h3 id="为什么离不开负样本">为什么离不开负样本</h3>
+<p>如果只优化分子——把正样本拉到一起——那所有 embedding 塌缩到同一个常向量，损失就会愉快地降到零。负样本不是配菜，是承重的约束。这也解释了为什么<strong>在 SimCLR 风格的训练里 batch size 影响这么大</strong>：batch 256 时每个锚点有 510 个负样本，batch 4096 时有 8190 个。负样本越多，分母越密，对比信号越强。</p>
+<hr>
+<h2 id="simclr-vs-moco负样本从哪儿来">SimCLR vs MoCo：负样本从哪儿来</h2>
+<p>视觉自监督的两大范式被原封不动地搬进了推荐：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/fig3_simclr_vs_moco.png" alt="SimCLR 用 batch 内其他视图做负样本（单一编码器）；MoCo 维护一个动量更新的 key 编码器和一个 FIFO 队列缓存负样本" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>SimCLR</strong>（Chen 等，ICML 2020）走极简路线：一个编码器、一个投影头、每个样本两次增广，<strong>同一 minibatch 里其他视图全是负样本</strong>。代价显而易见——负样本数量被 GPU 显存限制住了。</p>
+<p><strong>MoCo</strong>（He 等，CVPR 2020）把两边解耦：query 编码器用 SGD 正常更新，<em>动量</em> key 编码器以指数滑动平均跟随 $\xi \leftarrow m\xi + (1-m)\theta$，再维护一个 FIFO 队列保存最近 $K$ 个 key 的编码（典型 $K=65{,}536$）。负样本来自队列，$K$ 与 batch size 完全解耦。</p>
+<p>放到推荐里，SimCLR 模式更常见：CTR/CVR 训练本身 batch 就大；编码器通常是 GNN，前向开销主要在图遍历而非 embedding 查表；而维护一个上百万的<em>用户</em> key 队列其实没什么意义，因为 embedding 表本身一直在被更新，过两步队列里的旧 key 就和新 query 不在同一个空间了。MoCo 风格的队列在长序列检索模型里更常见——那种场景编码器很重，确实需要把它的开销摊到大量锚点上。</p>
+<h3 id="simclr-损失的参考实现">SimCLR 损失的参考实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">info_nce</span><span class="p">(</span><span class="n">z1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">z2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;两视图对称的 SimCLR 风格 InfoNCE。
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    z1、z2 形状 (B, D)，已经 L2 归一化。z1[i] 的正样本是 z2[i]，反之亦然；
+</span></span></span><span class="line"><span class="cl"><span class="s2">    拼起来的 2B 大 batch 里其他位置都算负样本。
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">B</span> <span class="o">=</span> <span class="n">z1</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>                  <span class="c1"># (2B, D)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sim</span> <span class="o">=</span> <span class="n">z</span> <span class="o">@</span> <span class="n">z</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">tau</span>                             <span class="c1"># (2B, 2B)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sim</span><span class="o">.</span><span class="n">fill_diagonal_</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">&#34;-inf&#34;</span><span class="p">))</span>               <span class="c1"># 排除自己和自己</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 第 i 行（i&lt;B）的正样本在第 i+B 列；第 i 行（B&lt;=i&lt;2B）的正样本在第 i-B 列</span>
+</span></span><span class="line"><span class="cl">    <span class="n">targets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">B</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">B</span><span class="p">)])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这十几行里有三处不那么显然的细节值得提一下：</p>
+<ol>
+<li>embedding 进来之前必须已经归一化。归一化后的点积就是余弦相似度，温度 $\tau$ 也才有上面那种几何意义。</li>
+<li>对角线用 $-\infty$ 屏蔽，而不是 0。<code>cross_entropy</code> 工作在 log-softmax 空间，$-\infty$ 在分母里直接消失；用 0 会留一个 $e^0=1$ 的项，悄悄改变梯度。</li>
+<li>损失是对称的：$2B$ 行各贡献一个交叉熵。前 $B$ 行把第二组视图当目标，后 $B$ 行把第一组视图当目标。</li>
+</ol>
+<hr>
+<h2 id="sgl在用户-物品图上做对比学习">SGL：在用户-物品图上做对比学习</h2>
+<p>SGL（Wu 等，SIGIR 2021，<em>Self-supervised Graph Learning for Recommendation</em>）是把对比学习真正带进推荐主流的工作。思路是在 LightGCN 主干上挂一个 InfoNCE 头，把<strong>两个被随机扰动过的用户-物品图</strong>当作每个节点的一对正样本视图。</p>
+<h3 id="三种扰动图的方式">三种扰动图的方式</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/fig4_sgl_augmentations.png" alt="原始用户-物品二部图与 SGL 的三种增广：边丢弃、节点丢弃、随机游走子图" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>边丢弃（Edge Dropout, ED）</strong>：每条边以概率 $1-p$ 独立保留。便宜、保持结构、用得最多。</li>
+<li><strong>节点丢弃（Node Dropout, ND）</strong>：每个节点（连同它的全部边）以概率 $p$ 被丢掉。增广更强，但可能让小度节点训练不稳。</li>
+<li><strong>随机游走子图（Random Walk, RW）</strong>：从每个锚点出发做长度 $L$ 的随机游走，把走过的子图作为视图。</li>
+</ul>
+<p>SGL 原论文的消融显示，边丢弃在大多数数据集上稳定地匹配甚至略胜另外两种，而且实现最简单。<strong>没有特别理由的话直接用 ED</strong>。</p>
+<h3 id="完整的-sgl-训练步">完整的 SGL 训练步</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">edge_dropout</span><span class="p">(</span><span class="n">edge_index</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">keep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">edge_index</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">edge_index</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">p</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">edge_index</span><span class="p">[:,</span> <span class="n">keep</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SGL</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;LightGCN 主干 + 在两个边丢弃视图上的节点级 InfoNCE。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_users</span><span class="p">,</span> <span class="n">n_items</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">n_layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">drop_p</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">lam</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_users</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items</span> <span class="o">=</span> <span class="n">n_users</span><span class="p">,</span> <span class="n">n_items</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">=</span> <span class="n">n_layers</span><span class="p">,</span> <span class="n">drop_p</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">lam</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">n_users</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_propagate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;对称归一化的 LightGCN 传播，对各层取平均。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="n">edge_index</span>
+</span></span><span class="line"><span class="cl">        <span class="n">deg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">norm</span> <span class="o">=</span> <span class="n">deg</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">msg</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">norm</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="o">*</span> <span class="n">norm</span><span class="p">[</span><span class="n">col</span><span class="p">])</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">agg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">index_add_</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">agg</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_propagate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">cl_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">z1</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">z2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sim</span> <span class="o">=</span> <span class="n">z1</span> <span class="o">@</span> <span class="n">z2</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span>
+</span></span><span class="line"><span class="cl">        <span class="n">targets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">z1</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">z1</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">bpr_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">users</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">neg</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">u</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">users</span><span class="p">],</span> <span class="n">z</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_users</span> <span class="o">+</span> <span class="n">pos</span><span class="p">],</span> <span class="n">z</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_users</span> <span class="o">+</span> <span class="n">neg</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">-</span><span class="n">F</span><span class="o">.</span><span class="n">logsigmoid</span><span class="p">((</span><span class="n">u</span> <span class="o">*</span> <span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">,</span> <span class="n">users</span><span class="p">,</span> <span class="n">pos_items</span><span class="p">,</span> <span class="n">neg_items</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 两个增广视图，提供对比信号</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">edge_dropout</span><span class="p">(</span><span class="n">edge_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_p</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">edge_dropout</span><span class="p">(</span><span class="n">edge_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_p</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 一次干净的前向，提供推荐信号</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">edge_index</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bpr_loss</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">users</span><span class="p">,</span> <span class="n">pos_items</span><span class="p">,</span> <span class="n">neg_items</span><span class="p">)</span> \
+</span></span><span class="line"><span class="cl">             <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cl_loss</span><span class="p">(</span><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>几个不那么显然的实现细节：</p>
+<ul>
+<li><strong>三次前向传播，不是两次</strong>。对比视图是从原图独立丢边出来的，BPR 用的是干净的原图。如果让 BPR 共用某个被丢过边的视图，监督信号会被偶然存活下来的边带偏。</li>
+<li><strong>对比损失在节点层面计算</strong>，作用对象是用户和物品 embedding 的拼接。这样二部图的两边都能拿到自监督信号。</li>
+<li><strong>损失权重 $\lambda$ 很关键</strong>。太小（$<10^{-2}$）对比信号几乎消失；太大（$>1$）BPR 抓不住推荐目标。SGL 论文在 $\{0.005, 0.05, 0.1, 0.5, 1.0\}$ 上扫了一遍，结论是 $0.1$ 是个稳健默认值——从这里起步。</li>
+</ul>
+<hr>
+<h2 id="cl4srec序列推荐里的对比学习">CL4SRec：序列推荐里的对比学习</h2>
+<p>对于基于序列的推荐器（SASRec、BERT4Rec、GRU4Rec……），同样的问题变成&quot;怎么给<em>同一条行为序列</em>造两个视图&quot;。CL4SRec（Xie 等，ICDE 2022）提出的三种增广已经成为事实上的默认。</p>
+<p><figure>
+  <img src="./11-%e5%af%b9%e6%af%94%e5%ad%a6%e4%b9%a0%e4%b8%8e%e8%87%aa%e7%9b%91%e7%9d%a3%e5%ad%a6%e4%b9%a0/fig5_cl4srec_augmentations.png" alt="同一条行为序列上的三种增广：crop 截取连续片段，mask 把若干位置替换为 [M]，reorder 打乱一段连续区间" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>Crop</strong>：保留长度为 $\eta L$ 的连续子序列。保住了局部顺序，让模型对&quot;晚一点开始&quot;或&quot;早一点结束&quot;具有不变性。</li>
+<li><strong>Mask</strong>：随机把 $\gamma$ 比例的位置换成特殊 token <code>[M]</code>。和 BERT 的 masked language modelling 一样的思路——编码器必须从上下文反推被遮挡的物品。</li>
+<li><strong>Reorder</strong>：把一段长度 $\beta L$ 的连续区间打乱。教会模型一个 session 内<em>精确</em>位置没那么重要，物品的集合本身才更稳定。</li>
+</ul>
+<p>CL4SRec 的做法是每个视图随机抽一种增广，于是 (视图 A, 视图 B) 就有九种组合。这种随机混合本身也是一种正则——编码器没法对单一增广策略过拟合。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">random</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SeqAugment</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;CL4SRec 的三种序列增广。序列是 LongTensor 的物品 ID，
+</span></span></span><span class="line"><span class="cl"><span class="s2">    id=0 保留给 padding/mask。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">crop_eta</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">mask_gamma</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">reorder_beta</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">mask_id</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">crop_eta</span> <span class="o">=</span> <span class="n">crop_eta</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mask_gamma</span> <span class="o">=</span> <span class="n">mask_gamma</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">reorder_beta</span> <span class="o">=</span> <span class="n">reorder_beta</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mask_id</span> <span class="o">=</span> <span class="n">mask_id</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">op</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="s2">&#34;crop&#34;</span><span class="p">,</span> <span class="s2">&#34;mask&#34;</span><span class="p">,</span> <span class="s2">&#34;reorder&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">L</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&#34;crop&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">k</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">L</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_eta</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">s</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">seq</span><span class="p">[</span><span class="n">s</span><span class="p">:</span><span class="n">s</span> <span class="o">+</span> <span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&#34;mask&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">n</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">L</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_gamma</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">L</span><span class="p">)[:</span><span class="n">n</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_id</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">out</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># reorder</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">k</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">L</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">reorder_beta</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">chunk</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">s</span><span class="p">:</span><span class="n">s</span> <span class="o">+</span> <span class="n">k</span><span class="p">][</span><span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">[</span><span class="n">s</span><span class="p">:</span><span class="n">s</span> <span class="o">+</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunk</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>编码器用你已有的任何序列模型即可（Transformer、GRU 等）。把最后一层隐藏状态池化、投影、归一化，丢进上面写好的 <code>info_nce</code>，再作为辅助损失加到原本的 next-item 预测上就行。</p>
+<hr>
+<h2 id="xsimgcl连增广本身都不重要">XSimGCL：连增广本身都不重要</h2>
+<p>Yu 等（2022/2023）的一项颇为反直觉的实证结果值得单独一节。他们问：SGL 的提升究竟有多少来自<em>图增广</em>本身、有多少来自对比损失？答案是：几乎全来自损失。把图丢边换成<strong>在传播得到的 embedding 上加��点点均匀噪声</strong>，效果就能持平甚至超过 SGL，而且省掉了图扰动的全部实现成本。</p>
+<p>具体技巧（SimGCL / XSimGCL，后者是精简版）大致是：</p>
+<ol>
+<li>正常跑 LightGCN 的传播。</li>
+<li>在每一层往 embedding 上加一个小噪声 $\Delta$，方向取单位球面上的随机向量再缩放到很小的 $\epsilon$（比如 0.1），并且强制噪声<em>与原向量同向</em>（避免翻号）。</li>
+<li>用不同的噪声样本再跑一遍传播，得到第二个视图。完全不动图。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">add_noise</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;SimGCL 的同向噪声扰动。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">noise</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">noise</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">epsilon</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">noise</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>更深的洞察来自 SimGCL 的分析：对比损失同时在做两件事——</p>
+<ul>
+<li><strong>对齐（alignment）</strong>：把正样本对拉近（分子在做的事）。</li>
+<li><strong>均匀（uniformity）</strong>：把所有 embedding 在单位超球面上推得越均匀越好（分母在做的事）。</li>
+</ul>
+<p>而 uniformity 才是打破流行度偏置的关键正则项，<strong>它是主导效应</strong>。一旦有了 uniformity，第二个视图具体怎么造（图丢边、embedding 噪声、还是别的合理扰动）几乎都无所谓。</p>
+<hr>
+<h2 id="这些方法到底有多大提升">这些方法到底有多大提升</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/fig6_performance_gain.png" alt="Recall@20 与 NDCG@20 在四个标准数据集上的对比：LightGCN 基线 vs &#43;SGL vs &#43;XSimGCL" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图的具体数值是 SGL（Wu 等，2021）和 SimGCL/XSimGCL（Yu 等，2022/2023）原论文在 Yelp2018、Amazon-Book、Alibaba-iFashion、Gowalla 等数据集上报告幅度的示意。结论一致：<strong>给同一个主干加上对比辅助损失，Recall@20 和 NDCG@20 通常能提升 5%–20%</strong>，而且增益几乎集中在尾部物品和冷启动用户身上——正是你最在意的地方。</p>
+<p>这种增益在 embedding 空间里是什么样：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/11-%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E4%B8%8E%E8%87%AA%E7%9B%91%E7%9D%A3%E5%AD%A6%E4%B9%A0/fig7_embedding_space.png" alt="对比学习训练前后的物品 embedding，t-SNE 投影：从纠缠成一团到清晰分开的兴趣簇" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>训练前，物品 embedding 几乎只沿着&quot;流行度&quot;这一根主轴变化，语义结构都被埋住了。训练后，物品按兴趣类别分裂成紧凑、彼此分开的小簇。下游打分头的活就好干多了——一个近似线性的边界基本就够。</p>
+<hr>
+<h2 id="常见问题">常见问题</h2>
+<h3 id="既然能多收数据为什么还要用对比学习">既然能多收数据，为什么还要用对比学习？</h3>
+<p>冷用户拿不到&quot;更多数据&quot;——他们就是因为没数据才叫冷。尾部物品也拿不到&quot;更多数据&quot;——尾部本身就是因为几乎没人看才在尾部。对比学习造出的训练信号不需要新交互，只需要把已有交互扰动一下。这和&quot;再多收点点击&quot;是<em>完全不同</em>的事情。</p>
+<h3 id="怎么在图增广和-embedding-噪声之间选">怎么在图增广和 embedding 噪声之间选？</h3>
+<p>默认用 embedding 噪声（XSimGCL）：更快、更简单，最近的文献基本一致认为它能持平或超过图增广。<strong>真正需要图增广</strong>的场景是：你想顺便正则化 GNN 的结构性归纳偏置，或者你对哪些边/节点最关键有可靠的先验。</p>
+<h3 id="温度系数怎么定">温度系数怎么定？</h3>
+<p>从 $\tau = 0.2$ 起步。如果你的&quot;困难负样本&quot;基本上是真正的负样本（比如有可靠的 dwell-time 信号），把 $\tau$ 降到 0.05–0.1 来加强对比；如果负样本噪声大（比如在百万级目录里随机抽 batch 用户做负样本），保持 $\tau \geq 0.2$ 以免被假负样本带偏。在小网格上扫一下就行，损失对 $\tau$ 是平滑的。</p>
+<h3 id="投影头还要不要">投影头还要不要？</h3>
+<p>SimCLR / SGL 这类在 GNN 上做对比的，要——而且训练完就丢掉。投影头让编码器的中间表示保持通用，把对比度量的特化任务交给投影头。XSimGCL 是个例外，它直接对传播后的 GNN embedding 做对比，不用投影头照样工作。</p>
+<h3 id="对比损失和推荐损失怎么组合">对比损失和推荐损失怎么组合？</h3>
+$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{rec}} + \lambda \cdot \mathcal{L}_{\text{CL}}$$<p>从 $\lambda = 0.1$ 起步。线上效果敏感时再在 $\{0.01, 0.05, 0.1, 0.5, 1.0\}$ 里扫一下。$\lambda$ 的敏感度比 $\tau$ 低很多，别在这上面浪费调参预算。</p>
+<h3 id="这套方法对隐式反馈管不管用">这套方法对隐式反馈管不管用？</h3>
+<p>管用，而且<em>比对显式反馈更适合</em>。整套框架默认每个交互都是正标签，让 InfoNCE 的结构隐式处理负样本。SGL、SimGCL、XSimGCL、CL4SRec 全是为隐式反馈（点击、播放、购买）设计的。</p>
+<h3 id="数据少到什么程度还能用">数据少到什么程度还能用？</h3>
+<p>对比学习恰恰在监督信号最稀缺的时候帮助最大。SGL 在 Yelp2018（稀疏度约 99.87%）上的提升比稠密数据集上大得多。低于 ~10K 交互时，随机增广的方差会主导，可能需要更强的先验（跨域迁移、内容特征）；超过 ~100K 交互时，应该能稳定看到改进。</p>
+<h3 id="怎么评估对比式推荐器">怎么评估对比式推荐器？</h3>
+<p>标准 top-K 指标（Recall@K、NDCG@K、HR@K）做基线对齐，然后<em>额外</em>关注：</p>
+<ul>
+<li><strong>冷启动切片</strong>：按交互数把用户/物品分桶，分桶报告指标。</li>
+<li><strong>长尾覆盖</strong>：推荐列表里长尾物品的占比（通常长尾定义为按流行度排序的后 80%）。</li>
+<li><strong>embedding 诊断</strong>：t-SNE/UMAP 可视化；按 Wang &amp; Isola（2020）算 uniformity（$\log \mathbb{E}\,e^{-2\|z_i - z_j\|^2}$）和 alignment（$\mathbb{E}\,\|z - z^+\|^2$）。高 uniformity + 低 alignment 才算健康。</li>
+</ul>
+<hr>
+<h2 id="总结">总结</h2>
+<p>对比学习解决了一个加再多数据也解决不了的问题：它给模型提供了一种从稀疏交互中学<em>几何</em>的方法，方法是要求模型在扰动下保持一致。2024 年的工程配方已经稳定下来：</p>
+<ol>
+<li><strong>挑一种增广</strong>，或者干脆不用增广（XSimGCL 噪声）。</li>
+<li><strong>套一个 InfoNCE</strong>，$\tau \approx 0.2$。</li>
+<li><strong>作为辅助损失加上去</strong>，权重 $\lambda \approx 0.1$，挂在你已有的有监督目标上。</li>
+</ol>
+<p>基于图的推荐器，从 XSimGCL 起步——能跑通的最简方案就是它。如果想要一个更可解释的基线，SGL + 边丢弃依然是个稳健选择。序列推荐器，CL4SRec 那三种增广是默认菜单。所有场景下，最大的收益都集中在冷启动和长尾。</p>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<p>本文是推荐系统 16 篇系列的<strong>第 11 篇</strong>。</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: left">上一篇</th>
+          <th style="text-align: center"></th>
+          <th style="text-align: right">下一篇</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left"><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/">第十篇：深度兴趣网络与注意力机制</a>
+</td>
+          <td style="text-align: center"><a href="/categories/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">所有文章</a>
+</td>
+          <td style="text-align: right"><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%ba%8c-%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e4%b8%8e%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">第十二篇：大语言模型与推荐系统</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#为什么推荐系统需要对比学习">为什么推荐系统需要对比学习</a>
+      <ul>
+        <li><a href="#重新审视稀疏性">重新审视稀疏性</a></li>
+        <li><a href="#对比学习换来的是什么">对比学习换来的是什么</a></li>
+      </ul>
+    </li>
+    <li><a href="#infonce真正在干活的损失函数">InfoNCE：真正在干活的损失函数</a>
+      <ul>
+        <li><a href="#温度系数被严重低估的旋钮">温度系数：被严重低估的旋钮</a></li>
+        <li><a href="#为什么离不开负样本">为什么离不开负样本</a></li>
+      </ul>
+    </li>
+    <li><a href="#simclr-vs-moco负样本从哪儿来">SimCLR vs MoCo：负样本从哪儿来</a>
+      <ul>
+        <li><a href="#simclr-损失的参考实现">SimCLR 损失的参考实现</a></li>
+      </ul>
+    </li>
+    <li><a href="#sgl在用户-物品图上做对比学习">SGL：在用户-物品图上做对比学习</a>
+      <ul>
+        <li><a href="#三种扰动图的方式">三种扰动图的方式</a></li>
+        <li><a href="#完整的-sgl-训练步">完整的 SGL 训练步</a></li>
+      </ul>
+    </li>
+    <li><a href="#cl4srec序列推荐里的对比学习">CL4SRec：序列推荐里的对比学习</a></li>
+    <li><a href="#xsimgcl连增广本身都不重要">XSimGCL：连增广本身都不重要</a></li>
+    <li><a href="#这些方法到底有多大提升">这些方法到底有多大提升</a></li>
+    <li><a href="#常见问题">常见问题</a>
+      <ul>
+        <li><a href="#既然能多收数据为什么还要用对比学习">既然能多收数据，为什么还要用对比学习？</a></li>
+        <li><a href="#怎么在图增广和-embedding-噪声之间选">怎么在图增广和 embedding 噪声之间选？</a></li>
+        <li><a href="#温度系数怎么定">温度系数怎么定？</a></li>
+        <li><a href="#投影头还要不要">投影头还要不要？</a></li>
+        <li><a href="#对比损失和推荐损失怎么组合">对比损失和推荐损失怎么组合？</a></li>
+        <li><a href="#这套方法对隐式反馈管不管用">这套方法对隐式反馈管不管用？</a></li>
+        <li><a href="#数据少到什么程度还能用">数据少到什么程度还能用？</a></li>
+        <li><a href="#怎么评估对比式推荐器">怎么评估对比式推荐器？</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">推荐系统</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
+      <div class="row"><span>Word count</span><strong>7000</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

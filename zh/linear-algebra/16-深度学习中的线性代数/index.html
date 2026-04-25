@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>深度学习中的线性代数 -- 从全连接到 Transformer · Chen Kai Blog</title>
+<meta name="description" content="深度学习的核心就是大规模矩阵运算。本章从单个神经元到全连接层的矩阵形式，反向传播的矩阵链式法则，卷积的 im2col 技巧，注意力机制的矩阵操作，到 LoRA 低秩微调。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="深度学习中的线性代数 -- 从全连接到 Transformer">
+<meta property="og:description" content="深度学习的核心就是大规模矩阵运算。本章从单个神经元到全连接层的矩阵形式，反向传播的矩阵链式法则，卷积的 im2col 技巧，注意力机制的矩阵操作，到 LoRA 低秩微调。">
+<meta property="og:url" content="https://www.chenk.top/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">线性代数</a>
+         · Chapter 16
+      </div>
+      <h1>深度学习中的线性代数 -- 从全连接到 Transformer</h1>
+      <p class="deck">深度学习的核心就是大规模矩阵运算。本章从单个神经元到全连接层的矩阵形式，反向传播的矩阵链式法则，卷积的 im2col 技巧，注意力机制的矩阵操作，到 LoRA 低秩微调。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-04-16">April 16, 2025</time> · 15 min read · 7500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/" class="tag">#线性代数</a><a href="/zh/tags/%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/" class="tag">#神经网络</a><a href="/zh/tags/%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/" class="tag">#注意力机制</a><a href="/zh/tags/lora/" class="tag">#LoRA</a><a href="/zh/tags/transformer/" class="tag">#Transformer</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>把所有营销话术都剥掉，深度学习就剩一件事：一长串矩阵乘法，中间夹一些逐元素的非线性。前向传播、反向传播、卷积、注意力、归一化、参数高效微调——每一个&quot;花招&quot;都不过是同一套代数主题的小变奏。一旦你能直接看见这些矩阵，整个领域就会从一袋零散食谱变成一种统一语言。</p>
+<p>本章用这种统一的视角把现代深度学习重建一遍。我们跟随同一个信号——一个向量 $\mathbf{x}$——看它如何穿过线性层，被卷积，被注意，被归一化，被低秩更新所微调。每一步都明确指出：是哪个矩阵在干活，又是这个矩阵的哪个性质（秩、条件数、转置）让这个技巧成立。</p>
+<blockquote>
+<p><strong>本章你将学到</strong></p>
+<ul>
+<li>神经网络如何&quot;就是&quot;一串矩阵乘法——以及为什么 GPU 训练几乎离不开 batch</li>
+<li>反向传播是矩阵链式法则，$W^{\top}$ 是普适的&quot;伴随算子&quot;</li>
+<li>im2col：把卷积改写成一次 GEMM，让 cuBLAS 全速跑起来</li>
+<li>缩放点积注意力四步矩阵分解，能直接读出每一步的几何含义</li>
+<li>初始化、归一化、残差连接其实都是同一件事——控制每层雅可比的谱半径</li>
+<li>LoRA：把微调写成低秩更新 $\Delta W = BA$</li>
+</ul>
+<p><strong>前置：</strong> 矩阵微积分（第 11 章）、SVD（第 9 章）、上一章的经典机器学习（第 15 章）。</p>
+</blockquote>
+<hr>
+<h2 id="1-神经网络就是矩阵乘法链">1. 神经网络就是矩阵乘法链</h2>
+<h3 id="11-一个神经元--一次内积">1.1 一个神经元 = 一次内积</h3>
+<p>神经元做的事情简单到不能再简单：对输入做加权求和，加偏置，过一个非线性。</p>
+$$h \;=\; \sigma(\mathbf{w}^{\top}\mathbf{x} + b)$$<p><strong>一次内积加一次非线性</strong>，仅此而已。把这个原语反复堆叠和广播，就是整个深度学习的全部把戏。</p>
+<h3 id="12-把神经元堆起来--一个矩阵">1.2 把神经元堆起来 = 一个矩阵</h3>
+<p>把 $m$ 个神经元的权重向量按行叠成矩阵 $\mathbf{W} \in \mathbb{R}^{m \times d}$：</p>
+$$\mathbf{h} \;=\; \sigma(\mathbf{W}\mathbf{x} + \mathbf{b})$$<p>几何上，$\mathbf{W}$ 是从 $d$ 维输入空间到 $m$ 维特征空间的线性映射；$\sigma$ 把这个空间弯一下，让它不再是平的。如果没有 $\sigma$，多层线性变换会塌缩成一个矩阵——正是非线性打破了矩阵乘法的封闭性，让网络具备万能逼近能力。</p>
+<h3 id="13-batch-不是可选项是必选项">1.3 batch 不是可选项，是必选项</h3>
+<p>GPU 是被 GEMM 喂大的。单个样本几乎浪费了所有 FLOPs。把 $B$ 个样本按行堆成 $\mathbf{X} \in \mathbb{R}^{B \times d}$，整层就变成一次大矩阵乘法：</p>
+$$\mathbf{H} \;=\; \sigma(\mathbf{X}\mathbf{W}^{\top} + \mathbf{1}\mathbf{b}^{\top})$$<p>$B$ 越大，矩阵越大，算术强度越高，硬件越开心。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig1_network_as_matmul.png" alt="神经网络就是矩阵乘法链" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">784</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">x_batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">784</span><span class="p">)</span>   <span class="c1"># 32 个样本</span>
+</span></span><span class="line"><span class="cl"><span class="n">h_batch</span> <span class="o">=</span> <span class="n">linear</span><span class="p">(</span><span class="n">x_batch</span><span class="p">)</span>        <span class="c1"># (32, 256)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">linear</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>       <span class="c1"># torch.Size([256, 784])</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">linear</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>         <span class="c1"># torch.Size([256])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="14-训练后的权重矩阵是可读的">1.4 训练后的权重矩阵是可读的</h3>
+<p>训练完之后，$\mathbf{W}$ 不是一团噪声——它的每一行是一个<strong>模板</strong>，对应这个神经元最响应的输入模式。把矩阵画成 heatmap，再把每一行 reshape 回输入的几何形状，你就能直接看到网络学到了什么。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig2_weight_heatmap.png" alt="解读权重矩阵：每一行就是一个神经元的滤波器" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>图像 MLP 上你会看到方向性边缘和斑点——和 Hubel &amp; Wiesel 在 V1 找到的视觉原语一样。语言模型里你会发现对应句法角色的特征方向。矩阵是可解释的，前提是你愿意去看。</p>
+<hr>
+<h2 id="2-反向传播--矩阵版的链式法则">2. 反向传播 = 矩阵版的链式法则</h2>
+<p>反向传播在科普文章里常被神秘化。其实它就是链式法则的矩阵写法，记住一个口诀：<strong>前向乘了哪个矩阵，反向就乘它的转置。</strong></p>
+<h3 id="21-单层反传四步走">2.1 单层反传四步走</h3>
+<p>设 $\mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b}$，$\mathbf{h} = \sigma(\mathbf{z})$，下游某处有标量损失 $L$。</p>
+<ol>
+<li><strong>接收</strong>上游传来的 $\partial L/\partial \mathbf{h}$。</li>
+<li><strong>穿过激活函数</strong>（与逐元素导数做 Hadamard 积）：</li>
+</ol>
+$$\frac{\partial L}{\partial \mathbf{z}} \;=\; \frac{\partial L}{\partial \mathbf{h}} \odot \sigma'(\mathbf{z})$$<ol start="3">
+<li><strong>算参数梯度</strong>（外积形式）：</li>
+</ol>
+$$\frac{\partial L}{\partial \mathbf{W}} \;=\; \frac{\partial L}{\partial \mathbf{z}}\,\mathbf{x}^{\top}, \qquad \frac{\partial L}{\partial \mathbf{b}} \;=\; \frac{\partial L}{\partial \mathbf{z}}$$<ol start="4">
+<li><strong>传给上一层</strong>（转置映射）：</li>
+</ol>
+$$\frac{\partial L}{\partial \mathbf{x}} \;=\; \mathbf{W}^{\top}\,\frac{\partial L}{\partial \mathbf{z}}$$<p>为什么是 $\mathbf{W}^{\top}$？因为 $\mathbf{W}$ 把 $\mathbf{x}$ 推到前面去；它的转置——也就是<strong>伴随算子</strong>——把梯度拉回来。这正是线性映射的对偶定理，只是换了一身微积分的衣服。</p>
+<h3 id="22-批量形式">2.2 批量形式</h3>
+<p>batch $\mathbf{X} \in \mathbb{R}^{B \times d}$，激活后的梯度记作 $\boldsymbol{\Delta}$：</p>
+$$\frac{\partial L}{\partial \mathbf{W}} \;=\; \boldsymbol{\Delta}^{\top}\mathbf{X}, \qquad \frac{\partial L}{\partial \mathbf{b}} \;=\; \boldsymbol{\Delta}^{\top}\mathbf{1}, \qquad \frac{\partial L}{\partial \mathbf{X}} \;=\; \boldsymbol{\Delta}\,\mathbf{W}$$<p>注意参数梯度其实是<strong>所有样本外积之和</strong>——单次矩阵乘法就把这件事做完了。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ManualLinear</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_features</span><span class="p">,</span> <span class="n">out_features</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scale</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="n">in_features</span> <span class="o">+</span> <span class="n">out_features</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.5</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">out_features</span><span class="p">,</span> <span class="n">in_features</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">out_features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">x</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad_h</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">grad_z</span> <span class="o">=</span> <span class="n">grad_h</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>   <span class="c1"># ReLU 导数</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">grad_W</span> <span class="o">=</span> <span class="n">grad_z</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">grad_b</span> <span class="o">=</span> <span class="n">grad_z</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">grad_z</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span>                    <span class="c1"># 传给上一层</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="23-雅可比视角">2.3 雅可比视角</h3>
+<p>对任意 $\mathbf{y} = f(\mathbf{x})$，雅可比矩阵 $\mathbf{J}_{ij} = \partial y_i / \partial x_j$ 就是局部线性近似。链式法则因此成了雅可比的乘积：</p>
+$$\nabla_{\!\mathbf{x}} L \;=\; \mathbf{J}^{\top}\,\nabla_{\!\mathbf{y}} L$$<p>线性层 $\mathbf{y} = \mathbf{W}\mathbf{x}$ 的雅可比就是 $\mathbf{W}$ 本身；深网络的整体雅可比是 $\mathbf{J}_L \mathbf{J}_{L-1} \cdots \mathbf{J}_1$，梯度范数被各层算子范数的乘积所限制。后面所有&quot;梯度爆炸/消失&quot;的故事，都从这一行公式里长出来。</p>
+<hr>
+<h2 id="3-卷积只是披着外套的-gemm">3. 卷积只是披着外套的 GEMM</h2>
+<h3 id="31-一维toeplitz-矩阵">3.1 一维：Toeplitz 矩阵</h3>
+<p>一维卷积 $\mathbf{w} = [w_0, w_1, w_2]$ 作用在长度 5 的输入上，等价于乘一个带状的<strong>Toeplitz 矩阵</strong>：</p>
+$$\mathbf{T} \;=\; \begin{bmatrix} w_2 & w_1 & w_0 & 0 & 0 \\ 0 & w_2 & w_1 & w_0 & 0 \\ 0 & 0 & w_2 & w_1 & w_0 \end{bmatrix}, \qquad \mathbf{y} = \mathbf{T}\mathbf{x}$$<p>也就是说，卷积本来就是矩阵乘法，只是 $\mathbf{T}$ 太大、几乎全是 0，没人愿意显式存它。</p>
+<h3 id="32-二维im2col-把卷积变成一次-gemm">3.2 二维：im2col 把卷积变成一次 GEMM</h3>
+<p>二维情况下，框架用同样的思路——<strong>im2col</strong>：把每个感受野<strong>展开</strong>成一列，所有列拼成一个稠密矩阵，整个卷积就退化为一次 BLAS 最爱的稠密矩阵乘法。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig3_im2col.png" alt="im2col：把卷积变成一次矩阵乘法" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>具体步骤：</p>
+<ol>
+<li><strong>展开输入</strong>：每个输出位置对应一个 $C_{\rm in} \times K \times K$ 的 patch，把它拍平成 $\mathbf{X}_{\rm col}$ 的一列。</li>
+<li><strong>展开卷积核</strong>：把 kernel 拉直成一行 $\mathbf{w}_{\rm row}$。</li>
+<li><strong>矩阵乘</strong>：$\mathbf{Y}_{\rm flat} = \mathbf{w}_{\rm row}\,\mathbf{X}_{\rm col}$。</li>
+<li><strong>reshape</strong> 回空间形状。</li>
+</ol>
+<p>代价是 im2col 把每个像素复制了 $K^2$ 次，内存膨胀。但换来的是 cuBLAS GEMM——这是被人手工调教到喂饱每一个 SM 上 tensor core 的内核。在现代 GPU 上，这笔交易几乎总是划算。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">conv2d_via_im2col</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;用一次 GEMM 实现 2D 卷积。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">B</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">C_out</span><span class="p">,</span> <span class="n">C_in</span><span class="p">,</span> <span class="n">kh</span><span class="p">,</span> <span class="n">kw</span> <span class="o">=</span> <span class="n">weight</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">padding</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="n">padding</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">h_pad</span><span class="p">,</span> <span class="n">w_pad</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">    <span class="n">out_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">h_pad</span> <span class="o">-</span> <span class="n">kh</span><span class="p">)</span> <span class="o">//</span> <span class="n">stride</span> <span class="o">+</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">    <span class="n">out_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">w_pad</span> <span class="o">-</span> <span class="n">kw</span><span class="p">)</span> <span class="o">//</span> <span class="n">stride</span> <span class="o">+</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">col</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C_in</span> <span class="o">*</span> <span class="n">kh</span> <span class="o">*</span> <span class="n">kw</span><span class="p">,</span> <span class="n">out_h</span> <span class="o">*</span> <span class="n">out_w</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">out_h</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">out_w</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">patch</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="o">*</span><span class="n">stride</span><span class="p">:</span><span class="n">i</span><span class="o">*</span><span class="n">stride</span><span class="o">+</span><span class="n">kh</span><span class="p">,</span> <span class="n">j</span><span class="o">*</span><span class="n">stride</span><span class="p">:</span><span class="n">j</span><span class="o">*</span><span class="n">stride</span><span class="o">+</span><span class="n">kw</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">col</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="o">*</span><span class="n">out_w</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">patch</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">weight_col</span> <span class="o">=</span> <span class="n">weight</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">C_out</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="n">weight_col</span> <span class="o">@</span> <span class="n">col</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C_out</span><span class="p">,</span> <span class="n">out_h</span><span class="p">,</span> <span class="n">out_w</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">w</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">((</span><span class="n">conv2d_via_im2col</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">      <span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>   <span class="c1"># ~1e-6</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="33-深度可分离卷积--低秩分解">3.3 深度可分离卷积 = 低秩分解</h3>
+<p>标准 $K\times K$ 卷积参数量是 $C_{\rm out}\,C_{\rm in}\,K^2$。<strong>深度可分离卷积</strong>把这个张量拆成两块：</p>
+<ul>
+<li><strong>Depthwise</strong>：每个输入通道单独卷积，不混合通道——$C_{\rm in}\,K^2$ 参数。</li>
+<li><strong>Pointwise（$1\times 1$）</strong>：只混合通道——$C_{\rm out}\,C_{\rm in}$ 参数。</li>
+</ul>
+<p>数学上这是<strong>卷积权重张量的低秩分解</strong>。MobileNet、EfficientNet、ConvNeXt 等所有现代轻量视觉模型都建立在这个技巧之上。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DepthwiseSeparableConv</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">depthwise</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_ch</span><span class="p">,</span> <span class="n">in_ch</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                   <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">in_ch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pointwise</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointwise</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depthwise</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">DepthwiseSeparableConv</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 73,856   vs   8,896  -&gt; 参数减少约 8 倍</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="4-注意力--用三次矩阵乘法做软查表">4. 注意力 = 用三次矩阵乘法做软查表</h2>
+<h3 id="41-图书馆的比喻">4.1 图书馆的比喻</h3>
+<p>你带着一个问题走进图书馆。每本书都有<strong>键</strong>（关键词）和<strong>值</strong>（内容）。你拿你的<strong>查询</strong>和每个键比对，把分数归一化为权重，再用权重对所有值做加权融合。</p>
+<p>注意力机制就是这个动作。妙的是这一切都能用矩阵乘法干净地写出来。</p>
+<h3 id="42-缩放点积注意力四步看穿">4.2 缩放点积注意力，四步看穿</h3>
+$$\mathrm{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) \;=\; \mathrm{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^{\top}}{\sqrt{d_k}}\right)\mathbf{V}$$<p>四个面板从左到右读：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig4_attention.png" alt="缩放点积注意力的四步矩阵分解" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ol>
+<li>$\mathbf{Q}\mathbf{K}^{\top}$——所有 query-key 对的点积，得到 $n\times n$ 的相似度矩阵。</li>
+<li>除以 $\sqrt{d_k}$。如果 $\mathbf{Q},\mathbf{K}$ 元素 i.i.d. $\mathcal{N}(0,1)$，点积方差是 $d_k$。$d_k$ 大时不缩放会让 softmax 饱和、梯度归零；除以 $\sqrt{d_k}$ 把方差拉回 1，softmax 重新进入良态区。</li>
+<li>行向 softmax 把分数变成概率分布——<strong>注意力权重</strong>。</li>
+<li>乘以 $\mathbf{V}$。每行输出是所有 value 向量的凸组合，权重就是相关性。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">scaled_dot_product_attention</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Q, K, V: (B, h, n, d_k)&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">d_k</span> <span class="o">=</span> <span class="n">Q</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">scores</span> <span class="o">=</span> <span class="n">Q</span> <span class="o">@</span> <span class="n">K</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">mask</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;-inf&#39;</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">weights</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">weights</span> <span class="o">@</span> <span class="n">V</span><span class="p">,</span> <span class="n">weights</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="43-多头在多个子空间并行">4.3 多头：在多个子空间并行</h3>
+<p>单头注意力只能学到一种&quot;相关&quot;的概念。真实语言需要很多种——句法的、语义的、位置的。多头注意力把 $h$ 个头并行跑，每个头在 $d_k = d_{\rm model}/h$ 的子空间里独立工作，最后拼起来再混合。</p>
+$$\mathrm{MultiHead}(\mathbf{X}) = \mathrm{Concat}(\text{head}_1, \ldots, \text{head}_h)\,\mathbf{W}^O$$$$\text{head}_i = \mathrm{Attention}(\mathbf{X}\mathbf{W}_i^Q,\,\mathbf{X}\mathbf{W}_i^K,\,\mathbf{X}\mathbf{W}_i^V)$$<p>投影矩阵 $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V$ 把 $d_{\rm model}$ 维 embedding 切成 $h$ 个互不重叠的子空间；$\mathbf{W}^O$ 再把多头输出粘回去。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultiHeadAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">assert</span> <span class="n">d_model</span> <span class="o">%</span> <span class="n">n_heads</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span> <span class="o">=</span> <span class="n">d_model</span> <span class="o">//</span> <span class="n">n_heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span> <span class="o">=</span> <span class="n">n_heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_q</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_k</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_v</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_o</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">B</span> <span class="o">=</span> <span class="n">Q</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_q</span><span class="p">(</span><span class="n">Q</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">K</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_k</span><span class="p">(</span><span class="n">K</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">V</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_v</span><span class="p">(</span><span class="n">V</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">scaled_dot_product_attention</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_o</span><span class="p">(</span><span class="n">out</span><span class="p">),</span> <span class="n">w</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>朴素注意力的时间复杂度是 $O(n^2 d_k)$，内存 $O(n^2)$——长序列下 $n\times n$ 的得分矩阵是瓶颈。FlashAttention 把这个矩阵分块，让它根本不进 HBM；数学上完全等价，只是对内存层级更友好。</p>
+<hr>
+<h2 id="5-把一切拼起来一个-transformer-block">5. 把一切拼起来：一个 Transformer Block</h2>
+<p>一个 Transformer encoder 层就是四个固定的成分。</p>
+<ul>
+<li><strong>多头自注意力</strong>（第 4 节）。</li>
+<li><strong>逐位置 FFN</strong>：一个两层 MLP，对每个 token 独立做&quot;扩张-压缩&quot;：</li>
+</ul>
+$$\mathrm{FFN}(\mathbf{x}) = \mathbf{W}_2\,\mathrm{ReLU}(\mathbf{W}_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2$$<ul>
+<li><strong>残差连接</strong>：每个 sublayer 输出 $\mathbf{x} + \mathrm{sublayer}(\mathbf{x})$。雅可比变成 $\mathbf{I} + \mathbf{J}$，特征值聚集在 1 附近——梯度永远有一条直通后方的捷径。</li>
+<li><strong>层归一化</strong>（第 6 节）。</li>
+</ul>
+<p>Decoder 多了<strong>交叉注意力</strong>（query 来自 decoder，key/value 来自 encoder）和一个<strong>因果 mask</strong>，把&quot;未来位置&quot;的得分置为 $-\infty$：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">causal_mask</span><span class="p">(</span><span class="n">seq_len</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>由于没有循环结构，模型需要<strong>位置编码</strong>才能知道每个 token 的位置。正弦位置编码</p>
+$$\mathrm{PE}_{(\mathrm{pos}, 2i)} = \sin(\mathrm{pos}/10000^{2i/d}), \qquad \mathrm{PE}_{(\mathrm{pos}, 2i+1)} = \cos(\mathrm{pos}/10000^{2i/d})$$<p>有一个漂亮的性质：$\mathrm{PE}_{\mathrm{pos}+k}$ 是 $\mathrm{PE}_{\mathrm{pos}}$ 的<strong>线性函数</strong>——相对位置在特征空间里就是一个固定的旋转。</p>
+<hr>
+<h2 id="6-归一化沿不同的轴做标准化">6. 归一化：沿不同的轴做标准化</h2>
+<p>训练过程中激活会漂移，归一化层在每次前向时把它们拉回已知分布。</p>
+<h3 id="61-batchnorm-vs-layernorm">6.1 BatchNorm vs LayerNorm</h3>
+<p>两者都做 $\hat{x} = (x - \mu)/\sqrt{\sigma^2 + \epsilon}$，再来一次可学习仿射 $\gamma\hat{x} + \beta$。<strong>关键区别在于均值方差沿哪个轴算</strong>：</p>
+<ul>
+<li><strong>BatchNorm</strong>：对每个特征，在 batch 维度上求均值方差。把不同样本绑在一起；估计精度依赖 batch 大小；推理时需要使用训练期累计的滑动平均。</li>
+<li><strong>LayerNorm</strong>：对每个样本，在特征维度上求均值方差。与 batch 无关，与 batch 大小无关，天然可并行——这正是 Transformer 普遍选它的原因。</li>
+</ul>
+<p>记住矩阵心智模型：BatchNorm 标准化激活矩阵的<strong>列</strong>，LayerNorm 标准化激活矩阵的<strong>行</strong>。</p>
+<h3 id="62-rmsnorm把均值也省掉">6.2 RMSNorm：把均值也省掉</h3>
+<p>LLaMA 系列把 LayerNorm 进一步简化——不减均值，只用均方根缩放：</p>
+$$\hat{x} = \frac{x}{\mathrm{RMS}(x)} \cdot \gamma, \qquad \mathrm{RMS}(x) = \sqrt{\tfrac{1}{d}\sum_i x_i^2}$$<p>FLOPs 大致减半，下游效果相当。现代 LLM 几乎一边倒地采用它。</p>
+<hr>
+<h2 id="7-初始化条件数与梯度流动">7. 初始化、条件数与梯度流动</h2>
+<p>所有&quot;训不深&quot;的问题，归根结底都归到一个量上：<strong>各层雅可比的奇异值连乘</strong>。</p>
+<h3 id="71-方差守恒原则">7.1 方差守恒原则</h3>
+<p>想让信号穿过 $L$ 层既不爆炸也不消失？那就让每一层近似保持方差。线性层 $\mathbf{y} = \mathbf{W}\mathbf{x}$，输入和权重都是零均值 i.i.d. 时 $\mathrm{Var}(y_i) = n_{\rm in}\,\mathrm{Var}(W_{ij})\,\mathrm{Var}(x)$。要它等于 $\mathrm{Var}(x)$，就得到了初始化公式。</p>
+<ul>
+<li><strong>Xavier（Glorot）初始化</strong>，针对 $\tanh$/sigmoid：</li>
+</ul>
+$$w_{ij} \sim \mathcal{U}\!\left[-\sqrt{\tfrac{6}{n_{\rm in} + n_{\rm out}}},\;\sqrt{\tfrac{6}{n_{\rm in} + n_{\rm out}}}\right]$$<ul>
+<li><strong>He（Kaiming）初始化</strong>，针对 ReLU（ReLU 杀掉一半神经元，方差被砍半，所以幅度乘 2 补回来）：</li>
+</ul>
+$$w_{ij} \sim \mathcal{N}\!\left(0,\,\tfrac{2}{n_{\rm in}}\right)$$<h3 id="72-谱告诉你的故事">7.2 谱告诉你的故事</h3>
+<p>乘积 $\mathbf{W}_L \mathbf{W}_{L-1} \cdots \mathbf{W}_1$ 的最大奇异值大致是 $\prod_\ell \sigma_{\max}(\mathbf{W}_\ell)$。每个因子 $\sigma_{\max} > 1$ 则爆炸；每个 $\sigma_{\max} < 1$ 则坍塌至零。He / Xavier 就是被精心校准让每个因子停在 1 附近。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig6_init_eigenvalues.png" alt="为什么初始化重要：奇异值分布对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>右图直接展示了灾难：朴素 $\mathcal{N}(0,1)$ 初始化每加一层就爆几个数量级；He 初始化无论深到哪儿，乘积的最大奇异值都稳在 $O(1)$。</p>
+<h3 id="73-同一个故事从梯度看">7.3 同一个故事，从梯度看</h3>
+<p>跑一下 6 层线性网络的前向和反向：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig5_backprop_flow.png" alt="深网络中的梯度流动" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>朴素初始化爆炸，过小初始化消失，只有 He 初始化能让激活和梯度都平稳穿过所有层。<strong>所有现代深度训练技巧</strong>——残差连接、精巧初始化、归一化层、梯度裁剪——本质上是同一个目标：<strong>让每层雅可比的谱半径靠近 1</strong>。</p>
+<hr>
+<h2 id="8-lora把微调写成低秩更新">8. LoRA：把微调写成低秩更新</h2>
+<p>前沿 LLM 动辄几百亿参数，全量微调在算力、内存、存储（每个任务一份完整权重）三方面都是浪费。<strong>LoRA</strong> 的洞察是：你真正需要的<em>更新</em>往往是低秩的，即便基座权重不是。</p>
+<h3 id="81-公式">8.1 公式</h3>
+<p>冻结预训练权重 $\mathbf{W}_0$，只学一个加性更新，并把它分解成两个&quot;瘦长&quot;矩阵：</p>
+$$\mathbf{W}' \;=\; \mathbf{W}_0 + \Delta\mathbf{W}, \qquad \Delta\mathbf{W} = \mathbf{B}\mathbf{A}$$<p>其中 $\mathbf{A} \in \mathbb{R}^{r \times d_{\rm in}}$，$\mathbf{B} \in \mathbb{R}^{d_{\rm out} \times r}$，$r \ll \min(d_{\rm in}, d_{\rm out})$。</p>
+<table>
+  <thead>
+      <tr>
+          <th></th>
+          <th>参数量</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>单层全量微调</td>
+          <td>$d_{\rm in}\,d_{\rm out}$</td>
+      </tr>
+      <tr>
+          <td>LoRA（秩 $r$）</td>
+          <td>$r\,(d_{\rm in} + d_{\rm out})$</td>
+      </tr>
+  </tbody>
+</table>
+<p>$d_{\rm in} = d_{\rm out} = 4096$、$r = 8$ 时：1677 万参数变成 6.5 万——<strong>减少 256 倍</strong>。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/16-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig7_lora_decomposition.png" alt="LoRA：权重更新的低秩分解" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上排把分解可视化：左边一块矮胖的 $\Delta\mathbf{W}$，右边等于一个高瘦的 $\mathbf{B}$ 乘一个矮宽的 $\mathbf{A}$。下方左图是参数节省，右图是重构误差——一旦秩 $r$ 达到更新的真实内禀秩，误差就崩到 0。</p>
+<h3 id="82-为什么低秩有效">8.2 为什么低秩有效</h3>
+<p>经验研究（Aghajanyan 等、Hu 等）发现：微调引起的权重变化生活在一个低维子空间——所谓&quot;内禀维度&quot;假设。LoRA 直接把 $\mathrm{rank}(\Delta\mathbf{W}) \le r$ 写死，既省参数又起到<strong>结构正则化</strong>的作用：你只能在 $r$ 个方向上调整，这反而避免了全量微调常见的灾难性遗忘。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_layer</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">16</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base_layer</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
+</span></span><span class="line"><span class="cl">        <span class="n">d_in</span><span class="p">,</span> <span class="n">d_out</span> <span class="o">=</span> <span class="n">base_layer</span><span class="o">.</span><span class="n">in_features</span><span class="p">,</span> <span class="n">base_layer</span><span class="o">.</span><span class="n">out_features</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">d_in</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.01</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">d_out</span><span class="p">,</span> <span class="n">r</span><span class="p">))</span>   <span class="c1"># B 零初始化 -&gt; 起步等价于原模型</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">r</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">x</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;推理时把 BA 折进 base 权重，零额外开销。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="83-lora-家族">8.3 LoRA 家族</h3>
+<ul>
+<li><strong>QLoRA</strong>：$\mathbf{W}_0$ 用 4bit NF4 量化存储，LoRA 用 BF16 训练。单张 48GB 显卡可微调 65B 模型。</li>
+<li><strong>DoRA</strong>：把权重列分解为模长 $m$ 和方向 $\hat{v}$；方向用 LoRA 适配，模长单独学。</li>
+<li><strong>AdaLoRA</strong>：用敏感性分析估计每层重要性，动态分配秩预算。</li>
+</ul>
+<p>它们本质都是线性代数手术：LoRA 是秩约束，DoRA 是极分解，AdaLoRA 是秩分配。同一套代数，不同旋钮。</p>
+<hr>
+<h2 id="9-全章鸟瞰">9. 全章鸟瞰</h2>
+<p>把整章拉成一张表：</p>
+<table>
+  <thead>
+      <tr>
+          <th>操作</th>
+          <th>线性代数原语</th>
+          <th>为什么有效</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>全连接层</td>
+          <td>矩阵-向量乘</td>
+          <td>线性映射 + 非线性</td>
+      </tr>
+      <tr>
+          <td>反向传播</td>
+          <td>伴随算子（$W^{\top}$）</td>
+          <td>链式法则 = 雅可比连乘</td>
+      </tr>
+      <tr>
+          <td>卷积（im2col）</td>
+          <td>块 Toeplitz $\to$ GEMM</td>
+          <td>用内存换 cuBLAS 吞吐</td>
+      </tr>
+      <tr>
+          <td>深度可分离卷积</td>
+          <td>卷积张量的低秩分解</td>
+          <td>同时降参数和 FLOPs</td>
+      </tr>
+      <tr>
+          <td>注意力</td>
+          <td>$\mathrm{softmax}(QK^{\top}/\sqrt{d_k})V$</td>
+          <td>内容寻址的软查表</td>
+      </tr>
+      <tr>
+          <td>多头</td>
+          <td>$h$ 个子空间的直和</td>
+          <td>并行多种相关模式</td>
+      </tr>
+      <tr>
+          <td>残差连接</td>
+          <td>$\mathbf{I} + \mathbf{J}$</td>
+          <td>谱聚集在 1 附近</td>
+      </tr>
+      <tr>
+          <td>BN / LN / RMSNorm</td>
+          <td>行 vs 列标准化</td>
+          <td>控制激活尺度</td>
+      </tr>
+      <tr>
+          <td>Xavier / He 初始化</td>
+          <td>方差守恒</td>
+          <td>每层 $\sigma_{\max}$ 接近 1</td>
+      </tr>
+      <tr>
+          <td>LoRA</td>
+          <td>$\Delta W = BA$，$\mathrm{rank} \le r$</td>
+          <td>利用低内禀维度</td>
+      </tr>
+  </tbody>
+</table>
+<p>现代深度学习做的所有事情，都是在这一小撮原语——线性映射、转置、秩、奇异值——之间排列组合。架构来来去去，原语始终如一。</p>
+<hr>
+<h2 id="练习">练习</h2>
+<h3 id="热身">热身</h3>
+<ol>
+<li>证明：若 $\mathbf{W}$ 是正交矩阵（$\mathbf{W}^{\top}\mathbf{W} = \mathbf{I}$），线性层 $\mathbf{h} = \mathbf{W}\mathbf{x}$ 在前向和反向都保持 $\ell_2$ 范数。</li>
+<li>输入 $\mathbb{R}^{100}$ 经过 MLP $100 \to 256 \to 128 \to 10$。写出每个权重矩阵的形状，并算出总参数量（别忘了 bias）。</li>
+<li>多头注意力为什么用 $d_k = d_{\rm model}/h$ 而不是每个头都用 $d_{\rm model}$？比较参数量和表达能力。</li>
+<li>对形状 $(B, C, H, W)$ 的卷积特征图，BN 和 LN 分别在哪些维度上算均值方差？</li>
+</ol>
+<h3 id="进阶">进阶</h3>
+<ol start="5">
+<li>假设 $\mathbf{Q}, \mathbf{K}$ 元素 i.i.d. $\mathcal{N}(0,1)$。计算 $\mathbf{Q}\mathbf{K}^{\top}$ 单个元素的均值和方差，并用结果论证 $\sqrt{d_k}$ 缩放的必要性。</li>
+<li>im2col：输入 $(1, 3, 8, 8)$、kernel $(16, 3, 3, 3)$、stride 1、padding 1。算出 $\mathbf{X}_{\rm col}$ 的形状以及内存膨胀倍数。</li>
+<li>证明：若 $\Delta\mathbf{W} = \mathbf{B}\mathbf{A}$，$\mathbf{B}\in\mathbb{R}^{m\times r}$，$\mathbf{A}\in\mathbb{R}^{r\times n}$，则 $\mathrm{rank}(\Delta\mathbf{W}) \le r$。</li>
+<li>分析 ResNet 残差块 $\mathbf{y} = \mathbf{x} + F(\mathbf{x})$ 的梯度流。证明反向传播时存在一条直通路径，让梯度不经过 $F$ 就能传到前层。</li>
+</ol>
+<h3 id="编程">编程</h3>
+<ol start="9">
+<li>实现完整的多层 Transformer encoder，并在一个玩具序列分类任务上跑通。</li>
+<li>对一个小型预训练模型应用 LoRA。报告参数量、训练显存与下游精度，对比全量微调。</li>
+<li>生成一个随机 batch，可视化 BN/LN/RMSNorm 前后的激活分布变化。</li>
+<li>拿 BERT-tiny 做 FLOPs 拆解（attention vs FFN vs 归一化），画总算量随序列长度变化的曲线。</li>
+</ol>
+<h3 id="开放性">开放性</h3>
+<ol start="13">
+<li>为什么 Transformer 普遍用 LayerNorm 而不是 BatchNorm？从训练稳定性、变长序列、可并行等角度分析。</li>
+<li>LoRA 假设微调更新是低秩的。在什么场景下这个假设可能失效？设计一个实验来检测它。</li>
+<li>把 2D CNN 迁移到 3D 数据（视频、医学影像）上，FLOPs 和参数量如何变化？给出矩阵代数视角的解释。</li>
+</ol>
+<hr>
+<h2 id="本章小结">本章小结</h2>
+<ul>
+<li>神经网络的每一层都是矩阵乘法 + 非线性。Batch 把它变成一次大 GEMM，正中 GPU 下怀。</li>
+<li>反向传播是矩阵链式法则。前向映射的转置就是反向映射——这就是伴随对偶，没别的。</li>
+<li>卷积通过 im2col 变成 GEMM。深度可分离卷积是卷积张量的低秩分解。</li>
+<li>注意力是软查表：$\mathrm{softmax}(QK^{\top}/\sqrt{d_k})V$。多头注意力把它在多个子空间里并行。</li>
+<li>初始化、归一化、残差连接都服务于同一个目标：让每层雅可比的谱半径接近 1。</li>
+<li>LoRA 利用了微调更新内禀秩低这一经验事实：$\Delta W = BA$，$r \ll \min(d_{\rm in}, d_{\rm out})$。</li>
+</ul>
+<p>掌握这些原语，下一个新架构就不会&quot;看上去新&quot;——它只会像熟悉旋律的混音版本。</p>
+<hr>
+<h2 id="参考资料">参考资料</h2>
+<ul>
+<li>Vaswani, A. et al. <strong>&ldquo;Attention Is All You Need.&rdquo;</strong> NeurIPS 2017.</li>
+<li>Hu, E. et al. <strong>&ldquo;LoRA: Low-Rank Adaptation of Large Language Models.&rdquo;</strong> ICLR 2022.</li>
+<li>Aghajanyan, A. et al. <strong>&ldquo;Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning.&rdquo;</strong> ACL 2021.</li>
+<li>Ba, J., Kiros, J., Hinton, G. <strong>&ldquo;Layer Normalization.&rdquo;</strong> arXiv 2016.</li>
+<li>Zhang, B., Sennrich, R. <strong>&ldquo;Root Mean Square Layer Normalization.&rdquo;</strong> NeurIPS 2019.</li>
+<li>Ioffe, S., Szegedy, C. <strong>&ldquo;Batch Normalization.&rdquo;</strong> ICML 2015.</li>
+<li>He, K. et al. <strong>&ldquo;Deep Residual Learning for Image Recognition.&rdquo;</strong> CVPR 2016.</li>
+<li>He, K. et al. <strong>&ldquo;Delving Deep into Rectifiers.&rdquo;</strong> ICCV 2015.（He 初始化）</li>
+<li>Glorot, X., Bengio, Y. <strong>&ldquo;Understanding the Difficulty of Training Deep Feedforward Neural Networks.&rdquo;</strong> AISTATS 2010.（Xavier 初始化）</li>
+<li>Dao, T. et al. <strong>&ldquo;FlashAttention.&rdquo;</strong> NeurIPS 2022.</li>
+<li>Howard, A. et al. <strong>&ldquo;MobileNets.&rdquo;</strong> arXiv 2017.（深度可分离卷积）</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<ul>
+<li><strong>上一篇：</strong> <a href="/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e5%8d%81%e4%ba%94-%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/">第十五章：机器学习中的线性代数</a>
+</li>
+<li><strong>下一篇：</strong> <a href="/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e5%8d%81%e4%b8%83-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/">第十七章：计算机视觉中的线性代数</a>
+</li>
+<li><strong>完整系列：</strong> 线性代数的本质（1&ndash;18）</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-神经网络就是矩阵乘法链">1. 神经网络就是矩阵乘法链</a>
+      <ul>
+        <li><a href="#11-一个神经元--一次内积">1.1 一个神经元 = 一次内积</a></li>
+        <li><a href="#12-把神经元堆起来--一个矩阵">1.2 把神经元堆起来 = 一个矩阵</a></li>
+        <li><a href="#13-batch-不是可选项是必选项">1.3 batch 不是可选项，是必选项</a></li>
+        <li><a href="#14-训练后的权重矩阵是可读的">1.4 训练后的权重矩阵是可读的</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-反向传播--矩阵版的链式法则">2. 反向传播 = 矩阵版的链式法则</a>
+      <ul>
+        <li><a href="#21-单层反传四步走">2.1 单层反传四步走</a></li>
+        <li><a href="#22-批量形式">2.2 批量形式</a></li>
+        <li><a href="#23-雅可比视角">2.3 雅可比视角</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-卷积只是披着外套的-gemm">3. 卷积只是披着外套的 GEMM</a>
+      <ul>
+        <li><a href="#31-一维toeplitz-矩阵">3.1 一维：Toeplitz 矩阵</a></li>
+        <li><a href="#32-二维im2col-把卷积变成一次-gemm">3.2 二维：im2col 把卷积变成一次 GEMM</a></li>
+        <li><a href="#33-深度可分离卷积--低秩分解">3.3 深度可分离卷积 = 低秩分解</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-注意力--用三次矩阵乘法做软查表">4. 注意力 = 用三次矩阵乘法做软查表</a>
+      <ul>
+        <li><a href="#41-图书馆的比喻">4.1 图书馆的比喻</a></li>
+        <li><a href="#42-缩放点积注意力四步看穿">4.2 缩放点积注意力，四步看穿</a></li>
+        <li><a href="#43-多头在多个子空间并行">4.3 多头：在多个子空间并行</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-把一切拼起来一个-transformer-block">5. 把一切拼起来：一个 Transformer Block</a></li>
+    <li><a href="#6-归一化沿不同的轴做标准化">6. 归一化：沿不同的轴做标准化</a>
+      <ul>
+        <li><a href="#61-batchnorm-vs-layernorm">6.1 BatchNorm vs LayerNorm</a></li>
+        <li><a href="#62-rmsnorm把均值也省掉">6.2 RMSNorm：把均值也省掉</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-初始化条件数与梯度流动">7. 初始化、条件数与梯度流动</a>
+      <ul>
+        <li><a href="#71-方差守恒原则">7.1 方差守恒原则</a></li>
+        <li><a href="#72-谱告诉你的故事">7.2 谱告诉你的故事</a></li>
+        <li><a href="#73-同一个故事从梯度看">7.3 同一个故事，从梯度看</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-lora把微调写成低秩更新">8. LoRA：把微调写成低秩更新</a>
+      <ul>
+        <li><a href="#81-公式">8.1 公式</a></li>
+        <li><a href="#82-为什么低秩有效">8.2 为什么低秩有效</a></li>
+        <li><a href="#83-lora-家族">8.3 LoRA 家族</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-全章鸟瞰">9. 全章鸟瞰</a></li>
+    <li><a href="#练习">练习</a>
+      <ul>
+        <li><a href="#热身">热身</a></li>
+        <li><a href="#进阶">进阶</a></li>
+        <li><a href="#编程">编程</a></li>
+        <li><a href="#开放性">开放性</a></li>
+      </ul>
+    </li>
+    <li><a href="#本章小结">本章小结</a></li>
+    <li><a href="#参考资料">参考资料</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">线性代数</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
+      <div class="row"><span>Word count</span><strong>7500</strong></div>
+      <div class="row"><span>Published</span><strong>Apr 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

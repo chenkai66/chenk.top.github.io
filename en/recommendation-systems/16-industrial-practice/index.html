@@ -1,0 +1,1492 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Recommendation Systems (16): Industrial Architecture and Best Practices · Chen Kai Blog</title>
+<meta name="description" content="Production recommendation systems serve hundreds of millions of users with sub-100ms latency. This final article covers the industrial multi-stage pipeline (recall, coarse ranking, fine ranking, reranking), feature stores, A/B testing, model optimization, deployment, and team responsibilities -- drawing on patterns from YouTube, TikTok, Taobao, and ByteDance.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/recommendation-systems/16-industrial-practice/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/recommendation-systems/16-industrial-practice/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Recommendation Systems (16): Industrial Architecture and Best Practices">
+<meta property="og:description" content="Production recommendation systems serve hundreds of millions of users with sub-100ms latency. This final article covers the industrial multi-stage pipeline (recall, coarse ranking, fine ranking, reranking), feature stores, A/B testing, model optimization, deployment, and team responsibilities -- drawing on patterns from YouTube, TikTok, Taobao, and ByteDance.">
+<meta property="og:url" content="https://www.chenk.top/en/recommendation-systems/16-industrial-practice/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-2);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Recommendation Systems</a>
+         · Chapter 16
+      </div>
+      <h1>Recommendation Systems (16): Industrial Architecture and Best Practices</h1>
+      <p class="deck">Production recommendation systems serve hundreds of millions of users with sub-100ms latency. This final article covers the industrial multi-stage pipeline (recall, coarse ranking, fine ranking, reranking), feature stores, A/B testing, model optimization, deployment, and team responsibilities -- drawing on patterns from YouTube, TikTok, Taobao, and ByteDance.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-01-15">January 15, 2026</time> · 25 min read · 5200 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/recommendation-systems/" class="tag">#Recommendation Systems</a><a href="/en/tags/industrial-practice/" class="tag">#Industrial Practice</a><a href="/en/tags/system-architecture/" class="tag">#System Architecture</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <blockquote>
+<p>The hardest part of a production recommendation system is not the model. It is the <strong>system around the model</strong>: the feature store that prevents training/serving skew, the canary deployment that catches a regression before it hits 100M users, the orchestration that meets a 100ms p95 latency budget while running four ML models in sequence. This final article describes the architecture that every major tech company has converged on &ndash; and the trade-offs hiding inside each layer.</p>
+</blockquote>
+<h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li><strong>Multi-stage pipeline</strong> &ndash; recall, coarse ranking, fine ranking, and reranking, with the constraints that determine each stage&rsquo;s design</li>
+<li><strong>Multi-channel recall</strong> &ndash; combining collaborative filtering, two-tower deep learning, graph traversal, and real-time behaviour signals</li>
+<li><strong>Ranking models in production</strong> &ndash; Wide &amp; Deep, DeepFM, and DIN, with concrete code</li>
+<li><strong>Reranking strategies</strong> &ndash; diversity (MMR), business rules, and freshness boosts</li>
+<li><strong>Feature store</strong> &ndash; the offline + online architecture that decouples training from serving</li>
+<li><strong>A/B testing</strong> &ndash; consistent assignment, z-test for proportions, and how long to run</li>
+<li><strong>Performance optimisation</strong> &ndash; quantisation, distillation, and prediction caching</li>
+<li><strong>Deployment and monitoring</strong> &ndash; canary rollouts, drift detection, and auto-rollback</li>
+<li><strong>Team responsibilities</strong> &ndash; who owns recall, ranking, the feature store, and serving</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>All previous parts of this series (especially Parts 7, 11, 15)</li>
+<li>Basic familiarity with distributed systems (load balancers, message queues)</li>
+<li>Comfortable with Python, PyTorch, and REST APIs</li>
+</ul>
+<hr>
+<h2 id="the-industrial-recommendation-pipeline">The Industrial Recommendation Pipeline</h2>
+<h3 id="architecture-overview">Architecture Overview</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/fig1_industrial_pipeline.png" alt="Full industrial recommendation pipeline showing data, training, and serving planes with the recall, coarse ranking, fine ranking, reranking funnel" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Every major tech company &ndash; Google, Amazon, Alibaba, ByteDance &ndash; has converged on the same three-plane architecture:</p>
+<ol>
+<li><strong>Data plane</strong> generates samples and features from logs and content. This is where Hive, Spark, Flink, and Kafka live.</li>
+<li><strong>Training plane</strong> turns samples into models, validates them offline, and writes the result to a model registry.</li>
+<li><strong>Serving plane</strong> is the real-time funnel that the user actually waits on. It is the only plane with a strict latency budget.</li>
+</ol>
+<p>The serving plane itself is a <strong>funnel that progressively narrows the candidate set while increasing scoring precision</strong>:</p>
+<pre tabindex="0"><code>User request → Recall (10⁶ → 2K) → Coarse Rank (2K → 200) → Fine Rank (200 → 50) → Re-rank (50 → 20) → Response
+</code></pre><table>
+  <thead>
+      <tr>
+          <th>Stage</th>
+          <th>Input → Output</th>
+          <th>Model class</th>
+          <th>Latency budget</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Recall</td>
+          <td>10⁶ → ~2,000</td>
+          <td>Two-tower DNN, ANN, simple CF</td>
+          <td>20-30 ms</td>
+      </tr>
+      <tr>
+          <td>Coarse ranking</td>
+          <td>~2,000 → ~200</td>
+          <td>Shallow DNN or XGBoost</td>
+          <td>10-20 ms</td>
+      </tr>
+      <tr>
+          <td>Fine ranking</td>
+          <td>~200 → ~50</td>
+          <td>Wide &amp; Deep, DeepFM, DIN</td>
+          <td>30-50 ms</td>
+      </tr>
+      <tr>
+          <td>Reranking</td>
+          <td>~50 → ~20</td>
+          <td>Rules + lightweight ML</td>
+          <td>10-20 ms</td>
+      </tr>
+      <tr>
+          <td><strong>Total</strong></td>
+          <td></td>
+          <td></td>
+          <td><strong>&lt; 100 ms p95</strong></td>
+      </tr>
+  </tbody>
+</table>
+<p>Think of it as a hiring funnel: recall is a resume screen (fast, wide net), coarse ranking is the phone screen, fine ranking is the on-site interview, and reranking is the hiring committee that makes the final adjustments for diversity and team fit.</p>
+<h3 id="why-a-funnel-instead-of-one-big-model">Why a Funnel Instead of One Big Model?</h3>
+<p>The brute-force alternative &ndash; score every item with one heavy model &ndash; would take seconds per request. The funnel buys orders of magnitude of speed because each stage uses a model that is appropriate to its candidate count: cheap models on many items, expensive models on few. The recall stage typically spends ~5 microseconds per item; the fine ranker spends ~250 microseconds. The product makes the budget work.</p>
+<h3 id="key-design-principles">Key Design Principles</h3>
+<p><strong>Stateless services.</strong> Every service must be horizontally scalable. State (user embeddings, recent behaviour) lives in Redis, KV stores, or feature stores &ndash; never in process memory.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RankingService</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Stateless ranking service -- replicate freely.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">feature_extractor</span> <span class="o">=</span> <span class="n">FeatureExtractor</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_extractor</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">scores</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Graceful degradation.</strong> Every component must have a fallback. If the deep recall channel times out, the system falls back to collaborative filtering. If everything fails, it serves popular items. The user must never see an empty page.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FaultTolerantRecall</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channels</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="n">channels</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fallback</span> <span class="o">=</span> <span class="n">PopularItemsRecall</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">channel</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">channel</span><span class="o">.</span><span class="n">recall</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&#34;channel </span><span class="si">%s</span><span class="s2"> failed: </span><span class="si">%s</span><span class="s2">&#34;</span><span class="p">,</span> <span class="n">channel</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fallback</span><span class="o">.</span><span class="n">recall</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">deduplicate</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Latency budget enforcement.</strong> Every call has an aggressive timeout, and the orchestrator enforces it. A slow recall channel does not delay the whole pipeline &ndash; it is dropped on the floor.</p>
+<hr>
+<h2 id="the-funnel-in-detail">The Funnel in Detail</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/fig2_funnel.png" alt="Recall, coarse ranking, fine ranking, and reranking funnel with item counts and per-stage latency budgets" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The funnel above shows the order-of-magnitude reduction at each stage. Two design rules are worth memorising:</p>
+<ul>
+<li><strong>The recall stage sets the upper bound on quality.</strong> If a great item never enters the funnel, no amount of fine ranking can save it. This is why production systems run multiple recall channels in parallel.</li>
+<li><strong>The narrower the stage, the heavier the model can be.</strong> Fine ranking on 200 items can afford a 100M-parameter DIN. Recall on a million items cannot afford anything heavier than two embedding lookups and a dot product.</li>
+</ul>
+<hr>
+<h2 id="multi-channel-recall">Multi-Channel Recall</h2>
+<p>A single recall strategy will always miss something. Collaborative filtering misses cold items. Content recall misses serendipitous discoveries. Real-time signals miss the user&rsquo;s longer-term interests. So production systems run <strong>3-5 recall channels in parallel</strong> and merge the results.</p>
+<h3 id="channel-1-two-tower-deep-recall">Channel 1: Two-Tower Deep Recall</h3>
+<p>The two-tower architecture is the workhorse of modern recall. The user tower runs at request time; the item tower runs offline and its embeddings are loaded into an ANN index (Faiss or HNSW). At serving time, recall is a single ANN query in 5-10 ms.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TwoTowerRecall</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Two-tower model with offline-indexed item embeddings.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">item_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_tower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tower</span><span class="p">(</span><span class="n">user_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_tower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tower</span><span class="p">(</span><span class="n">item_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_tower</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">in_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hidden</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">h</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_features</span><span class="p">,</span> <span class="n">ann_index</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">user_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_tower</span><span class="p">(</span><span class="n">user_features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># ann_index is e.g. a Faiss IVF-PQ index of pre-computed item embeddings</span>
+</span></span><span class="line"><span class="cl">        <span class="n">_</span><span class="p">,</span> <span class="n">top_ids</span> <span class="o">=</span> <span class="n">ann_index</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">user_emb</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">top_k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">top_ids</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Two practical notes. First, the loss matters: in-batch sampled softmax with <strong>logQ correction</strong> for popularity bias is now standard (Yi et al., RecSys 2019, the YouTube paper). Second, the item index needs to be rebuilt when item embeddings drift &ndash; typically hourly for fast-moving catalogues, daily otherwise.</p>
+<h3 id="channel-2-graph-based-recall">Channel 2: Graph-Based Recall</h3>
+<p>Graph recall finds items through multi-hop traversal: user A liked items X and Y; user B liked Y and Z; therefore Z is a candidate for A. This catches discoveries that pure embedding similarity misses.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GraphRecall</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Item-to-item recall via Jaccard similarity on shared users.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interaction_graph</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">interaction_graph</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_similarity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_similarity</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_compute_similarity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sim</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&#34;type&#34;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&#34;item&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">users_a</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">                <span class="n">users_b</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                <span class="n">inter</span><span class="p">,</span> <span class="n">union</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">users_a</span> <span class="o">&amp;</span> <span class="n">users_b</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">users_a</span> <span class="o">|</span> <span class="n">users_b</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">union</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">sim</span><span class="p">[</span><span class="n">a</span><span class="p">][</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">inter</span> <span class="o">/</span> <span class="n">union</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">sim</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seen</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&#34;type&#34;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&#34;item&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">neighbour</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_similarity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                <span class="n">scores</span><span class="p">[</span><span class="n">neighbour</span><span class="p">]</span> <span class="o">+=</span> <span class="n">w</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[:</span><span class="n">top_k</span><span class="p">]]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="channel-3-real-time-behaviour-recall">Channel 3: Real-Time Behaviour Recall</h3>
+<p>A recall channel that captures what the user is doing <strong>right now</strong>. If a user just clicked three items in the same category, the next recommendation should reflect that within seconds, not days.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">deque</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RealTimeBehaviorRecall</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Recall from the last 30 minutes of activity, with exponential decay
+</span></span></span><span class="line"><span class="cl"><span class="s2">    on age and weighted by action type.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window_minutes</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">window_minutes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">deque</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">add_behavior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">action_type</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&#34;item&#34;</span><span class="p">:</span> <span class="n">item_id</span><span class="p">,</span> <span class="s2">&#34;action&#34;</span><span class="p">:</span> <span class="n">action_type</span><span class="p">,</span> <span class="s2">&#34;ts&#34;</span><span class="p">:</span> <span class="n">ts</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cutoff</span> <span class="o">=</span> <span class="n">ts</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span>
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="p">[</span><span class="n">user_id</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&#34;ts&#34;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">cutoff</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">500</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">weights</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;view&#34;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&#34;click&#34;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s2">&#34;purchase&#34;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">behaviours</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="p">[]):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">age_min</span> <span class="o">=</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="n">b</span><span class="p">[</span><span class="s2">&#34;ts&#34;</span><span class="p">])</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mi">60</span>
+</span></span><span class="line"><span class="cl">            <span class="n">recency</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">age_min</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span><span class="p">[</span><span class="n">b</span><span class="p">[</span><span class="s2">&#34;item&#34;</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">recency</span> <span class="o">*</span> <span class="n">weights</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="s2">&#34;action&#34;</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[:</span><span class="n">top_k</span><span class="p">]]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="channel-fusion">Channel Fusion</h3>
+<p>Each channel returns a ranked list. The merger uses <strong>rank-based fusion</strong> rather than raw scores (scores from different channels are not comparable):</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span><span class="p">,</span> <span class="n">as_completed</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultiChannelRecall</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="n">channels</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="ow">or</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="mf">1.0</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">channels</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">2000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">))</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">futures</span> <span class="o">=</span> <span class="p">{</span><span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">recall</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="n">as_completed</span><span class="p">(</span><span class="n">futures</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">name</span> <span class="o">=</span> <span class="n">futures</span><span class="p">[</span><span class="n">fut</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">results</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fut</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&#34;channel </span><span class="si">%s</span><span class="s2"> failed: </span><span class="si">%s</span><span class="s2">&#34;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">rank</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">scores</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">+=</span> <span class="n">w</span> <span class="o">/</span> <span class="p">(</span><span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># reciprocal rank fusion</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[:</span><span class="n">target</span><span class="p">]]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>This is <strong>reciprocal rank fusion</strong> &ndash; robust to scale differences and well known from search engines. The 25 ms per-channel timeout is non-negotiable: a slow channel is dropped, never blocked on.</p>
+<hr>
+<h2 id="ranking-coarse-and-fine">Ranking: Coarse and Fine</h2>
+<h3 id="coarse-ranking">Coarse Ranking</h3>
+<p>Coarse ranking trims thousands of candidates down to hundreds with a fast, lightweight model. The point is <strong>eliminating obviously bad candidates cheaply</strong> &ndash; not perfect ranking. Two patterns dominate:</p>
+<ul>
+<li>A <strong>shallow two-tower</strong> model whose item-side runs offline (similar to recall but with richer features).</li>
+<li>An <strong>XGBoost ranker</strong> on simple features (popularity, CTR, basic user/item stats).</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">xgboost</span> <span class="k">as</span> <span class="nn">xgb</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CoarseRanker</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">XGBRanker</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">objective</span><span class="o">=</span><span class="s2">&#34;rank:pairwise&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">tree_method</span><span class="o">=</span><span class="s2">&#34;hist&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">max_depth</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">n_estimators</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">group</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A common mistake is making coarse ranking <strong>too good</strong>. If its top-200 already matches what the fine ranker would choose, the fine ranker adds no value. Aim for the coarse ranker&rsquo;s recall@200 vs. fine ranking to be around 0.7 &ndash; enough to filter, not enough to dominate.</p>
+<h3 id="fine-ranking-wide--deep-deepfm-din">Fine Ranking: Wide &amp; Deep, DeepFM, DIN</h3>
+<p>Fine ranking runs heavy models on the reduced candidate set. Three architectures dominate production CTR prediction.</p>
+<p><strong>Wide &amp; Deep</strong> (Google, 2016) combines memorisation (wide linear model on cross features) with generalisation (deep MLP on embeddings):</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">WideDeepRanking</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Google&#39;s Wide &amp; Deep: linear memorisation + deep generalisation.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wide_dim</span><span class="p">,</span> <span class="n">embed_dims</span><span class="p">,</span> <span class="n">deep_hidden</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">wide</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">wide_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">vocab</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="ow">in</span> <span class="n">embed_dims</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">deep_in</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">dim</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">embed_dims</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">deep_in</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">deep_hidden</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">deep</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wide_feats</span><span class="p">,</span> <span class="n">sparse_ids</span><span class="p">,</span> <span class="n">dense_feats</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">wide_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wide</span><span class="p">(</span><span class="n">wide_feats</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">emb</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">ids</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">sparse_ids</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">deep_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deep</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">emb</span> <span class="o">+</span> <span class="p">[</span><span class="n">dense_feats</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">wide_out</span> <span class="o">+</span> <span class="n">deep_out</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>DeepFM</strong> (Huawei, 2017) replaces the hand-crafted wide cross features with a factorisation machine that learns pairwise interactions automatically. This is the right default if you do not want to hand-curate cross features.</p>
+<p><strong>DIN &ndash; Deep Interest Network</strong> (Alibaba, 2018) adds an attention mechanism over the user&rsquo;s behaviour sequence. Instead of averaging the embeddings of all past items, DIN attends to the past items most similar to the current candidate:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DIN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Deep Interest Network: attention over user behaviour history.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_dim</span><span class="p">,</span> <span class="n">user_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attention</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">item_dim</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">36</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">in_dim</span> <span class="o">=</span> <span class="n">item_dim</span> <span class="o">+</span> <span class="n">user_dim</span> <span class="o">+</span> <span class="n">item_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">in_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hidden</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">user_profile</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cand_exp</span> <span class="o">=</span> <span class="n">candidate</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">history</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">attn_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">[</span><span class="n">history</span><span class="p">,</span> <span class="n">cand_exp</span><span class="p">,</span> <span class="n">history</span> <span class="o">-</span> <span class="n">cand_exp</span><span class="p">,</span> <span class="n">history</span> <span class="o">*</span> <span class="n">cand_exp</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attention</span><span class="p">(</span><span class="n">attn_in</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">weighted</span> <span class="o">=</span> <span class="p">(</span><span class="n">history</span> <span class="o">*</span> <span class="n">weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">candidate</span><span class="p">,</span> <span class="n">weighted</span><span class="p">,</span> <span class="n">user_profile</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The attention trick matters: a user who has bought 50 books in 5 categories does not have a single &ldquo;average interest&rdquo; &ndash; they have category-specific interests, and DIN unlocks them per candidate.</p>
+<hr>
+<h2 id="reranking">Reranking</h2>
+<p>Reranking is where business logic meets algorithmic output. Three patterns appear in almost every production system.</p>
+<h3 id="diversity-mmr">Diversity (MMR)</h3>
+<p>Pure CTR optimisation produces a list that all looks the same &ndash; the user clicks the first item, then drops off. <strong>Maximal Marginal Relevance</strong> greedily picks items that balance relevance with novelty against already-selected items:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DiversityReranker</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lambda_div</span><span class="o">=</span><span class="mf">0.3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">=</span> <span class="n">lambda_div</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">rerank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">selected</span><span class="p">,</span> <span class="n">remaining</span> <span class="o">=</span> <span class="p">[],</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">features</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">top_k</span> <span class="ow">and</span> <span class="n">remaining</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">best_idx</span><span class="p">,</span> <span class="n">best_obj</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">sc</span><span class="p">,</span> <span class="n">ft</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">remaining</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">selected</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">diversity</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dist</span><span class="p">(</span><span class="n">ft</span><span class="p">,</span> <span class="n">s_ft</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">s_ft</span> <span class="ow">in</span> <span class="n">selected</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">diversity</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">                <span class="n">obj</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span><span class="p">)</span> <span class="o">*</span> <span class="n">sc</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">*</span> <span class="n">diversity</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">obj</span> <span class="o">&gt;</span> <span class="n">best_obj</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">best_obj</span><span class="p">,</span> <span class="n">best_idx</span> <span class="o">=</span> <span class="n">obj</span><span class="p">,</span> <span class="n">idx</span>
+</span></span><span class="line"><span class="cl">            <span class="n">selected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">remaining</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">best_idx</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">it</span> <span class="k">for</span> <span class="n">it</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">selected</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_dist</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">va</span><span class="p">,</span> <span class="n">vb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">values</span><span class="p">())),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">va</span> <span class="o">@</span> <span class="n">vb</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">va</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vb</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The diversity weight (typically 0.2-0.3) is itself an A/B test parameter. Too low and the feed becomes monotone; too high and CTR drops because relevance is sacrificed.</p>
+<h3 id="business-rules">Business Rules</h3>
+<p>Hard constraints live here, not in the ML model. Out-of-stock filtering, regulatory compliance, promoted-item boosting &ndash; these are deterministic rules, easier to reason about as code than as features.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BusinessRulesReranker</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">rules</span> <span class="o">=</span> <span class="n">rules</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">rerank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">meta</span><span class="p">,</span> <span class="n">adj</span><span class="p">,</span> <span class="n">ok</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="p">{}),</span> <span class="n">score</span><span class="p">,</span> <span class="kc">True</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="ow">not</span> <span class="n">rule</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">meta</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">ok</span> <span class="o">=</span> <span class="kc">False</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">break</span>
+</span></span><span class="line"><span class="cl">                <span class="n">adj</span> <span class="o">+=</span> <span class="n">rule</span><span class="o">.</span><span class="n">score_adjustment</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">,</span> <span class="n">adj</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">out</span><span class="p">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="freshness-boost">Freshness Boost</h3>
+<p>For news, video, and short-form content, recency is a feature in itself. An exponential decay gives recent items a bounded boost without dominating the list:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FreshnessReranker</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decay_hours</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">max_boost</span><span class="o">=</span><span class="mf">0.3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_boost</span> <span class="o">=</span> <span class="n">decay_hours</span><span class="p">,</span> <span class="n">max_boost</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">rerank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">now</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ts</span> <span class="o">=</span> <span class="n">timestamps</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">ts</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">age_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="n">ts</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mi">3600</span>
+</span></span><span class="line"><span class="cl">                <span class="n">boost</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_boost</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">age_h</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">,</span> <span class="n">score</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">boost</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">,</span> <span class="n">score</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">out</span><span class="p">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="the-feature-store">The Feature Store</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/fig3_feature_store.png" alt="Feature store architecture showing offline batch path and online realtime path sharing a single feature definition" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The feature store is the single most important piece of infrastructure in a mature recommendation system, and the one most often built last. Its job is to <strong>eliminate training/serving skew</strong>: the guarantee that a feature computed offline for training has exactly the same definition as the feature computed online at serving time.</p>
+<p>The architecture has two paths sharing one feature definition:</p>
+<ul>
+<li><strong>Offline path</strong> runs Spark/Flink jobs over the data lake, materialises features into Parquet, and feeds the training pipeline.</li>
+<li><strong>Online path</strong> consumes Kafka events with Flink, writes aggregated features to Redis, and serves them at p99 &lt; 5 ms.</li>
+</ul>
+<p>Both paths execute the same feature definition (typically a SQL or YAML spec). When a feature is changed, both pipelines change together. Without this discipline you will, eventually, train a model on a feature that means one thing offline and a different thing online &ndash; and the AUC drop will be silent and brutal.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FeatureStore</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Redis-backed online store with batch retrieval.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">redis_client</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="mi">3600</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ttl</span> <span class="o">=</span> <span class="n">redis_client</span><span class="p">,</span> <span class="n">ttl</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">eid</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">setex</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">entity</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">eid</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ttl</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">batch_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity</span><span class="p">,</span> <span class="n">eids</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">entity</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&#34;</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">eids</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">mget</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">            <span class="p">[</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="k">else</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">n</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Open-source feature stores worth knowing: <strong>Feast</strong> (most popular open source), <strong>Tecton</strong> (commercial), and Alibaba&rsquo;s internal <strong>Feathr</strong>. They all follow the same offline+online pattern.</p>
+<h3 id="cyclical-encoding-for-time-features">Cyclical Encoding for Time Features</h3>
+<p>A small but important detail. Hour 23 and hour 0 are adjacent in time, but a linear model treats them as 23 units apart. Encode them as <code>(sin, cos)</code> so the model sees them as neighbours:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">temporal_features</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;hour_sin&#34;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span> <span class="o">/</span> <span class="mi">24</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;hour_cos&#34;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span> <span class="o">/</span> <span class="mi">24</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;dow_sin&#34;</span><span class="p">:</span>  <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">/</span> <span class="mi">7</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;dow_cos&#34;</span><span class="p">:</span>  <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">/</span> <span class="mi">7</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;is_weekend&#34;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="ab-testing-framework">A/B Testing Framework</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/fig4_ab_test_results.png" alt="A/B test results showing 14-day CTR trends for control vs treatment, with confidence bands and significance marker, plus per-metric lift breakdown" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A/B testing is how you discover that the model that beat baseline by 3% offline actually loses 1.5% online &ndash; which happens more often than people admit. Three properties matter:</p>
+<ul>
+<li><strong>Consistent hashing</strong> for assignment, so a user always sees the same variant. Flickering between variants destroys both UX and statistical validity.</li>
+<li><strong>Pre-registered metrics</strong>, including guardrail metrics (latency, error rate, revenue) that block a launch even if the primary metric wins.</li>
+<li><strong>Power analysis up front</strong> to know how many samples you need before the experiment starts. Stopping early because the result &ldquo;looks good&rdquo; inflates false positives dramatically.</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">norm</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ABTestFramework</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Production A/B framework with consistent assignment and z-test.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">experiments</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span> <span class="o">=</span> <span class="p">{},</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exp_id</span><span class="p">,</span> <span class="n">variants_split</span><span class="p">):</span>  <span class="c1"># e.g. {&#34;control&#34;: 50, &#34;v1&#34;: 50}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">experiments</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">variants_split</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">assign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">exp_id</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">exp_id</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cum</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">variant</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiments</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">cum</span> <span class="o">+=</span> <span class="n">split</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">h</span> <span class="o">&lt;</span> <span class="n">cum</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="n">variant</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="s2">&#34;control&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">exp_id</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&#34;user&#34;</span><span class="p">:</span> <span class="n">user_id</span><span class="p">,</span> <span class="s2">&#34;variant&#34;</span><span class="p">:</span> <span class="n">variant</span><span class="p">,</span> <span class="s2">&#34;event&#34;</span><span class="p">:</span> <span class="n">event</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">analyse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exp_id</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stats</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;impr&#34;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&#34;click&#34;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="p">[</span><span class="n">exp_id</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">ev</span><span class="p">[</span><span class="s2">&#34;event&#34;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&#34;impression&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">stats</span><span class="p">[</span><span class="n">ev</span><span class="p">[</span><span class="s2">&#34;variant&#34;</span><span class="p">]][</span><span class="s2">&#34;impr&#34;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="n">ev</span><span class="p">[</span><span class="s2">&#34;event&#34;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&#34;click&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">stats</span><span class="p">[</span><span class="n">ev</span><span class="p">[</span><span class="s2">&#34;variant&#34;</span><span class="p">]][</span><span class="s2">&#34;click&#34;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="p">{},</span> <span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;control&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ctr</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;click&#34;</span><span class="p">]</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;ctr&#34;</span><span class="p">:</span> <span class="n">ctr</span><span class="p">,</span> <span class="o">**</span><span class="n">s</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">ctrl</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">&#34;control&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p_pool</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctrl</span><span class="p">[</span><span class="s2">&#34;click&#34;</span><span class="p">]</span> <span class="o">+</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;click&#34;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">ctrl</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">]</span> <span class="o">+</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">se</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p_pool</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p_pool</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">ctrl</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;impr&#34;</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">                <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&#34;ctr&#34;</span><span class="p">]</span> <span class="o">-</span> <span class="n">out</span><span class="p">[</span><span class="s2">&#34;control&#34;</span><span class="p">][</span><span class="s2">&#34;ctr&#34;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">se</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="p">[</span><span class="s2">&#34;lift&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&#34;ctr&#34;</span><span class="p">]</span> <span class="o">-</span> <span class="n">out</span><span class="p">[</span><span class="s2">&#34;control&#34;</span><span class="p">][</span><span class="s2">&#34;ctr&#34;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s2">&#34;control&#34;</span><span class="p">][</span><span class="s2">&#34;ctr&#34;</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="p">[</span><span class="s2">&#34;p_value&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">z</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="p">[</span><span class="s2">&#34;significant&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="s2">&#34;p_value&#34;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.05</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>How long should an A/B test run?</strong> Long enough to: (1) capture at least one weekly cycle (usually 2 weeks), (2) reach the sample size given by power analysis, and (3) outlast novelty effects (users sometimes click new things just because they are new). Two weeks is the modal answer. Anything less than one week is suspect.</p>
+<p><strong>Common pitfalls.</strong> Network effects between variants (treatment users influencing control users via shared content); SUTVA violations; heterogeneous treatment effects across user segments; cumulative effects (the treatment helps long-term retention but hurts short-term CTR). The cure for most of these is layered experimentation infrastructure &ndash; which is why Google, Facebook and ByteDance all built their own.</p>
+<hr>
+<h2 id="continuous-training">Continuous Training</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/fig5_training_pipeline.png" alt="Continuous training pipeline with retrain triggers, deployment stages, and monitoring feedback loop" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Models decay. User behaviour drifts, the catalogue changes, seasonality shifts. A model that was state-of-the-art last month will be a liability next month if it is not retrained. The training pipeline must run automatically, triggered by:</p>
+<ul>
+<li><strong>Schedule</strong> &ndash; daily for fine ranking, hourly for incremental updates, near-real-time for online learning on the most volatile features.</li>
+<li><strong>Drift detection</strong> &ndash; PSI (Population Stability Index) &gt; 0.2 on an important feature triggers a retrain even if the schedule has not fired.</li>
+<li><strong>Metric decay</strong> &ndash; offline AUC drops by more than 2% between checkpoints.</li>
+<li><strong>Code change</strong> &ndash; new feature definition or model architecture.</li>
+</ul>
+<p>The output of training is not a deployed model. It is an <strong>artifact in a model registry</strong> with metadata: version, training data window, offline metrics, lineage. Deployment is a separate, gated step.</p>
+<h3 id="deployment-shadow--canary--ab--full-rollout">Deployment: Shadow → Canary → A/B → Full Rollout</h3>
+<p>A new model never goes from registry to 100% traffic in one step. The standard staircase:</p>
+<ol>
+<li><strong>Shadow</strong> &ndash; 0% traffic, but the model runs in parallel and predictions are logged. This catches latency regressions, schema mismatches, and serving bugs without risking users.</li>
+<li><strong>Canary</strong> &ndash; 1-10% traffic for 1-24 hours. Auto-rollback if guardrail metrics breach.</li>
+<li><strong>A/B test</strong> &ndash; 50% traffic for 1-2 weeks for proper statistical validation.</li>
+<li><strong>Full rollout</strong> &ndash; 100% traffic.</li>
+</ol>
+<p>Auto-rollback is non-negotiable. The criteria are blunt: if p95 latency exceeds the SLO, error rate exceeds 1%, or CTR drops more than 5%, roll back automatically and page a human.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CanaryDeployment</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">deploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">initial_pct</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_offline</span><span class="p">(</span><span class="n">version</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&#34;offline validation failed&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">canary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deploy_canary</span><span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">traffic</span><span class="o">=</span><span class="n">initial_pct</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitor</span><span class="p">(</span><span class="n">canary</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">healthy</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">rollout</span><span class="p">(</span><span class="n">canary</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">rollback</span><span class="p">(</span><span class="n">canary</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="s2">&#34;canary failed&#34;</span><span class="p">,</span> <span class="n">metrics</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">healthy</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&#34;p95_latency&#34;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">100</span>
+</span></span><span class="line"><span class="cl">                <span class="ow">and</span> <span class="n">m</span><span class="p">[</span><span class="s2">&#34;error_rate&#34;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.01</span>
+</span></span><span class="line"><span class="cl">                <span class="ow">and</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;ctr_delta&#34;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mf">0.05</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="serving-infrastructure">Serving Infrastructure</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/fig6_serving_infra.png" alt="Serving infrastructure showing API gateway, load balancer, recommendation orchestrator, and downstream recall, ranking, feature, and cache services" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The serving stack has four layers, all stateless and horizontally scaled:</p>
+<ul>
+<li><strong>API gateway + load balancer</strong> (Nginx, Envoy, or a cloud LB). Handles TLS, auth, rate limiting, and routing.</li>
+<li><strong>Recommendation orchestrator</strong> &ndash; the stateless service that runs the funnel. It calls recall, ranking, and reranking in sequence and merges the results.</li>
+<li><strong>Backend services</strong> for each stage: a recall service backed by Faiss/HNSW; a ranking service running TensorFlow Serving or Triton on GPU; a feature service backed by Redis (hot) and HBase (cold).</li>
+<li><strong>Caches</strong> at multiple levels: feature cache, embedding cache, and full-prediction cache. Hit rates of 30-50% on the prediction cache are typical and cut compute cost roughly proportionally.</li>
+</ul>
+<h3 id="performance-optimisation">Performance Optimisation</h3>
+<p>Three techniques compound to give 5-10x speedups without measurable quality loss:</p>
+<p><strong>Quantisation</strong> (INT8 from FP32) gives 2-4x inference speedup on CPU and modest GPU gains.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.quantization</span> <span class="k">as</span> <span class="nn">quant</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">quantize</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">calibration_loader</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">qconfig</span> <span class="o">=</span> <span class="n">quant</span><span class="o">.</span><span class="n">get_default_qconfig</span><span class="p">(</span><span class="s2">&#34;fbgemm&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">quant</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">calibration_loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">model</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">quant</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Knowledge distillation</strong> trains a small student model to mimic a large teacher. The student learns from soft probabilities (not just hard labels), which carry information about relative item quality.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">distill_loss</span><span class="p">(</span><span class="n">student_logits</span><span class="p">,</span> <span class="n">teacher_logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">s_soft</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">student_logits</span> <span class="o">/</span> <span class="n">T</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">t_soft</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">teacher_logits</span> <span class="o">/</span> <span class="n">T</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">soft</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">s_soft</span><span class="p">,</span> <span class="n">t_soft</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;batchmean&#34;</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">T</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">hard</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">student_logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">soft</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">hard</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Prediction caching</strong> for the long tail of repeated requests. A 5-minute TTL is a good default &ndash; long enough to amortise compute, short enough to reflect new behaviour.</p>
+<p>The standard recipe is: distill first, then prune, then quantise. In that order each step preserves the quality gains of the previous one.</p>
+<h3 id="monitoring">Monitoring</h3>
+<p>Three categories of metrics, all alerting:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RecommendationMonitor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">latency_ms</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s2">&#34;pred.latency&#34;</span><span class="p">,</span> <span class="n">latency_ms</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s2">&#34;pred.score_mean&#34;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">recent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">recent</span><span class="p">(</span><span class="s2">&#34;pred.latency&#34;</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">recent</span><span class="p">[</span><span class="s2">&#34;p95&#34;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">150</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="s2">&#34;high_latency&#34;</span><span class="p">,</span> <span class="n">recent</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">error_rate</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.05</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="s2">&#34;high_error_rate&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">recent</span><span class="p">(</span><span class="s2">&#34;pred.score_mean&#34;</span><span class="p">,</span> <span class="n">minutes</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">baseline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">baseline</span><span class="p">(</span><span class="s2">&#34;pred.score_mean&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="s2">&#34;mean&#34;</span><span class="p">]</span> <span class="o">-</span> <span class="n">baseline</span><span class="p">[</span><span class="s2">&#34;mean&#34;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">baseline</span><span class="p">[</span><span class="s2">&#34;std&#34;</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alert</span><span class="p">(</span><span class="s2">&#34;distribution_shift&#34;</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The most subtle alert is the third one &ndash; <strong>prediction distribution shift</strong>. If the average predicted CTR jumps by two standard deviations, something is broken upstream: a corrupted feature, a stale embedding index, or a model that is silently serving the wrong version. By the time business metrics move, you have lost an hour. Distribution monitoring catches it in minutes.</p>
+<hr>
+<h2 id="team-responsibilities">Team Responsibilities</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/16-industrial-practice/fig7_org_roles.png" alt="Roles in a production recommendation team and primary owners by stage" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A production recommendation system is too big for one person and too coupled for fully independent teams. The role boundaries that work in practice:</p>
+<ul>
+<li><strong>Algorithm engineers</strong> own model code, feature design, and A/B experiments. They write the recall, ranking, and reranking models.</li>
+<li><strong>Data engineers</strong> own ETL pipelines, sample generation, and the offline side of the feature store. They are the firewall against data quality bugs.</li>
+<li><strong>MLOps / platform engineers</strong> own training infrastructure, the model registry, CI/CD, and the serving runtime. They make it possible to ship a new model in a day rather than a month.</li>
+<li><strong>SRE / infra</strong> own latency SLOs, capacity planning, and incident response. They are the ones paged at 3 a.m.</li>
+<li><strong>Analysts / research</strong> own long-horizon evaluation, causal inference, and ranking diagnostics. They catch the metrics-look-good-but-revenue-is-flat problem.</li>
+<li><strong>Product</strong> owns business KPIs and content policy.</li>
+</ul>
+<p>The matrix on the right side of the figure shows primary owners by pipeline stage. The pattern: every stage has at least two owners, because every stage has both a model-quality dimension and an operational dimension.</p>
+<hr>
+<h2 id="industrial-frameworks">Industrial Frameworks</h2>
+<p><strong>Alibaba EasyRec</strong> (open source). End-to-end framework with feature engineering, pre-built models (Wide &amp; Deep, DeepFM, DIN, MMoE), training on PAI/MaxCompute, and PAI-EAS for serving. The fastest path to a production-quality baseline if you are on Alibaba Cloud.</p>
+<p><strong>Meta&rsquo;s Looper / TorchRec.</strong> TorchRec is the open-source library powering Meta&rsquo;s internal recommendation stack. Strong support for sharded embedding tables, which is the hard distributed-systems problem of recommendation training.</p>
+<p><strong>ByteDance Monolith</strong> (open source). Designed for online learning at billion-parameter scale. Built around collisionless embedding hash tables and asynchronous training that updates the model from production logs in near-real-time. Powers parts of TikTok&rsquo;s recommendation stack.</p>
+<p><strong>YouTube&rsquo;s two-stage system</strong> is described in the classic 2016 paper (Covington et al.) &ndash; a two-tower deep candidate generator plus a deep ranker. The architecture has evolved since (the 2019 sampled-softmax paper is the most influential follow-up), but the two-stage skeleton remains the template most teams copy.</p>
+<hr>
+<h2 id="qa-common-questions">Q&amp;A: Common Questions</h2>
+<h3 id="how-many-recall-channels-should-we-use">How many recall channels should we use?</h3>
+<p>Start with three: collaborative filtering, two-tower deep, and real-time behaviour. Add specialised channels (graph, content, geo, social) only when an offline gap analysis shows they would catch items the existing channels miss. Beyond ten channels you spend more on plumbing than on quality.</p>
+<h3 id="what-is-the-right-coarse-to-fine-reduction-ratio">What is the right coarse-to-fine reduction ratio?</h3>
+<p>Typically 10:1 (2,000 → 200 → 20). Monitor recall@K end-to-end: too aggressive a coarse stage drops good candidates that the fine ranker would have surfaced; too lax wastes the fine ranker&rsquo;s compute budget.</p>
+<h3 id="how-complex-should-the-fine-ranker-be">How complex should the fine ranker be?</h3>
+<p>Start with Wide &amp; Deep or DeepFM. Add DIN-style attention over user history only after you have measured that the existing model under-uses sequential information (look for users with rich history but flat predictions). Each step up in complexity needs to justify its serving cost.</p>
+<h3 id="model-based-or-rule-based-reranking">Model-based or rule-based reranking?</h3>
+<p>Hybrid. Hard constraints (compliance, stock, blocklists) belong in deterministic rules where you can audit them. Soft optimisation (diversity, freshness, exploration) is where learned rerankers add value. Mixing them is normal.</p>
+<h3 id="how-to-choose-between-quantisation-pruning-and-distillation">How to choose between quantisation, pruning, and distillation?</h3>
+<p>Quantisation gives the biggest speed-up per unit of effort (2-4x on CPU). Distillation is the right tool when you also need a smaller model footprint, not just a faster one. Pruning is the most fragile &ndash; it works but needs careful retraining. The recommended sequence is distill → prune → quantise.</p>
+<h3 id="how-do-you-handle-new-users">How do you handle new users?</h3>
+<p>Multi-stage fallback: (1) popular and trending items for truly new users; (2) demographics-based content recommendations once minimal profile is known; (3) bandit-style exploration to bootstrap signal in 3-10 interactions; (4) the full personalised model after ~50 interactions. See Part 14 for the meta-learning angle.</p>
+<h3 id="how-do-you-decide-to-retire-a-model">How do you decide to retire a model?</h3>
+<p>A model is retired when (a) a successor wins an A/B test on the primary metric <em>and</em> does not regress any guardrail, <em>and</em> (b) the operational cost of the new model is acceptable. Always keep the previous model deployable for 30 days in case of a delayed regression.</p>
+<hr>
+<h2 id="summary">Summary</h2>
+<p>This article assembled the complete industrial recommendation stack:</p>
+<ul>
+<li><strong>Three planes</strong> &ndash; data, training, serving &ndash; with clear interfaces between them</li>
+<li><strong>A four-stage funnel</strong> &ndash; recall, coarse rank, fine rank, rerank &ndash; that fits hundreds of millions of users into a 100ms budget</li>
+<li><strong>Multi-channel recall</strong> with reciprocal rank fusion, because no single channel covers all of quality</li>
+<li><strong>Wide &amp; Deep, DeepFM, and DIN</strong> as the production-grade ranking architectures</li>
+<li><strong>A feature store</strong> that eliminates training/serving skew by sharing one feature definition between offline and online paths</li>
+<li><strong>A/B testing</strong> with consistent hashing, z-tests, and pre-registered guardrails</li>
+<li><strong>Continuous training</strong> triggered by schedule, drift, and metric decay</li>
+<li><strong>Canary deployment</strong> with auto-rollback on latency, error rate, and CTR</li>
+<li><strong>Serving infrastructure</strong> &ndash; gateway, orchestrator, GPU model servers, Redis feature store, prediction cache</li>
+<li><strong>Team responsibilities</strong> clearly mapped to pipeline stages</li>
+</ul>
+<p>The single most valuable lesson from industrial practice is also the simplest: <strong>start small, measure everything, and let A/B tests decide what stays.</strong> A pipeline with popular items, simple two-tower recall, a DeepFM ranker, and disciplined experimentation will beat an exotic GNN that is launched without an A/B framework. The frameworks in this article are not the source of competitive advantage &ndash; the loops they enable are.</p>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<p>This is <strong>Part 16 of 16</strong> &ndash; the final article in the Recommendation Systems series. Thank you for reading.</p>
+<p><strong>Previous</strong>: <a href="/en/recommendation-systems-15-real-time-online/">Part 15 &ndash; Real-Time Recommendation and Online Learning</a>
+</p>
+<p><a href="/categories/Recommendation-Systems/">View all parts in the Recommendation Systems series</a>
+</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Covington, P., Adams, J., Sargin, E. &ldquo;Deep Neural Networks for YouTube Recommendations.&rdquo; RecSys 2016. <a href="https://research.google/pubs/pub45530/" target="_blank" rel="noopener noreferrer">paper <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Yi, X., et al. &ldquo;Sampling-Bias-Corrected Neural Modeling for Large Corpus Item Recommendations.&rdquo; RecSys 2019. (the &ldquo;two-tower with logQ correction&rdquo; paper)</li>
+<li>Cheng, H., et al. &ldquo;Wide &amp; Deep Learning for Recommender Systems.&rdquo; DLRS 2016. <a href="https://arxiv.org/abs/1606.07792" target="_blank" rel="noopener noreferrer">arXiv:1606.07792 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Guo, H., et al. &ldquo;DeepFM: A Factorization-Machine based Neural Network for CTR Prediction.&rdquo; IJCAI 2017. <a href="https://arxiv.org/abs/1703.04247" target="_blank" rel="noopener noreferrer">arXiv:1703.04247 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Zhou, G., et al. &ldquo;Deep Interest Network for Click-Through Rate Prediction.&rdquo; KDD 2018. <a href="https://arxiv.org/abs/1706.06978" target="_blank" rel="noopener noreferrer">arXiv:1706.06978 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Liu, Z., et al. &ldquo;Monolith: Real Time Recommendation System With Collisionless Embedding Table.&rdquo; 2022. <a href="https://arxiv.org/abs/2209.07663" target="_blank" rel="noopener noreferrer">arXiv:2209.07663 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Alibaba EasyRec: <a href="https://github.com/alibaba/EasyRec" target="_blank" rel="noopener noreferrer">github.com/alibaba/EasyRec <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>TorchRec: <a href="https://github.com/pytorch/torchrec" target="_blank" rel="noopener noreferrer">github.com/pytorch/torchrec <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Feast (open-source feature store): <a href="https://feast.dev" target="_blank" rel="noopener noreferrer">feast.dev <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#the-industrial-recommendation-pipeline">The Industrial Recommendation Pipeline</a>
+      <ul>
+        <li><a href="#architecture-overview">Architecture Overview</a></li>
+        <li><a href="#why-a-funnel-instead-of-one-big-model">Why a Funnel Instead of One Big Model?</a></li>
+        <li><a href="#key-design-principles">Key Design Principles</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-funnel-in-detail">The Funnel in Detail</a></li>
+    <li><a href="#multi-channel-recall">Multi-Channel Recall</a>
+      <ul>
+        <li><a href="#channel-1-two-tower-deep-recall">Channel 1: Two-Tower Deep Recall</a></li>
+        <li><a href="#channel-2-graph-based-recall">Channel 2: Graph-Based Recall</a></li>
+        <li><a href="#channel-3-real-time-behaviour-recall">Channel 3: Real-Time Behaviour Recall</a></li>
+        <li><a href="#channel-fusion">Channel Fusion</a></li>
+      </ul>
+    </li>
+    <li><a href="#ranking-coarse-and-fine">Ranking: Coarse and Fine</a>
+      <ul>
+        <li><a href="#coarse-ranking">Coarse Ranking</a></li>
+        <li><a href="#fine-ranking-wide--deep-deepfm-din">Fine Ranking: Wide &amp; Deep, DeepFM, DIN</a></li>
+      </ul>
+    </li>
+    <li><a href="#reranking">Reranking</a>
+      <ul>
+        <li><a href="#diversity-mmr">Diversity (MMR)</a></li>
+        <li><a href="#business-rules">Business Rules</a></li>
+        <li><a href="#freshness-boost">Freshness Boost</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-feature-store">The Feature Store</a>
+      <ul>
+        <li><a href="#cyclical-encoding-for-time-features">Cyclical Encoding for Time Features</a></li>
+      </ul>
+    </li>
+    <li><a href="#ab-testing-framework">A/B Testing Framework</a></li>
+    <li><a href="#continuous-training">Continuous Training</a>
+      <ul>
+        <li><a href="#deployment-shadow--canary--ab--full-rollout">Deployment: Shadow → Canary → A/B → Full Rollout</a></li>
+      </ul>
+    </li>
+    <li><a href="#serving-infrastructure">Serving Infrastructure</a>
+      <ul>
+        <li><a href="#performance-optimisation">Performance Optimisation</a></li>
+        <li><a href="#monitoring">Monitoring</a></li>
+      </ul>
+    </li>
+    <li><a href="#team-responsibilities">Team Responsibilities</a></li>
+    <li><a href="#industrial-frameworks">Industrial Frameworks</a></li>
+    <li><a href="#qa-common-questions">Q&amp;A: Common Questions</a>
+      <ul>
+        <li><a href="#how-many-recall-channels-should-we-use">How many recall channels should we use?</a></li>
+        <li><a href="#what-is-the-right-coarse-to-fine-reduction-ratio">What is the right coarse-to-fine reduction ratio?</a></li>
+        <li><a href="#how-complex-should-the-fine-ranker-be">How complex should the fine ranker be?</a></li>
+        <li><a href="#model-based-or-rule-based-reranking">Model-based or rule-based reranking?</a></li>
+        <li><a href="#how-to-choose-between-quantisation-pruning-and-distillation">How to choose between quantisation, pruning, and distillation?</a></li>
+        <li><a href="#how-do-you-handle-new-users">How do you handle new users?</a></li>
+        <li><a href="#how-do-you-decide-to-retire-a-model">How do you decide to retire a model?</a></li>
+      </ul>
+    </li>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Recommendation Systems</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>25 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5200</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

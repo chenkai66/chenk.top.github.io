@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Prefix-Tuning: Optimizing Continuous Prompts for Generation · Chen Kai Blog</title>
+<meta name="description" content="Prefix-Tuning adapts frozen LLMs by learning continuous key/value vectors injected into attention. Covers the method, reparameterization, KV-cache mechanics, and comparisons with prompt tuning, adapters, and LoRA.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/standalone/prefix-tuning/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/prefix-tuning/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Prefix-Tuning: Optimizing Continuous Prompts for Generation">
+<meta property="og:description" content="Prefix-Tuning adapts frozen LLMs by learning continuous key/value vectors injected into attention. Covers the method, reparameterization, KV-cache mechanics, and comparisons with prompt tuning, adapters, and LoRA.">
+<meta property="og:url" content="https://www.chenk.top/en/standalone/prefix-tuning/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
+        
+      </div>
+      <h1>Prefix-Tuning: Optimizing Continuous Prompts for Generation</h1>
+      <p class="deck">Prefix-Tuning adapts frozen LLMs by learning continuous key/value vectors injected into attention. Covers the method, reparameterization, KV-cache mechanics, and comparisons with prompt tuning, adapters, and LoRA.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-03-31">March 31, 2025</time> · 10 min read · 2000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/llm/" class="tag">#LLM</a><a href="/en/tags/peft/" class="tag">#PEFT</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Fine-tuning a 1.5B-parameter GPT-2 model for each downstream task means saving a fresh 1.5B-parameter checkpoint every time. Across a dozen tasks that is a substantial storage and serving headache, and it makes sharing a single base model essentially impossible. <em>Prefix-Tuning</em> (Li &amp; Liang, 2021) takes the opposite stance: freeze every weight of the language model, and learn a tiny block of continuous vectors — the <em>prefix</em> — that is fed into the attention layers as if it were context the model already attended to. The model never changes; only the prefix does, and a different prefix produces a different &ldquo;personality&rdquo; on demand.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>What a prefix actually <em>is</em>, and why injecting it as K/V at every layer is more powerful than prepending soft tokens at the input</li>
+<li>The exact attention math, parameter count, and the role of the reparameterization MLP</li>
+<li>How the prefix interacts with the KV-cache during autoregressive decoding</li>
+<li>Where Prefix-Tuning sits relative to prompt tuning, adapters, and LoRA</li>
+<li>Practical guidance on prefix length, multi-task storage, and common failure modes</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Transformer attention (Q/K/V projections, multi-head structure)</li>
+<li>Why parameter-efficient fine-tuning (PEFT) exists at all</li>
+<li>Basic familiarity with autoregressive language modeling</li>
+</ul>
+<hr>
+<h2 id="1-motivation-adapt-large-models-without-touching-their-weights">1. Motivation: adapt large models without touching their weights</h2>
+<p>Full fine-tuning updates every parameter of a large LM. That is expensive in compute, ruinous in storage when you have many tasks, and incompatible with a single-model multi-tenant serving setup. PEFT methods aim to:</p>
+<ul>
+<li>reduce trainable parameters (less GPU memory for optimizer states)</li>
+<li>shrink per-task checkpoints from gigabytes to megabytes</li>
+<li>keep a single frozen backbone shared across many tasks</li>
+</ul>
+<p>Prefix-Tuning is one of the earliest PEFT methods designed specifically for <em>generation</em> tasks (table-to-text, summarization, dialogue), and it remains a clean conceptual baseline.</p>
+<h2 id="2-what-is-a-prefix-in-prefix-tuning">2. What is a &ldquo;prefix&rdquo; in Prefix-Tuning?</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig1_architecture.png" alt="Prefix-Tuning architecture: learnable K/V prefixes injected into every frozen attention layer" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A Transformer is a stack of <em>attention + MLP</em> blocks. At each block, attention projects the hidden states into queries, keys, and values $Q, K, V \in \mathbb{R}^{n \times d}$ and computes</p>
+$$
+\text{Attn}(Q, K, V) = \mathrm{softmax}\!\left(\frac{Q K^\top}{\sqrt{d}}\right) V .
+$$<p>There are two natural places to insert <em>learned</em> parameters that look like additional context:</p>
+<ul>
+<li><strong>Input-prefix model.</strong> Prepend learnable embeddings to the token embeddings. This is what <em>prompt tuning</em> (Lester et al., 2021) does. Only the input layer sees them; later layers receive their influence indirectly.</li>
+<li><strong>Layer-wise K/V prefix model.</strong> At every layer, prepend learnable key/value vectors directly to $K$ and $V$. This is <em>Prefix-Tuning</em>. Every layer gets its own dedicated knob.</li>
+</ul>
+<p>The second formulation is strictly more expressive: it adds capacity at every layer, not just at the input. In practice it is also what works well for generation tasks.</p>
+<h2 id="3-the-attention-prefix-formulation">3. The attention-prefix formulation</h2>
+<p>Let layer $\ell$ have a learnable prefix matrix $P^{(\ell)} \in \mathbb{R}^{L_{\text{prefix}} \times 2 d}$, which we split into per-layer prefix keys and values:</p>
+$$
+P^{(\ell)} = \big[\, P^{(\ell)}_K \;\Vert\; P^{(\ell)}_V \,\big],
+\quad P^{(\ell)}_K, P^{(\ell)}_V \in \mathbb{R}^{L_{\text{prefix}} \times d}.
+$$<p>At each forward pass we concatenate them with the real keys and values produced by the frozen model:</p>
+$$
+\tilde{K}^{(\ell)} = \big[\, P^{(\ell)}_K \;;\; K^{(\ell)} \,\big],
+\qquad
+\tilde{V}^{(\ell)} = \big[\, P^{(\ell)}_V \;;\; V^{(\ell)} \,\big],
+$$<p>and replace the standard attention with</p>
+$$
+\text{Attn}\!\big(Q^{(\ell)},\, \tilde{K}^{(\ell)},\, \tilde{V}^{(\ell)}\big).
+$$<p>Two things are worth noting:</p>
+<ol>
+<li>The queries $Q^{(\ell)}$ are <em>not</em> augmented. The prefix only ever appears on the &ldquo;context&rdquo; side of attention, so token positions still attend to it but it does not produce its own output.</li>
+<li>Because $K$ and $V$ are extended, every generated token can read from the prefix at every layer. The prefix behaves like a learned, differentiable working memory threaded through the whole stack.</li>
+</ol>
+<h2 id="4-parameter-count-why-it-is-efficient">4. Parameter count: why it is efficient</h2>
+<p>With $L$ Transformer layers, hidden size $d$, and prefix length $L_{\text{prefix}}$, the number of trainable parameters is</p>
+$$
+| \theta_{\text{prefix}} | = 2 \cdot L \cdot d \cdot L_{\text{prefix}} .
+$$<p>For GPT-2 medium ($L = 24$, $d = 1024$) and a typical $L_{\text{prefix}} = 10$, this is about <strong>0.5 M</strong> parameters versus the full model&rsquo;s <strong>355 M</strong> — roughly a 700× reduction. For GPT-2 XL the ratio gets even more dramatic.</p>
+<p>Per-task storage drops from gigabytes to a few hundred kilobytes. That is the practical hook: you can ship one base model and a directory of small prefix files, one per task.</p>
+<h2 id="5-why-reparameterization-helps">5. Why reparameterization helps</h2>
+<p>Optimizing $P$ directly is surprisingly fragile, especially for longer prefixes: training is unstable and the final quality is below what the same parameter budget <em>should</em> be able to express. Li &amp; Liang propose to <em>reparameterize</em> the prefix through a small MLP:</p>
+$$
+P^{(\ell)}_K, P^{(\ell)}_V = \text{MLP}_\phi\!\big( P'^{(\ell)} \big),
+$$<p>where $P'^{(\ell)} \in \mathbb{R}^{L_{\text{prefix}} \times d'}$ is a smaller latent prefix and $d' \ll d$. Why this helps:</p>
+<ul>
+<li>The MLP smooths the optimization landscape; gradients flowing into a low-dimensional latent are better-conditioned than those landing on a wide $L_{\text{prefix}} \times 2d$ matrix.</li>
+<li>The non-linearity adds capacity that the prefix matrix alone cannot express, without unfreezing the backbone.</li>
+<li>A small shared MLP gives you partial parameter sharing across layers while still producing layer-specific outputs.</li>
+</ul>
+<p>After training, the MLP can be discarded — only the materialized $P^{(\ell)}_K, P^{(\ell)}_V$ tensors are kept for inference, so the extra capacity is &ldquo;free&rdquo; at deploy time.</p>
+<h2 id="6-three-ways-to-adapt-a-frozen-lm-at-a-glance">6. Three ways to adapt a frozen LM, at a glance</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig2_method_comparison.png" alt="Comparison of full fine-tuning, Prefix-Tuning, and prompt tuning" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The three approaches sit on a clear continuum:</p>
+<ul>
+<li><strong>Full fine-tuning</strong> updates everything. Maximum capacity, maximum cost, no model sharing.</li>
+<li><strong>Prefix-Tuning</strong> updates a small layer-wise K/V tensor. ~0.1 % of parameters, strong on generation, frozen backbone.</li>
+<li><strong>Prompt tuning</strong> updates only an input-side soft prompt. ~0.01 % of parameters, simplest to implement, generally weaker than Prefix-Tuning at small model scale but catches up at very large scale (Lester et al., 2021).</li>
+</ul>
+<p>LoRA (Hu et al., 2021) is a fourth option that is structurally different: it leaves the activations alone and instead adds a <em>low-rank delta</em> to the weight matrices, $W \mapsto W + \alpha BA$ with $A, B$ low rank. LoRA has dominated practical PEFT for instruction tuning, mostly because (a) it merges into the weights at inference with zero latency overhead and (b) the rank knob is more intuitive than prefix length for many users. Prefix-Tuning is still the right tool when you need to keep weights bit-identical, when you want per-request swappable adapters at decode time, or when the task is generation-flavored and you want the inductive bias of &ldquo;extra context&rdquo;.</p>
+<h2 id="7-prefix-length-a-sweet-spot-not-a-hyperparameter-to-maximize">7. Prefix length: a sweet spot, not a hyperparameter to maximize</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig3_prefix_length_sweep.png" alt="Prefix-Tuning quality and parameter cost as a function of prefix length" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Empirically, BLEU on E2E table-to-text rises sharply from $L_{\text{prefix}} = 1$ to about $L_{\text{prefix}} = 10$, then flattens, and very long prefixes ($> 200$) begin to slightly <em>hurt</em> — likely a mild optimization issue rather than a capacity one, but the consequence is that simply making the prefix longer is not free. A useful starting point:</p>
+<ul>
+<li><strong>Classification-style or short generation:</strong> $L_{\text{prefix}} \in [5, 10]$</li>
+<li><strong>Long-form generation, few-shot regime:</strong> $L_{\text{prefix}} \in [10, 20]$</li>
+<li><strong>More than ~100:</strong> rarely worth the parameter cost or the longer effective sequence at inference</li>
+</ul>
+<h2 id="8-kv-cache-mechanics-during-autoregressive-decoding">8. KV-cache mechanics during autoregressive decoding</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig4_kv_cache_prepend.png" alt="Prefix K/V prepended into the attention KV-cache during generation" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The prefix integrates very naturally with the standard KV-cache used by autoregressive decoders. At each layer, you maintain a tensor of cached $(K, V)$ pairs for everything the model has already attended to. With Prefix-Tuning:</p>
+<ol>
+<li><strong>At step $t = 0$</strong>, the cache is <em>initialized</em> with the prefix K/V tensors (they are produced once, at request load time, by reading $P^{(\ell)}_K, P^{(\ell)}_V$ from disk). Then the prompt is encoded and its K/V are appended.</li>
+<li><strong>At each decode step $t$</strong>, the newly generated token&rsquo;s K/V are appended to the cache, exactly as in normal decoding.</li>
+<li><strong>Attention at every step</strong> runs against the full extended cache: prefix + prompt + everything generated so far.</li>
+</ol>
+<p>The runtime cost is therefore an additive $O(L_{\text{prefix}})$ on top of normal attention at each step, and a fixed extra memory of $2 \cdot L \cdot d \cdot L_{\text{prefix}}$ floats per active request. With $L_{\text{prefix}} = 10$ this is negligible; with $L_{\text{prefix}} = 200$ you are effectively decoding against a 200-token-longer context, which is a real cost worth measuring.</p>
+<p>This mechanism also makes <em>per-request</em> task switching cheap: load a different prefix tensor, reset the cache, and the same base model now behaves like a different fine-tune.</p>
+<h2 id="9-application-gpt-2-generation-tasks">9. Application: GPT-2 generation tasks</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/prefix-tuning/fig5_gpt2_application.png" alt="Prefix-Tuning vs full fine-tuning vs adapters on E2E and XSum" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The original paper&rsquo;s headline experiments are on GPT-2 medium for two generation benchmarks:</p>
+<ul>
+<li><strong>E2E</strong> (table-to-text), where Prefix-Tuning matches or slightly beats full fine-tuning at 0.1 % of the parameter budget.</li>
+<li><strong>XSum</strong> (abstractive summarization), where the gap to full fine-tuning closes as data grows but Prefix-Tuning has a clear edge in the <em>low-data regime</em> — under ~5 % of training data, the inductive bias of &ldquo;you only have a small contextual knob to turn&rdquo; prevents the kind of overfitting that full fine-tuning falls into.</li>
+</ul>
+<p>The low-data result has aged well. It is the same story you see later with LoRA on instruction-tuning data: when you have very little task data, restricting the hypothesis class to a low-dimensional adapter is a regularizer, and the regularizer is usually worth more than the extra capacity full fine-tuning would give you.</p>
+<h2 id="10-practical-engineering-notes">10. Practical engineering notes</h2>
+<p><strong>Where to apply prefixes.</strong> In a decoder-only model, applying them to self-attention at every layer is the standard recipe. In an encoder-decoder model, you have to decide: encoder self-attention only, decoder self-attention, decoder cross-attention, or all three. For conditional generation tasks the original paper found cross-attention prefixes to be the most important.</p>
+<p><strong>Initialization.</strong> Random init works but is slow to warm up. Initializing the prefix from the embedding of a <em>real</em> prompt sentence (&ldquo;summarize the following article:&rdquo;) gives faster convergence on the same task — a small trick, but a real one.</p>
+<p><strong>Multi-task serving.</strong> Store one prefix tensor per task. A directory of 30 prefixes for GPT-2 medium is a handful of megabytes, versus ~10 GB for 30 full fine-tunes. Switching tasks in a serving stack means re-loading the tiny prefix file, not the model.</p>
+<p><strong>Common failure modes.</strong></p>
+<ul>
+<li><em>No improvement after long training.</em> Usually $L_{\text{prefix}}$ too small, learning rate too low, or the reparameterization MLP missing on a task that needs it.</li>
+<li><em>Loss is stable but generation is gibberish.</em> Check that you are concatenating into the correct attention dimension and that the prefix is on the <em>context</em> side only. A surprisingly common bug is also putting it on $Q$.</li>
+<li><em>Quality collapses with very long prefixes.</em> Likely an optimization issue; try smaller LR, stronger reparameterization, or just shorten the prefix.</li>
+</ul>
+<h2 id="11-when-to-choose-prefix-tuning">11. When to choose Prefix-Tuning</h2>
+<p>Choose Prefix-Tuning when:</p>
+<ul>
+<li>The base model weights must remain bit-identical (regulatory or sharing reasons).</li>
+<li>You serve many tasks behind a single base model and want per-request hot-swap.</li>
+<li>The task is generation-flavored and the data budget is modest.</li>
+</ul>
+<p>Choose LoRA instead when:</p>
+<ul>
+<li>You want the absolute lowest inference latency (LoRA can be <em>merged</em> into the weights).</li>
+<li>You need broad performance across instruction-tuning style mixtures.</li>
+<li>You prefer reasoning about &ldquo;rank&rdquo; rather than &ldquo;prefix length&rdquo;.</li>
+</ul>
+<p>Choose full fine-tuning when:</p>
+<ul>
+<li>You truly have abundant task data and care about every last point of quality.</li>
+<li>Per-task storage is not a concern.</li>
+</ul>
+<h2 id="takeaway">Takeaway</h2>
+<p>Prefix-Tuning reframes adaptation as <em>learning a small, layer-wise contextual memory</em> that is fed into a frozen Transformer&rsquo;s attention. The architecture is simple, the parameter cost is in the sub-percent regime, and the low-data inductive bias is real. Even after LoRA largely took over the practical PEFT landscape, Prefix-Tuning remains the cleanest mental model for &ldquo;adapting a model by giving it learned context&rdquo; — and it is still the right tool for several real-world serving scenarios.</p>
+<h2 id="references">References</h2>
+<ul>
+<li>Li, X. L., &amp; Liang, P. (2021). <a href="https://arxiv.org/abs/2101.00190" target="_blank" rel="noopener noreferrer">Prefix-Tuning: Optimizing Continuous Prompts for Generation <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>ACL 2021</em>.</li>
+<li>Lester, B., Al-Rfou, R., &amp; Constant, N. (2021). <a href="https://arxiv.org/abs/2104.08691" target="_blank" rel="noopener noreferrer">The Power of Scale for Parameter-Efficient Prompt Tuning <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>EMNLP 2021</em>.</li>
+<li>Houlsby, N., et al. (2019). <a href="https://arxiv.org/abs/1902.00751" target="_blank" rel="noopener noreferrer">Parameter-Efficient Transfer Learning for NLP <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>ICML 2019</em> (Adapters).</li>
+<li>Hu, E. J., et al. (2021). <a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener noreferrer">LoRA: Low-Rank Adaptation of Large Language Models <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>ICLR 2022</em>.</li>
+<li>He, J., et al. (2022). <a href="https://arxiv.org/abs/2110.04366" target="_blank" rel="noopener noreferrer">Towards a Unified View of Parameter-Efficient Transfer Learning <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>ICLR 2022</em> (unified PEFT framework).</li>
+<li>Yang, Z., et al. (2022). <a href="https://thumtblog.github.io/2022/04/05/robust-prefix-tuning/" target="_blank" rel="noopener noreferrer">Robust Prefix-Tuning for Text Classification <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. THUMT blog companion to the ICLR 2022 paper.</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-motivation-adapt-large-models-without-touching-their-weights">1. Motivation: adapt large models without touching their weights</a></li>
+    <li><a href="#2-what-is-a-prefix-in-prefix-tuning">2. What is a &ldquo;prefix&rdquo; in Prefix-Tuning?</a></li>
+    <li><a href="#3-the-attention-prefix-formulation">3. The attention-prefix formulation</a></li>
+    <li><a href="#4-parameter-count-why-it-is-efficient">4. Parameter count: why it is efficient</a></li>
+    <li><a href="#5-why-reparameterization-helps">5. Why reparameterization helps</a></li>
+    <li><a href="#6-three-ways-to-adapt-a-frozen-lm-at-a-glance">6. Three ways to adapt a frozen LM, at a glance</a></li>
+    <li><a href="#7-prefix-length-a-sweet-spot-not-a-hyperparameter-to-maximize">7. Prefix length: a sweet spot, not a hyperparameter to maximize</a></li>
+    <li><a href="#8-kv-cache-mechanics-during-autoregressive-decoding">8. KV-cache mechanics during autoregressive decoding</a></li>
+    <li><a href="#9-application-gpt-2-generation-tasks">9. Application: GPT-2 generation tasks</a></li>
+    <li><a href="#10-practical-engineering-notes">10. Practical engineering notes</a></li>
+    <li><a href="#11-when-to-choose-prefix-tuning">11. When to choose Prefix-Tuning</a></li>
+    <li><a href="#takeaway">Takeaway</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2000</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

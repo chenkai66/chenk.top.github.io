@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/terraform-agents/03-vpc-and-security-baseline/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Terraform for AI Agents (3): A Reusable VPC and Security Baseline · Chen Kai Blog</title>
+<meta name="description" content="The first reusable module — a three-zone VPC with public/private subnets, NAT egress, security groups layered by tier, and KMS keys per data domain. The same code shows up in every agent stack I&#39;ve shipped, parameterised but otherwise unchanged.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Terraform for AI Agents (3): A Reusable VPC and Security Baseline">
+<meta property="og:description" content="The first reusable module — a three-zone VPC with public/private subnets, NAT egress, security groups layered by tier, and KMS keys per data domain. The same code shows up in every agent stack I&#39;ve shipped, parameterised but otherwise unchanged.">
+<meta property="og:url" content="https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-3);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Terraform Agents</a>
+         · Chapter 3
+      </div>
+      <h1>Terraform for AI Agents (3): A Reusable VPC and Security Baseline</h1>
+      <p class="deck">The first reusable module — a three-zone VPC with public/private subnets, NAT egress, security groups layered by tier, and KMS keys per data domain. The same code shows up in every agent stack I&#39;ve shipped, parameterised but otherwise unchanged.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-03-16">March 16, 2026</time> · 10 min read · 2000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/terraform/" class="tag">#Terraform</a><a href="/en/tags/alibaba-cloud/" class="tag">#Alibaba Cloud</a><a href="/en/tags/vpc/" class="tag">#VPC</a><a href="/en/tags/security/" class="tag">#Security</a><a href="/en/tags/ai-agents/" class="tag">#AI Agents</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/terraform-agents/03-vpc-and-security-baseline/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>This article builds the single most copied piece of Terraform in my agent projects: a <code>vpc-baseline</code> module that gives every later component (ECS, RDS, OpenSearch, ACK) a sane place to land.</p>
+<p>By the end you&rsquo;ll have:</p>
+<ul>
+<li>A VPC across three availability zones in one region</li>
+<li>Six subnets (one public + one private per zone) with non-overlapping CIDRs</li>
+<li>A NAT gateway with EIP for private-subnet outbound to LLM APIs</li>
+<li>Three security groups stacked by tier (ALB → agent runtime → memory)</li>
+<li>Three KMS customer master keys, one per data domain (memory, secrets, logs)</li>
+<li>A clean module interface: name + CIDR + zones in, IDs out</li>
+</ul>
+<p>It&rsquo;s about 200 lines of HCL all-in. Worth typing once, refer to it forever.</p>
+<h2 id="the-mental-model">The mental model</h2>
+<p>Before code, the picture:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/03-vpc-and-security-baseline/fig1_vpc_topology.png" alt="VPC topology — 3 zones, public &#43; private, NAT egress" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Why three zones? Because Aliyun reserves the right to do a zone-level maintenance on any given Sunday, and a single-zone deployment means your agents are offline for the whole window. Cross-zone traffic inside a VPC is free; the only cost of three zones is the operational complexity of subnet math.</p>
+<p>Why public + private? The agent runtime should live in private subnets so a misconfigured security group can&rsquo;t accidentally expose it on <code>0.0.0.0/0</code>. Public subnets hold the ALB (load balancer) and the NAT gateway — things that <em>must</em> reach the internet. The agent reaches the internet via NAT, not directly.</p>
+<p>The CIDR layout I use:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Subnet</th>
+          <th>Zone</th>
+          <th>CIDR</th>
+          <th style="text-align: right">Hosts</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>public-a</code></td>
+          <td>l</td>
+          <td><code>10.20.0.0/28</code></td>
+          <td style="text-align: right">11</td>
+      </tr>
+      <tr>
+          <td><code>public-b</code></td>
+          <td>m</td>
+          <td><code>10.20.0.16/28</code></td>
+          <td style="text-align: right">11</td>
+      </tr>
+      <tr>
+          <td><code>public-c</code></td>
+          <td>n</td>
+          <td><code>10.20.0.32/28</code></td>
+          <td style="text-align: right">11</td>
+      </tr>
+      <tr>
+          <td><code>private-a</code></td>
+          <td>l</td>
+          <td><code>10.20.1.0/24</code></td>
+          <td style="text-align: right">251</td>
+      </tr>
+      <tr>
+          <td><code>private-b</code></td>
+          <td>m</td>
+          <td><code>10.20.2.0/24</code></td>
+          <td style="text-align: right">251</td>
+      </tr>
+      <tr>
+          <td><code>private-c</code></td>
+          <td>n</td>
+          <td><code>10.20.3.0/24</code></td>
+          <td style="text-align: right">251</td>
+      </tr>
+  </tbody>
+</table>
+<p>Public subnets are <code>/28</code> because they only hold a NAT and an ALB IP. Private subnets are <code>/24</code> because that&rsquo;s where the agent ECS, RDS, OpenSearch nodes live.</p>
+<h2 id="the-module-skeleton">The module skeleton</h2>
+<p>Create the directory layout:</p>
+<pre tabindex="0"><code>modules/vpc-baseline/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+└── versions.tf
+</code></pre><p>Inputs (<code>variables.tf</code>):</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">variable</span> <span class="s2">&#34;name&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Name prefix for all resources, e.g. agents-prod&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  type</span>        <span class="o">=</span> <span class="k">string</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">variable</span> <span class="s2">&#34;cidr_block&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Top-level VPC CIDR; subnets are derived from this&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  type</span>        <span class="o">=</span> <span class="k">string</span>
+</span></span><span class="line"><span class="cl"><span class="n">  default</span>     <span class="o">=</span> <span class="s2">&#34;10.20.0.0/16&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">variable</span> <span class="s2">&#34;zones&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Three availability zone IDs in the target region&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  type</span>        <span class="o">=</span> <span class="k">list</span><span class="p">(</span><span class="k">string</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">validation</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    condition</span>     <span class="o">=</span><span class="n"> length(var.zones)</span> <span class="o">==</span> <span class="m">3</span>
+</span></span><span class="line"><span class="cl"><span class="n">    error_message</span> <span class="o">=</span> <span class="s2">&#34;vpc-baseline requires exactly 3 zones.&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">variable</span> <span class="s2">&#34;tags&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Tags applied to every resource the module creates&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  type</span>        <span class="o">=</span> <span class="k">map</span><span class="p">(</span><span class="k">string</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">  default</span>     <span class="o">=</span> {}
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Forcing exactly three zones is opinionated but matches the diagram. If you need two-zone or four-zone, fork the module — don&rsquo;t make it conditional. Conditional modules become unreadable.</p>
+<h2 id="the-vpc-and-subnets">The VPC and subnets</h2>
+<p><code>main.tf</code>, part one:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_vpc&#34; &#34;this&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_name</span>   <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">cidr_block</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>       <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">tags</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_vswitch&#34; &#34;public&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span><span class="n"> { for i, z in var.zones : i</span> <span class="o">=</span><span class="err">&gt;</span> <span class="k">z</span> }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>     <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  zone_id</span>    <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span> <span class="o">=</span> <span class="k">cidrsubnet</span><span class="p">(</span><span class="k">var</span><span class="p">.</span><span class="k">cidr_block</span><span class="p">,</span> <span class="m">12</span><span class="p">,</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span><span class="p">)</span><span class="c1">        # /28 starting at .0
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">  vswitch_name</span> <span class="o">=</span> <span class="s2">&#34;${var.name}-public-${substr(each.value, -1, 1)}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>       <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">tags</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_vswitch&#34; &#34;private&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span><span class="n"> { for i, z in var.zones : i</span> <span class="o">=</span><span class="err">&gt;</span> <span class="k">z</span> }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>     <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  zone_id</span>    <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span> <span class="o">=</span> <span class="k">cidrsubnet</span><span class="p">(</span><span class="k">var</span><span class="p">.</span><span class="k">cidr_block</span><span class="p">,</span> <span class="m">8</span><span class="p">,</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span> <span class="err">+</span> <span class="m">1</span><span class="p">)</span><span class="c1">     # /24 starting at .1.0
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">  vswitch_name</span> <span class="o">=</span> <span class="s2">&#34;${var.name}-private-${substr(each.value, -1, 1)}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>       <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">tags</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Three things worth noting:</p>
+<ul>
+<li><code>cidrsubnet(prefix, newbits, netnum)</code> is Terraform&rsquo;s CIDR math. <code>cidrsubnet(&quot;10.20.0.0/16&quot;, 8, 1)</code> returns <code>&quot;10.20.1.0/24&quot;</code>. Memorise this — you&rsquo;ll use it constantly.</li>
+<li><code>for_each</code> with the index/value map gives stable resource addresses — <code>alicloud_vswitch.private[&quot;0&quot;]</code> always points to the first zone, even if you rearrange the list. Compare to <code>count</code>, where reordering causes wholesale recreation.</li>
+<li><code>substr(each.value, -1, 1)</code> extracts the last char of the zone ID (the <code>l</code>/<code>m</code>/<code>n</code>) so resource names sort nicely.</li>
+</ul>
+<h2 id="nat-gateway-and-eip">NAT gateway and EIP</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_nat_gateway&#34; &#34;this&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>           <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vswitch_id</span>       <span class="o">=</span> <span class="k">alicloud_vswitch</span><span class="p">.</span><span class="k">public</span><span class="p">[</span><span class="s2">&#34;0&#34;</span><span class="p">].</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  nat_gateway_name</span> <span class="o">=</span> <span class="s2">&#34;${var.name}-nat&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  nat_type</span>         <span class="o">=</span> <span class="s2">&#34;Enhanced&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  payment_type</span>     <span class="o">=</span> <span class="s2">&#34;PayAsYouGo&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>             <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">tags</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_eip_address&#34; &#34;nat&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  address_name</span>         <span class="o">=</span> <span class="s2">&#34;${var.name}-nat-eip&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  bandwidth</span>            <span class="o">=</span> <span class="s2">&#34;100&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  internet_charge_type</span> <span class="o">=</span> <span class="s2">&#34;PayByTraffic&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  isp</span>                  <span class="o">=</span> <span class="s2">&#34;BGP&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>                 <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">tags</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_eip_association&#34; &#34;nat&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  allocation_id</span> <span class="o">=</span> <span class="k">alicloud_eip_address</span><span class="p">.</span><span class="k">nat</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  instance_id</span>   <span class="o">=</span> <span class="k">alicloud_nat_gateway</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_snat_entry&#34; &#34;private&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span> <span class="k">alicloud_vswitch</span><span class="p">.</span><span class="k">private</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  snat_table_id</span>     <span class="o">=</span> <span class="k">alicloud_nat_gateway</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">snat_table_ids</span>
+</span></span><span class="line"><span class="cl"><span class="n">  source_vswitch_id</span> <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  snat_ip</span>           <span class="o">=</span> <span class="k">alicloud_eip_address</span><span class="p">.</span><span class="k">nat</span><span class="p">.</span><span class="k">ip_address</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The Enhanced NAT type is the modern one — required for Tablestore, PrivateLink, and most newer services. PayByTraffic is right for agent workloads where outbound bandwidth is bursty (LLM streaming) rather than steady.</p>
+<p>The SNAT entries are what actually let private-subnet instances reach the internet. Without them, an agent in <code>private-a</code> cannot resolve <code>dashscope.aliyuncs.com</code>.</p>
+<h2 id="security-groups-layered">Security groups, layered</h2>
+<p>The right way to do security groups on Aliyun is <strong>one SG per tier</strong>, with rules that reference SG IDs not CIDRs:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/03-vpc-and-security-baseline/fig2_sg_layers.png" alt="Security group strategy — tight ingress, loose egress, layered" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_security_group&#34; &#34;alb_public&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>   <span class="o">=</span> <span class="s2">&#34;${var.name}-alb-public&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span> <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>   <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">tags</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_security_group_rule&#34; &#34;alb_https_in&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  security_group_id</span> <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">alb_public</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  type</span>              <span class="o">=</span> <span class="s2">&#34;ingress&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  ip_protocol</span>       <span class="o">=</span> <span class="s2">&#34;tcp&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  port_range</span>        <span class="o">=</span> <span class="s2">&#34;443/443&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_ip</span>           <span class="o">=</span> <span class="s2">&#34;0.0.0.0/0&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  policy</span>            <span class="o">=</span> <span class="s2">&#34;accept&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  priority</span>          <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_security_group&#34; &#34;agent_runtime&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>   <span class="o">=</span> <span class="s2">&#34;${var.name}-agent-runtime&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span> <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>   <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">tags</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_security_group_rule&#34; &#34;agent_from_alb&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  security_group_id</span>        <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">agent_runtime</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  type</span>                     <span class="o">=</span> <span class="s2">&#34;ingress&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  ip_protocol</span>              <span class="o">=</span> <span class="s2">&#34;tcp&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  port_range</span>               <span class="o">=</span> <span class="s2">&#34;8080/8080&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  source_security_group_id</span> <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">alb_public</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  policy</span>                   <span class="o">=</span> <span class="s2">&#34;accept&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  priority</span>                 <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The key line is <code>source_security_group_id = alicloud_security_group.alb_public.id</code>. This says &ldquo;accept inbound 8080 only from any instance in the ALB SG&rdquo; — not from a CIDR. Re-IPing the ALB later doesn&rsquo;t break anything.</p>
+<blockquote>
+<p><strong>Real-world tip:</strong> Aliyun&rsquo;s default behaviour is to <em>deny</em> all ingress and <em>allow</em> all egress. The default is correct — don&rsquo;t add a &ldquo;deny all egress&rdquo; rule, you&rsquo;ll just break SDK calls. Limit egress only when you have a specific compliance requirement; for an agent system, all-egress-open is normal.</p>
+</blockquote>
+<p>I extend this pattern for every downstream tier:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_security_group&#34; &#34;memory_rds&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>   <span class="o">=</span> <span class="s2">&#34;${var.name}-memory-rds&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span> <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>   <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">tags</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_security_group_rule&#34; &#34;rds_from_agent&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  security_group_id</span>        <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">memory_rds</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  type</span>                     <span class="o">=</span> <span class="s2">&#34;ingress&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  ip_protocol</span>              <span class="o">=</span> <span class="s2">&#34;tcp&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  port_range</span>               <span class="o">=</span> <span class="s2">&#34;5432/5432&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  source_security_group_id</span> <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">agent_runtime</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  policy</span>                   <span class="o">=</span> <span class="s2">&#34;accept&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  priority</span>                 <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_security_group&#34; &#34;vector_store&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>   <span class="o">=</span> <span class="s2">&#34;${var.name}-vector-store&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span> <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>   <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">tags</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_security_group_rule&#34; &#34;vector_from_agent&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  security_group_id</span>        <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">vector_store</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  type</span>                     <span class="o">=</span> <span class="s2">&#34;ingress&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  ip_protocol</span>              <span class="o">=</span> <span class="s2">&#34;tcp&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  port_range</span>               <span class="o">=</span> <span class="s2">&#34;9200/9200&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  source_security_group_id</span> <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">agent_runtime</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  policy</span>                   <span class="o">=</span> <span class="s2">&#34;accept&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  priority</span>                 <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>By the time you&rsquo;re done, attaching an ECS to the right SG is just <code>security_groups = [module.vpc.agent_runtime_sg_id]</code> and the network tier is correct by construction.</p>
+<h2 id="kms-keys-per-data-domain">KMS keys per data domain</h2>
+<p>Encryption-at-rest is mandatory for any compliance regime worth its salt. The Aliyun way is <strong>one Customer Master Key (CMK) per data domain</strong>, so you can rotate one without touching another and audit access per-key.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/03-vpc-and-security-baseline/fig3_kms_encrypt.png" alt="KMS encryption — one CMK per data domain" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">locals</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  cmks</span> <span class="o">=</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    memory</span>  <span class="o">=</span> <span class="s2">&#34;Encryption for RDS data and OSS objects&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    secrets</span> <span class="o">=</span> <span class="s2">&#34;Encryption for KMS Secrets Manager entries&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    logs</span>    <span class="o">=</span> <span class="s2">&#34;Encryption for SLS log data&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_kms_key&#34; &#34;this&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">cmks</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  description</span>            <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span>
+</span></span><span class="line"><span class="cl"><span class="n">  key_usage</span>              <span class="o">=</span> <span class="s2">&#34;ENCRYPT/DECRYPT&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  key_spec</span>               <span class="o">=</span> <span class="s2">&#34;Aliyun_AES_256&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  pending_window_in_days</span> <span class="o">=</span> <span class="m">7</span>
+</span></span><span class="line"><span class="cl"><span class="n">  status</span>                 <span class="o">=</span> <span class="s2">&#34;Enabled&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  automatic_rotation</span>     <span class="o">=</span> <span class="s2">&#34;Enabled&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  rotation_interval</span>      <span class="o">=</span> <span class="s2">&#34;365d&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  protection_level</span>       <span class="o">=</span> <span class="s2">&#34;SOFTWARE&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span>                   <span class="o">=</span><span class="n"> merge(var.tags, { Domain</span> <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span> }<span class="p">)</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_kms_alias&#34; &#34;this&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">cmks</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  alias_name</span> <span class="o">=</span> <span class="s2">&#34;alias/${var.name}-${each.key}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  key_id</span>     <span class="o">=</span> <span class="k">alicloud_kms_key</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="k">each</span><span class="p">.</span><span class="k">key</span><span class="p">].</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Why the alias? Because the CMK ID is a UUID nobody remembers; the alias <code>alias/agents-prod-memory</code> is human-readable and stable across key rotations. Reference the alias from RDS, OSS, etc. and you can swap the underlying key without touching downstream config.</p>
+<p><code>pending_window_in_days = 7</code> means a deleted key has a 7-day window where you can recover it. Don&rsquo;t shorten this — accidental key deletion is the kind of mistake that ends careers.</p>
+<h2 id="the-module-outputs">The module outputs</h2>
+<p><code>outputs.tf</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;vpc_id&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_vpc</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;private_vswitch_ids&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="p">[</span><span class="k">for</span> <span class="k">s</span> <span class="k">in</span> <span class="k">alicloud_vswitch</span><span class="p">.</span><span class="k">private</span> <span class="err">:</span> <span class="k">s</span><span class="p">.</span><span class="k">id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;public_vswitch_ids&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="p">[</span><span class="k">for</span> <span class="k">s</span> <span class="k">in</span> <span class="k">alicloud_vswitch</span><span class="p">.</span><span class="k">public</span> <span class="err">:</span> <span class="k">s</span><span class="p">.</span><span class="k">id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;nat_gateway_id&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_nat_gateway</span><span class="p">.</span><span class="k">this</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;nat_eip_address&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_eip_address</span><span class="p">.</span><span class="k">nat</span><span class="p">.</span><span class="k">ip_address</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;alb_public_sg_id&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">alb_public</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;agent_runtime_sg_id&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">agent_runtime</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;memory_rds_sg_id&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">memory_rds</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;vector_store_sg_id&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_security_group</span><span class="p">.</span><span class="k">vector_store</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;kms_keys&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span><span class="n"> { for k, v in alicloud_kms_key.this : k</span> <span class="o">=</span><span class="err">&gt;</span> <span class="k">v</span><span class="p">.</span><span class="k">id</span> }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;kms_aliases&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span><span class="n"> { for k, v in alicloud_kms_alias.this : k</span> <span class="o">=</span><span class="err">&gt;</span> <span class="k">v</span><span class="p">.</span><span class="k">alias_name</span> }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>These are exactly the IDs the next five articles need from us. By naming and shaping outputs deliberately, callers can do:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">module</span> <span class="s2">&#34;vpc&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  source</span> <span class="o">=</span> <span class="s2">&#34;./modules/vpc-baseline&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>   <span class="o">=</span> <span class="s2">&#34;agents-prod&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  zones</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;cn-shanghai-l&#34;, &#34;cn-shanghai-m&#34;, &#34;cn-shanghai-n&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_instance&#34; &#34;agent&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  vswitch_id</span>      <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span><span class="p">[</span><span class="m">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">  security_groups</span> <span class="o">=</span> <span class="p">[</span><span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">agent_runtime_sg_id</span><span class="p">]</span><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">  # ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="calling-the-module">Calling the module</h2>
+<p>In your top-level <code>main.tf</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">module</span> <span class="s2">&#34;vpc&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  source</span> <span class="o">=</span> <span class="s2">&#34;./modules/vpc-baseline&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>       <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span> <span class="o">=</span> <span class="s2">&#34;10.20.0.0/16&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  zones</span>      <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;cn-shanghai-l&#34;, &#34;cn-shanghai-m&#34;, &#34;cn-shanghai-n&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    Project</span>     <span class="o">=</span> <span class="s2">&#34;research-agent-stack&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    Environment</span> <span class="o">=</span> <span class="k">terraform</span><span class="p">.</span><span class="k">workspace</span>
+</span></span><span class="line"><span class="cl"><span class="n">    ManagedBy</span>   <span class="o">=</span> <span class="s2">&#34;terraform&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>terraform plan</code> from the project root will produce something like:</p>
+<pre tabindex="0"><code>Plan: 27 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + agent_runtime_sg_id = (known after apply)
+  + nat_eip_address     = (known after apply)
+  + private_vswitch_ids = [
+      + (known after apply),
+      + (known after apply),
+      + (known after apply),
+    ]
+  + vpc_id              = (known after apply)
+</code></pre><p>27 resources is about right (1 VPC + 6 vSwitch + 1 NAT + 1 EIP + 1 EIP-assoc + 3 SNAT + 4 SG + 4 SG-rule + 3 KMS key + 3 KMS alias = 27). Apply, and you have a production-grade network in about 90 seconds.</p>
+<h2 id="what-it-costs">What it costs</h2>
+<p>Roughly, in <code>cn-shanghai</code>, monthly:</p>
+<ul>
+<li>VPC, vSwitch, security groups, KMS keys: free</li>
+<li>NAT gateway: ~¥120/mo for the Enhanced type, plus per-GB egress</li>
+<li>EIP: ~¥20/mo for IP reservation, plus PayByTraffic data</li>
+<li>KMS: free for the first 100 calls/day per key, then ~¥0.005/call</li>
+</ul>
+<p>Call it ¥150-300/month for the network baseline at low-to-moderate traffic. Cheap for what you get — every later article inherits this skeleton.</p>
+<h2 id="whats-next">What&rsquo;s next</h2>
+<p>Article 4 lands compute on this network. Three patterns — ECS with <code>pm2</code>, ACK for production fleets, Function Compute for event-driven agents — and the cost-crossover model I use to pick between them. Then a real <code>alicloud_instance</code> block that bootstraps Python + Node + the agent runtime via cloud-init.</p>
+<blockquote>
+<p><strong>Real-world tip:</strong> If you ever need to add a fourth zone (Aliyun adds them periodically), it is a <code>terraform apply</code> away — the <code>for_each</code> pattern handles a longer list cleanly. But: the <code>validation</code> block in <code>variables.tf</code> will reject it, so you&rsquo;ll first relax the validation. That deliberate friction is the point — adding a zone is a network change worth thinking about.</p>
+</blockquote>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/"><span class="title">Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/"><span class="title">Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-mental-model">The mental model</a></li>
+    <li><a href="#the-module-skeleton">The module skeleton</a></li>
+    <li><a href="#the-vpc-and-subnets">The VPC and subnets</a></li>
+    <li><a href="#nat-gateway-and-eip">NAT gateway and EIP</a></li>
+    <li><a href="#security-groups-layered">Security groups, layered</a></li>
+    <li><a href="#kms-keys-per-data-domain">KMS keys per data domain</a></li>
+    <li><a href="#the-module-outputs">The module outputs</a></li>
+    <li><a href="#calling-the-module">Calling the module</a></li>
+    <li><a href="#what-it-costs">What it costs</a></li>
+    <li><a href="#whats-next">What&rsquo;s next</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Terraform Agents</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2000</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

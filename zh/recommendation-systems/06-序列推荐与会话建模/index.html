@@ -1,0 +1,1688 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>推荐系统（六）—— 序列推荐与会话建模 · Chen Kai Blog</title>
+<meta name="description" content="序列推荐方法全景：从马尔可夫链、GRU4Rec、Caser，到 SASRec、BERT4Rec、BST、SR-GNN，讲清模型动机、关键公式与实现细节，并用图示对比性能与代价。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="推荐系统（六）—— 序列推荐与会话建模">
+<meta property="og:description" content="序列推荐方法全景：从马尔可夫链、GRU4Rec、Caser，到 SASRec、BERT4Rec、BST、SR-GNN，讲清模型动机、关键公式与实现细节，并用图示对比性能与代价。">
+<meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">推荐系统</a>
+         · Chapter 6
+      </div>
+      <h1>推荐系统（六）—— 序列推荐与会话建模</h1>
+      <p class="deck">序列推荐方法全景：从马尔可夫链、GRU4Rec、Caser，到 SASRec、BERT4Rec、BST、SR-GNN，讲清模型动机、关键公式与实现细节，并用图示对比性能与代价。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-12-16">December 16, 2025</time> · 21 min read · 10300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/" class="tag">#推荐系统</a><a href="/zh/tags/%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90/" class="tag">#序列推荐</a><a href="/zh/tags/%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/" class="tag">#会话建模</a><a href="/zh/tags/transformer/" class="tag">#Transformer</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>打开淘宝刚浏览了几件商品，首页的&quot;猜你喜欢&quot;立刻刷新；听完两首周杰伦，音乐 App 紧接着推同风格的曲子。这种&quot;根据最近行为序列预测下一步兴趣&quot;的能力，就是<strong>序列推荐</strong>（Sequential Recommendation）的看家本领。</p>
+<p>传统协同过滤把用户历史当作一袋无序的交互来处理，把&quot;先后顺序&quot;这条信息直接扔掉了。但现实中，用户兴趣随时间漂移，行为之间有强烈的依赖关系——刚看完手机的用户更可能去看手机壳，而不是台式机。如何把这种<strong>动态、有序</strong>的偏好建模出来，是序列推荐要回答的核心问题。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/fig1_sequence_timeline.png" alt="用户的交互序列：每一步都依赖前面发生过的动作，最终落到&quot;下一项预测&quot;上" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>本文按照模型演进顺序，把马尔可夫链、GRU4Rec、Caser、SASRec、BERT4Rec、BST、SR-GNN 一条线讲透：动机、公式、实现细节、各自的强项与代价。读完应该能在面对一个具体业务问题时，知道&quot;该选哪个、为什么选它、踩坑会踩在哪里&quot;。</p>
+<h2 id="你将学到">你将学到</h2>
+<ul>
+<li>为什么&quot;顺序&quot;是协同过滤丢掉的关键信号</li>
+<li>马尔可夫链作为最简基线：为什么稀疏，又为什么仍然有用</li>
+<li><strong>GRU4Rec</strong>：第一个把 RNN 用到 session-based 推荐里的工作</li>
+<li><strong>Caser</strong>：把序列当成&quot;图像&quot;用 CNN 抽多尺度模式</li>
+<li><strong>SASRec / BERT4Rec</strong>：Transformer 时代的单向与双向方案</li>
+<li><strong>BST</strong>：把品类、品牌、价格这些 side feature 也喂进 Transformer</li>
+<li><strong>SR-GNN</strong>：把会话建模成有向图，再用 GNN 编码</li>
+<li>HR@K、NDCG@K、MRR 这三个评估指标在测什么</li>
+<li>部署到工业系统时的 6 个关键工程细节</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>熟悉神经网络基础（RNN、CNN、Transformer）</li>
+<li>PyTorch 基本用法</li>
+<li>推荐系统基础（参考<a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%80-%e5%85%a5%e9%97%a8%e4%b8%8e%e5%9f%ba%e7%a1%80%e6%a6%82%e5%bf%b5/">第 1 篇</a>
+）</li>
+<li>Embedding 表示学习（参考<a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%94-Embedding%e8%a1%a8%e7%a4%ba%e5%ad%a6%e4%b9%a0/">第 5 篇</a>
+）</li>
+</ul>
+<hr>
+<h2 id="序列推荐到底在解什么问题">序列推荐到底在解什么问题</h2>
+<h3 id="形式化定义">形式化定义</h3>
+<p>给定用户 $u$ 的历史交互序列 $S_u = [i_1, i_2, \dots, i_t]$，序列推荐要估计</p>
+$$
+P(i_{t+1} \mid S_u) = P(i_{t+1} \mid i_1, i_2, \dots, i_t).
+$$<p>通俗讲：<strong>把用户已经做过的事按时间顺序铺开，然后猜下一个动作是什么</strong>。这里的关键不只是&quot;这些 item 出现过&quot;，更是&quot;它们以什么顺序出现&quot;。</p>
+<h3 id="为什么这件事重要">为什么这件事重要</h3>
+<p>序列推荐能在生产系统里站稳脚跟，靠的是四件事：</p>
+<ul>
+<li><strong>兴趣漂移</strong>：上个月迷动作片，这个月在啃纪录片。静态模型抓不住这种迁移，序列模型会跟着调整。</li>
+<li><strong>局部上下文</strong>：刚点完一支预告片，紧接着想看的就是正片本身，不是随机推荐。这种短链条逻辑只有序列模型才装得下。</li>
+<li><strong>会话意图</strong>：电商里用户连看几个笔记本，下一个大概率是笔记本包——这种规律藏在&quot;转移概率&quot;里，不在边缘流行度里。</li>
+<li><strong>冷启动缓解</strong>：哪怕只有 3 条交互，&ldquo;顺序&quot;本身也是信号。无序模型把这个信号直接丢了。</li>
+</ul>
+<h3 id="与传统推荐的对照">与传统推荐的对照</h3>
+<table>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>传统协同过滤</th>
+          <th>序列推荐</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>输入</td>
+          <td>无序的交互集合</td>
+          <td>有序的交互序列</td>
+      </tr>
+      <tr>
+          <td>时间建模</td>
+          <td>忽略</td>
+          <td>一等公民</td>
+      </tr>
+      <tr>
+          <td>预测目标</td>
+          <td>$P(i \mid u)$</td>
+          <td>$P(i_{t+1} \mid S_u)$</td>
+      </tr>
+      <tr>
+          <td>强项</td>
+          <td>长期偏好</td>
+          <td>下一步预测</td>
+      </tr>
+      <tr>
+          <td>典型话术</td>
+          <td>&ldquo;和你相似的人也喜欢……&rdquo;</td>
+          <td>&ldquo;根据你刚才的行为……&rdquo;</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="三种典型形态">三种典型形态</h3>
+<ul>
+<li><strong>用户级序列推荐</strong>：把用户全部历史拼成一条长序列。适合捕捉慢速的兴趣演化（如音乐 App 的几个月听歌史）。</li>
+<li><strong>会话级推荐（Session-based）</strong>：每个会话独立处理。适合匿名用户或短期意图（一次电商浏览）。</li>
+<li><strong>混合方案</strong>：长期 embedding 表达&quot;你是谁&rdquo;，当前会话表达&quot;你现在想要什么&quot;。工业系统大多落到这一档。</li>
+</ul>
+<hr>
+<h2 id="马尔可夫链方法">马尔可夫链方法</h2>
+<h3 id="一阶马尔可夫链">一阶马尔可夫链</h3>
+<p>最简单的序列模型是<strong>一阶马尔可夫链</strong>：假设下一个 item 只依赖当前 item。</p>
+$$
+P(i_{t+1} \mid i_1, \dots, i_t) = P(i_{t+1} \mid i_t).
+$$<blockquote>
+<p><strong>类比</strong>：好比只用当前这个词去预测下一个词。看到&quot;冰&quot;你可能猜&quot;激凌&quot;，但完全不知道前面在聊甜品还是冰球。</p>
+</blockquote>
+<p>实现上是学一个转移矩阵 $M \in \mathbb{R}^{|I| \times |I|}$，$M_{ij} = P(j \mid i)$，从频次估计：</p>
+$$
+M_{ij} = \frac{\text{count}(i \to j)}{\text{count}(i)}.
+$$<h3 id="高阶马尔可夫链">高阶马尔可夫链</h3>
+<p>$k$ 阶链条件在最近 $k$ 个 item 上：</p>
+$$
+P(i_{t+1} \mid i_1, \dots, i_t) = P(i_{t+1} \mid i_{t-k+1}, \dots, i_t).
+$$<p>阶数越高上下文越多，但<strong>状态空间指数级膨胀</strong>：1 万个 item 的二阶模型要估 $10^8$ 种转移概率，绝大多数从未在数据里出现过。这就是数据稀疏问题。</p>
+<h3 id="fpmc因子分解马尔可夫链">FPMC：因子分解马尔可夫链</h3>
+<p>FPMC（Factorizing Personalized Markov Chains）把矩阵分解和马尔可夫链拼在一起：既考虑个性化（用户向量），也保留序列模式（item 转移）。优点是参数规模远小于纯高阶链，并能跨用户共享统计信号；缺点是表达能力仍然有限。</p>
+<h3 id="实现一阶马尔可夫推荐器">实现：一阶马尔可夫推荐器</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MarkovChainRecommender</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;一阶马尔可夫链：简单、可解释，是稳定的强基线。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="n">order</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">transition_counts</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">context_counts</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">items</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequences</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">sequences</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">context</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">seq</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">next_item</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">transition_counts</span><span class="p">[</span><span class="n">context</span><span class="p">][</span><span class="n">next_item</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">context_counts</span><span class="p">[</span><span class="n">context</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict_next</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequence</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">context</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">sequence</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">:])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">context</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">transition_counts</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_counts</span><span class="p">[</span><span class="n">context</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">probs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">item</span><span class="p">,</span> <span class="n">count</span> <span class="o">/</span> <span class="n">total</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                 <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">transition_counts</span><span class="p">[</span><span class="n">context</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">probs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">probs</span><span class="p">[:</span><span class="n">top_k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># --- 使用示例 ---</span>
+</span></span><span class="line"><span class="cl"><span class="n">sequences</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>   <span class="c1"># 笔记本 -&gt; 鼠标 -&gt; 键盘 -&gt; 显示器</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>      <span class="c1"># 笔记本 -&gt; 鼠标 -&gt; 鼠标垫</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>      <span class="c1"># 鼠标   -&gt; 键盘 -&gt; 显示器</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>      <span class="c1"># 笔记本 -&gt; 充电器 -&gt; 电脑包</span>
+</span></span><span class="line"><span class="cl"><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">MarkovChainRecommender</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_next</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;  item </span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">prob</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 鼠标后面跟&#34;键盘&#34;出现了 2 次，所以 keyboard 排第一</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="马尔可夫链的局限">马尔可夫链的局限</h3>
+<ul>
+<li><strong>数据稀疏</strong>：item 越多，绝大多数转移从未出现过；平滑能缓解但治不了根。</li>
+<li><strong>窗口太短</strong>：哪怕上几阶，也只看得见固定窗口，根本表达不出&quot;这个用户最近一个月都在研究摄影&quot;这种长程信号。</li>
+<li><strong>没有泛化</strong>：A 和 B 即便是相似 item，模型也当成完全独立——它没有共享表示。</li>
+</ul>
+<p>这三件事正好是神经序列模型要补的洞。</p>
+<hr>
+<h2 id="gru4rec用-rnn-建模会话">GRU4Rec：用 RNN 建模会话</h2>
+<h3 id="模型动机">模型动机</h3>
+<p>GRU4Rec（Hidasi et al., 2015）是把深度学习正式带进 session-based 推荐的开山之作。它用 <strong>Gated Recurrent Unit</strong> 一步步读 item，用一个不断更新的隐藏状态来&quot;压缩&quot;会话至今的全部内容。</p>
+<blockquote>
+<p><strong>核心想法</strong>：不要把会话当作 item 的袋子，而是按时间顺序一个一个读，让一个隐藏状态承担&quot;短期记忆&quot;的职责。</p>
+</blockquote>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/fig2_gru4rec_architecture.png" alt="GRU4Rec 架构：item 进 embedding → 进 GRU 串行更新隐藏状态 → 用最后的隐藏状态过 softmax 预测下一个 item" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="gru-单元的更新方式">GRU 单元的更新方式</h3>
+<p>GRU 维护一个隐藏状态 $h_t$。给定输入 $x_t$（item $i_t$ 的 embedding）和上一时刻的 $h_{t-1}$：</p>
+<p><strong>重置门</strong>（决定要丢掉多少历史）：</p>
+$$r_t = \sigma(W_r x_t + U_r h_{t-1} + b_r)$$<p><strong>更新门</strong>（决定历史与新信息的混合比例）：</p>
+$$z_t = \sigma(W_z x_t + U_z h_{t-1} + b_z)$$<p><strong>候选状态</strong>（基于&quot;被允许通过&quot;的历史 + 当前输入算出来的新表示）：</p>
+$$\tilde{h}_t = \tanh(W_h x_t + U_h (r_t \odot h_{t-1}) + b_h)$$<p><strong>最终隐藏状态</strong>（在旧状态和候选状态之间内插）：</p>
+$$h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t$$<blockquote>
+<p><strong>直观理解</strong>：GRU 把一段会话当作一段记忆——重置门决定&quot;要不要忘记&quot;，更新门决定&quot;要不要写入&quot;，最后的 $h_t$ 就是整段会话的压缩摘要。</p>
+</blockquote>
+<p>整体流程：<strong>Embedding → GRU → 全连接 → Softmax over items</strong>，损失用 BPR 或 TOP1 这类 implicit feedback 上的排序损失。</p>
+<h3 id="关键工程细节">关键工程细节</h3>
+<p>实现 GRU4Rec 时，几个看似简单的设计往往决定了能不能跑出靠谱的效果：</p>
+<p><strong>Session-parallel mini-batch</strong>：原论文里特别提到的训练策略。每个 batch 里同时跑多个会话，但会话长度不同。短会话提前结束后，对应位置的隐藏状态停止更新。这样既能利用 GPU 并行，又不会让 padding 把训练目标污染掉。</p>
+<p><strong>负采样</strong>：物品空间动辄百万，直接对全词表算 softmax 是奢侈。GRU4Rec 用负采样近似——正样本是序列里真正的下一个 item，负样本随机从词表抽几条，配合 BPR 损失最大化正负样本得分差。</p>
+<p><strong>变长序列处理</strong>：用 PyTorch 的 <code>pack_padded_sequence</code> / <code>pad_packed_sequence</code> 把 padding 排除出 GRU 的实际计算，只在有效位置消耗算力。</p>
+<p><strong>Dropout</strong>：通常加在 embedding 层之后和 GRU 输出之后。0.2–0.5 是常用范围；数据少就调大些。</p>
+<h3 id="实现">实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">DataLoader</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GRU4Rec</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;基于 GRU 的会话推荐模型。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_items</span> <span class="o">=</span> <span class="n">num_items</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gru</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GRU</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">input_size</span><span class="o">=</span><span class="n">embedding_dim</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">hidden_size</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span> <span class="k">if</span> <span class="n">num_layers</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">zeros_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequences</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">sequences</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">gru_out</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gru</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">gru_out</span><span class="p">)),</span> <span class="n">hidden</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict_next</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequence</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">seq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">sequence</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">logits</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">k</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">top_k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_items</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">indices</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">scores</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SessionDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;填充/截断到 max_len；输入 = 去掉最后一项，标签 = 去掉第一项。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sessions</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span> <span class="o">=</span> <span class="n">sessions</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">=</span> <span class="n">max_len</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">:]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">+</span> <span class="n">s</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">s</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_gru4rec</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cpu&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">loss_fn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">(</span><span class="n">ignore_index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">total</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">num_epochs</span><span class="si">}</span><span class="s2">  loss=</span><span class="si">{</span><span class="n">total</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="优缺点">优缺点</h3>
+<table>
+  <thead>
+      <tr>
+          <th>强项</th>
+          <th>弱项</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>天然适合序列依赖建模</td>
+          <td>时间维度无法并行，训练慢</td>
+      </tr>
+      <tr>
+          <td>变长序列开箱即用</td>
+          <td>长程依赖会&quot;忘掉&quot;</td>
+      </tr>
+      <tr>
+          <td>结构紧凑，调参成本低</td>
+          <td>隐藏状态固定大小，承载力有限</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="caser用-cnn-抽多尺度模式">Caser：用 CNN 抽多尺度模式</h2>
+<h3 id="动机">动机</h3>
+<p>Caser（Tang &amp; Wang, 2018）换了个思路：<strong>把 embedding 后的序列当作一张&quot;图像&quot;</strong>，用卷积去扫。不同大小的卷积核同时捕获不同长度的模式，全部并行。</p>
+<blockquote>
+<p><strong>类比</strong>：GRU4Rec 是逐字读句子，Caser 是把整句铺平，然后用一组不同放大倍率的放大镜同时看不同尺度的模式（双词、三词、四词词组……）。</p>
+</blockquote>
+<h3 id="架构">架构</h3>
+<p>设输入序列 embedding 矩阵为 $\mathbf{E} \in \mathbb{R}^{t \times d}$（长度 $t$，维度 $d$）：</p>
+<ul>
+<li><strong>水平卷积</strong>沿序列方向滑动，捕获<strong>联合级 n-gram 模式</strong>。卷积核高度取 2、3、4 就分别得到双词、三词、四词检测器。</li>
+<li><strong>垂直卷积</strong>沿 embedding 维度扫，捕获<strong>点级潜在特征</strong>——把序列里同一维度的特征聚合起来。</li>
+</ul>
+$$
+\mathbf{c}_h = \text{ReLU}(\text{Conv}_h(\mathbf{E})) \quad\text{（水平，高度为 } h\text{）}
+$$$$
+\mathbf{c}_v = \text{ReLU}(\text{Conv}_v(\mathbf{E})) \quad\text{（垂直，覆盖整个序列）}
+$$<p>水平 + 垂直输出做 max pooling、拼接，再过全连接头预测下一个 item。</p>
+<h3 id="实现-1">实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Caser</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;基于 CNN 的序列推荐。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">max_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">num_horizon</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">num_vertical</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">horizon_sizes</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_items</span> <span class="o">=</span> <span class="n">num_items</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">=</span> <span class="n">max_len</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">horizon_convs</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_horizon</span><span class="p">,</span> <span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">))</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">horizon_sizes</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">vertical_conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_vertical</span><span class="p">,</span> <span class="p">(</span><span class="n">max_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="n">num_horizon</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">horizon_sizes</span><span class="p">)</span> <span class="o">+</span> <span class="n">num_vertical</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequences</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># (B, 1, L, D)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h_outs</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">conv</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">horizon_convs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">o</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">conv</span><span class="p">(</span><span class="n">emb</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">h_outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">h_outs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertical_conv</span><span class="p">(</span><span class="n">emb</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="caser-的价值">Caser 的价值</h3>
+<ul>
+<li><strong>天生并行</strong>：CNN 一次前向把整段序列处理完，比 RNN 在 GPU 上快得多。</li>
+<li><strong>多尺度模式</strong>：不同高度的卷积核同时抓双词、三词、四词组合。</li>
+<li><strong>局部模式专家</strong>：在短会话、强局部规律的场景上，性价比比 RNN/Transformer 都高。</li>
+</ul>
+<hr>
+<h2 id="sasrec自注意力的序列推荐">SASRec：自注意力的序列推荐</h2>
+<h3 id="为什么换-transformer">为什么换 Transformer</h3>
+<p>SASRec（Kang &amp; McAuley, 2018）把 <strong>Transformer 编码器</strong>带进了序列推荐。自注意力一次性解决了 RNN 的两个老问题：任意两个位置之间一步直达（不再衰减），并且所有位置同时算（不再串行）。</p>
+<blockquote>
+<p><strong>关键直觉</strong>：RNN 一次只能读一个 item，远距离 item 之间的信号要经过很多步才能传过去；自注意力让每个 item 一次矩阵乘法就能看见之前所有 item，远近一视同仁。</p>
+</blockquote>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/fig3_attention_heatmap.png" alt="SASRec 自注意力权重热图（带因果掩码）：每一行是一个 query，列是 key；右上半边被打了斜线，是被遮蔽的&quot;未来&quot;" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>热图能直观看到三个特征：对角线最深（每个位置当然最关心自己）；越近的 item 权重越大（recency bias）；右上三角被遮蔽——SASRec 不允许&quot;偷看&quot;未来。</p>
+<h3 id="关键组件">关键组件</h3>
+<p><strong>1. Self-Attention</strong>：每个位置对所有更早的位置算注意力。</p>
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V.
+$$<p>$\sqrt{d_k}$ 缩放是为了避免点积随维度增大而爆炸，让 softmax 处于敏感区。</p>
+<p><strong>2. 因果掩码</strong>：位置 $t$ 只能看 $1, \dots, t$。否则模型直接抄&quot;答案&quot;，训练就破功了。</p>
+<p><strong>3. 位置编码</strong>：自注意力本身对位置不敏感——它对输入是置换等变的。要让模型知道&quot;顺序&quot;，必须把位置信息注入进去，经典做法是正弦位置编码：</p>
+$$
+PE_{(p, 2i)} = \sin(p / 10000^{2i/d}), \qquad
+PE_{(p, 2i+1)} = \cos(p / 10000^{2i/d}).
+$$<p>下图展示这个加法在做什么。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/fig5_position_plus_item.png" alt="Item embedding（左）&#43; 位置编码（中）= Transformer 实际吃进去的输入（右）。位置项把&quot;无序的 item 集合&quot;变成了&quot;有顺序的序列&quot;" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>4. 残差连接 + LayerNorm</strong>：标准 Transformer 配件，让深层堆叠能训得动。</p>
+<h3 id="实现-2">实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PositionalEncoding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pe</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">max_len</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">div</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">10000.0</span><span class="p">)</span> <span class="o">/</span> <span class="n">d_model</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pe</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">pos</span> <span class="o">*</span> <span class="n">div</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pe</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">pos</span> <span class="o">*</span> <span class="n">div</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&#34;pe&#34;</span><span class="p">,</span> <span class="n">pe</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="p">:]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TransformerBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MultiheadAttention</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ff</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_ff</span><span class="p">,</span> <span class="n">d_model</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">a</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">attn_mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ff</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SASRec</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">d_model</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">d_ff</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_items</span> <span class="o">=</span> <span class="n">num_items</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">=</span> <span class="n">d_model</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">=</span> <span class="n">max_len</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pos_encoding</span> <span class="o">=</span> <span class="n">PositionalEncoding</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">max_len</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">TransformerBlock</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequences</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos_encoding</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">causal</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">triu</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">sequences</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">diagonal</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">causal</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="为什么-sasrec-成了默认选择">为什么 SASRec 成了默认选择</h3>
+<ul>
+<li><strong>长程依赖</strong>直接打通，没有梯度衰减问题。</li>
+<li><strong>训练并行</strong>，GPU 利用率高。</li>
+<li><strong>可解释性免费送</strong>——注意力权重直接告诉你哪个历史 item 影响了预测。</li>
+<li><strong>可扩展性好</strong>：序列变长、模型变宽，效果通常都跟着涨。</li>
+</ul>
+<hr>
+<h2 id="bert4rec双向编码的序列推荐">BERT4Rec：双向编码的序列推荐</h2>
+<h3 id="动机-1">动机</h3>
+<p>BERT4Rec（Sun et al., 2019）把 Transformer 主干保留，但训练目标换了——借了 BERT 的<strong>完形填空（cloze task）</strong>：随机掩掉序列里若干 item，让模型用<strong>双向</strong>上下文把它们补全。</p>
+<blockquote>
+<p><strong>等等，不是不能看未来吗？</strong> 训练时确实可以！我们随机遮掉若干位置，让双向编码器把这些位置重建出来。推理时则在序列末尾追加一个 <code>[MASK]</code>，让它去填——backbone 一样，pretext task 不同，得到的表示更丰富。</p>
+</blockquote>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/fig4_bert4rec_masking.png" alt="BERT4Rec 用双向 Transformer 重建被掩码的位置：图中 pos 3 和 pos 6 被遮蔽，编码器用其余位置作上下文还原它们" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="与-sasrec-的对照">与 SASRec 的对照</h3>
+<table>
+  <thead>
+      <tr>
+          <th>特性</th>
+          <th>SASRec</th>
+          <th>BERT4Rec</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>注意力方向</td>
+          <td>因果（left → right）</td>
+          <td>双向</td>
+      </tr>
+      <tr>
+          <td>训练任务</td>
+          <td>预测下一个 item</td>
+          <td>预测被掩码的 item</td>
+      </tr>
+      <tr>
+          <td>Mask 策略</td>
+          <td>训练用因果掩码</td>
+          <td>训练用随机掩码</td>
+      </tr>
+      <tr>
+          <td>推理方式</td>
+          <td>取最后一个位置的输出</td>
+          <td>末尾追加 <code>[MASK]</code>，读它的输出</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="实现-3">实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BERT4Rec</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;双向 Transformer + 完形填空式训练。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">d_model</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">d_ff</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">mask_prob</span><span class="o">=</span><span class="mf">0.15</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_items</span> <span class="o">=</span> <span class="n">num_items</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">=</span> <span class="n">max_len</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mask_prob</span> <span class="o">=</span> <span class="n">mask_prob</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span> <span class="o">=</span> <span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span>                                 <span class="c1"># [MASK] id</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pos_encoding</span> <span class="o">=</span> <span class="n">PositionalEncoding</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">max_len</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">TransformerBlock</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_mask_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequences</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">import</span> <span class="nn">random</span>
+</span></span><span class="line"><span class="cl">        <span class="n">masked</span> <span class="o">=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">positions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">sequences</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_prob</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">positions</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">r</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">if</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="mf">0.8</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">masked</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span>                  <span class="c1"># 80%: [MASK]</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">elif</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="mf">0.9</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">masked</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_items</span><span class="p">)</span><span class="c1"># 10%: 随机</span>
+</span></span><span class="line"><span class="cl">                    <span class="c1"># 10%: 保持原样</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">masked</span><span class="p">,</span> <span class="n">positions</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequences</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">sequences</span><span class="p">,</span> <span class="n">positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_sequence</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">positions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos_encoding</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>                                       <span class="c1"># 没有因果掩码</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">positions</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict_next</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequence</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span><span class="p">[</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">sequence</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">))</span> <span class="o">+</span> <span class="n">sequence</span>
+</span></span><span class="line"><span class="cl">            <span class="n">seq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">sequence</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">mask_pos</span> <span class="o">=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">logits</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">mask_pos</span><span class="p">,</span> <span class="p">:],</span>
+</span></span><span class="line"><span class="cl">                                         <span class="n">k</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">top_k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_items</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">indices</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">scores</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="取舍">取舍</h3>
+<p><strong>收益</strong>：双向上下文得到的表示更丰富；随机掩码训练让模型对噪声、缺失更鲁棒。</p>
+<p><strong>代价</strong>：推理需要 <code>[MASK]</code> 追加这个小 trick，不如自回归直观；训练流程稍复杂一些；在很多真实数据集上，调好的 SASRec 已经能追平甚至略好。<strong>先上 SASRec，确实需要再考虑 BERT4Rec</strong>。</p>
+<hr>
+<h2 id="bst行为序列-transformer">BST：行为序列 Transformer</h2>
+<h3 id="它和别人的不同">它和别人的不同</h3>
+<p>BST（Chen et al., 2019，阿里）把 Transformer 扩展到了<strong>多字段特征</strong>场景。真实电商不只有 item ID，还有类目、品牌、价格档、店铺、用户人群——BST 把这些都 embedding 后拼起来塞进 Transformer。</p>
+<blockquote>
+<p><strong>核心想法</strong>：真实用户行为不是 ID 序列，是<strong>事件序列</strong>。每个事件是 item ID + 类目 + 品牌 + 价格 + 时间间隔的组合。BST 把这一束特征当作输入的最小单位。</p>
+</blockquote>
+<h3 id="实现-4">实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FeatureEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;把多个类别字段分别 embedding 再拼接。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_dims</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">            <span class="n">name</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">feature_dims</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="p">[</span><span class="n">n</span><span class="p">](</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BST</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;适合特征丰富电商场景的行为序列 Transformer。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_vocab_size</span><span class="p">,</span> <span class="n">feature_dims</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">d_ff</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">=</span> <span class="n">max_len</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">item_vocab_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">feature_embedding</span> <span class="o">=</span> <span class="n">FeatureEmbedding</span><span class="p">(</span><span class="n">feature_dims</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="n">embedding_dim</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">feature_dims</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pos_encoding</span> <span class="o">=</span> <span class="n">PositionalEncoding</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="n">max_len</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">TransformerBlock</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_ff</span><span class="p">,</span> <span class="n">d_ff</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_ff</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">item_ids</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                       <span class="bp">self</span><span class="o">.</span><span class="n">feature_embedding</span><span class="p">(</span><span class="n">features</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos_encoding</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">item_ids</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">causal</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">triu</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">item_ids</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">diagonal</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">causal</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="会话推荐session-based-recommendation">会话推荐（Session-based Recommendation）</h2>
+<p><strong>会话</strong>是一段短时间窗口内的交互——一次电商访问、一次播放列表、一次新闻浏览。会话推荐是序列推荐的特例，但带着几条强约束：</p>
+<ul>
+<li><strong>匿名为常态</strong>：用户身份可能不可用。</li>
+<li><strong>序列短</strong>：通常 5–20 条。</li>
+<li><strong>会话间独立</strong>：跨会话历史要么没有、要么主动忽略。</li>
+<li><strong>实时性要求高</strong>：用户每点一下，都得跟得上。</li>
+</ul>
+<table>
+  <thead>
+      <tr>
+          <th>场景</th>
+          <th>典型会话</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>电商</td>
+          <td>笔记本 → 笔记本包 → 笔记本支架</td>
+      </tr>
+      <tr>
+          <td>新闻</td>
+          <td>时政 → 体育 → 天气</td>
+      </tr>
+      <tr>
+          <td>音乐</td>
+          <td>爵士 → 深夜爵士 → 古典</td>
+      </tr>
+      <tr>
+          <td>视频</td>
+          <td>一连三个做菜教程</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="sr-gnn用图神经网络做会话推荐">SR-GNN：用图神经网络做会话推荐</h2>
+<h3 id="动机-2">动机</h3>
+<p>SR-GNN（Wu et al., 2019）走了条不同的路：<strong>把会话建模成有向图</strong>，节点是 item，边是转移关系。</p>
+<blockquote>
+<p><strong>为什么用图？</strong> 想想会话 $[A, B, C, B, D]$，item $B$ 出现了两次，形成一个回路。图天然能表达这种重复访问，平面序列模型却要费力气才能近似。</p>
+</blockquote>
+<h3 id="图的构造">图的构造</h3>
+<p>对会话 $S = [i_1, i_2, \dots, i_t]$：</p>
+<ul>
+<li><strong>节点</strong>：会话中出现过的 item（去重）。</li>
+<li><strong>边</strong>：从每个 item 指向序列中紧随其后的 item，方向感保留。</li>
+<li><strong>边权</strong>：转移频次（自动处理重复访问）。</li>
+</ul>
+<h3 id="工作流程">工作流程</h3>
+<p>SR-GNN 用**门控图神经网络（Gated Graph Neural Network, GGNN）**在节点间传递信息。更新方程类似 GRU，只是换成了在图邻居上做：</p>
+<p><strong>消息传递</strong>：</p>
+$$
+\mathbf{m}_v^{(l)} = \sum_{u \in \mathcal{N}(v)} \mathbf{A}_{uv}\,\mathbf{h}_u^{(l-1)}
+$$<p><strong>门控更新</strong>：</p>
+$$
+\mathbf{z}_v = \sigma(\mathbf{W}_z \mathbf{m}_v + \mathbf{U}_z \mathbf{h}_v),\quad
+\mathbf{r}_v = \sigma(\mathbf{W}_r \mathbf{m}_v + \mathbf{U}_r \mathbf{h}_v)
+$$$$
+\tilde{\mathbf{h}}_v = \tanh(\mathbf{W}_h \mathbf{m}_v + \mathbf{U}_h (\mathbf{r}_v \odot \mathbf{h}_v))
+$$$$
+\mathbf{h}_v = (1 - \mathbf{z}_v) \odot \mathbf{h}_v + \mathbf{z}_v \odot \tilde{\mathbf{h}}_v
+$$<blockquote>
+<p><strong>直观理解</strong>：每个 item 跟它的&quot;邻居&quot;（紧邻它前后的 item）交换信息。几轮消息传递后，每个 item 的表示都吸收了它在会话图局部邻域的语义。最后用注意力对节点做加权汇总，得到会话表示。</p>
+</blockquote>
+<h3 id="实现简化版">实现（简化版）</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SRGNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;会话即图的推荐模型；简化的 GGNN + 注意力汇总。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">num_gnn_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_items</span> <span class="o">=</span> <span class="n">num_items</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_gnn_layers</span> <span class="o">=</span> <span class="n">num_gnn_layers</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_z</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">U_z</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_r</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">U_r</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_h</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">U_h</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attention</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">num_items</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_gnn_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_embs</span><span class="p">,</span> <span class="n">adj</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">m</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">adj</span><span class="p">,</span> <span class="n">node_embs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W_z</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_z</span><span class="p">(</span><span class="n">node_embs</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W_r</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_r</span><span class="p">(</span><span class="n">node_embs</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W_h</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_h</span><span class="p">(</span><span class="n">r</span> <span class="o">*</span> <span class="n">node_embs</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">z</span><span class="p">)</span> <span class="o">*</span> <span class="n">node_embs</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">unique</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">session</span><span class="p">))</span>                           <span class="c1"># 去重保序</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">item</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">adj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">session</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">adj</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">idx</span><span class="p">[</span><span class="n">a</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">        <span class="n">adj</span> <span class="o">=</span> <span class="n">adj</span> <span class="o">/</span> <span class="n">adj</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">unique</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gnn_layers</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gnn_step</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">adj</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">seq_emb</span> <span class="o">=</span> <span class="n">h</span><span class="p">[[</span><span class="n">idx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">session</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">attn</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attention</span><span class="p">(</span><span class="n">seq_emb</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">session_emb</span> <span class="o">=</span> <span class="p">(</span><span class="n">attn</span> <span class="o">*</span> <span class="n">seq_emb</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">session_emb</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="sr-gnn-的看家本领">SR-GNN 的看家本领</h3>
+<ul>
+<li><strong>图结构</strong>承载平面序列表达不了的复杂转移模式。</li>
+<li><strong>重复 item 一等公民</strong>——多次出现会汇聚到同一个节点，转移权重叠加。</li>
+<li><strong>局部消息传递</strong>捕获&quot;这个 item 是会话内某个兴趣团簇的中心&quot;这类局部信号。</li>
+</ul>
+<hr>
+<h2 id="序列长度该怎么选">序列长度该怎么选</h2>
+<p>不同模型对&quot;序列要多长&quot;的敏感度差别很大，付出的代价也截然不同。下图把这件事画得比较清楚。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/06-%E5%BA%8F%E5%88%97%E6%8E%A8%E8%8D%90%E4%B8%8E%E4%BC%9A%E8%AF%9D%E5%BB%BA%E6%A8%A1/fig6_performance_vs_length.png" alt="左图：HR@10 随最大序列长度的变化。Transformer 类模型一直随序列变长而提升。右图：相对训练开销——RNN 串行，开销线性增长；Transformer 并行，几乎平稳" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>三个观察：</p>
+<ul>
+<li><strong>马尔可夫链很早就饱和</strong>：固定窗口的假设决定了它没法吃到更长上下文的好处。</li>
+<li><strong>GRU4Rec 在 50–75 附近见顶</strong>：再长就压不住了，定长隐藏状态成为瓶颈。</li>
+<li><strong>SASRec / BERT4Rec 一直在涨</strong>：任意两个位置一步直达，没有压缩瓶颈，更长上下文真的能换来更好预测。</li>
+</ul>
+<p>代价图正好相反。RNN 时间维度无法并行，开销随序列长度线性走；Transformer 充分利用 GPU 并行，在主流长度区间几乎不涨。两件事合在一起，就解释了为什么 Transformer 成了工业级序列推荐的默认底座。</p>
+<hr>
+<h2 id="评估指标">评估指标</h2>
+<h3 id="三个必须知道的">三个必须知道的</h3>
+<p><strong>Hit Rate (HR@K)</strong>：测试集中真值出现在 Top-K 推荐里的比例。</p>
+$$
+\text{HR@K} = \frac{1}{|T|} \sum_{t \in T} \mathbb{1}\!\left[\text{rank}(i_t^*) \leq K\right]
+$$<p><strong>NDCG@K</strong>：和 HR@K 类似，但根据排名位置以 $\log$ 折扣。</p>
+$$
+\text{NDCG@K} = \frac{1}{|T|} \sum_{t \in T} \frac{\mathbb{1}\!\left[\text{rank}(i_t^*) \leq K\right]}{\log_2(\text{rank}(i_t^*) + 1)}
+$$<p><strong>MRR</strong>：真值的平均倒数排名。</p>
+$$
+\text{MRR} = \frac{1}{|T|} \sum_{t \in T} \frac{1}{\text{rank}(i_t^*)}
+$$<blockquote>
+<p><strong>怎么选？</strong> HR@K 最直观（&ldquo;猜对了没&rdquo;）；NDCG@K 衡量排序质量（&ldquo;放在多靠前&rdquo;）；MRR 适合每条 query 有且仅有一个相关 item 的场景。</p>
+</blockquote>
+<h3 id="实现-5">实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">hit_rate_at_k</span><span class="p">(</span><span class="n">preds</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">truth</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span> <span class="ow">in</span> <span class="n">p</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">truth</span><span class="p">))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">truth</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">ndcg_at_k</span><span class="p">(</span><span class="n">preds</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">truth</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">truth</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">p</span><span class="p">[:</span><span class="n">k</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">p</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">mrr</span><span class="p">(</span><span class="n">preds</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">truth</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">scores</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">p</span> <span class="k">else</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">truth</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores</span><span class="p">))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="工程实践">工程实践</h2>
+<h3 id="数据预处理">数据预处理</h3>
+<p><strong>填充与截断</strong>：短序列前置补 0、长序列保留最近的若干 item 是基线做法。按长度分桶做动态 batch 能减少无效计算；超长历史可以用滑动窗口拆成多个固定长度子序列。</p>
+<p><strong>负采样</strong>：implicit feedback 只有正样本，必须采负样本。随机采样是基线，按流行度采或做 hard negative mining 能拿到更好的梯度但代价更高（详见<a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%94-Embedding%e8%a1%a8%e7%a4%ba%e5%ad%a6%e4%b9%a0/">第 5 篇</a>
+）。</p>
+<p><strong>数据增强</strong>：三个便宜好用的招数——</p>
+<ul>
+<li><strong>序列裁剪</strong>：把每条会话裁成多个重叠前缀。</li>
+<li><strong>随机 mask</strong>：BERT4Rec 风格，对非 BERT4Rec 模型也有帮助。</li>
+<li><strong>轻度乱序</strong>：扰动非邻接位置，提升鲁棒性。</li>
+</ul>
+<h3 id="训练">训练</h3>
+<ul>
+<li><strong>损失</strong>：交叉熵、BPR、sampled softmax 三选一。词表上百万时 sampled softmax 几乎是必须。</li>
+<li><strong>正则</strong>：Dropout（0.1–0.5）、L2 weight decay、validation HR@K 上的 early stopping，覆盖大多数情况。</li>
+<li><strong>优化</strong>：Transformer 类模型默认 AdamW + warmup 后 decay；梯度裁剪 norm=1.0 是稳妥的保险。</li>
+</ul>
+<h3 id="扩展到百万级-item">扩展到百万级 item</h3>
+<p>按这个顺序加杠杆：</p>
+<ol>
+<li><strong>负采样</strong>：训练时不要对全词表算 softmax。</li>
+<li><strong>近似最近邻</strong>（FAISS、HNSW）：在线召回阶段必备。</li>
+<li><strong>召回 + 精排两阶段</strong>：embedding 召回 → 重模型精排几百条候选。</li>
+<li><strong>蒸馏</strong>：训练一个小模型模仿大模型，推理时用小的。</li>
+<li><strong>量化</strong>：FP16 / INT8 推理，挤延迟预算。</li>
+<li><strong>缓存</strong>：item embedding、热门会话、稳定用户的预测都可以缓存。</li>
+</ol>
+<hr>
+<h2 id="模型对比与选型建议">模型对比与选型建议</h2>
+<table>
+  <thead>
+      <tr>
+          <th>模型</th>
+          <th>架构</th>
+          <th>可并行</th>
+          <th>长程能力</th>
+          <th>Side feature</th>
+          <th>最适合</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>马尔可夫链</td>
+          <td>统计</td>
+          <td>n/a</td>
+          <td>弱</td>
+          <td>无</td>
+          <td>基线 / 极冷启动</td>
+      </tr>
+      <tr>
+          <td>GRU4Rec</td>
+          <td>RNN</td>
+          <td>否</td>
+          <td>中</td>
+          <td>无</td>
+          <td>流式更新 / 简单会话</td>
+      </tr>
+      <tr>
+          <td>Caser</td>
+          <td>CNN</td>
+          <td>是</td>
+          <td>短</td>
+          <td>无</td>
+          <td>短会话 / 强局部规律</td>
+      </tr>
+      <tr>
+          <td>SASRec</td>
+          <td>Transformer</td>
+          <td>是</td>
+          <td>强</td>
+          <td>无</td>
+          <td>通用首选</td>
+      </tr>
+      <tr>
+          <td>BERT4Rec</td>
+          <td>Transformer</td>
+          <td>是</td>
+          <td>强</td>
+          <td>无</td>
+          <td>双向上下文真的有帮助时</td>
+      </tr>
+      <tr>
+          <td>BST</td>
+          <td>Transformer</td>
+          <td>是</td>
+          <td>强</td>
+          <td>有</td>
+          <td>特征丰富的电商场景</td>
+      </tr>
+      <tr>
+          <td>SR-GNN</td>
+          <td>GNN</td>
+          <td>部分</td>
+          <td>中</td>
+          <td>无</td>
+          <td>含重复 item 的会话</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>选型建议</strong>：</p>
+<ul>
+<li><strong>默认 SASRec</strong>。在大多数数据集上是单点最强选择。</li>
+<li>需要在线流式更新就用 <strong>GRU4Rec</strong>。</li>
+<li>会话短、局部模式强就用 <strong>Caser</strong>。</li>
+<li>item side feature 信息量大就用 <strong>BST</strong>。</li>
+<li>会话里大量重复 item、转移结构复杂就上 <strong>SR-GNN</strong>。</li>
+<li>有大规模预训练资源时再考虑 <strong>BERT4Rec</strong>。</li>
+</ul>
+<hr>
+<h2 id="qa">Q&amp;A</h2>
+<h3 id="什么时候用会话推荐什么时候用用户级序列推荐">什么时候用会话推荐，什么时候用用户级序列推荐？</h3>
+<p><strong>会话推荐</strong>适合匿名用户、短期意图（电商浏览、新闻）、低延迟场景。<strong>用户级序列推荐</strong>适合稳定的用户身份、长历史、关心兴趣演化的场景（音乐、视频）。生产系统大多两条腿走路：长期 embedding 表达&quot;你是谁&quot;，当前会话表达&quot;你现在想要什么&quot;。</p>
+<h3 id="max_len-怎么定"><code>max_len</code> 怎么定？</h3>
+<p>看会话长度的实际分布，瞄准 90 分位。常用区间：<strong>会话级 20–50，用户级 50–200</strong>。不是越长越好——多一个位置就多一份算力，且陈旧交互更可能是噪声。</p>
+<h3 id="为什么-transformer-通常优于-rnn">为什么 Transformer 通常优于 RNN？</h3>
+<p>三件事在工程上很重要：训练并行；任意两个位置一步直达，长程依赖不会衰减；注意力权重免费提供可解释性。RNN 仍有它的位置——内存预算紧、需要跨请求维持隐藏状态做真正流式推理时。</p>
+<h3 id="bert4rec-的双向真的有用吗">BERT4Rec 的双向真的有用吗？</h3>
+<p>有时候有用。双向上下文确实带来更丰富的表示，对噪声/缺失更鲁棒。但 <code>[MASK]</code> 追加的推理 trick 不直观，训练流程更复杂；很多真实数据集上调好的 SASRec 已经能追平甚至略好。<strong>先 SASRec，后 BERT4Rec</strong>。</p>
+<h3 id="冷启动怎么处理">冷启动怎么处理？</h3>
+<p><strong>新 item</strong>：用内容特征（类目、品牌、价格、文本、图像）冷启动；BST 这种 feature-aware 模型天然支持。<strong>新用户/新会话</strong>：起步推热门和趋势，用不需要历史的 session-based 模型，外加探索策略（epsilon-greedy 或 contextual bandits）。</p>
+<h3 id="报哪个评估指标">报哪个评估指标？</h3>
+<p>线下榜单上<strong>HR@10 + NDCG@10</strong>通常是最稳妥的组合：HR@10 直观，NDCG@10 衡量排序质量。每条 query 只有一个 ground truth 时，<strong>MRR</strong>作为补充很合适。生产环境一定要 pair 上线 A/B：CTR、转化率、营收。线下涨不一定线上涨。</p>
+<h3 id="序列推荐能和别的方法组合吗">序列推荐能和别的方法组合吗？</h3>
+<p>可以也应该。常见组合：</p>
+<ul>
+<li><strong>序列 + 协同过滤</strong>：时序信号 + 用户-物品相似度。</li>
+<li><strong>序列 + 内容</strong>：BST 这种把内容特征拼进序列。</li>
+<li><strong>序列 + 知识图谱</strong>：注入 item 之间的关系结构。</li>
+<li><strong>多任务</strong>：同时预测下一个 item、类目、停留时长。</li>
+</ul>
+<h3 id="当前研究前沿在做什么">当前研究前沿在做什么？</h3>
+<p>2023–2025 主要几个方向：</p>
+<ul>
+<li><strong>LLM-based 推荐</strong>：把用户历史序列化后 prompt 或微调语言模型。</li>
+<li><strong>对比学习</strong>：拉开 item 表示的语义距离。</li>
+<li><strong>多模态序列</strong>：把 ID、文本、图像、音频混着喂。</li>
+<li><strong>线性/亚二次注意力</strong>：处理超长用户历史。</li>
+<li><strong>因果推断</strong>：不止预测&quot;下一步是什么&quot;，还要回答&quot;为什么用户这么选&quot;。</li>
+</ul>
+<hr>
+<h2 id="总结">总结</h2>
+<p>序列推荐的核心命题——把&quot;顺序&quot;当作信号，从中学出&quot;下一步&quot;——已经被一连串模型反复打磨。从最简单的马尔可夫链，到 GRU4Rec、Caser，再到 SASRec、BERT4Rec、BST、SR-GNN，每一次迭代都在补上一代的盲区。</p>
+<p><strong>关键要点</strong>：</p>
+<ul>
+<li><strong>顺序就是信号</strong>：被 bag-of-items 模型扔掉的&quot;先后顺序&quot;，里面藏着用户兴趣的真实节奏。</li>
+<li><strong>架构演进路径</strong>：马尔可夫链 → RNN（GRU4Rec）→ CNN（Caser）→ Transformer（SASRec、BERT4Rec）→ GNN（SR-GNN），每一步都在解决前一步的具体瓶颈。</li>
+<li><strong>会话 vs 用户级</strong>：前者擅长匿名短期意图，后者擅长长期兴趣演化；生产系统通常融合二者。</li>
+<li><strong>选型看四件事</strong>：序列长度、side feature 重要性、延迟预算、是否含重复 item。</li>
+<li><strong>离线 + 在线评估</strong>：HR@K、NDCG@K、MRR 是离线常用指标，但最终拍板的是 A/B。</li>
+<li><strong>工业落地的六个杠杆</strong>：负采样、ANN、两阶段召排、蒸馏、量化、缓存——少一个都过不了延迟关。</li>
+</ul>
+<hr>
+<blockquote>
+<p><strong>系列导航</strong></p>
+<p>本文是推荐系统系列的<strong>第 6 篇</strong>，共 16 篇。</p>
+<ul>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%80-%e5%85%a5%e9%97%a8%e4%b8%8e%e5%9f%ba%e7%a1%80%e6%a6%82%e5%bf%b5/">第 1 篇：入门与基础概念</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%8c-%e5%8d%8f%e5%90%8c%e8%bf%87%e6%bb%a4%e4%b8%8e%e7%9f%a9%e9%98%b5%e5%88%86%e8%a7%a3/">第 2 篇：协同过滤与矩阵分解</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%89-%e6%b7%b1%e5%ba%a6%e5%ad%a6%e4%b9%a0%e5%9f%ba%e7%a1%80%e6%a8%a1%e5%9e%8b/">第 3 篇：深度学习基础模型</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%9b%9b-CTR%e9%a2%84%e4%bc%b0%e4%b8%8e%e7%82%b9%e5%87%bb%e7%8e%87%e5%bb%ba%e6%a8%a1/">第 4 篇：CTR预估与点击率建模</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%94-Embedding%e8%a1%a8%e7%a4%ba%e5%ad%a6%e4%b9%a0/">第 5 篇：Embedding表示学习</a>
+</li>
+<li><strong>第 6 篇：序列推荐与会话建模</strong>（当前）</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%83-%e5%9b%be%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c%e4%b8%8e%e7%a4%be%e4%ba%a4%e6%8e%a8%e8%8d%90/">第 7 篇：图神经网络与社交推荐</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%85%ab-%e7%9f%a5%e8%af%86%e5%9b%be%e8%b0%b1%e5%a2%9e%e5%bc%ba%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">第 8 篇：知识图谱增强推荐系统</a>
+</li>
+<li>第 9 篇：多任务学习（即将发布）</li>
+<li>第 10 篇：深度兴趣网络（即将发布）</li>
+<li>第 11 篇：对比学习（即将发布）</li>
+<li>第 12 篇：大语言模型推荐（即将发布）</li>
+<li>第 13 篇：公平性与可解释性（即将发布）</li>
+<li>第 14 篇：跨域推荐与冷启动（即将发布）</li>
+<li>第 15 篇：实时推荐与在线学习（即将发布）</li>
+<li>第 16 篇：工业实践（即将发布）</li>
+</ul>
+</blockquote>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到">你将学到</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#序列推荐到底在解什么问题">序列推荐到底在解什么问题</a>
+      <ul>
+        <li><a href="#形式化定义">形式化定义</a></li>
+        <li><a href="#为什么这件事重要">为什么这件事重要</a></li>
+        <li><a href="#与传统推荐的对照">与传统推荐的对照</a></li>
+        <li><a href="#三种典型形态">三种典型形态</a></li>
+      </ul>
+    </li>
+    <li><a href="#马尔可夫链方法">马尔可夫链方法</a>
+      <ul>
+        <li><a href="#一阶马尔可夫链">一阶马尔可夫链</a></li>
+        <li><a href="#高阶马尔可夫链">高阶马尔可夫链</a></li>
+        <li><a href="#fpmc因子分解马尔可夫链">FPMC：因子分解马尔可夫链</a></li>
+        <li><a href="#实现一阶马尔可夫推荐器">实现：一阶马尔可夫推荐器</a></li>
+        <li><a href="#马尔可夫链的局限">马尔可夫链的局限</a></li>
+      </ul>
+    </li>
+    <li><a href="#gru4rec用-rnn-建模会话">GRU4Rec：用 RNN 建模会话</a>
+      <ul>
+        <li><a href="#模型动机">模型动机</a></li>
+        <li><a href="#gru-单元的更新方式">GRU 单元的更新方式</a></li>
+        <li><a href="#关键工程细节">关键工程细节</a></li>
+        <li><a href="#实现">实现</a></li>
+        <li><a href="#优缺点">优缺点</a></li>
+      </ul>
+    </li>
+    <li><a href="#caser用-cnn-抽多尺度模式">Caser：用 CNN 抽多尺度模式</a>
+      <ul>
+        <li><a href="#动机">动机</a></li>
+        <li><a href="#架构">架构</a></li>
+        <li><a href="#实现-1">实现</a></li>
+        <li><a href="#caser-的价值">Caser 的价值</a></li>
+      </ul>
+    </li>
+    <li><a href="#sasrec自注意力的序列推荐">SASRec：自注意力的序列推荐</a>
+      <ul>
+        <li><a href="#为什么换-transformer">为什么换 Transformer</a></li>
+        <li><a href="#关键组件">关键组件</a></li>
+        <li><a href="#实现-2">实现</a></li>
+        <li><a href="#为什么-sasrec-成了默认选择">为什么 SASRec 成了默认选择</a></li>
+      </ul>
+    </li>
+    <li><a href="#bert4rec双向编码的序列推荐">BERT4Rec：双向编码的序列推荐</a>
+      <ul>
+        <li><a href="#动机-1">动机</a></li>
+        <li><a href="#与-sasrec-的对照">与 SASRec 的对照</a></li>
+        <li><a href="#实现-3">实现</a></li>
+        <li><a href="#取舍">取舍</a></li>
+      </ul>
+    </li>
+    <li><a href="#bst行为序列-transformer">BST：行为序列 Transformer</a>
+      <ul>
+        <li><a href="#它和别人的不同">它和别人的不同</a></li>
+        <li><a href="#实现-4">实现</a></li>
+      </ul>
+    </li>
+    <li><a href="#会话推荐session-based-recommendation">会话推荐（Session-based Recommendation）</a></li>
+    <li><a href="#sr-gnn用图神经网络做会话推荐">SR-GNN：用图神经网络做会话推荐</a>
+      <ul>
+        <li><a href="#动机-2">动机</a></li>
+        <li><a href="#图的构造">图的构造</a></li>
+        <li><a href="#工作流程">工作流程</a></li>
+        <li><a href="#实现简化版">实现（简化版）</a></li>
+        <li><a href="#sr-gnn-的看家本领">SR-GNN 的看家本领</a></li>
+      </ul>
+    </li>
+    <li><a href="#序列长度该怎么选">序列长度该怎么选</a></li>
+    <li><a href="#评估指标">评估指标</a>
+      <ul>
+        <li><a href="#三个必须知道的">三个必须知道的</a></li>
+        <li><a href="#实现-5">实现</a></li>
+      </ul>
+    </li>
+    <li><a href="#工程实践">工程实践</a>
+      <ul>
+        <li><a href="#数据预处理">数据预处理</a></li>
+        <li><a href="#训练">训练</a></li>
+        <li><a href="#扩展到百万级-item">扩展到百万级 item</a></li>
+      </ul>
+    </li>
+    <li><a href="#模型对比与选型建议">模型对比与选型建议</a></li>
+    <li><a href="#qa">Q&amp;A</a>
+      <ul>
+        <li><a href="#什么时候用会话推荐什么时候用用户级序列推荐">什么时候用会话推荐，什么时候用用户级序列推荐？</a></li>
+        <li><a href="#max_len-怎么定"><code>max_len</code> 怎么定？</a></li>
+        <li><a href="#为什么-transformer-通常优于-rnn">为什么 Transformer 通常优于 RNN？</a></li>
+        <li><a href="#bert4rec-的双向真的有用吗">BERT4Rec 的双向真的有用吗？</a></li>
+        <li><a href="#冷启动怎么处理">冷启动怎么处理？</a></li>
+        <li><a href="#报哪个评估指标">报哪个评估指标？</a></li>
+        <li><a href="#序列推荐能和别的方法组合吗">序列推荐能和别的方法组合吗？</a></li>
+        <li><a href="#当前研究前沿在做什么">当前研究前沿在做什么？</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">推荐系统</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>21 min</strong></div>
+      <div class="row"><span>Word count</span><strong>10300</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

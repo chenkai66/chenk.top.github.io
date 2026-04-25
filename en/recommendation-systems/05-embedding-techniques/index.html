@@ -1,0 +1,1728 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Recommendation Systems (5): Embedding and Representation Learning · Chen Kai Blog</title>
+<meta name="description" content="How modern recommenders learn dense vector representations for users and items: Word2Vec / Item2Vec, Node2Vec, two-tower DSSM and YouTube DNN, negative sampling, FAISS/HNSW serving, and how to evaluate embedding quality. Concept, math, code and production guidance in one place.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/recommendation-systems/05-embedding-techniques/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/recommendation-systems/05-embedding-techniques/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Recommendation Systems (5): Embedding and Representation Learning">
+<meta property="og:description" content="How modern recommenders learn dense vector representations for users and items: Word2Vec / Item2Vec, Node2Vec, two-tower DSSM and YouTube DNN, negative sampling, FAISS/HNSW serving, and how to evaluate embedding quality. Concept, math, code and production guidance in one place.">
+<meta property="og:url" content="https://www.chenk.top/en/recommendation-systems/05-embedding-techniques/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-2);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Recommendation Systems</a>
+         · Chapter 5
+      </div>
+      <h1>Recommendation Systems (5): Embedding and Representation Learning</h1>
+      <p class="deck">How modern recommenders learn dense vector representations for users and items: Word2Vec / Item2Vec, Node2Vec, two-tower DSSM and YouTube DNN, negative sampling, FAISS/HNSW serving, and how to evaluate embedding quality. Concept, math, code and production guidance in one place.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-12-13">December 13, 2025</time> · 27 min read · 5600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/recommendation-systems/" class="tag">#Recommendation Systems</a><a href="/en/tags/embedding/" class="tag">#Embedding</a><a href="/en/tags/representation-learning/" class="tag">#Representation Learning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>When Netflix suggests <em>Inception</em> to someone who just finished <em>The Dark Knight</em>, the magic is not a hand-crafted &ldquo;if-watched-Nolan-then&rdquo; rule. It is geometry. Both films sit close together in a 128-dimensional <strong>embedding space</strong> that the model has learned from billions of viewing events. Geometry replaces enumeration: instead of comparing a movie to fifteen thousand others through brittle similarity rules, the system asks a single question — <strong>how far apart are these two vectors?</strong></p>
+<p>This article unpacks how those vectors get learned and served at production scale. We will move from the underlying intuition through five families of techniques (sequence, graph, two-tower, attention-pooled, contrastive), the engineering of negative sampling, and the millisecond-level realities of approximate nearest-neighbour search. Every section is paired with code that compiles and runs.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li><strong>What an embedding actually is</strong> — and why &ldquo;low-dimensional&rdquo; is the entire point</li>
+<li><strong>Sequence-based learning</strong> with Word2Vec and Item2Vec, including the Skip-gram derivation</li>
+<li><strong>Graph-based learning</strong> with Node2Vec&rsquo;s biased random walks</li>
+<li><strong>Two-tower architectures</strong> (DSSM, YouTube DNN) that dominate large-scale retrieval</li>
+<li><strong>Negative sampling strategies</strong> — uniform, popularity-aware, hard, in-batch</li>
+<li><strong>ANN serving</strong> with FAISS, HNSW and Annoy, and how to read the latency / recall trade-off</li>
+<li><strong>Evaluation</strong> through both intrinsic (coherence, clustering) and extrinsic (HR@K, NDCG) metrics</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Linear algebra basics (vectors, dot products, matrix multiplication)</li>
+<li>Familiarity with neural networks and PyTorch</li>
+<li>Recommendation system fundamentals — see <a href="/en/recommendation-systems-1-fundamentals/">Part 1</a>
+</li>
+<li>Helpful but not required: deep learning for recommendations — see <a href="/en/recommendation-systems-3-deep-learning-basics/">Part 3</a>
+</li>
+</ul>
+<hr>
+<h2 id="1-foundations-what-an-embedding-is-and-why-it-matters">1. Foundations: what an embedding is, and why it matters</h2>
+<h3 id="11-the-compression-view">1.1 The compression view</h3>
+<p>An <strong>embedding</strong> is a learned function $f : \mathcal{I} \to \mathbb{R}^{d}$ that maps a discrete object — a user, a movie, a SKU, a node in a graph — to a dense vector of $d$ real numbers, where $d$ is much smaller than the catalogue size.</p>
+<blockquote>
+<p><strong>Analogy.</strong> Picture a Netflix-style catalogue with a million titles. A naïve representation would need a million-dimensional one-hot vector per movie. Embeddings replace that with, say, 128 numbers per movie — a <em>vector of latent qualities</em> that nobody labelled but the model discovered: how cerebral, how violent, how visually dark, how 1990s.</p>
+</blockquote>
+<p>Three properties make embeddings the lingua franca of modern recommenders:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Property</th>
+          <th>What it gives you</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Density</strong></td>
+          <td>Every dimension carries information; no wasted bits compared to one-hot vectors.</td>
+      </tr>
+      <tr>
+          <td><strong>Geometry</strong></td>
+          <td>&ldquo;Similar&rdquo; becomes a measurable quantity — a dot product or a cosine.</td>
+      </tr>
+      <tr>
+          <td><strong>Composability</strong></td>
+          <td>Embeddings can be averaged, concatenated, attended over, and indexed for retrieval.</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="12-why-this-beats-sparse-representations">1.2 Why this beats sparse representations</h3>
+<p>Real interaction matrices are absurdly sparse. A platform with $10^{8}$ users and $10^{7}$ items has $10^{15}$ possible cells but typically observes fewer than $10^{11}$ — under 0.01% density. Storing or factoring that matrix directly is infeasible. Compressing each row and column into a $d$-dimensional vector turns the problem into something modern hardware loves: dense matrix multiplications.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig1_embedding_space.png" alt="Item embedding space, t-SNE projection, four clusters by category with a query item and its k-NN region highlighted" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The picture above is the central intuition of this entire article. Items belonging to the same category form clusters; the query item&rsquo;s neighbours in vector space are exactly the items we want to recommend. <strong>Recommendation reduces to nearest-neighbour search in an embedding space.</strong></p>
+<h3 id="13-the-learning-objective-in-one-sentence">1.3 The learning objective in one sentence</h3>
+<p>Almost every embedding method, from matrix factorisation to BERT4Rec, optimises the same idea:</p>
+<blockquote>
+<p><strong>Items that appear in similar contexts should end up with similar vectors; items that do not should be pushed apart.</strong></p>
+</blockquote>
+<p>This is the <a href="https://en.wikipedia.org/wiki/Distributional_semantics" target="_blank" rel="noopener noreferrer">distributional hypothesis <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ borrowed from linguistics — &ldquo;you shall know a word by the company it keeps.&rdquo; In recommender land, &ldquo;context&rdquo; can be:</p>
+<ul>
+<li>a co-occurrence in a user session (Item2Vec)</li>
+<li>adjacency in a graph (Node2Vec, GraphSAGE)</li>
+<li>a click on the same query (DSSM)</li>
+<li>a positive label in a CTR log (DeepFM, DLRM)</li>
+</ul>
+<p>The choice of context defines the method.</p>
+<hr>
+<h2 id="2-sequence-based-embeddings-word2vec-and-item2vec">2. Sequence-based embeddings: Word2Vec and Item2Vec</h2>
+<h3 id="21-from-words-to-items">2.1 From words to items</h3>
+<p>Word2Vec (Mikolov et al., 2013) had two flavours:</p>
+<ul>
+<li><strong>Skip-gram</strong> — given a centre word, predict its surrounding context.</li>
+<li><strong>CBOW (continuous bag-of-words)</strong> — given the surrounding context, predict the centre word.</li>
+</ul>
+<blockquote>
+<p><strong>Analogy.</strong> Skip-gram is like handing someone a single jigsaw piece and asking what surrounds it. CBOW is the reverse — show the surrounding pieces and ask what the missing centre piece is.</p>
+</blockquote>
+<p>Item2Vec (Barkan &amp; Koenigstein, 2016) is the trivial-looking but powerful adaptation: <strong>treat a user&rsquo;s interaction sequence as a sentence and each item as a word.</strong> All the Word2Vec machinery transfers verbatim.</p>
+<h3 id="22-the-skip-gram-objective-derived">2.2 The Skip-gram objective, derived</h3>
+<p>Given a sequence $S = [i_1, i_2, \dots, i_T]$ and a window size $c$, Skip-gram maximises the log-probability of seeing each context item given its centre:</p>
+$$
+\mathcal{L} \;=\; \sum_{t=1}^{T} \;\sum_{\substack{-c \le j \le c \\ j \ne 0}} \log p\!\left(i_{t+j}\,\middle|\,i_t\right).
+$$<p>The naïve probability is a softmax over the whole catalogue:</p>
+$$
+p\!\left(i_{t+j}\,\middle|\,i_t\right) \;=\; \frac{\exp\!\left(\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{i_{t+j}}\right)}{\displaystyle\sum_{k=1}^{|\mathcal{I}|} \exp\!\left(\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{k}\right)}.
+$$<p>Here $\mathbf{e}_i$ is the <strong>input</strong> (centre) embedding and $\mathbf{e}'_i$ is the <strong>output</strong> (context) embedding. Two sets of vectors per item — a small surprise the first time you see it.</p>
+<p>Computing that denominator over millions of items is unworkable. <strong>Negative sampling</strong> replaces it with a binary classification problem: for each true (centre, context) pair, sample $K$ random &ldquo;noise&rdquo; items and ask the model to discriminate them. The objective becomes</p>
+$$
+\mathcal{L} \;=\; \sum_{(i_t,\,i_c)} \!\left[\, \log\sigma(\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{i_c})
+\;+\; \sum_{k=1}^{K} \mathbb{E}_{i_k \sim P_n}\!\big[\log\sigma(-\mathbf{e}_{i_t}^{\top}\mathbf{e}'_{i_k})\big]\right],
+$$<p>where $\sigma$ is the sigmoid. The noise distribution $P_n$ is the unigram frequency raised to the $3/4$ power — a famous Mikolov heuristic that nudges rarer items into the negative pool more than pure frequency would.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig2_item2vec_skipgram.png" alt="Item2Vec Skip-gram architecture: a sliding context window selects a centre item, an embedding lookup produces a vector, and the model contrasts the positive context items against K negatives sampled from the 3/4-power unigram distribution" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="23-implementation">2.3 Implementation</h3>
+<p>A self-contained Item2Vec with Skip-gram + negative sampling. Read it once paying attention to the <strong>two embedding tables</strong>, the <strong>score clamping</strong>, and the <strong>sigmoid trick</strong>.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">random</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Item2Vec</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Skip-gram with Negative Sampling.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Two embedding tables:
+</span></span></span><span class="line"><span class="cl"><span class="s2">      - input_embeddings: used at inference; this is the &#34;true&#34; item vector
+</span></span></span><span class="line"><span class="cl"><span class="s2">      - output_embeddings: a context-side helper, discarded after training
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_negatives</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">input_embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">output_embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_negatives</span> <span class="o">=</span> <span class="n">num_negatives</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Xavier init keeps the initial dot products small enough that</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># sigmoid does not saturate on iteration 1.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">negatives</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">        target    : (B,)          centre item ids
+</span></span></span><span class="line"><span class="cl"><span class="s2">        context   : (B,)          true neighbour ids
+</span></span></span><span class="line"><span class="cl"><span class="s2">        negatives : (B, K)        K random items per row
+</span></span></span><span class="line"><span class="cl"><span class="s2">        &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_embeddings</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>      <span class="c1"># (B, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_embeddings</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>    <span class="c1"># (B, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_embeddings</span><span class="p">(</span><span class="n">negatives</span><span class="p">)</span>  <span class="c1"># (B, K, d)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Positive term: pull centre and true context together.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">((</span><span class="n">t</span> <span class="o">*</span> <span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pos_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Negative term: push centre away from K random items.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">neg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">neg_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="o">-</span><span class="n">neg</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">pos_loss</span> <span class="o">+</span> <span class="n">neg_loss</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="n">item_id</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># --- data plumbing -------------------------------------------------------- #</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_vocab</span><span class="p">(</span><span class="n">sequences</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">counter</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">item</span> <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">sequences</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">vocab</span> <span class="o">=</span> <span class="p">{</span><span class="n">item</span><span class="p">:</span> <span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">counter</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">vocab</span><span class="p">,</span> <span class="n">counter</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">make_pairs</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">vocab</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pairs</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">sequences</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">vocab</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">seq</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">vocab</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">centre</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ids</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span> <span class="o">-</span> <span class="n">window</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="n">t</span> <span class="o">+</span> <span class="n">window</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">t</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">centre</span><span class="p">,</span> <span class="n">ids</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">pairs</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">make_neg_sampler</span><span class="p">(</span><span class="n">counter</span><span class="p">,</span> <span class="n">vocab</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">counter</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">counter</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">**</span> <span class="mf">0.75</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">probs</span> <span class="o">/=</span> <span class="n">probs</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">idx_lookup</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vocab</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="n">n_rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">chosen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">idx_lookup</span><span class="p">[</span><span class="n">chosen</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">sample</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># --- training loop -------------------------------------------------------- #</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&#34;__main__&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sequences</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">vocab</span><span class="p">,</span> <span class="n">counter</span> <span class="o">=</span> <span class="n">build_vocab</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pairs</span> <span class="o">=</span> <span class="n">make_pairs</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">vocab</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">neg</span> <span class="o">=</span> <span class="n">make_neg_sampler</span><span class="p">(</span><span class="n">counter</span><span class="p">,</span> <span class="n">vocab</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">Item2Vec</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vocab</span><span class="p">),</span> <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">num_negatives</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">opt</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">BATCH</span> <span class="o">=</span> <span class="mi">32</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">running</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pairs</span><span class="p">),</span> <span class="n">BATCH</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">batch</span> <span class="o">=</span> <span class="n">pairs</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">BATCH</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">c</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ng</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">neg</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">),</span> <span class="mi">5</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">ng</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">running</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="si">:</span><span class="s2">&gt;2</span><span class="si">}</span><span class="s2">  loss </span><span class="si">{</span><span class="n">running</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span> <span class="o">//</span> <span class="n">BATCH</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="24-design-decisions-worth-defending">2.4 Design decisions worth defending</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Decision</th>
+          <th>Choice</th>
+          <th>Why it matters</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Two embedding tables</td>
+          <td>Separate centre / context</td>
+          <td>Gives the model more room to encode &ldquo;what I am&rdquo; vs. &ldquo;what I appear next to&rdquo;. Standard in Word2Vec.</td>
+      </tr>
+      <tr>
+          <td>Negative count $K$</td>
+          <td>5 – 20</td>
+          <td>Small $K$ trains fast; large $K$ better discriminates long-tail items. Diminishing returns past 20.</td>
+      </tr>
+      <tr>
+          <td>Window size $c$</td>
+          <td>2 – 5</td>
+          <td>Bigger windows pick up more co-occurrence noise. Sessions are short; a small window is usually enough.</td>
+      </tr>
+      <tr>
+          <td>Negative distribution</td>
+          <td>$P_n \propto f^{0.75}$</td>
+          <td>Pure-frequency over-samples blockbusters; uniform over-samples obscure long tails. The 3/4 exponent is the empirical sweet spot Mikolov found.</td>
+      </tr>
+      <tr>
+          <td><code>clamp(-10, 10)</code> on dot products</td>
+          <td>Numerical guard</td>
+          <td>A single overflowed sigmoid can NaN the whole epoch. Cheap insurance.</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="25-field-tested-gotchas">2.5 Field-tested gotchas</h3>
+<ul>
+<li><strong>Cold-start items.</strong> An item with zero training interactions has no embedding. Three remedies: (1) train a side network from item content (text, image) to predict its embedding; (2) initialise from the average of categorically similar items; (3) accept randomness and let early online traffic pull it into place.</li>
+<li><strong>Variable session length.</strong> Truncate to the most recent $N$ items (typically 50 – 100) and pad shorter sessions. For very long sessions, segment into windows.</li>
+<li><strong>Negative collisions.</strong> With a million-item catalogue, drawing a &ldquo;false negative&rdquo; that is actually positive happens with probability $< 0.1\%$ — ignore it. With a 1k-item catalogue, explicitly exclude positives.</li>
+<li><strong>Repeated items.</strong> Power users replay the same song fifty times. De-duplicate consecutive repeats before building pairs, otherwise the model just learns &ldquo;this song is similar to itself.&rdquo;</li>
+</ul>
+<h3 id="26-cbow-the-symmetric-variant">2.6 CBOW: the symmetric variant</h3>
+<p>CBOW averages the surrounding context embeddings into one vector and uses <em>that</em> to predict the centre. It trains faster and tends to be slightly worse on long-tail items — Skip-gram sees each context item independently while CBOW averages everything into a single shot.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Item2VecCBOW</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Predict the centre item from an averaged window of context items.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">num_negatives</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">in_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">out_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">in_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">out_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">negatives</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ctx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_emb</span><span class="p">(</span><span class="n">context</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># (B, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">tgt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_emb</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>                    <span class="c1"># (B, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">neg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_emb</span><span class="p">(</span><span class="n">negatives</span><span class="p">)</span>                 <span class="c1"># (B, K, d)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">((</span><span class="n">ctx</span> <span class="o">*</span> <span class="n">tgt</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pos_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">neg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">neg</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">neg_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="o">-</span><span class="n">neg</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">pos_loss</span> <span class="o">+</span> <span class="n">neg_loss</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p><strong>Pick Skip-gram for recommenders by default.</strong> Item popularity follows a long tail; Skip-gram allocates gradient to rare items more generously than CBOW.</p>
+</blockquote>
+<hr>
+<h2 id="3-graph-based-embeddings-node2vec">3. Graph-based embeddings: Node2Vec</h2>
+<h3 id="31-when-sequences-are-not-enough">3.1 When sequences are not enough</h3>
+<p>Item2Vec only sees what is <em>adjacent in time</em>. But the relationships in a marketplace look more like a graph: items are co-purchased, co-viewed, share a category, share a brand. The same item can be relevant in two completely different &ldquo;neighbourhoods&rdquo; — a hiking tent is near &ldquo;camping&rdquo; <em>and</em> near &ldquo;cycling gear&rdquo;. Sequence models flatten that structure; graph models preserve it.</p>
+<h3 id="32-the-biased-random-walk">3.2 The biased random walk</h3>
+<p>Node2Vec (Grover &amp; Leskovec, 2016) takes a graph and produces &ldquo;sentences&rdquo; by walking from node to node. The trick is <strong>how</strong> it walks: a tunable bias makes the walker prefer either staying close to home (BFS-like, captures community) or wandering far (DFS-like, captures structural roles).</p>
+<blockquote>
+<p><strong>Analogy.</strong> Imagine exploring a city. BFS-style is &ldquo;every shop on this street, then the next street&rdquo; — you map out one neighbourhood thoroughly. DFS-style is &ldquo;follow the main road for ten kilometres&rdquo; — you discover how neighbourhoods connect to each other. Node2Vec lets you dial between the two.</p>
+</blockquote>
+<p>Two parameters do the work. After arriving at node $v$ from $t$, the unnormalised probability of moving to a neighbour $x$ is</p>
+$$
+\alpha_{p, q}(t, x) \;=\;
+\begin{cases}
+1/p & \text{if } d_{t,x} = 0 \;\;\text{(go back to } t\text{)} \\
+1   & \text{if } d_{t,x} = 1 \;\;\text{(}x\text{ is also a neighbour of } t\text{)} \\
+1/q & \text{if } d_{t,x} = 2 \;\;\text{(}x\text{ is one step further away)}
+\end{cases}
+$$<table>
+  <thead>
+      <tr>
+          <th>Setting</th>
+          <th>Walk behaviour</th>
+          <th>Captures</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>small $p$, large $q$</td>
+          <td>BFS-like</td>
+          <td>Community / cluster structure</td>
+      </tr>
+      <tr>
+          <td>large $p$, small $q$</td>
+          <td>DFS-like</td>
+          <td>Structural equivalence, hub-spoke patterns</td>
+      </tr>
+      <tr>
+          <td>$p = q = 1$</td>
+          <td>Plain random walk (DeepWalk)</td>
+          <td>Mix of both</td>
+      </tr>
+  </tbody>
+</table>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig4_random_walk.png" alt="Biased random walk on a user-item bipartite graph: arrows trace the path U2 -&gt; I3 -&gt; U4 -&gt; I8 -&gt; I7 -&gt; U3 -&gt; I4, illustrating how a single walk visits both user and item nodes" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Once you have a corpus of walks, you feed them into Skip-gram exactly as in Item2Vec — the algorithm does not care whether the &ldquo;sentence&rdquo; came from user history or graph traversal.</p>
+<h3 id="33-implementation">3.3 Implementation</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">random</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Node2Vec</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Biased random walks + Skip-gram on a NetworkX graph.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">walk_length</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">num_walks</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span> <span class="o">=</span> <span class="n">dimensions</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">walk_length</span> <span class="o">=</span> <span class="n">walk_length</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_walks</span> <span class="o">=</span> <span class="n">num_walks</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">q</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="n">window_size</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_walk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">walk</span> <span class="o">=</span> <span class="p">[</span><span class="n">start</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">walk</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">walk_length</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">cur</span> <span class="o">=</span> <span class="n">walk</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nbrs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="n">cur</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="ow">not</span> <span class="n">nbrs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">break</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">walk</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">walk</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">nbrs</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">walk</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">nbrs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="n">cur</span><span class="p">][</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;weight&#34;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">prev</span><span class="p">:</span>                         <span class="c1"># distance 0</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>    <span class="c1"># distance 1</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="k">else</span><span class="p">:</span>                                 <span class="c1"># distance 2</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">weights</span> <span class="o">/=</span> <span class="n">weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">walk</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">nbrs</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">weights</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">walk</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">generate_walks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">walks</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nodes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_walks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">walks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_walk</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">walks</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="kn">from</span> <span class="nn">gensim.models</span> <span class="kn">import</span> <span class="n">Word2Vec</span>
+</span></span><span class="line"><span class="cl">        <span class="n">walks</span> <span class="o">=</span> <span class="p">[[</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">w</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_walks</span><span class="p">()]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span> <span class="o">=</span> <span class="n">Word2Vec</span><span class="p">(</span><span class="n">walks</span><span class="p">,</span> <span class="n">vector_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                         <span class="n">window</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">,</span> <span class="n">sg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                         <span class="n">negative</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">min_count</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">wv</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">()}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="34-building-the-graph-in-the-first-place">3.4 Building the graph in the first place</h3>
+<p>Most production deployments do not start with a clean graph; they construct one from interaction logs. A common recipe uses <strong>Jaccard similarity over user sets</strong> to weight edges:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">co_occurrence_graph</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">min_jaccard</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">max_users</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Item-item graph from (user, item) interactions.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Edge weight = Jaccard similarity over the users who touched both items.
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">item_users</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">interactions</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">item_users</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">item_users</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ua</span> <span class="o">=</span> <span class="n">item_users</span><span class="p">[</span><span class="n">items</span><span class="p">[</span><span class="n">a</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">max_users</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ua</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_users</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">        <span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="n">a</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ub</span> <span class="o">=</span> <span class="n">item_users</span><span class="p">[</span><span class="n">items</span><span class="p">[</span><span class="n">b</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">inter</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ua</span> <span class="o">&amp;</span> <span class="n">ub</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">inter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">            <span class="n">j</span> <span class="o">=</span> <span class="n">inter</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">ua</span> <span class="o">|</span> <span class="n">ub</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;=</span> <span class="n">min_jaccard</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">items</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">weight</span><span class="o">=</span><span class="n">j</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">G</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p><strong>Practitioner tip.</strong> The pairwise loop above is $O(N^2)$ in items. For a real catalogue, build an inverted index by user, iterate per user, and only generate candidate pairs that share at least one user. That brings it down to $O(\sum_u |I_u|^2)$, which is dramatically smaller in practice.</p>
+</blockquote>
+<hr>
+<h2 id="4-two-tower-models-separate-user-and-item-encoders">4. Two-tower models: separate user and item encoders</h2>
+<h3 id="41-why-two-towers-not-one">4.1 Why two towers, not one</h3>
+<p>Concatenate user features with item features, push them through a single network, get a score. Why not? <strong>Because at serving time you would have to run the network for every (user, candidate) pair.</strong> With ten million candidates that is ten million forward passes per request.</p>
+<p>Two-tower architectures factor the model into a <strong>user tower</strong> $f_u(\mathbf{x}_u)$ and an <strong>item tower</strong> $f_i(\mathbf{x}_i)$, then predict with a similarity function — usually cosine — on the two outputs:</p>
+$$
+\mathbf{e}_u = f_u(\mathbf{x}_u; \theta_u), \qquad
+\mathbf{e}_i = f_i(\mathbf{x}_i; \theta_i), \qquad
+s(u, i) = \cos(\mathbf{e}_u, \mathbf{e}_i).
+$$<blockquote>
+<p><strong>Analogy.</strong> Think of a dating app. One tower writes everyone&rsquo;s profile; the other tower writes everyone&rsquo;s &ldquo;what I look for&rdquo; preferences. At match time you just compare profiles — you do not re-run the matching algorithm from scratch for every potential pair.</p>
+</blockquote>
+<p>The architectural payoff is enormous:</p>
+<ol>
+<li><strong>Pre-compute all item vectors offline.</strong> Run the item tower once per item and store the result.</li>
+<li><strong>At serving time, run only the user tower.</strong> One forward pass per request.</li>
+<li><strong>Use ANN search</strong> to find the top-K nearest item vectors in milliseconds.</li>
+</ol>
+<p>This is the canonical recipe for the <em>retrieval</em> (a.k.a. <em>recall</em>) stage of a modern recommendation pipeline.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig3_two_tower.png" alt="Two-tower DSSM: user features flow up the left tower, item features flow up the right tower, both end in L2-normalised d-dimensional vectors, and a cosine similarity at the top produces the score" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="42-dssm-in-code">4.2 DSSM in code</h3>
+<p>DSSM (Huang et al., Microsoft, 2013) is the canonical two-tower model. Originally designed for web search, it ships in essentially every large recommender today.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">make_tower</span><span class="p">(</span><span class="n">in_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">out_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">layers</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">in_dim</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hidden</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">h</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">d</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">    <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DSSM</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Symmetric two-tower with cosine similarity head.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_dim</span><span class="p">,</span> <span class="n">item_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_tower</span> <span class="o">=</span> <span class="n">make_tower</span><span class="p">(</span><span class="n">user_dim</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">hidden</span><span class="p">),</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_tower</span> <span class="o">=</span> <span class="n">make_tower</span><span class="p">(</span><span class="n">item_dim</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">hidden</span><span class="p">),</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">encode_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_tower</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">encode_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_tower</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_x</span><span class="p">,</span> <span class="n">item_x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_user</span><span class="p">(</span><span class="n">user_x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_item</span><span class="p">(</span><span class="n">item_x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># cosine because both are L2-normalised</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SampledSoftmaxLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Cross-entropy where the positive must beat the in-batch negatives.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">temperature</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">neg</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># u   : (B, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># pos : (B, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># neg : (B, K, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pos_score</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">pos</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span>          <span class="c1"># (B, 1)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">neg_score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                              <span class="n">neg</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span>  <span class="c1"># (B, K)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">pos_score</span><span class="p">,</span> <span class="n">neg_score</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>             <span class="c1"># (B, 1+K)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A few non-obvious choices baked into this 30-line implementation:</p>
+<ul>
+<li><strong>L2-normalise the outputs.</strong> Cosine similarity equals an inner product on unit-norm vectors, so this lets you index with FAISS&rsquo;s inner-product flavour.</li>
+<li><strong>Temperature.</strong> Dividing logits by a small $\tau \in [0.05, 0.2]$ makes the softmax sharper. Without it, cosine similarities live in $[-1, 1]$ — a very flat distribution that learns slowly.</li>
+<li><strong><code>BatchNorm</code> between layers.</strong> Keeps activations on a sane scale through the depth of the tower; especially important when input features mix wildly different magnitudes.</li>
+<li><strong>Cross-entropy with the positive at index 0.</strong> Cleanly extends to in-batch negatives by using <em>every other item in the batch</em> as a negative — see Section 5.</li>
+</ul>
+<hr>
+<h2 id="5-youtube-dnn-pooling-a-users-history">5. YouTube DNN: pooling a user&rsquo;s history</h2>
+<h3 id="51-the-setup">5.1 The setup</h3>
+<p>YouTube DNN (Covington et al., 2016) is a celebrated two-tower variant tailored to video recommendation, where each user is described by a <em>sequence</em> of recently watched videos rather than a flat feature vector. The user tower&rsquo;s job is to <strong>pool that sequence</strong> into one vector.</p>
+<p>Original YouTube DNN does the simplest possible thing: <strong>mean-pool the embeddings of the watched videos</strong>, then concatenate with demographics, then push through a 2-layer MLP. Average pooling is unbeatable on latency, and at YouTube&rsquo;s scale every saved millisecond adds up to data-centre money.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">YouTubeDNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Mean-pool the watch history; concatenate side features; project to d.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_videos</span><span class="p">,</span> <span class="n">num_categories</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">user_hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">item_hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">video</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_videos</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">category</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_categories</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_mlp</span> <span class="o">=</span> <span class="n">make_tower</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">16</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">user_hidden</span><span class="p">),</span> <span class="n">d</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_mlp</span> <span class="o">=</span> <span class="n">make_tower</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">16</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">item_hidden</span><span class="p">),</span> <span class="n">d</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">user_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">history_ids</span><span class="p">,</span> <span class="n">history_cats</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">video</span><span class="p">(</span><span class="n">history_ids</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">category</span><span class="p">(</span><span class="n">history_cats</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_mlp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">h</span><span class="p">,</span> <span class="n">c</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">item_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">item_cat</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">video</span><span class="p">(</span><span class="n">item_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">category</span><span class="p">(</span><span class="n">item_cat</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_mlp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">e</span><span class="p">,</span> <span class="n">c</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hist_ids</span><span class="p">,</span> <span class="n">hist_cats</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">item_cat</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_vector</span><span class="p">(</span><span class="n">hist_ids</span><span class="p">,</span> <span class="n">hist_cats</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_vector</span><span class="p">(</span><span class="n">item_id</span><span class="p">,</span> <span class="n">item_cat</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="52-when-pooling-is-too-crude-attention">5.2 When pooling is too crude: attention</h3>
+<p>Average pooling treats every watched video equally. In reality, a user who just watched ten cooking videos and one ten-second car ad probably wants more cooking, not more cars. Self-attention lets the model <em>learn</em> the weighting:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">YouTubeDNNWithAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_videos</span><span class="p">,</span> <span class="n">num_categories</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">n_heads</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">video</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_videos</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">category</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_categories</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MultiheadAttention</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_mlp</span> <span class="o">=</span> <span class="n">make_tower</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">16</span><span class="p">,</span> <span class="p">[</span><span class="mi">256</span><span class="p">],</span> <span class="n">d</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_mlp</span> <span class="o">=</span> <span class="n">make_tower</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">16</span><span class="p">,</span> <span class="p">[</span><span class="mi">128</span><span class="p">],</span> <span class="n">d</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">user_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">history_ids</span><span class="p">,</span> <span class="n">history_cats</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">video</span><span class="p">(</span><span class="n">history_ids</span><span class="p">)</span>                        <span class="c1"># (B, T, d)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>                          <span class="c1"># self-attention</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>                                  <span class="c1"># pool the attended seq</span>
+</span></span><span class="line"><span class="cl">        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">category</span><span class="p">(</span><span class="n">history_cats</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_mlp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">h</span><span class="p">,</span> <span class="n">c</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">item_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">item_cat</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">video</span><span class="p">(</span><span class="n">item_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">category</span><span class="p">(</span><span class="n">item_cat</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_mlp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">e</span><span class="p">,</span> <span class="n">c</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p><strong>The classic trade-off.</strong> Mean pooling is $O(T)$ in history length and trivially fast. Self-attention is $O(T^2)$ in compute and $O(T)$ in memory but typically improves recall by a few percent. For real-time retrieval over a long history, target attention against the candidate item (<a href="https://arxiv.org/abs/1706.06978" target="_blank" rel="noopener noreferrer">DIN, Zhou et al., 2018 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+) is often a better engineering compromise.</p>
+</blockquote>
+<hr>
+<h2 id="6-negative-sampling-strategies">6. Negative sampling strategies</h2>
+<p>Positives are expensive — they come from real user behaviour. Negatives are cheap — there are millions of them. The art is <strong>picking the right cheap negatives</strong>, because random ones are too easy and trivially-hard ones destabilise training.</p>
+<h3 id="61-the-four-strategies">6.1 The four strategies</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Strategy</th>
+          <th>Mechanism</th>
+          <th>When to use</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Uniform</strong></td>
+          <td>Pick negatives uniformly at random from the catalogue.</td>
+          <td>Simple baseline; works on small catalogues.</td>
+      </tr>
+      <tr>
+          <td><strong>Popularity-aware</strong></td>
+          <td>Sample with $P_n \propto f^{0.75}$.</td>
+          <td>Default for large catalogues; counters popularity bias.</td>
+      </tr>
+      <tr>
+          <td><strong>Hard-negative mining</strong></td>
+          <td>Pick items that <em>look</em> relevant to the user but were not interacted with.</td>
+          <td>Late-stage fine-tuning; sharpens the decision boundary.</td>
+      </tr>
+      <tr>
+          <td><strong>In-batch negatives</strong></td>
+          <td>Use other positives in the same minibatch as your negatives.</td>
+          <td>Two-tower training at scale; effectively free.</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="62-why-in-batch-negatives-are-the-workhorse">6.2 Why in-batch negatives are the workhorse</h3>
+<p>In a batch of $B$ (user, positive item) pairs, every other positive&rsquo;s item embedding can serve as a negative for every user. That gives you $B - 1$ negatives per row at no extra cost. Variant: <strong>add a popularity correction term</strong> to undo the bias of in-batch sampling — popular items appear in batches more often and get penalised too hard. The standard correction (Yi et al., 2019, &ldquo;Sampling-Bias-Corrected Neural Modeling&rdquo;) subtracts $\log p(i)$ from the logit before softmax.</p>
+<h3 id="63-implementation-snippets">6.3 Implementation snippets</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">uniform_neg</span><span class="p">(</span><span class="n">catalog_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="nb">set</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">catalog_size</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">exclude</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">popularity_neg</span><span class="p">(</span><span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;probs is a length-N array, already normalised by f^0.75.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">probs</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">in_batch_neg</span><span class="p">(</span><span class="n">item_emb</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;item_emb: (B, d). Returns (B, B-1, d) using the other rows of the batch.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">B</span> <span class="o">=</span> <span class="n">item_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">eye</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">item_emb</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">idx</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">eye</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">B</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">item_emb</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">hard_neg</span><span class="p">(</span><span class="n">user_emb</span><span class="p">,</span> <span class="n">item_emb</span><span class="p">,</span> <span class="n">positives_mask</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Hard negatives: items most similar to the user that are NOT positives.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sims</span> <span class="o">=</span> <span class="n">user_emb</span> <span class="o">@</span> <span class="n">item_emb</span><span class="o">.</span><span class="n">T</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sims</span><span class="p">[</span><span class="n">positives_mask</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e9</span>
+</span></span><span class="line"><span class="cl">    <span class="n">top</span> <span class="o">=</span> <span class="n">sims</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">top_k</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">indices</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pick</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">top_k</span><span class="p">,</span> <span class="p">(</span><span class="n">user_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">k</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">user_emb</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">top</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">pick</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p><strong>Curriculum.</strong> Start training with uniform / popularity-aware negatives for stability. After a few epochs, mix in 10 – 30% hard negatives to sharpen the boundary. Pure hard-negative training from scratch tends to collapse — the model has not learned coarse separation yet, so &ldquo;hard&rdquo; is just &ldquo;noise.&rdquo;</p>
+</blockquote>
+<hr>
+<h2 id="7-approximate-nearest-neighbour-search">7. Approximate nearest-neighbour search</h2>
+<h3 id="71-the-serving-problem">7.1 The serving problem</h3>
+<p>You have a one-million-item index and a hundred-millisecond budget. A brute-force scan is $O(Nd)$ per query — about $1.3 \times 10^{8}$ multiply-adds for $d=128$. Doable on a beefy CPU, undoable on a fleet of them at QPS in the tens of thousands. <strong>Approximate</strong> nearest-neighbour search trades 1 – 5% recall for a 10 – 100× speedup.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig5_ann_search.png" alt="ANN search: left panel shows IVF index probing the centroid nearest the query and returning the k-NN inside that cluster; right panel compares query latency vs Recall@10 for Flat, IVF, HNSW, Annoy, IVFPQ on a 1M-item, d=128 benchmark" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="72-the-three-index-families">7.2 The three index families</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Family</th>
+          <th>Idea</th>
+          <th>Strength</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Inverted file (IVF)</strong></td>
+          <td>k-means clusters the vectors; at query time only the nearest few centroids are scanned.</td>
+          <td>Tunable speed / recall; great for medium-to-large indexes.</td>
+      </tr>
+      <tr>
+          <td><strong>Hierarchical Navigable Small World (HNSW)</strong></td>
+          <td>A multi-layer proximity graph with greedy navigation.</td>
+          <td>Best raw query speed at high recall; modest memory cost.</td>
+      </tr>
+      <tr>
+          <td><strong>Product Quantisation (PQ)</strong></td>
+          <td>Compresses vectors into a few bytes by quantising sub-vectors independently. Usually layered onto IVF (IVFPQ).</td>
+          <td>Massive memory savings; mandatory at billion-scale.</td>
+      </tr>
+  </tbody>
+</table>
+<p>Annoy (Spotify) uses random projection trees — simpler API, excellent for quick prototypes but typically slower than HNSW at the same recall.</p>
+<h3 id="73-faiss-in-production">7.3 FAISS in production</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">faiss</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ANNIndex</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Thin wrapper around FAISS with three common index types.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;IVF&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">nlist</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">hnsw_m</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&#34;Flat&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">faiss</span><span class="o">.</span><span class="n">IndexFlatIP</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&#34;IVF&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">quantiser</span> <span class="o">=</span> <span class="n">faiss</span><span class="o">.</span><span class="n">IndexFlatIP</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">faiss</span><span class="o">.</span><span class="n">IndexIVFFlat</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">quantiser</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">nlist</span><span class="p">,</span> <span class="n">faiss</span><span class="o">.</span><span class="n">METRIC_INNER_PRODUCT</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&#34;HNSW&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">faiss</span><span class="o">.</span><span class="n">IndexHNSWFlat</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">hnsw_m</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                             <span class="n">faiss</span><span class="o">.</span><span class="n">METRIC_INNER_PRODUCT</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">kind</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_trained</span> <span class="o">=</span> <span class="kc">False</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">vectors</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">faiss</span><span class="o">.</span><span class="n">normalize_L2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>             <span class="c1"># cosine via inner product</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&#34;train&#34;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trained</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">_trained</span> <span class="o">=</span> <span class="kc">True</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">vector</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float32&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">faiss</span><span class="o">.</span><span class="n">normalize_L2</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sims</span><span class="p">,</span> <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">sims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">set_nprobe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;For IVF: how many clusters to scan per query. Higher = slower &amp; more recall.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&#34;nprobe&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">nprobe</span> <span class="o">=</span> <span class="n">n</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="74-benchmarks-at-a-glance">7.4 Benchmarks at a glance</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Index</th>
+          <th>Build time</th>
+          <th>Query time</th>
+          <th>Memory</th>
+          <th>Recall@10</th>
+          <th>Best for</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Flat</td>
+          <td>seconds</td>
+          <td>$O(N)$ — slow</td>
+          <td>$4Nd$ B</td>
+          <td>100%</td>
+          <td>Ground truth, small catalogues</td>
+      </tr>
+      <tr>
+          <td>IVF</td>
+          <td>minutes</td>
+          <td>fast</td>
+          <td>$4Nd$ B</td>
+          <td>95 – 99%</td>
+          <td>General large-scale, tunable</td>
+      </tr>
+      <tr>
+          <td>HNSW</td>
+          <td>tens of minutes</td>
+          <td>very fast</td>
+          <td>$4Nd + $ graph</td>
+          <td>95 – 99%</td>
+          <td>Tight latency budgets</td>
+      </tr>
+      <tr>
+          <td>IVFPQ</td>
+          <td>minutes</td>
+          <td>fast</td>
+          <td>$\sim N$ B (8× compression)</td>
+          <td>90 – 95%</td>
+          <td>Billion-scale, RAM-bound</td>
+      </tr>
+      <tr>
+          <td>Annoy</td>
+          <td>minutes</td>
+          <td>fast</td>
+          <td>medium</td>
+          <td>90 – 95%</td>
+          <td>Static indexes, simple deployment</td>
+      </tr>
+  </tbody>
+</table>
+<blockquote>
+<p><strong>Operational rules of thumb.</strong> Use IVF with <code>nprobe = sqrt(nlist)</code> as a starting point. Set <code>nlist ≈ sqrt(N)</code>. For an HNSW graph, <code>M = 32</code> and <code>efSearch = 100</code> are sane defaults. Always benchmark on <strong>your</strong> vectors — recall numbers from generic benchmarks are surprisingly volatile when the cluster geometry changes.</p>
+</blockquote>
+<hr>
+<h2 id="8-evaluating-embedding-quality">8. Evaluating embedding quality</h2>
+<p>Embeddings are not directly visible to users, so you need proxies. Use both <strong>intrinsic</strong> metrics (purely about the vectors) and <strong>extrinsic</strong> metrics (about the recommendations they produce).</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/05-embedding-techniques/fig6_similarity_heatmap.png" alt="Embedding similarity heatmap for 12 movies grouped into four categories; the block-diagonal pattern shows that within-category cosine similarity is high while cross-category similarity is near zero" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="81-intrinsic--does-the-geometry-look-right">8.1 Intrinsic — does the geometry look right?</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="kn">import</span> <span class="n">KMeans</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">silhouette_score</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">neighbour_overlap</span><span class="p">(</span><span class="n">emb</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">gold</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Average Jaccard between the embedding&#39;s top-k and a ground-truth top-k.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">emb</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">emb</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="n">matrix</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-9</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">sims</span> <span class="o">=</span> <span class="n">matrix</span> <span class="o">@</span> <span class="n">matrix</span><span class="o">.</span><span class="n">T</span>
+</span></span><span class="line"><span class="cl">    <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">sims</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">gold</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">        <span class="n">top_emb</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">sims</span><span class="p">[</span><span class="n">idx</span><span class="p">])[:</span><span class="n">k</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">top_gold</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">gold</span><span class="p">[</span><span class="n">item</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="n">gold</span><span class="p">[</span><span class="n">item</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">k</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">top_emb</span> <span class="o">&amp;</span> <span class="n">top_gold</span><span class="p">)</span> <span class="o">/</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores</span><span class="p">))</span> <span class="k">if</span> <span class="n">scores</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">cluster_silhouette</span><span class="p">(</span><span class="n">emb</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">n_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">emb</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">labels</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">n_clusters</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_init</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">silhouette_score</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="82-extrinsic--does-the-system-recommend-better">8.2 Extrinsic — does the system recommend better?</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">hit_rate_ndcg</span><span class="p">(</span><span class="n">user_vec</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">item_vec</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">test</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">item_vec</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">item_vec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="n">item_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">hits</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ndcg</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">true_item</span> <span class="ow">in</span> <span class="n">test</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">user_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">user_vec</span> <span class="ow">or</span> <span class="n">true_item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item_index</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sims</span> <span class="o">=</span> <span class="n">matrix</span> <span class="o">@</span> <span class="n">user_vec</span><span class="p">[</span><span class="n">user_id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">sims</span><span class="p">)[:</span><span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">item_index</span><span class="p">[</span><span class="n">true_item</span><span class="p">]</span> <span class="ow">in</span> <span class="n">top</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">hits</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rank</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">top</span> <span class="o">==</span> <span class="n">item_index</span><span class="p">[</span><span class="n">true_item</span><span class="p">])[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ndcg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ndcg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;hit_rate@k&#34;</span><span class="p">:</span> <span class="n">hits</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">test</span><span class="p">),</span> <span class="s2">&#34;ndcg@k&#34;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ndcg</span><span class="p">))}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p><strong>A real evaluation suite tracks more than accuracy.</strong> Coverage (what fraction of the catalogue ever gets recommended), diversity (intra-list dissimilarity), serendipity (recommendations far from the user&rsquo;s history that still convert), and freshness all matter. A model that wins HR@10 but only ever recommends the top 1% of items is a popularity baseline in disguise.</p>
+</blockquote>
+<hr>
+<h2 id="9-frequently-asked-questions">9. Frequently asked questions</h2>
+<h3 id="q1-item2vec-vs-matrix-factorisation--when-do-i-pick-which">Q1. Item2Vec vs. matrix factorisation — when do I pick which?</h3>
+<p>Matrix factorisation (MF) learns from the whole user-item matrix and captures <em>global</em> preference patterns. Item2Vec learns from sequences and captures <em>temporal co-occurrence</em>. If your data is naturally sequential (playlists, sessions, watch logs) Item2Vec is usually stronger; if you have explicit ratings or stable long-term preferences, MF is competitive and far simpler to train.</p>
+<h3 id="q2-how-do-i-pick-the-embedding-dimension">Q2. How do I pick the embedding dimension?</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Catalogue size</th>
+          <th>Typical $d$</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>&lt; 10K items</td>
+          <td>32 – 64</td>
+      </tr>
+      <tr>
+          <td>10K – 1M items</td>
+          <td>64 – 128</td>
+      </tr>
+      <tr>
+          <td>&gt; 1M items</td>
+          <td>128 – 512</td>
+      </tr>
+  </tbody>
+</table>
+<p>Doubling $d$ doubles index size and query latency without doubling quality — diminishing returns set in fast. Validate on HR@K and NDCG, not on training loss.</p>
+<h3 id="q3-skip-gram-or-cbow-for-items">Q3. Skip-gram or CBOW for items?</h3>
+<p>Skip-gram for almost everything in recommendations. It allocates more gradient to long-tail items, which is exactly the regime where recommenders need help.</p>
+<h3 id="q4-when-is-node2vec-strictly-better-than-item2vec">Q4. When is Node2Vec strictly better than Item2Vec?</h3>
+<p>When your relationships are not naturally sequential. Co-purchase graphs, social networks, knowledge graphs, item-attribute graphs — anything where &ldquo;neighbour&rdquo; has a meaning beyond &ldquo;appeared next to in time.&rdquo;</p>
+<h3 id="q5-why-not-just-train-one-big-model-end-to-end">Q5. Why not just train one big model end-to-end?</h3>
+<p>A single-tower model that takes both user and item features cannot factor into independent encoders, so retrieval becomes $O(N)$ per query. Two-tower trades a bit of expressiveness for the ability to pre-compute and index — at scale, that trade is non-negotiable.</p>
+<h3 id="q6-how-do-i-handle-cold-start">Q6. How do I handle cold-start?</h3>
+<ul>
+<li><strong>New users:</strong> rely on demographic / context features in the user tower (no ID needed).</li>
+<li><strong>New items:</strong> use a content-based item tower (text, image, category embeddings).</li>
+<li><strong>Hybrid:</strong> sum a learned ID embedding with a content embedding; the ID part learns once data accumulates, the content part carries the new item.</li>
+</ul>
+<h3 id="q7-what-is-the-right-negative-sampling-recipe">Q7. What is the right negative sampling recipe?</h3>
+<p>Start with uniform or popularity-aware sampling for stability. After a few epochs, blend in 10 – 30% hard negatives. Use in-batch negatives whenever you can — they are essentially free.</p>
+<h3 id="q8-faiss-vs-hnsw-vs-annoy">Q8. FAISS vs. HNSW vs. Annoy?</h3>
+<ul>
+<li><strong>FAISS</strong> is the production standard for very large indexes (&gt; 10M items), supports GPUs, and has the richest set of index types.</li>
+<li><strong>HNSW</strong> (via <code>hnswlib</code> or FAISS&rsquo;s <code>IndexHNSWFlat</code>) gives the best raw query speed at high recall and is the right default for tight latency budgets.</li>
+<li><strong>Annoy</strong> is great for prototyping or static indexes you can rebuild offline.</li>
+</ul>
+<h3 id="q9-how-do-i-sanity-check-embeddings-without-labels">Q9. How do I sanity-check embeddings without labels?</h3>
+<p>Inspect nearest neighbours visually for a handful of items you know well. Plot a t-SNE / UMAP and check whether known categories cluster. Compute a silhouette score against any auxiliary categorical label.</p>
+<h3 id="q10-dot-product-or-cosine-similarity">Q10. Dot product or cosine similarity?</h3>
+<p>Cosine similarity is direction-only; magnitudes cancel. Dot product also rewards larger magnitudes — which can be useful if you <em>want</em> popular items to score higher (their embeddings tend to grow longer during training). For most retrieval setups, <strong>L2-normalise everything and use dot product = cosine.</strong> That also lets you index with FAISS&rsquo;s inner-product mode.</p>
+<hr>
+<h2 id="10-summary">10. Summary</h2>
+<ul>
+<li><strong>Embeddings are dense, learned vectors that turn discrete identity into geometry.</strong> Recommendation becomes nearest-neighbour search.</li>
+<li><strong>Choose the method by the shape of your data.</strong> Sequences → Item2Vec. Graphs → Node2Vec. Rich features and large catalogues → two-tower (DSSM, YouTube DNN).</li>
+<li><strong>Negative sampling is half of the model.</strong> Mix uniform / popularity-aware / hard / in-batch and watch curriculum effects.</li>
+<li><strong>Two-tower architectures are the production default for retrieval</strong> because they make item vectors pre-computable and indexable.</li>
+<li><strong>ANN search makes serving feasible.</strong> Pick FAISS-IVF, HNSW or Annoy by your latency / recall / memory budget; benchmark on <em>your</em> data.</li>
+<li><strong>Evaluate with intrinsic and extrinsic metrics.</strong> Track coverage and diversity alongside HR@K and NDCG, or you will silently drift toward popularity.</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series navigation</h2>
+<ul>
+<li><strong>Previous:</strong> <a href="/en/recommendation-systems-4-ctr-prediction/">Part 4 — CTR Prediction and Click-Through Rate Modeling</a>
+</li>
+<li><strong>Next:</strong> <a href="/en/recommendation-systems-6-sequential-recommendation/">Part 6 — Sequential Recommendation and Session-based Modeling</a>
+</li>
+<li><a href="/en/recommendation-systems-1-fundamentals/">Back to Series Overview (Part 1)</a>
+</li>
+</ul>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/recommendation-systems/04-ctr-prediction/"><span class="title">Recommendation Systems (4): CTR Prediction and Click-Through Rate Modeling</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/recommendation-systems/06-sequential-recommendation/"><span class="title">Recommendation Systems (6): Sequential Recommendation and Session-based Modeling</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-foundations-what-an-embedding-is-and-why-it-matters">1. Foundations: what an embedding is, and why it matters</a>
+      <ul>
+        <li><a href="#11-the-compression-view">1.1 The compression view</a></li>
+        <li><a href="#12-why-this-beats-sparse-representations">1.2 Why this beats sparse representations</a></li>
+        <li><a href="#13-the-learning-objective-in-one-sentence">1.3 The learning objective in one sentence</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-sequence-based-embeddings-word2vec-and-item2vec">2. Sequence-based embeddings: Word2Vec and Item2Vec</a>
+      <ul>
+        <li><a href="#21-from-words-to-items">2.1 From words to items</a></li>
+        <li><a href="#22-the-skip-gram-objective-derived">2.2 The Skip-gram objective, derived</a></li>
+        <li><a href="#23-implementation">2.3 Implementation</a></li>
+        <li><a href="#24-design-decisions-worth-defending">2.4 Design decisions worth defending</a></li>
+        <li><a href="#25-field-tested-gotchas">2.5 Field-tested gotchas</a></li>
+        <li><a href="#26-cbow-the-symmetric-variant">2.6 CBOW: the symmetric variant</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-graph-based-embeddings-node2vec">3. Graph-based embeddings: Node2Vec</a>
+      <ul>
+        <li><a href="#31-when-sequences-are-not-enough">3.1 When sequences are not enough</a></li>
+        <li><a href="#32-the-biased-random-walk">3.2 The biased random walk</a></li>
+        <li><a href="#33-implementation">3.3 Implementation</a></li>
+        <li><a href="#34-building-the-graph-in-the-first-place">3.4 Building the graph in the first place</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-two-tower-models-separate-user-and-item-encoders">4. Two-tower models: separate user and item encoders</a>
+      <ul>
+        <li><a href="#41-why-two-towers-not-one">4.1 Why two towers, not one</a></li>
+        <li><a href="#42-dssm-in-code">4.2 DSSM in code</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-youtube-dnn-pooling-a-users-history">5. YouTube DNN: pooling a user&rsquo;s history</a>
+      <ul>
+        <li><a href="#51-the-setup">5.1 The setup</a></li>
+        <li><a href="#52-when-pooling-is-too-crude-attention">5.2 When pooling is too crude: attention</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-negative-sampling-strategies">6. Negative sampling strategies</a>
+      <ul>
+        <li><a href="#61-the-four-strategies">6.1 The four strategies</a></li>
+        <li><a href="#62-why-in-batch-negatives-are-the-workhorse">6.2 Why in-batch negatives are the workhorse</a></li>
+        <li><a href="#63-implementation-snippets">6.3 Implementation snippets</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-approximate-nearest-neighbour-search">7. Approximate nearest-neighbour search</a>
+      <ul>
+        <li><a href="#71-the-serving-problem">7.1 The serving problem</a></li>
+        <li><a href="#72-the-three-index-families">7.2 The three index families</a></li>
+        <li><a href="#73-faiss-in-production">7.3 FAISS in production</a></li>
+        <li><a href="#74-benchmarks-at-a-glance">7.4 Benchmarks at a glance</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-evaluating-embedding-quality">8. Evaluating embedding quality</a>
+      <ul>
+        <li><a href="#81-intrinsic--does-the-geometry-look-right">8.1 Intrinsic — does the geometry look right?</a></li>
+        <li><a href="#82-extrinsic--does-the-system-recommend-better">8.2 Extrinsic — does the system recommend better?</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-frequently-asked-questions">9. Frequently asked questions</a>
+      <ul>
+        <li><a href="#q1-item2vec-vs-matrix-factorisation--when-do-i-pick-which">Q1. Item2Vec vs. matrix factorisation — when do I pick which?</a></li>
+        <li><a href="#q2-how-do-i-pick-the-embedding-dimension">Q2. How do I pick the embedding dimension?</a></li>
+        <li><a href="#q3-skip-gram-or-cbow-for-items">Q3. Skip-gram or CBOW for items?</a></li>
+        <li><a href="#q4-when-is-node2vec-strictly-better-than-item2vec">Q4. When is Node2Vec strictly better than Item2Vec?</a></li>
+        <li><a href="#q5-why-not-just-train-one-big-model-end-to-end">Q5. Why not just train one big model end-to-end?</a></li>
+        <li><a href="#q6-how-do-i-handle-cold-start">Q6. How do I handle cold-start?</a></li>
+        <li><a href="#q7-what-is-the-right-negative-sampling-recipe">Q7. What is the right negative sampling recipe?</a></li>
+        <li><a href="#q8-faiss-vs-hnsw-vs-annoy">Q8. FAISS vs. HNSW vs. Annoy?</a></li>
+        <li><a href="#q9-how-do-i-sanity-check-embeddings-without-labels">Q9. How do I sanity-check embeddings without labels?</a></li>
+        <li><a href="#q10-dot-product-or-cosine-similarity">Q10. Dot product or cosine similarity?</a></li>
+      </ul>
+    </li>
+    <li><a href="#10-summary">10. Summary</a></li>
+    <li><a href="#series-navigation">Series navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Recommendation Systems</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>27 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5600</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

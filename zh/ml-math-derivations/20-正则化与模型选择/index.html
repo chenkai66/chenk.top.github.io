@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>机器学习数学推导（二十）：正则化与模型选择 · Chen Kai Blog</title>
+<meta name="description" content="系列收官：从偏差-方差分解出发，沿着 L1/L2 几何、Dropout 子网络采样、K 折交叉验证、AIC/BIC、VC 维到现代的双下降现象，回答机器学习理论中最深的一个问题——为什么模型能泛化。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="机器学习数学推导（二十）：正则化与模型选择">
+<meta property="og:description" content="系列收官：从偏差-方差分解出发，沿着 L1/L2 几何、Dropout 子网络采样、K 折交叉验证、AIC/BIC、VC 维到现代的双下降现象，回答机器学习理论中最深的一个问题——为什么模型能泛化。">
+<meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">机器学习数学推导</a>
+         · Chapter 20
+      </div>
+      <h1>机器学习数学推导（二十）：正则化与模型选择</h1>
+      <p class="deck">系列收官：从偏差-方差分解出发，沿着 L1/L2 几何、Dropout 子网络采样、K 折交叉验证、AIC/BIC、VC 维到现代的双下降现象，回答机器学习理论中最深的一个问题——为什么模型能泛化。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-02-08">February 8, 2026</time> · 11 min read · 5100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" class="tag">#机器学习</a><a href="/zh/tags/%E6%AD%A3%E5%88%99%E5%8C%96/" class="tag">#正则化</a><a href="/zh/tags/l1%E6%AD%A3%E5%88%99%E5%8C%96/" class="tag">#L1正则化</a><a href="/zh/tags/l2%E6%AD%A3%E5%88%99%E5%8C%96/" class="tag">#L2正则化</a><a href="/zh/tags/dropout/" class="tag">#Dropout</a><a href="/zh/tags/%E4%BA%A4%E5%8F%89%E9%AA%8C%E8%AF%81/" class="tag">#交叉验证</a><a href="/zh/tags/vc%E7%BB%B4/" class="tag">#VC维</a><a href="/zh/tags/pac%E5%AD%A6%E4%B9%A0/" class="tag">#PAC学习</a><a href="/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/" class="tag">#数学推导</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <h2 id="本文要点">本文要点</h2>
+<p>一个有 1 亿参数的网络，用 5 万张图训练，按经典理论应当过拟合到一塌糊涂；可现代深度网络偏偏泛化得很好。这背后是两件事在配合：<strong>正则化</strong>——一系列约束模型容量的技巧；以及<strong>泛化理论</strong>——从数学上回答&quot;学习什么时候真的有效&quot;。本文是整个系列的收官之作，我们把前面攒下的所有工具——最小二乘、MAP 估计、凸优化、EM、神经网络——一起拿出来，直面这个领域里最深的开放问题：<strong>为什么机器学习能泛化？</strong></p>
+<p><strong>本文路线图：</strong></p>
+<ol>
+<li>偏差-方差分解与泛化误差。</li>
+<li>L2、L1、弹性网三种惩罚的三种解读：优化、几何、贝叶斯先验。</li>
+<li>Dropout 作为 $2^M$ 个子网络的集成，以及作为自适应 L2 的等价形式。</li>
+<li>早停 = 自适应岭回归，$\lambda_{\text{eff}} \propto 1/t$。</li>
+<li>模型选择：K 折交叉验证、AIC、BIC。</li>
+<li>VC 维、PAC 学习，以及打破经典理论的双下降现象。</li>
+</ol>
+<p><strong>前置知识：</strong> 微积分、概率（期望、方差）、线性代数、梯度下降。前 4 篇覆盖数学基础；第 5、6、19 篇分别给出了我们要正则化的具体模型。</p>
+<hr>
+<h2 id="1-过拟合与偏差-方差分解">1. 过拟合与偏差-方差分解</h2>
+<h3 id="11-经验风险-vs-期望风险">1.1 经验风险 vs 期望风险</h3>
+<p>训练误差与你真正关心的&quot;真误差&quot;，是两个不同的对象：</p>
+$$
+\hat{R}(f) = \frac{1}{N}\sum_{i=1}^{N} \ell(f(\mathbf{x}_i), y_i),
+\qquad
+R(f) = \mathbb{E}_{(\mathbf{x},y)\sim\mathcal D}\bigl[\ell(f(\mathbf{x}), y)\bigr]. \tag{1}
+$$<p><strong>泛化差距</strong>就是 $R(f) - \hat R(f)$。差距大叫过拟合；连 $\hat R$ 都大就是欠拟合。</p>
+<h3 id="12-偏差-方差分解">1.2 偏差-方差分解</h3>
+<p>固定一个测试点 $\mathbf{x}$，反复采样训练集 $S$，每次拟合一个回归器 $f_S$，看看平方误差的期望。记平均预测 $\bar f(\mathbf{x}) = \mathbb{E}_S[f_S(\mathbf{x})]$，加减 $\bar f$ 即可：</p>
+<p>$$
+\mathbb{E}<em>S\bigl[(f_S(\mathbf{x}) - y)^2\bigr]
+= \underbrace{(\bar f(\mathbf{x}) - f^\star(\mathbf{x}))^2}</em>{\text{偏差}^2}</p>
+<ul>
+<li>\underbrace{\mathbb{E}<em>S\bigl[(f_S(\mathbf{x}) - \bar f(\mathbf{x}))^2\bigr]}</em>{\text{方差}}</li>
+<li>\underbrace{\sigma^2}_{\text{噪声}}. \tag{2}
+$$</li>
+</ul>
+<p>交叉项消失，因为 $\mathbb{E}_S[f_S - \bar f] = 0$，且噪声与 $f_S$ 独立。</p>
+<table>
+  <thead>
+      <tr>
+          <th>分量</th>
+          <th>由什么决定</th>
+          <th>何时偏大</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>偏差$^2$</td>
+          <td>模型设定误差</td>
+          <td>模型太简单（欠拟合）</td>
+      </tr>
+      <tr>
+          <td>方差</td>
+          <td>估计噪声</td>
+          <td>模型太复杂（过拟合）</td>
+      </tr>
+      <tr>
+          <td>$\sigma^2$</td>
+          <td>数据本身</td>
+          <td>永远存在（不可约）</td>
+      </tr>
+  </tbody>
+</table>
+<p>容量增加意味着用方差换偏差；最优点在两者的导数相遇之处。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/fig4_complexity_curves.png" alt="偏差-方差分解：训练误差、测试误差、偏差平方、方差随模型复杂度的变化" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>测试曲线那条 U 形，就是经典模型选择的全部故事——后面所有的正则化、交叉验证、信息准则，本质都是在不直接测量 $R(f)$ 的前提下，去找那个 U 的最低点。</p>
+<hr>
+<h2 id="2-l2-正则化岭回归">2. L2 正则化（岭回归）</h2>
+<h3 id="21-三种等价视角">2.1 三种等价视角</h3>
+<p><strong>惩罚损失。</strong> 在经验风险上加 $\tfrac{\lambda}{2}\|\mathbf{w}\|_2^2$。对于平方损失，闭式解为：</p>
+$$
+\hat{\mathbf{w}}_{\text{ridge}} = (\mathbf{X}^\top\mathbf{X} + \lambda\mathbf{I})^{-1}\mathbf{X}^\top\mathbf{y}. \tag{3}
+$$<p>加入 $\lambda\mathbf{I}$ 保证矩阵可逆，即使特征共线也不怕。</p>
+<p><strong>约束形式。</strong> 由 Lagrange 对偶，等价于求解 $\min \hat R(\mathbf{w}),\ \text{s.t.}\ \|\mathbf{w}\|_2 \le t$。可行域是欧氏球。</p>
+<p><strong>贝叶斯（MAP）。</strong> 取高斯似然 $y\mid\mathbf{w} \sim \mathcal N(\mathbf{x}^\top\mathbf{w}, \sigma^2)$、高斯先验 $\mathbf{w} \sim \mathcal N(\mathbf 0, \tau^2 \mathbf I)$，则：</p>
+$$
+\hat{\mathbf{w}}_{\text{MAP}} = \arg\min_{\mathbf{w}}\Bigl[\hat R(\mathbf{w}) + \tfrac{\sigma^2}{2\tau^2}\|\mathbf{w}\|^2\Bigr],
+\qquad \lambda = \tfrac{\sigma^2}{\tau^2}.
+$$<p>先验方差越大（对权重越宽容），正则化就越弱。</p>
+<h3 id="22-svd-视角收缩小奇异方向">2.2 SVD 视角：收缩小奇异方向</h3>
+<p>设 $\mathbf{X} = \mathbf{U}\boldsymbol\Sigma\mathbf{V}^\top$，则：</p>
+$$
+\hat{\mathbf{w}}_{\text{ridge}} = \sum_j \frac{\sigma_j^2}{\sigma_j^2 + \lambda}\,\frac{\mathbf{u}_j^\top\mathbf{y}}{\sigma_j}\,\mathbf{v}_j. \tag{4}
+$$<p>收缩因子 $\sigma_j^2/(\sigma_j^2+\lambda)$ 在大 $\sigma_j$ 处接近 1（信号方向），在小 $\sigma_j$ 处接近 0（噪声方向）。<strong>岭回归本质是 PCA 的&quot;软截断&quot;。</strong></p>
+<h3 id="23-权重衰减">2.3 权重衰减</h3>
+<p>梯度更新写成 $\mathbf{w} \leftarrow (1 - \eta\lambda)\mathbf{w} - \eta\nabla\hat R(\mathbf{w})$：每一步都先把权重&quot;收缩&quot;一下。这就是为什么深度学习框架把 L2 叫作 weight decay。</p>
+<hr>
+<h2 id="3-l1-正则化lasso与稀疏性">3. L1 正则化（Lasso）与稀疏性</h2>
+<h3 id="31-稀疏性的几何">3.1 稀疏性的几何</h3>
+<p>把 $\|\mathbf{w}\|_2^2$ 换成 $\|\mathbf{w}\|_1 = \sum_j |w_j|$。约束区域 $\|\mathbf{w}\|_1 \le t$ 在二维是菱形，在高维是 cross-polytope。<strong>它的尖角全在坐标轴上。</strong> 椭圆等高线（无正则的损失）切到约束区域时，几乎总会落在某个尖角上——某些 $w_j$ 就被精确地压到零。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/fig1_l1_vs_l2_geometry.png" alt="L1 vs L2 约束区域：菱形的尖角带来稀疏，圆形的光滑边界则给出内部的非稀疏解" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>这不是数值假象。L1 在 0 处的次微分是区间 $[-1, 1]$，所以 0 是个<strong>稳定的</strong>驻点：数据小幅扰动不会把最优系数挪离坐标轴。L2 在 $w_j = 0$ 处的梯度是 $w_j$ 本身（即 0），但任何信号都会<strong>立刻</strong>把它推离零。</p>
+<h3 id="32-软阈值算子">3.2 软阈值算子</h3>
+<p>L1 惩罚 $\lambda\|\mathbf{w}\|_1$ 的近端算子有一个极其漂亮的形式——<strong>软阈值</strong>：</p>
+$$
+\hat w_j = \mathrm{sign}(w_j^\star)\,\max\bigl(|w_j^\star| - \lambda,\ 0\bigr). \tag{5}
+$$<p>坐标下降把 (5) 一坐标一坐标地用上去，就是 <code>glmnet</code> 的核心。</p>
+<h3 id="33-lasso-作为内嵌的特征选择">3.3 Lasso 作为内嵌的特征选择</h3>
+<p>让 $\lambda$ 从 $\infty$ 慢慢降到 0，画出系数轨迹，就得到<strong>正则化路径</strong>：相关特征一个接一个&quot;开机&quot;，无关特征则一直贴着零。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/fig2_lasso_path.png" alt="LASSO 系数路径：随 lambda 减小，相关特征逐一进入模型，无关特征始终为零" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>更妙的是这条路径<strong>分段线性</strong>（Efron 等人的 LARS 算法），背后是 L1 单位球的多面体结构——一个看似简单却很深的几何事实。</p>
+<h3 id="34-贝叶斯解读与弹性网">3.4 贝叶斯解读与弹性网</h3>
+<p>L1 = <strong>Laplace 先验</strong> $p(w_j) \propto \exp(-|w_j|/b)$ 下的 MAP。Laplace 分布在零点有一个<strong>尖峰</strong>，在零这个值上分配的先验质量比高斯多——这是稀疏性在概率上的解释。</p>
+<p>特征强相关时，纯 LASSO 表现并不稳定（会在一组相关特征里随机挑一个）。<strong>弹性网</strong>把两种惩罚混合起来：</p>
+$$
+\mathcal L_{\text{enet}} = \hat R(\mathbf{w}) + \lambda_1\|\mathbf{w}\|_1 + \lambda_2\|\mathbf{w}\|_2^2,
+$$<p>继承了 L1 的稀疏性和 L2 的&quot;分组效应&quot;。</p>
+<hr>
+<h2 id="4-dropout">4. Dropout</h2>
+<h3 id="41-机制">4.1 机制</h3>
+<p>训练时每个隐藏单元以概率 $p$ 独立置零，留下来的乘以 $1/(1-p)$ 缩放：</p>
+$$
+\tilde h_j = \frac{m_j}{1-p}\,h_j,\qquad m_j \sim \mathrm{Bernoulli}(1-p).
+$$<p>缩放保证激活的期望不变：$\mathbb E[\tilde h_j] = h_j$。测试时直接用整张网络，不再加掩码（这是 <em>inverted dropout</em>，现代主流写法）。</p>
+<h3 id="42-两个数学故事">4.2 两个数学故事</h3>
+<p><strong>故事一：隐式集成。</strong> 一个有 $M$ 个可 Dropout 单元的网络，对应 $2^M$ 个共享权重的子网络。Dropout SGD 每个 mini-batch 随机抽一个子网络训练；测试时用完整网络近似于这堆子网络预测的几何平均——指数多个模型的免费集成。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/fig6_dropout_concept.png" alt="Dropout 作为子网络采样：完整 MLP 与三个共享权重的稀疏化样本" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>故事二：自适应 L2。</strong> 把 Dropout 加在线性回归的输入上，期望损失变成：</p>
+$$
+\mathbb E_{\mathbf m}\bigl[\|y - (\mathbf m \odot \mathbf x)^\top\mathbf w\|^2\bigr]
+= \|y - \mathbf x^\top\mathbf w\|^2 + \frac{p}{1-p}\sum_j w_j^2 x_j^2. \tag{6}
+$$<p>第二项是一个<strong>按特征方差加权的 L2</strong>：值越大的输入被压得越狠。Wager、Wang、Liang（2013）把它推广到 GLM，证明 Dropout 近似等价于自适应岭回归。</p>
+<h3 id="43-变体">4.3 变体</h3>
+<ul>
+<li><strong>DropConnect.</strong> 丢权重而不是激活。</li>
+<li><strong>空间 Dropout.</strong> CNN 里整通道地丢，否则相邻像素的强相关让逐元素 Dropout 几乎没用。</li>
+<li><strong>Variational Dropout.</strong> RNN 在所有时间步共享掩码，让循环动力学保持一致。</li>
+</ul>
+<hr>
+<h2 id="5-早停作为隐式正则化">5. 早停作为隐式正则化</h2>
+<h3 id="51-策略">5.1 策略</h3>
+<p>留一个验证集，训练时监控验证误差。若连续 $P$ 个 epoch 不下降就停下，返回历史最优模型（patience 策略）。</p>
+<h3 id="52-为什么等价于岭回归在二次损失下">5.2 为什么等价于岭回归（在二次损失下）</h3>
+<p>对线性最小二乘从 $\mathbf{w}_0 = \mathbf 0$ 起做梯度下降，把更新展开到 $\mathbf{X}^\top\mathbf{X}$ 的特征基上。第 $t$ 步：</p>
+$$
+\hat{\mathbf{w}}_t = \sum_j \bigl[1 - (1 - \eta\lambda_j)^t\bigr]\,\frac{\mathbf{u}_j^\top \mathbf{X}^\top\mathbf{y}}{\lambda_j}\,\mathbf{u}_j. \tag{7}
+$$<p>岭回归的对应收缩因子是 $\lambda_j/(\lambda_j + \alpha)$。两者比较：</p>
+$$
+1 - (1-\eta\lambda_j)^t \ \approx\ \frac{\lambda_j}{\lambda_j + 1/(\eta t)},
+$$<p>所以<strong>在第 $t$ 步早停 ≈ 取 $\alpha_{\text{eff}} \sim 1/(\eta t)$ 的岭回归</strong>：训得越久 $\Leftrightarrow$ 正则越弱。直觉上，梯度下降先拟合大特征值方向（低频、信号），噪声藏在小特征值的尾巴里，要很晚才被拟到。早点停，丢的只是噪声。</p>
+<hr>
+<h2 id="6-模型选择cvaicbic">6. 模型选择：CV、AIC、BIC</h2>
+<h3 id="61-k-折交叉验证">6.1 K 折交叉验证</h3>
+<p>把数据切成 $K$ 折，依次用其中一折做验证，其余 $K-1$ 折训练：</p>
+$$
+\hat R_{\text{CV}} = \frac{1}{K}\sum_{k=1}^K \hat R_{\text{val}, k}. \tag{8}
+$$<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/fig3_kfold_cv.png" alt="5 折交叉验证：每行是一折，彩色块是验证集，每个样本恰好被验证一次" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>实践上 $K = 5$ 或 $10$ 是甜蜜点（偏差小、方差可控、需要 $K$ 次训练）。$K = N$ 是<strong>留一法</strong>，无偏但贵，而且小样本下方差出乎意料地大。<strong>时间序列绝不能洗牌</strong>，要用尊重因果的滚动/扩张窗 CV。</p>
+<h3 id="62-信息准则">6.2 信息准则</h3>
+<p>两个准则都在负对数似然上加一个关于参数数 $p$ 的惩罚：</p>
+$$
+\mathrm{AIC} = -2\log p(\mathcal D \mid \hat{\mathbf w}) + 2p,
+\qquad
+\mathrm{BIC} = -2\log p(\mathcal D \mid \hat{\mathbf w}) + p\log N. \tag{9}
+$$<p>只要 $N \ge 8$ 就有 $\log N > 2$，所以 BIC 的复杂度惩罚更重。统计性质上：</p>
+<ul>
+<li><strong>BIC 是一致的</strong>：$N \to \infty$ 时，若真模型在候选集中，BIC 几乎必然选中它。</li>
+<li><strong>AIC 渐近预测最优</strong>：它最小化期望样本外损失，但不保证恢复真模型。</li>
+</ul>
+<p>可以这么记：相信候选集、追求可解释 → BIC；只关心预测精度 → AIC（或 CV）。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/fig5_aic_bic_vs_cv.png" alt="AIC、BIC 与 5 折 CV 在选择多项式阶数上的对比，并把 BIC 选中的拟合叠在数据上" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>小样本下三者可能差出 1–2 阶；样本大了就趋同。<strong>实在拿不准就用 CV</strong>——它是唯一不假设模型设定正确的。</p>
+<hr>
+<h2 id="7-泛化理论vc-维pac-与现代谜团">7. 泛化理论：VC 维、PAC 与现代谜团</h2>
+<h3 id="71-vc-维">7.1 VC 维</h3>
+<p>假设类 $\mathcal H$ <strong>打散</strong>一个 $m$ 点集，是指它能实现这个集合上的所有 $2^m$ 种二分类标签组合。<strong>VC 维</strong>就是它能打散的最大点数：</p>
+$$
+\mathrm{VC}(\mathcal H) = \max\{m : \exists\, S\ \text{大小为}\ m\ \text{且被}\ \mathcal H\ \text{打散}\}.
+$$<p>$\mathbb R^d$ 上的线性分类器：$\mathrm{VC} = d + 1$。</p>
+<h3 id="72-vc-泛化界">7.2 VC 泛化界</h3>
+<p>以概率不小于 $1 - \delta$，对一切 $h \in \mathcal H$ 同时成立：</p>
+$$
+R(h) \le \hat R(h) + O\!\left(\sqrt{\frac{\mathrm{VC}(\mathcal H)\log\!\bigl(N/\mathrm{VC}(\mathcal H)\bigr) + \log(1/\delta)}{N}}\right). \tag{10}
+$$<p>VC 维越大需要越多数据；样本越多界越紧。这个界是<strong>与分布无关</strong>的——对任何数据分布都成立，但也因此倾向于悲观。</p>
+<h3 id="73-pac-可学习性">7.3 PAC 可学习性</h3>
+<p>一个类是 <strong>PAC（Probably Approximately Correct）可学习的</strong>，是指对任意 $\epsilon, \delta > 0$，存在算法以概率不小于 $1 - \delta$ 输出误差不超过 $\epsilon$ 的假设，所需样本至多多项式量级。<strong>Blumer 等（1989）定理：</strong> VC 维有限 $\Leftrightarrow$ PAC 可学习。</p>
+<h3 id="74-深度学习之谜与双下降">7.4 深度学习之谜与双下降</h3>
+<p>现代神经网络 $p \gg N$，VC 维巨大（与 $p$ 同阶），(10) 给出的界<strong>是平凡的</strong>——往往大于 1。但它们偏偏泛化得很好。为什么？</p>
+<p>几条非经典的现象一起在起作用：</p>
+<ul>
+<li><strong>SGD 的隐式正则化。</strong> SGD（尤其小批、大学习率）偏好损失景观里的<strong>平坦极小值</strong>，平坦极小值比尖锐极小值泛化更好（Hochreiter 与 Schmidhuber 1997 早就提到过）。</li>
+<li><strong>基于范数的界。</strong> 参数<em>个数</em>巨大，但训出来的权重<em>范数</em>却不大。基于权重范数的 PAC-Bayes 与 Rademacher 界，可以收紧到具有预测力的程度。</li>
+<li><strong>隐式最小范数插值。</strong> 过参数化的线性模型从零初始的梯度下降，会收敛到<strong>最小范数</strong>插值解——也就是岭回归 $\lambda \to 0$ 的极限解。</li>
+<li><strong>双下降。</strong> 当容量超过插值阈 $p = N$ 后，测试误差先按经典 U 形走，<strong>在 $p = N$ 处尖峰爆炸</strong>（伪逆病态），随后<strong>再次下降</strong>——过参数化区比插值阈更好。</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/20-%E6%AD%A3%E5%88%99%E5%8C%96%E4%B8%8E%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9/fig7_double_descent.png" alt="双下降：经典 U 形、p = N 处的插值峰、以及现代区的第二次下降" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>第二次下降是真实、稳健的现象，彻底打翻经典直觉：过参数化区<strong>更大反而更好</strong>。一个令人满意的解释，至今仍是机器学习理论的中心未决问题。</p>
+<hr>
+<h2 id="8-实战速查表">8. 实战速查表</h2>
+<table>
+  <thead>
+      <tr>
+          <th>现象</th>
+          <th>可能原因</th>
+          <th>处方</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>训练 ≪ 验证</td>
+          <td>过拟合</td>
+          <td>加数据、加正则、Dropout、早停</td>
+      </tr>
+      <tr>
+          <td>训练 ≈ 验证，都高</td>
+          <td>欠拟合</td>
+          <td>加大模型、减弱正则、加特征</td>
+      </tr>
+      <tr>
+          <td>训练好但验证不稳</td>
+          <td>验证集太小</td>
+          <td>用 CV、多种子取平均</td>
+      </tr>
+      <tr>
+          <td>损失发散</td>
+          <td>LR 过大 / 没归一化</td>
+          <td>降 LR、加 LayerNorm/BN、梯度裁剪</td>
+      </tr>
+      <tr>
+          <td>想要稀疏解</td>
+          <td>无关特征多</td>
+          <td>LASSO 或弹性网</td>
+      </tr>
+      <tr>
+          <td>特征强相关</td>
+          <td>纯 LASSO 抖动</td>
+          <td>弹性网、group LASSO</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>中等规模深度模型的默认起手式：</strong> AdamW + weight decay $10^{-2}$ + FC 层 dropout $0.1$ + cosine 学习率 + <strong>在 10% 留出集上早停</strong>。再用 5 折 CV 在小的学习率/权重衰减网格上调一调。</p>
+<hr>
+<h2 id="9-练习题">9. 练习题</h2>
+<p><strong>练习 1（岭回归梯度）。</strong> 证明 $\nabla_{\mathbf w}\bigl[\tfrac12\|\mathbf y - \mathbf{X}\mathbf w\|^2 + \tfrac\lambda 2\|\mathbf w\|^2\bigr] = (\mathbf X^\top\mathbf X + \lambda\mathbf I)\mathbf w - \mathbf X^\top\mathbf y$，并由此导出 (3)。</p>
+<p><strong>练习 2（稀疏性证明）。</strong> 证明 $\min_w \tfrac12 (w - w^\star)^2 + \lambda |w|$ 的最优 $w$ 恰为软阈值 (5)。<em>提示：</em> 对光滑部分求导，零点处用次微分 $\partial|w| = [-1,1]$。</p>
+<p><strong>练习 3（Dropout = 岭）。</strong> 对一维线性回归直接对 $m \sim \mathrm{Bernoulli}(1-p)$ 取期望，验证 (6)。</p>
+<p><strong>练习 4（早停 ↔ 岭）。</strong> 由 (7)，在 $\eta\lambda_j \ll 1$ 时用 $1 - (1-x)^t \approx 1 - e^{-tx}$ 推出小特征值方向上 $\alpha_{\text{eff}} \approx 1/(\eta t)$。</p>
+<p><strong>练习 5（BIC 阈值）。</strong> 解 $p\log N > 2p$，确认 $N \ge 8$ 时 BIC 比 AIC 罚得更重。</p>
+<p><strong>练习 6（$\mathbb R^2$ 上轴对齐矩形的 VC 维）。</strong> 证明它等于 4。<em>提示：</em> 沿坐标轴摆四点；再证任意五点都打散不了。</p>
+<hr>
+<h2 id="10-系列收官">10. 系列收官</h2>
+<p>这个系列从微积分和概率讲起，到本文为止刚好走完一圈，回到这个领域最根本的问题：<strong>经验风险最小化为什么有效？</strong> 回望这二十篇：</p>
+<ul>
+<li><strong>第 1–4 篇：基础。</strong> 线性代数、概率、凸优化——给后面所有内容提供了语言。</li>
+<li><strong>第 5–9 篇：经典监督学习。</strong> 线性 / 逻辑回归、决策树、SVM、朴素贝叶斯——主流模型，每个都有它清爽的推导。</li>
+<li><strong>第 10–12 篇：贝叶斯网络与集成。</strong> 从图模型到 XGBoost：怎么把弱结构组合成强预测。</li>
+<li><strong>第 13–15 篇：隐变量。</strong> EM、变分推断、HMM——当数据并没有把一切都告诉你时该怎么办。</li>
+<li><strong>第 16–18 篇：标签之外。</strong> CRF、降维、聚类——结构化预测与无监督学习。</li>
+<li><strong>第 19 篇：神经网络。</strong> 反向传播即链式法则——2012 年以来一切的根源。</li>
+<li><strong>第 20 篇：本文。</strong> 元问题：以上一切，凭什么<em>能泛化</em>？</li>
+</ul>
+<p>这个元问题今天最诚实的答案是：<strong>我们还没完全搞清楚。</strong> 经典理论（VC、Rademacher）给的是一个&quot;下界&quot;叙事，对现代过参数化区解释力不够；新一代的想法——隐式偏置、平坦极小值、神经正切核、PAC-Bayes、scaling laws——都是同一幅未完成拼图的不同碎片。如果未来十年的理论进展能跟得上过去十年的工程进展，那么这个系列的&quot;续集&quot;会是另一本完全不同的书。</p>
+<p>在那一天到来之前，记住三件事：<strong>正则化、做交叉验证、相信验证集。</strong> 后会有期。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<p>[1] Tikhonov, A. N. (1963). Solution of incorrectly formulated problems and the regularization method. <em>Soviet Math. Doklady</em>, 5, 1035-1038.</p>
+<p>[2] Tibshirani, R. (1996). Regression shrinkage and selection via the lasso. <em>JRSS-B</em>, 58(1), 267-288.</p>
+<p>[3] Zou, H., &amp; Hastie, T. (2005). Regularization and variable selection via the elastic net. <em>JRSS-B</em>, 67(2), 301-320.</p>
+<p>[4] Efron, B., Hastie, T., Johnstone, I., &amp; Tibshirani, R. (2004). Least angle regression. <em>Annals of Statistics</em>, 32(2), 407-499.</p>
+<p>[5] Srivastava, N., et al. (2014). Dropout: A simple way to prevent neural networks from overfitting. <em>JMLR</em>, 15(1), 1929-1958.</p>
+<p>[6] Wager, S., Wang, S., &amp; Liang, P. (2013). Dropout training as adaptive regularization. <em>NeurIPS</em>.</p>
+<p>[7] Vapnik, V. N., &amp; Chervonenkis, A. Y. (1971). On the uniform convergence of relative frequencies. <em>Theory Prob. &amp; Appl.</em>, 16(2), 264-280.</p>
+<p>[8] Blumer, A., Ehrenfeucht, A., Haussler, D., &amp; Warmuth, M. K. (1989). Learnability and the Vapnik-Chervonenkis dimension. <em>JACM</em>, 36(4), 929-965.</p>
+<p>[9] Hochreiter, S., &amp; Schmidhuber, J. (1997). Flat minima. <em>Neural Computation</em>, 9(1), 1-42.</p>
+<p>[10] Zhang, C., Bengio, S., Hardt, M., Recht, B., &amp; Vinyals, O. (2017). Understanding deep learning requires rethinking generalization. <em>ICLR</em>.</p>
+<p>[11] Belkin, M., Hsu, D., Ma, S., &amp; Mandal, S. (2019). Reconciling modern machine-learning practice and the classical bias-variance trade-off. <em>PNAS</em>, 116(32), 15849-15854.</p>
+<p>[12] Nakkiran, P., Kaplun, G., Bansal, Y., Yang, T., Barak, B., &amp; Sutskever, I. (2020). Deep double descent. <em>ICLR</em>.</p>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<ul>
+<li>上一篇：<a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81%e4%b9%9d-%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c%e4%b8%8e%e5%8f%8d%e5%90%91%e4%bc%a0%e6%92%ad/">第十九篇 &ndash; 神经网络与反向传播</a>
+</li>
+<li><a href="/tags/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0/">查看本系列全部 20 篇文章</a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#本文要点">本文要点</a></li>
+    <li><a href="#1-过拟合与偏差-方差分解">1. 过拟合与偏差-方差分解</a>
+      <ul>
+        <li><a href="#11-经验风险-vs-期望风险">1.1 经验风险 vs 期望风险</a></li>
+        <li><a href="#12-偏差-方差分解">1.2 偏差-方差分解</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-l2-正则化岭回归">2. L2 正则化（岭回归）</a>
+      <ul>
+        <li><a href="#21-三种等价视角">2.1 三种等价视角</a></li>
+        <li><a href="#22-svd-视角收缩小奇异方向">2.2 SVD 视角：收缩小奇异方向</a></li>
+        <li><a href="#23-权重衰减">2.3 权重衰减</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-l1-正则化lasso与稀疏性">3. L1 正则化（Lasso）与稀疏性</a>
+      <ul>
+        <li><a href="#31-稀疏性的几何">3.1 稀疏性的几何</a></li>
+        <li><a href="#32-软阈值算子">3.2 软阈值算子</a></li>
+        <li><a href="#33-lasso-作为内嵌的特征选择">3.3 Lasso 作为内嵌的特征选择</a></li>
+        <li><a href="#34-贝叶斯解读与弹性网">3.4 贝叶斯解读与弹性网</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-dropout">4. Dropout</a>
+      <ul>
+        <li><a href="#41-机制">4.1 机制</a></li>
+        <li><a href="#42-两个数学故事">4.2 两个数学故事</a></li>
+        <li><a href="#43-变体">4.3 变体</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-早停作为隐式正则化">5. 早停作为隐式正则化</a>
+      <ul>
+        <li><a href="#51-策略">5.1 策略</a></li>
+        <li><a href="#52-为什么等价于岭回归在二次损失下">5.2 为什么等价于岭回归（在二次损失下）</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-模型选择cvaicbic">6. 模型选择：CV、AIC、BIC</a>
+      <ul>
+        <li><a href="#61-k-折交叉验证">6.1 K 折交叉验证</a></li>
+        <li><a href="#62-信息准则">6.2 信息准则</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-泛化理论vc-维pac-与现代谜团">7. 泛化理论：VC 维、PAC 与现代谜团</a>
+      <ul>
+        <li><a href="#71-vc-维">7.1 VC 维</a></li>
+        <li><a href="#72-vc-泛化界">7.2 VC 泛化界</a></li>
+        <li><a href="#73-pac-可学习性">7.3 PAC 可学习性</a></li>
+        <li><a href="#74-深度学习之谜与双下降">7.4 深度学习之谜与双下降</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-实战速查表">8. 实战速查表</a></li>
+    <li><a href="#9-练习题">9. 练习题</a></li>
+    <li><a href="#10-系列收官">10. 系列收官</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">机器学习数学推导</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5100</strong></div>
+      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

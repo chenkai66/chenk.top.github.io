@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux 进程与资源管理：从 top 到 cgroups · Chen Kai Blog</title>
+<meta name="description" content="进程是怎么诞生和死亡的：fork/exec 模型、ps 和 top 在 STAT 列里打印的状态机、真正约束一台服务器的四个资源轴（CPU/内存/磁盘 I/O/网络）、那几个一定要记住的信号，以及把这一切组合成容器的 cgroup 与 namespace 原语。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/linux/%E8%BF%9B%E7%A8%8B%E4%B8%8E%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linux/%E8%BF%9B%E7%A8%8B%E4%B8%8E%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux 进程与资源管理：从 top 到 cgroups">
+<meta property="og:description" content="进程是怎么诞生和死亡的：fork/exec 模型、ps 和 top 在 STAT 列里打印的状态机、真正约束一台服务器的四个资源轴（CPU/内存/磁盘 I/O/网络）、那几个一定要记住的信号，以及把这一切组合成容器的 cgroup 与 namespace 原语。">
+<meta property="og:url" content="https://www.chenk.top/zh/linux/%E8%BF%9B%E7%A8%8B%E4%B8%8E%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+         · Chapter 7
+      </div>
+      <h1>Linux 进程与资源管理：从 top 到 cgroups</h1>
+      <p class="deck">进程是怎么诞生和死亡的：fork/exec 模型、ps 和 top 在 STAT 列里打印的状态机、真正约束一台服务器的四个资源轴（CPU/内存/磁盘 I/O/网络）、那几个一定要记住的信号，以及把这一切组合成容器的 cgroup 与 namespace 原语。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-03-20">March 20, 2022</time> · 16 min read · 7800 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/linux/" class="tag">#Linux</a><a href="/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/" class="tag">#云计算</a><a href="/zh/tags/%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86/" class="tag">#系统管理</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>运维这份工作，本事从来不是&quot;会背命令&quot;，而是把一个模糊的现象——<em>网站慢了、接口超时了、机器没响应了</em>——快速<strong>映射到正确的资源轴</strong>：是 CPU 跑满了，是内存被 cache 占满了（这没事）还是被某个失控进程吃光了（这有事），是磁盘队列堆住了，还是某个 socket 在泄漏？只要这一步定下来，工具的选择基本是机械的。</p>
+<p>这篇文章按这个顺序把全景走一遍。先讲一个进程到底是怎么被造出来的（<code>fork()</code> + <code>exec()</code>）、内核会让它跑过哪些状态、它能用的四种资源边界是什么。然后我们把工具链——<code>top</code> / <code>htop</code> / <code>ps</code> / <code>pstree</code> / <code>lsof</code> / <code>ss</code> / <code>iostat</code>——按&quot;对同一个系统的不同观察角度&quot;组织起来，而不是简单罗列。最后讲你能对一个进程做的事情：发送信号、放到后台、用 <code>nice</code>/<code>renice</code> 调优先级，以及背后默默撑起每一个容器的 cgroup 与 namespace。</p>
+<h2 id="进程程序线程分清楚为什么重要">进程、程序、线程——分清楚为什么重要</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/process-resource-management/fig1_process_states.png" alt="进程状态机" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>口语里这三个词经常换着用，但内核眼里它们是三种不同的东西：</p>
+<table>
+  <thead>
+      <tr>
+          <th>术语</th>
+          <th>是什么</th>
+          <th>标识</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>程序</strong></td>
+          <td>磁盘上的一个静态文件（<code>/usr/bin/vim</code>）——指令和数据排布的描述</td>
+          <td>inode + 路径</td>
+      </tr>
+      <tr>
+          <td><strong>进程</strong></td>
+          <td>程序的一次运行实例：自己的地址空间、文件描述符、PID</td>
+          <td>PID、父进程 PPID</td>
+      </tr>
+      <tr>
+          <td><strong>线程</strong></td>
+          <td>进程<strong>内部</strong>的执行流，与同进程里的其他线程<strong>共享</strong>地址空间</td>
+          <td>TID（内核 <code>task_struct</code>）</td>
+      </tr>
+  </tbody>
+</table>
+<p>资源是按进程算账的——内存页、文件描述符、打开的 socket，都挂在进程上。线程只是另一个可被调度的执行单元，恰好和兄弟们共用那套状态。Linux 上这条线尤其细：进程和线程在内核眼里都是 <code>task_struct</code>，唯一的区别是创建时<strong>共享了什么</strong>（<code>clone()</code> 的标志位决定）。这就是为什么 <code>ps -eLf</code> 会列出 PID 相同、LWP 不同的若干行，也是为什么一个多线程 JVM 在系统里看起来是一个进程下面挂着几百个 <code>task_struct</code>。</p>
+<p>几个值得记住的不变式：</p>
+<ul>
+<li>每个进程都有<strong>父进程</strong>。PPID 0 是内核保留；PPID 1 是 <code>systemd</code>（或 <code>init</code>），是内核唯一亲手启动的用户态进程。沿着 PPID 一路往上爬，最终都会回到 1。</li>
+<li>进程<strong>默认彼此隔离</strong>：地址空间不重叠，进程 A 打开一个文件不会影响进程 B。要共享必须显式走 IPC（管道、socket、共享内存、信号）。</li>
+<li>进程是<strong>动态的</strong>：不停被创建、调度、阻塞、唤醒、销毁。一台健康的服务器每分钟都会产生几千个短命进程，这是正常的。</li>
+</ul>
+<h2 id="进程怎么诞生fork-和-exec">进程怎么诞生：fork() 和 exec()</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/process-resource-management/fig2_fork_exec_model.png" alt="fork/exec 模型" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Linux 创建新进程<strong>只有一种机制：fork</strong>。<code>fork()</code>（以及它的现代亲戚 <code>clone()</code>）会把调用方进程<strong>复制</strong>出来一份。调用返回后，你有两个几乎一模一样的进程从同一行代码继续往下走，唯一的差别是返回值——子进程拿到 <code>0</code>，父进程拿到子进程的 PID。它们共享打开的文件描述符，代码、堆数据完全一致，连物理内存页一开始都是共享的（写时复制）。</p>
+<p>这本身只是把同一个程序复制了一遍。真正的把戏是后半段——<strong>exec</strong>。在刚 fork 出来的子进程里调用 <code>execve(&quot;/bin/ls&quot;, argv, envp)</code>，是在告诉内核：把当前进程的程序映像<strong>替换</strong>成另一个二进制，<strong>保留同一个 PID、同一个 PPID，默认也保留打开的文件描述符</strong>。所以你在 shell 里敲一个 <code>ls</code>，背后真正发生的事是：</p>
+<ol>
+<li>shell 调用 <code>fork()</code>，现在有两个 shell。</li>
+<li>子进程调用 <code>execve(&quot;/bin/ls&quot;, ...)</code>，它的程序映像变成了 <code>ls</code>。</li>
+<li>父进程（原来那个 shell）调用 <code>waitpid()</code> 阻塞，等子进程退出，把退出码塞进 <code>$?</code>。</li>
+</ol>
+<p>把&quot;创建进程&quot;和&quot;装载程序&quot;拆成两步，是 shell 管道、重定向、环境变量修改、<code>setuid</code> 式降权能成立的根本原因。所有这些动作都发生在 fork 之后、exec 之前的子进程里，新程序还没开跑。</p>
+<p>这种设计有两个后果会反复在生产里出现：</p>
+<ul>
+<li><strong>文件描述符会被继承。</strong> 子进程会继承父进程所有未标 <code>O_CLOEXEC</code> 的 FD。这就是为什么 <code>cmd &gt; log.txt</code> 能工作：shell 在子进程里、exec 之前先把那个文件以 FD 1 ��开。这也是为什么一个泄漏的守护进程能&quot;钉住&quot;已经被删除的文件（待会就讲）。</li>
+<li><strong>PID 1 是特殊的。</strong> 进程退出时如果还有子进程，这些孤儿会被重新挂到 PID 1 名下，由它负责 <code>wait()</code>。容器里的 PID 1 也承担同样职责——忘了处理就会得到那个出名的&quot;Docker 容器里堆满僵尸&quot;问题。</li>
+</ul>
+<h2 id="进程的状态机">进程的状态机</h2>
+<p><code>ps</code> 和 <code>top</code> 会给每个进程打印一个一字母的 <code>STAT</code> 列，对应的就是内核当前把它放在哪个状态：</p>
+<table>
+  <thead>
+      <tr>
+          <th>编码</th>
+          <th>状态</th>
+          <th>含义</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>R</code></td>
+          <td>Running</td>
+          <td>正在某个 CPU 上跑，或者在运行队列里等 CPU</td>
+      </tr>
+      <tr>
+          <td><code>S</code></td>
+          <td>可中断睡眠</td>
+          <td>等某个事件（读 socket、定时器），可被信号唤醒</td>
+      </tr>
+      <tr>
+          <td><code>D</code></td>
+          <td>不可中断睡眠</td>
+          <td>卡在内核里某件不能放手的事上，通常是磁盘 I/O——连 <code>kill -9</code> 也搬不动</td>
+      </tr>
+      <tr>
+          <td><code>T</code></td>
+          <td>停止</td>
+          <td>被 <code>SIGSTOP</code>/<code>SIGTSTP</code> 暂停（比如你按了 Ctrl+Z）</td>
+      </tr>
+      <tr>
+          <td><code>Z</code></td>
+          <td>僵尸</td>
+          <td>已经退出，但父进程还没 <code>wait()</code> 回收</td>
+      </tr>
+      <tr>
+          <td><code>X</code></td>
+          <td>死亡</td>
+          <td>销毁过程中的瞬时状态，几乎看不到</td>
+      </tr>
+  </tbody>
+</table>
+<p>这些状态不是冷知识。一台机器有 200 个进程在 <code>D</code>，<strong>不是</strong>&ldquo;CPU 被打满了&rdquo;，而是它们被存储卡住了——你怎么调 CPU 都没用。<code>Z</code> 越堆越多，是父进程忘了 <code>wait()</code>。<code>T</code> 一直没消失，说明谁（或者哪个脚本）发了 <code>SIGSTOP</code> 之后没补 <code>SIGCONT</code>。</p>
+<p><code>top</code> 顶部那行 <code>Tasks: 150 total, 2 running, 148 sleeping, 0 stopped, 0 zombie</code> 是你的第一个体检表——<code>stopped</code> 或 <code>zombie</code> 不是 0，就值得追一下。</p>
+<h2 id="四个资源轴">四个资源轴</h2>
+<p>在淹没在工具里之前，先把心智模型立起来。生产里的问题，几乎都能映射到这四个轴之一：</p>
+<ol>
+<li><strong>CPU</strong>——每秒能完成多少计算。</li>
+<li><strong>内存</strong>——进程的工作集能放下多少而不去碰磁盘。</li>
+<li><strong>磁盘 I/O</strong>——字节进出持久化存储的速度。</li>
+<li><strong>网络</strong>——字节进出这台机器的速度。</li>
+</ol>
+<p>任何一个出现瓶颈，依赖它的东西都会跟着慢。难点在于判断<strong>是哪一个</strong>——监控工具基本上就是为这件事服务的。</p>
+<h3 id="cpu">CPU</h3>
+<p>通常你想知道两件事：</p>
+<ul>
+<li>这台机器到底有几个核？<code>nproc</code> 和 <code>lscpu</code> 都答得了。</li>
+<li>现在压力多大？<code>uptime</code> 给出 1、5、15 分钟三个负载值。</li>
+</ul>
+<p>负载平均值<strong>不是</strong> CPU 使用率。它统计的是处于 <strong>running 或 uninterruptible</strong>（<code>R + D</code>）状态的进程数。一台 4 核机器，<code>load avg 4.0</code>、CPU 95% idle，几乎一定是磁盘问题：任务都堆在 <code>D</code> 上等 I/O，不是等 CPU。把负载值跟核心数比着读：<code>&lt; 核数</code> 是闲，<code>≈ 核数</code> 是满载，<code>&gt;&gt; 核数</code> 是过载。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">uptime
+</span></span><span class="line"><span class="cl"><span class="c1"># 06:56:12 up 12 days,  3:45,  3 users,  load average: 0.22, 0.45, 0.56</span>
+</span></span><span class="line"><span class="cl">nproc
+</span></span><span class="line"><span class="cl"><span class="c1"># 4</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="内存">内存</h3>
+<p><code>free -h</code> 是规范视图。陷阱在于不能用 Windows 任务管理器的脑子去读它：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">              total        used        free      shared  buff/cache   available
+</span></span><span class="line"><span class="cl">Mem:           15Gi       2.5Gi       1.0Gi       100Mi       11.5Gi        12Gi
+</span></span><span class="line"><span class="cl">Swap:         2.0Gi          0B       2.0Gi
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>新手一看 <code>free: 1.0Gi</code> 就慌。<strong>别慌。</strong> Linux 故意把空闲内存当 <strong>buffer/cache</strong> 用来加速 I/O——那 11.5 GiB 是按需可回收的。真正要看的是 <code>available</code>：内核估算一下，如果有进程伸手要内存，它能腾出来多少。</p>
+<p>cache 的两种口味：</p>
+<ul>
+<li><strong>Buffer</strong> 是写入侧的暂存。写文件时字节先进页缓存，再批量回刷到磁盘——零碎写之所以快就是这个原因。</li>
+<li><strong>Cache</strong> 是读取侧：从磁盘读上来的页内核留着，等下次再读时直接命中——而它们确实经常被再读到。</li>
+</ul>
+<p>只有当<strong>这三件事同时发生</strong>时，内存才是真的不够：</p>
+<ul>
+<li><code>available</code> 接近 0；</li>
+<li><code>swap used</code> 在<strong>持续上涨</strong>，而不只是非零；</li>
+<li>内核开始记录 OOM kill（<code>dmesg | grep -i 'killed process'</code>）。</li>
+</ul>
+<h3 id="磁盘和网络">磁盘和网络</h3>
+<p>磁盘容量看 <code>df -h</code>（按文件系统）和 <code>du -sh *</code>（按目录）。实时 I/O 在 <code>iostat -x 1</code> 和 <code>iotop</code> 里；最重要的两个指标是 <code>%util</code>（设备多忙）和 <code>await</code>（请求在队列里待多久）。<code>%util 100</code>、<code>await</code> 几十毫秒的设备，是真瓶颈。</p>
+<p>网络方面：<code>ss -tulnp</code> 看谁在监听，<code>ip -s link</code> 看接口计数和丢包，<code>iftop</code>（或 <code>nload</code>）看实时带宽。&ldquo;80 端口被谁占了&quot;的最快答案是 <code>lsof -i :80</code> 或 <code>ss -tulnp | grep :80</code>。</p>
+<h2 id="监控工具链">监控工具链</h2>
+<h3 id="top首先要跑的那个"><code>top</code>——首先要跑的那个</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/process-resource-management/fig3_top_dissected.png" alt="top 输出解剖" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>top</code> 是驾驶舱视角。每一块区域都讲了具体的事：</p>
+<ul>
+<li><strong>顶部一行</strong>：uptime、登录用户、负载均值。把负载和 <code>nproc</code> 比着看。</li>
+<li><strong>Tasks</strong>：总数 / 运行 / 睡眠 / <strong>停止 / 僵尸</strong>。后两个应该是 0。</li>
+<li><strong><code>%Cpu(s)</code></strong>：拆成 user（<code>us</code>）、system（<code>sy</code>）、nice（<code>ni</code>）、idle（<code>id</code>）、I/O wait（<code>wa</code>）、硬中断/软中断（<code>hi</code>/<code>si</code>）、stolen（<code>st</code>）。<code>wa</code> 高是磁盘慢；<strong><code>st</code> 在虚拟机里高，意味着宿主机把你的 CPU 时间分给了别的租户</strong>——云上的&quot;邻居打架&quot;很常见。</li>
+<li><strong>Mem / Swap</strong>：信 <code>avail Mem</code>，别信 <code>free</code>。<code>Swap used</code> 持续上涨，才是真正的内存压力。</li>
+<li><strong>进程表</strong>：可以用快捷键排序。<code>P</code> 按 <code>%CPU</code>，<code>M</code> 按 <code>%MEM</code>，<code>T</code> 按时间。<code>1</code> 切换到按核展开——某一个核被钉死、其他核闲着的时候特别有用。<code>k</code> 输入 PID 发信号。<code>q</code> 退出。</li>
+</ul>
+<h3 id="htop带界面的-top"><code>htop</code>——带界面的 top</h3>
+<p><code>htop</code> 就是带颜色、能用鼠标、有树状图（<code>F5</code>）、能直接选进程发信号（<code>F9</code>）的 <code>top</code>。任何一台你打算待超过一分钟的机器，都装上：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install htop          <span class="c1"># Debian/Ubuntu</span>
+</span></span><span class="line"><span class="cl">sudo dnf install htop          <span class="c1"># RHEL/Rocky/Fedora</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="ps静态快照"><code>ps</code>——静态快照</h3>
+<p><code>top</code> 在刷新；<code>ps</code> 是把某个瞬间冻结下来，写脚本和 grep 时往往要的就是这个。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps -ef                  <span class="c1"># System V 风格：所有进程，完整字段</span>
+</span></span><span class="line"><span class="cl">ps aux                  <span class="c1"># BSD 风格：所有进程，包括没有 TTY 的</span>
+</span></span><span class="line"><span class="cl">ps -eo pid,ppid,user,stat,%cpu,%mem,cmd --sort<span class="o">=</span>-%cpu <span class="p">|</span> head -10
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>ps aux</code> 里值得记住的列：</p>
+<ul>
+<li><code>VSZ</code>——虚拟内存大小（进程<strong>申请</strong>的；单看意义不大）。</li>
+<li><code>RSS</code>——常驻集，<strong>实际占用的物理页</strong>。这是诚实的内存数字。</li>
+<li><code>STAT</code>——上面表里的状态码，有时还带后缀（<code>&lt;</code> 高优先级、<code>N</code> 低优先级、<code>s</code> 会话首领、<code>+</code> 前台进程组）。</li>
+<li><code>TIME</code>——累计 CPU 时间，不是墙上时间。</li>
+</ul>
+<h3 id="pstree谁是谁的父亲"><code>pstree</code>——谁是谁的父亲</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pstree -ap            <span class="c1"># 命令行 + PID</span>
+</span></span><span class="line"><span class="cl">pstree -ap &lt;PID&gt;      <span class="c1"># 某个 PID 下的子树</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>某个进程死了又活、活了又死时，往上查——总有谁在拉它起来。</p>
+<h3 id="lsof一切打开着的文件"><code>lsof</code>——一切打开着的&quot;文件&rdquo;</h3>
+<p><code>lsof</code> 列出打开的&quot;文件&quot;，这里的文件是 Unix 意义上&quot;一切皆文件&quot;的文件——常规文件、socket、管道、设备节点，乃至内核侧的句柄。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsof -p &lt;PID&gt;          <span class="c1"># 这个 PID 打开了什么</span>
+</span></span><span class="line"><span class="cl">lsof -c nginx          <span class="c1"># 任何 nginx 进程打开了什么</span>
+</span></span><span class="line"><span class="cl">lsof -u alice          <span class="c1"># alice 拥有的进程打开了什么</span>
+</span></span><span class="line"><span class="cl">lsof -i :80            <span class="c1"># 谁绑在 80 端口</span>
+</span></span><span class="line"><span class="cl">lsof -i tcp            <span class="c1"># 所有 TCP socket</span>
+</span></span><span class="line"><span class="cl">lsof +D /var/log       <span class="c1"># /var/log 下被打开的所有文件</span>
+</span></span><span class="line"><span class="cl">lsof +L1               <span class="c1"># 链接数 &lt; 1 的文件——已删除但还被钉着</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>FD</code> 列本身就是一套小语法：</p>
+<ul>
+<li><code>cwd</code>——进程的当前工作目录</li>
+<li><code>txt</code>——可执行程序自身</li>
+<li><code>mem</code>——内存映射的文件（动态库）</li>
+<li><code>0r</code> / <code>1w</code> / <code>2w</code>——stdin / stdout / stderr</li>
+<li><code>Nu</code>（<code>u</code> / <code>r</code> / <code>w</code>）——一个普通 FD，带打开模式</li>
+</ul>
+<h3 id="sssocket-现代版的-netstat"><code>ss</code>——socket 现代版的 <code>netstat</code></h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ss -tulnp            <span class="c1"># tcp + udp + 监听 + 数字 + PID</span>
+</span></span><span class="line"><span class="cl">ss -s                <span class="c1"># 各种 socket 状态的总览</span>
+</span></span><span class="line"><span class="cl">ss -tan state established <span class="s1">&#39;( dport = :443 )&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="iostat-和-iotop磁盘轴"><code>iostat</code> 和 <code>iotop</code>——磁盘轴</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">iostat -x <span class="m">1</span>          <span class="c1"># 每个设备的扩展统计，每秒刷新</span>
+</span></span><span class="line"><span class="cl">sudo iotop -o        <span class="c1"># 只显示当前在做 I/O 的进程</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>盯 <code>%util</code>、<code>r/s</code>、<code>w/s</code>、<code>await</code>。设备 <code>%util 100</code> 但 <code>await</code> 个位数，是<strong>忙但健康</strong>；<code>%util 100</code> 同时 <code>await</code> 几百毫秒，那是<strong>堆队列了，难受</strong>。</p>
+<h2 id="控制进程">控制进程</h2>
+<h3 id="信号">信号</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/process-resource-management/fig5_signals_table.png" alt="信号速查" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>kill</code> 这名字起错了。它不&quot;杀&quot;任何东西；它<strong>发送信号</strong>——只不过大多数信号的<em>默认</em>行为恰好是&quot;终止进程&quot;。日常真正要用到的就这几个：</p>
+<table>
+  <thead>
+      <tr>
+          <th>信号</th>
+          <th>编号</th>
+          <th>作用</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>SIGTERM</code></td>
+          <td>15</td>
+          <td>礼貌请求进程终止；进程能做清理。<strong>永远先用这个。</strong></td>
+      </tr>
+      <tr>
+          <td><code>SIGINT</code></td>
+          <td>2</td>
+          <td>Ctrl+C 发的；语义上是&quot;用户中断了你&quot;</td>
+      </tr>
+      <tr>
+          <td><code>SIGHUP</code></td>
+          <td>1</td>
+          <td>本意是&quot;终端挂断了&quot;；按惯例，守护进程把它当作<strong>重新加载配置</strong>（nginx、sshd、syslog）</td>
+      </tr>
+      <tr>
+          <td><code>SIGKILL</code></td>
+          <td>9</td>
+          <td>核武器。内核直接干掉进程，不做清理，<strong>不可捕获</strong>。最后手段。</td>
+      </tr>
+      <tr>
+          <td><code>SIGSTOP</code></td>
+          <td>19</td>
+          <td>暂停。<strong>不可捕获。</strong> 用 <code>SIGCONT</code> 恢复。</td>
+      </tr>
+      <tr>
+          <td><code>SIGTSTP</code></td>
+          <td>20</td>
+          <td>stop 的可捕获版本——Ctrl+Z 发的就是这个</td>
+      </tr>
+      <tr>
+          <td><code>SIGCONT</code></td>
+          <td>18</td>
+          <td>让停止的进程继续</td>
+      </tr>
+      <tr>
+          <td><code>SIGUSR1</code> / <code>SIGUSR2</code></td>
+          <td>10 / 12</td>
+          <td>应用自定义。很多守护进程用 <code>SIGUSR1</code> 触发日志切割。</td>
+      </tr>
+      <tr>
+          <td><code>SIGCHLD</code></td>
+          <td>17</td>
+          <td>子进程状态变化时发给父进程。父进程应该 <code>wait()</code>。</td>
+      </tr>
+      <tr>
+          <td><code>SIGPIPE</code></td>
+          <td>13</td>
+          <td>你往一个没读端的管道写（`yes</td>
+      </tr>
+  </tbody>
+</table>
+<p>正确的升级顺序<strong>永远</strong>是：先 <code>SIGTERM</code>，给进程几秒钟，无效了再上 <code>SIGKILL</code>。<code>kill -9</code> 会跳过析构、留着没释放的锁、丢下临时文件、把正在写的数据库写坏。这是最后的手段。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">kill</span> &lt;PID&gt;             <span class="c1"># SIGTERM（默认）</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> -HUP &lt;PID&gt;        <span class="c1"># 重载配置</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> -9 &lt;PID&gt;          <span class="c1"># SIGKILL——最后手段</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> -l                <span class="c1"># 列出本机内核认识的所有信号名和编号</span>
+</span></span><span class="line"><span class="cl">pkill -HUP nginx       <span class="c1"># 按名字 / 模式</span>
+</span></span><span class="line"><span class="cl">killall -USR1 nginx    <span class="c1"># 按精确程序名</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="后台任务和脱离会话">后台任务和脱离会话</h3>
+<p>要让一个任务活过 SSH 断线，按&quot;越来越靠谱&quot;的顺序有三种选择：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./long_task.sh <span class="p">&amp;</span>                                  <span class="c1"># 仅当前 shell 后台；</span>
+</span></span><span class="line"><span class="cl">                                                  <span class="c1"># SSH 断了会收到 SIGHUP 而死</span>
+</span></span><span class="line"><span class="cl">nohup ./long_task.sh &gt;/dev/null 2&gt;<span class="p">&amp;</span><span class="m">1</span> <span class="p">&amp;</span>           <span class="c1"># 忽略 SIGHUP；输出丢弃</span>
+</span></span><span class="line"><span class="cl">tmux new -s work     <span class="c1"># 在里面跑，Ctrl-B d 分离，回头再 attach</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>任何要交互或者长跑的事情，正确答案都是 <code>tmux</code>（或老一点的 <code>screen</code>）。但如果是<strong>服务</strong>，这三种都不合适——写一个 <code>systemd</code> unit，让 init 系统去监管它（这部分会在系统服务那篇讲）。</p>
+<p>同一个 shell 内的前台/后台切换：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./task.sh         <span class="c1"># 前台</span>
+</span></span><span class="line"><span class="cl">^Z                <span class="c1"># SIGTSTP——暂停，回到 shell</span>
+</span></span><span class="line"><span class="cl"><span class="nb">bg</span> %1             <span class="c1"># 在后台继续</span>
+</span></span><span class="line"><span class="cl"><span class="nb">fg</span> %1             <span class="c1"># 拉回前台</span>
+</span></span><span class="line"><span class="cl"><span class="nb">jobs</span>              <span class="c1"># 列出当前 shell 的任务</span>
+</span></span><span class="line"><span class="cl"><span class="nb">disown</span> %1         <span class="c1"># 与 shell 解绑，登出后存活</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="优先级nice-与-renice">优先级：<code>nice</code> 与 <code>renice</code></h3>
+<p>调度器选谁先跑，部分依据是进程的 <strong>nice 值</strong>——一个从 <code>-20</code>（最高优先级，调度器偏爱它）到 <code>19</code>（最低，对别人很客气）的整数，默认是 <code>0</code>。把 nice 调到 0 以下需要 root。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nice -n <span class="m">19</span>  ./backup.sh                <span class="c1"># 用低优先级跑后台备份</span>
+</span></span><span class="line"><span class="cl">nice -n -10 ./important.sh             <span class="c1"># 提高优先级（root）</span>
+</span></span><span class="line"><span class="cl">renice -n <span class="m">10</span> -p &lt;PID&gt;                  <span class="c1"># 改一个正在跑的进程的 nice</span>
+</span></span><span class="line"><span class="cl">renice -n <span class="m">5</span> -u alice                   <span class="c1"># alice 的所有进程</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>nice</code> 是个<strong>软提示</strong>——它影响调度权重，但低优先级进程在没人争 CPU 时仍然能跑。要做<strong>硬限制</strong>（比如&quot;这个批处理任务最多用 2 个核、4 GiB 内存&quot;），用 cgroup，不要用 nice。</p>
+<h3 id="孤儿和僵尸">孤儿和僵尸</h3>
+<p>两种新手容易搞混的状态，都源于父子进程之间的契约：</p>
+<ul>
+<li><strong>孤儿（Orphan）</strong>：父进程比子进程先退出。内核会把孤儿重新挂到 PID 1 名下，由它继承 <code>wait()</code> 的责任。<strong>正常情况下没害</strong>。</li>
+<li><strong>僵尸（Zombie，<code>Z</code>）</strong>：子进程已经退出，但父进程没调 <code>wait()</code> 把退出状态收回去。<code>task_struct</code> 还赖在进程表里，只占着一个 PID 和退出码。僵尸不吃 CPU 也不吃内存，但它<strong>占进程表槽位</strong>——堆够多了，连 <code>fork()</code> 本身都会失败。</li>
+</ul>
+<p>僵尸的修法是<strong>修父进程</strong>。如果父进程在你手里，让它去 <code>wait()</code>（或者注册 <code>SIGCHLD</code> 处理函数，或者把 <code>SIGCHLD</code> 设成 <code>SIG_IGN</code> 让内核自动回收）。如果父进程是别人写的、坏的，那就杀掉父进程，僵尸会被重新挂到 <code>systemd</code> 名下、立刻被回收。重启是真没招了的最后手段。</p>
+<p>便宜地列出当前的僵尸：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps -eo pid,ppid,stat,cmd <span class="p">|</span> awk <span class="s1">&#39;$3 ~ /^Z/&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="cgroups--namespaces容器底下的那两块砖">cgroups + namespaces——容器底下的那两块砖</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/process-resource-management/fig4_cgroups_namespaces.png" alt="cgroups 和 namespaces" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>理解了进程之后，还有两个内核特性能解释容器到底是怎么工作的——而且就算你永远不碰 Docker，它们也很有用。</p>
+<p><strong>Namespaces</strong> 隔离的是<em>一个进程能看见什么</em>。每种 namespace 虚拟化一类系统资源：</p>
+<ul>
+<li><code>pid</code>——独立的 PID 空间；里面的 PID 1 不是外面的 PID 1。</li>
+<li><code>net</code>——独立的网卡、路由表、socket。</li>
+<li><code>mnt</code>——独立的挂载表；根文件系统都可以完全不同。</li>
+<li><code>uts</code>——独立的 hostname 和 domain name。</li>
+<li><code>ipc</code>——独立的 SysV/POSIX IPC 对象。</li>
+<li><code>user</code>——独立的 UID/GID 范围；里面的 root 在外面映射成一个非特权 UID。</li>
+<li><code>cgroup</code>——独立的 cgroup 层级视图。</li>
+</ul>
+<p><strong>cgroups（control groups，v2）</strong> 限制的是<em>一个进程能用多少</em>。一个 cgroup 就是 <code>/sys/fs/cgroup/</code> 下的一个目录，里面装着属于它的 PID 列表，加上一组配置资源上限的文件：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 建一个组，限到半核 CPU、512 MiB 内存，然后把当前 shell 塞进去</span>
+</span></span><span class="line"><span class="cl">sudo mkdir /sys/fs/cgroup/demo
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;50000 100000&#34;</span> <span class="p">|</span> sudo tee /sys/fs/cgroup/demo/cpu.max     <span class="c1"># 每 100ms 用 50ms</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="k">$((</span><span class="m">512</span><span class="o">*</span><span class="m">1024</span><span class="o">*</span><span class="m">1024</span><span class="k">))</span> <span class="p">|</span> sudo tee /sys/fs/cgroup/demo/memory.max
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="nv">$$</span> <span class="p">|</span> sudo tee /sys/fs/cgroup/demo/cgroup.procs            <span class="c1"># 当前 shell 加入</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>值得记住的几个 controller：</p>
+<ul>
+<li><code>cpu.max</code>——带宽上限（quota / period）。</li>
+<li><code>cpu.weight</code>——竞争时的相对份额。</li>
+<li><code>memory.max</code>——硬上限；超了会触发<strong>这个 cgroup 内部的 OOM killer</strong>，而不是把宿主机搞瘫。</li>
+<li><code>io.max</code>——按设备的 IOPS 和 BPS 上限。</li>
+<li><code>pids.max</code>——fork 炸弹防护，限制组内进程数。</li>
+<li><code>cpuset.cpus</code>——绑到指定 CPU / NUMA 节点。</li>
+</ul>
+<p>Docker、Podman、<code>containerd</code> 这种容器引擎，本质上就是一个小程序，做了这三件事：</p>
+<ol>
+<li>创建一组新的 namespace（带正确标志的 <code>unshare(2)</code> 或 <code>clone(2)</code>）；</li>
+<li><code>pivot_root</code> 到一个从镜像里解出来的新根文件系统；</li>
+<li>把得到的进程树丢进一个有你要求的限制的 cgroup（<code>docker run --cpus 0.5 --memory 512m</code>）。</li>
+</ol>
+<p>看明白这一层之后，调容器就不那么神秘了。<code>nsenter -t &lt;PID&gt; -a</code> 进入一个运行中容器的 namespace；<code>cat /proc/&lt;PID&gt;/cgroup</code> 告诉你它在哪个组里；<code>systemd-cgtop</code> 是 cgroup 版的 <code>top</code>。</p>
+<h2 id="演练机器变慢了怎么排">演练：&ldquo;机器变慢了，怎么排&rdquo;</h2>
+<p>可复用的&quot;变慢&quot;分诊顺序：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 有没有什么明显在着火？</span>
+</span></span><span class="line"><span class="cl">uptime                          <span class="c1"># 负载值对比 nproc</span>
+</span></span><span class="line"><span class="cl">dmesg -T <span class="p">|</span> tail -50             <span class="c1"># OOM、硬件错误、segfault</span>
+</span></span><span class="line"><span class="cl">df -h                           <span class="c1"># 哪个文件系统快满了？</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 哪个轴饱和了？</span>
+</span></span><span class="line"><span class="cl">top                             <span class="c1"># 按 1 看每核；盯 us/sy/wa/st</span>
+</span></span><span class="line"><span class="cl">free -h                         <span class="c1"># available 还有多少？swap 在涨吗？</span>
+</span></span><span class="line"><span class="cl">iostat -x <span class="m">1</span> <span class="m">5</span>                   <span class="c1"># 每个设备的 %util 和 await</span>
+</span></span><span class="line"><span class="cl">ss -s                           <span class="c1"># socket 计数；TIME-WAIT 巨多吗？</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 是谁干的？</span>
+</span></span><span class="line"><span class="cl">ps aux --sort<span class="o">=</span>-%cpu <span class="p">|</span> head      <span class="c1"># CPU 大户</span>
+</span></span><span class="line"><span class="cl">ps aux --sort<span class="o">=</span>-%mem <span class="p">|</span> head      <span class="c1"># RSS 大户</span>
+</span></span><span class="line"><span class="cl">sudo iotop -o                   <span class="c1"># 谁在读写</span>
+</span></span><span class="line"><span class="cl">sudo lsof -i -nP <span class="p">|</span> head         <span class="c1"># 谁在开 socket</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 钻进某个 PID</span>
+</span></span><span class="line"><span class="cl">cat /proc/&lt;PID&gt;/status          <span class="c1"># 状态、线程数、内存合计</span>
+</span></span><span class="line"><span class="cl">ls -l /proc/&lt;PID&gt;/fd/           <span class="c1"># 打开了哪些文件</span>
+</span></span><span class="line"><span class="cl">cat /proc/&lt;PID&gt;/limits          <span class="c1"># 这个进程实际生效的 ulimit</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 5. 决定怎么动手</span>
+</span></span><span class="line"><span class="cl">renice -n <span class="m">10</span> -p &lt;PID&gt;           <span class="c1"># 把失控的批处理调低优先级</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> &lt;PID&gt;                      <span class="c1"># 先客气地问一下</span>
+</span></span><span class="line"><span class="cl"><span class="nb">kill</span> -9 &lt;PID&gt;                   <span class="c1"># 只在 SIGTERM 没用之后再上</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>千万别跳过第 2 步。&ldquo;服务器慢&quot;的工单大半被误诊，就是因为有人直接打开 <code>top</code>，看到一个进程 100% CPU，<code>kill -9</code> 了事——而真正的问题是磁盘饱和，那个进程只是傻傻地在 <code>D</code> 里等。</p>
+<h2 id="实战恢复被误删的日志文件">实战：恢复被误删的日志文件</h2>
+<p>经典事故：有人在 nginx 还在写日志的时候跑了 <code>rm -rf /var/log/nginx/access.log</code>。<code>rm</code> 之后：</p>
+<ul>
+<li><code>ls /var/log/nginx/</code> 看不到这个文件了（目录项没了）。</li>
+<li><code>df -h</code> 报告的占用没变（inode 和数据块还分配着）。</li>
+<li>nginx 继续往<strong>同一个 FD</strong> 上写，跟没事一样——因为它真的没事。</li>
+</ul>
+<p>这是 Unix 语义里的标准行为：文件名从目录里取消链接了，但只要还有进程持有它的打开 FD，inode 就还活着。内核会把那个 FD 暴露在 <code>/proc/&lt;pid&gt;/fd/&lt;fd&gt;</code> 下，意思是你可以原样把文件<strong>复制回来</strong>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">PID</span><span class="o">=</span><span class="k">$(</span>pidof nginx <span class="p">|</span> awk <span class="s1">&#39;{print $1}&#39;</span><span class="k">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. 确认这个被删的文件确实还开着</span>
+</span></span><span class="line"><span class="cl">sudo lsof -p <span class="s2">&#34;</span><span class="nv">$PID</span><span class="s2">&#34;</span> <span class="p">|</span> grep access.log
+</span></span><span class="line"><span class="cl"><span class="c1"># nginx 1234 root  6w  REG  8,1  123456789  4711  /var/log/nginx/access.log (deleted)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 从 /proc 里复制出来</span>
+</span></span><span class="line"><span class="cl">sudo cp /proc/<span class="s2">&#34;</span><span class="nv">$PID</span><span class="s2">&#34;</span>/fd/6 /var/log/nginx/access.log
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 让 nginx 重新打开日志文件</span>
+</span></span><span class="line"><span class="cl">sudo nginx -s reload    <span class="c1"># 或：sudo kill -USR1 &#34;$PID&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>同样的招数对任何&quot;被删但还开着&quot;的文件都成立。但只要最后一个 FD 关掉，内核就会真正释放 inode——所以这事得<strong>马上</strong>做，赶在守护进程被重启之前。</p>
+<h2 id="一页带走">一页带走</h2>
+<ul>
+<li><strong>进程</strong>是一段在跑的程序，有自己的地址空间；<strong>线程</strong>共用同一份地址空间；调度器眼里只有 <code>task_struct</code>。</li>
+<li>新进程通过 <strong><code>fork()</code> + <code>exec()</code></strong> 创建，从不凭空诞生。PID 1（<code>systemd</code> / <code>init</code>）是所有进程树的根。</li>
+<li><strong>状态机</strong>（<code>R</code>/<code>S</code>/<code>D</code>/<code>T</code>/<code>Z</code>）就是 <code>ps</code>/<code>top</code> 打印的那列，每种状态意味着不同的排查路径。</li>
+<li>资源瓶颈活在四个轴上——<strong>CPU、内存、磁盘 I/O、网络</strong>——大多数监控工具只是同一些轴的不同视图。</li>
+<li>Linux 的内存看着比实际更吓人：要信的是 <strong><code>available</code>，不是 <code>free</code></strong>。</li>
+<li><code>kill</code> 发<strong>信号</strong>；先 <code>SIGTERM</code>，最后 <code>SIGKILL</code>。守护进程见 <code>SIGHUP</code> 重载配置。</li>
+<li><code>nice</code>/<code>renice</code> 是<strong>软调度提示</strong>；<strong>cgroups</strong> 才是硬上限——和 <strong>namespaces</strong> 一起，构成了容器真正的底座。</li>
+</ul>
+<h3 id="延伸阅读">延伸阅读</h3>
+<ul>
+<li>Brendan Gregg，<em>Linux Performance</em>——<a href="http://www.brendangregg.com/linuxperf.html" target="_blank" rel="noopener noreferrer">http://www.brendangregg.com/linuxperf.html <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><code>man proc(5)</code>——<code>/proc</code> 的完整参考</li>
+<li><code>man 7 signal</code>——每个信号、默认动作、是否可捕获</li>
+<li><code>man 7 cgroups</code>——cgroup v2 的设计和 controller 列表</li>
+<li><code>man 7 namespaces</code>——每种 namespace 虚拟化什么</li>
+</ul>
+<h3 id="下一篇">下一篇</h3>
+<ul>
+<li><strong>《Linux 磁盘管理》</strong>——分区、文件系统、LVM 与挂载栈</li>
+<li><strong>《Linux 用户管理》</strong>——用户、组、sudo、PAM 与最小权限原则</li>
+</ul>
+<p>到这里，你应该能走进一台慢机器，一分钟之内说出哪个轴饱和了，然后<strong>带着意图</strong>去选工具，而不是凭反射敲命令。这就是&quot;会跑 <code>top</code>&ldquo;和&quot;在运维一个系统&quot;之间的差别。</p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#进程程序线程分清楚为什么重要">进程、程序、线程——分清楚为什么重要</a></li>
+    <li><a href="#进程怎么诞生fork-和-exec">进程怎么诞生：fork() 和 exec()</a></li>
+    <li><a href="#进程的状态机">进程的状态机</a></li>
+    <li><a href="#四个资源轴">四个资源轴</a>
+      <ul>
+        <li><a href="#cpu">CPU</a></li>
+        <li><a href="#内存">内存</a></li>
+        <li><a href="#磁盘和网络">磁盘和网络</a></li>
+      </ul>
+    </li>
+    <li><a href="#监控工具链">监控工具链</a>
+      <ul>
+        <li><a href="#top首先要跑的那个"><code>top</code>——首先要跑的那个</a></li>
+        <li><a href="#htop带界面的-top"><code>htop</code>——带界面的 top</a></li>
+        <li><a href="#ps静态快照"><code>ps</code>——静态快照</a></li>
+        <li><a href="#pstree谁是谁的父亲"><code>pstree</code>——谁是谁的父亲</a></li>
+        <li><a href="#lsof一切打开着的文件"><code>lsof</code>——一切打开着的&quot;文件&rdquo;</a></li>
+        <li><a href="#sssocket-现代版的-netstat"><code>ss</code>——socket 现代版的 <code>netstat</code></a></li>
+        <li><a href="#iostat-和-iotop磁盘轴"><code>iostat</code> 和 <code>iotop</code>——磁盘轴</a></li>
+      </ul>
+    </li>
+    <li><a href="#控制进程">控制进程</a>
+      <ul>
+        <li><a href="#信号">信号</a></li>
+        <li><a href="#后台任务和脱离会话">后台任务和脱离会话</a></li>
+        <li><a href="#优先级nice-与-renice">优先级：<code>nice</code> 与 <code>renice</code></a></li>
+        <li><a href="#孤儿和僵尸">孤儿和僵尸</a></li>
+      </ul>
+    </li>
+    <li><a href="#cgroups--namespaces容器底下的那两块砖">cgroups + namespaces——容器底下的那两块砖</a></li>
+    <li><a href="#演练机器变慢了怎么排">演练：&ldquo;机器变慢了，怎么排&rdquo;</a></li>
+    <li><a href="#实战恢复被误删的日志文件">实战：恢复被误删的日志文件</a></li>
+    <li><a href="#一页带走">一页带走</a>
+      <ul>
+        <li><a href="#延伸阅读">延伸阅读</a></li>
+        <li><a href="#下一篇">下一篇</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>16 min</strong></div>
+      <div class="row"><span>Word count</span><strong>7800</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

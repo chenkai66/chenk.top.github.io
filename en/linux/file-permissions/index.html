@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux File Permissions: rwx, chmod, chown, and Beyond · Chen Kai Blog</title>
+<meta name="description" content="Master the Linux permission model: rwx semantics on files vs directories, numeric and symbolic notation, chmod/chown usage, umask defaults, SUID/SGID/Sticky bit, and ACLs.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/linux/file-permissions/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/linux/file-permissions/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux File Permissions: rwx, chmod, chown, and Beyond">
+<meta property="og:description" content="Master the Linux permission model: rwx semantics on files vs directories, numeric and symbolic notation, chmod/chown usage, umask defaults, SUID/SGID/Sticky bit, and ACLs.">
+<meta property="og:url" content="https://www.chenk.top/en/linux/file-permissions/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Linux</a>
+         · Chapter 2
+      </div>
+      <h1>Linux File Permissions: rwx, chmod, chown, and Beyond</h1>
+      <p class="deck">Master the Linux permission model: rwx semantics on files vs directories, numeric and symbolic notation, chmod/chown usage, umask defaults, SUID/SGID/Sticky bit, and ACLs.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-01-14">January 14, 2022</time> · 15 min read · 3200 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/linux/" class="tag">#Linux</a><a href="/en/tags/cloud/" class="tag">#Cloud</a><a href="/en/tags/system-administration/" class="tag">#System Administration</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>File permissions look elementary — <code>chmod 755</code>, done — but they remain one of the top causes of production incidents I see: a service won&rsquo;t start, a deploy script silently does nothing, Nginx returns <code>403</code>, a shared directory leaks, or <code>rm</code> refuses on a file that &ldquo;should&rdquo; be removable. Memorising magic numbers does not get you out of any of these. What does is understanding three things at the same time:</p>
+<ol>
+<li>The <strong>same <code>r</code>/<code>w</code>/<code>x</code> bits mean different things on a regular file than on a directory</strong> — the directory case is what trips most people up.</li>
+<li>The kernel&rsquo;s check uses <strong>owner / group / others as a 3-step <code>if/else if/else</code></strong>, not as a sum — so being in the group is sometimes worse than being &ldquo;everyone else.&rdquo;</li>
+<li><code>umask</code>, <code>setuid</code>, <code>setgid</code>, sticky bit, and ACLs all exist for <strong>a specific reason</strong>, and using them outside that reason is how systems get owned.</li>
+</ol>
+<p>This article works through the model from the smallest concept up: bit semantics, numeric vs symbolic notation, <code>chmod</code>/<code>chown</code>/<code>chgrp</code>, default permissions via <code>umask</code>, the three special bits, ACL with <code>getfacl</code>/<code>setfacl</code>, and a concrete troubleshooting checklist. Examples are the kind you actually meet — webroot, shared team folders, <code>/tmp</code>, immutable config files — not toy puzzles.</p>
+<h1 id="the-permission-model-owner--group--others">The permission model: owner / group / others</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/fig1_rwx_bits.png" alt="Mode string anatomy and rwx on files vs directories" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Linux is a multi-user system, so every inode (file, directory, symlink, device, …) carries three identity hooks:</p>
+<ul>
+<li><strong>Owner (<code>u</code>)</strong>: the UID that owns the inode. Usually whoever created it.</li>
+<li><strong>Group (<code>g</code>)</strong>: a single GID. Members of that group share group-level access.</li>
+<li><strong>Others (<code>o</code>)</strong>: every authenticated principal that is <em>neither</em> the owner <em>nor</em> in the group.</li>
+</ul>
+<p>The kernel&rsquo;s access check is not &ldquo;add up the matching bits.&rdquo; It is a strict <strong>first-match cascade</strong>:</p>
+<pre tabindex="0"><code>if  caller.uid == file.uid          -&gt; use OWNER bits, decision is final
+elif caller.gid_set ∩ {file.gid}    -&gt; use GROUP bits, decision is final
+else                                 -&gt; use OTHERS bits
+</code></pre><p>That ordering has a practical consequence that surprises people: <strong>if the owner&rsquo;s bits forbid an action, being in the group does not help</strong>. <code>chmod 047 myfile</code> makes the owner unable to read their own file even though &ldquo;others&rdquo; can read/write/execute it.</p>
+<p><code>root</code> (uid 0) bypasses the check entirely via <code>CAP_DAC_OVERRIDE</code>. The sticky bit is the one exception in the other direction — see below.</p>
+<h2 id="the-10-character-mode-string">The 10-character mode string</h2>
+<p><code>ls -l</code> prints something like <code>-rwxr-xr-x</code>. Read it left to right:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Position</th>
+          <th>Meaning</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td>File type: <code>-</code> regular, <code>d</code> directory, <code>l</code> symlink, <code>c</code>/<code>b</code> char/block device, <code>s</code> socket, <code>p</code> FIFO</td>
+      </tr>
+      <tr>
+          <td>2–4</td>
+          <td>Owner bits <code>rwx</code></td>
+      </tr>
+      <tr>
+          <td>5–7</td>
+          <td>Group bits <code>rwx</code></td>
+      </tr>
+      <tr>
+          <td>8–10</td>
+          <td>Others bits <code>rwx</code></td>
+      </tr>
+  </tbody>
+</table>
+<p>Each bit is one of:</p>
+<ul>
+<li><code>r</code> (4) — read</li>
+<li><code>w</code> (2) — write</li>
+<li><code>x</code> (1) — execute (or, on a directory, &ldquo;traverse&rdquo;)</li>
+</ul>
+<p>Sum within a triplet to get the octal digit; concatenate the three digits to get the familiar <code>755</code>, <code>644</code>, <code>600</code>. Where you see <code>s</code>/<code>S</code>/<code>t</code>/<code>T</code> in the <code>x</code> slot, a special bit is also set — keep reading.</p>
+<h1 id="rwx-on-files-vs-directories--the-most-common-pitfall">rwx on files vs directories — the most common pitfall</h1>
+<p>This is where most permission bugs live. Same letters, different semantics.</p>
+<h2 id="on-a-regular-file">On a regular file</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Bit</th>
+          <th>Means</th>
+          <th>Without it you can&rsquo;t</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>r</code></td>
+          <td>read the bytes</td>
+          <td><code>cat</code>, <code>less</code>, <code>cp src=...</code></td>
+      </tr>
+      <tr>
+          <td><code>w</code></td>
+          <td>overwrite, truncate, or <code>O_TRUNC</code> open</td>
+          <td><code>&gt;</code>, in-place edit</td>
+      </tr>
+      <tr>
+          <td><code>x</code></td>
+          <td>exec the file as a program (must have a valid header — ELF, or a shebang for scripts)</td>
+          <td><code>./prog</code></td>
+      </tr>
+  </tbody>
+</table>
+<p>Note that <code>w</code> is <strong>only</strong> about modifying the file&rsquo;s <em>contents</em>. You do <strong>not</strong> need write to delete the file — that is controlled by <code>w</code> on the <em>parent directory</em>.</p>
+<h2 id="on-a-directory">On a directory</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Bit</th>
+          <th>Means</th>
+          <th>Without it you can&rsquo;t</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>r</code></td>
+          <td>list the names of entries</td>
+          <td><code>ls dir/</code></td>
+      </tr>
+      <tr>
+          <td><code>w</code></td>
+          <td>create, delete, or rename entries (requires <code>x</code> too)</td>
+          <td><code>touch dir/x</code>, <code>rm dir/x</code>, <code>mv</code> within dir</td>
+      </tr>
+      <tr>
+          <td><code>x</code></td>
+          <td>look up a name in the directory and traverse through it</td>
+          <td><code>cd dir</code>, <code>cat dir/known-name</code>, opening any path that contains <code>dir</code> as a component</td>
+      </tr>
+  </tbody>
+</table>
+<p>Three quick experiments make the rules concrete:</p>
+<p><strong>Case A — <code>r</code> without <code>x</code> (mode 644)</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod <span class="m">644</span> mydir
+</span></span><span class="line"><span class="cl">ls mydir              <span class="c1"># OK: lists names</span>
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> mydir              <span class="c1"># DENIED: no traverse bit</span>
+</span></span><span class="line"><span class="cl">cat mydir/file.txt    <span class="c1"># DENIED: pathname lookup needs x on every component</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Case B — <code>x</code> without <code>r</code> (mode 311)</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod <span class="m">311</span> mydir
+</span></span><span class="line"><span class="cl">ls mydir              <span class="c1"># DENIED: cannot enumerate</span>
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> mydir              <span class="c1"># OK</span>
+</span></span><span class="line"><span class="cl">cat mydir/file.txt    <span class="c1"># OK *if you happen to know the filename*</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>This is the basis of &ldquo;private bin&rdquo; tricks — make the dir traversable but not listable.</p>
+<p><strong>Case C — <code>w</code> without <code>x</code> (mode 622)</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod <span class="m">622</span> mydir
+</span></span><span class="line"><span class="cl">touch mydir/newfile   <span class="c1"># DENIED: cannot even reach the directory</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>w</code> on a directory is useless without <code>x</code>. Always pair them.</p>
+<p><strong>Rule of thumb for directories: <code>x</code> is the load-bearing bit. <code>w</code> only matters together with <code>x</code>. <code>r</code> is convenience.</strong></p>
+<h1 id="chmod-numeric-vs-symbolic-notation">chmod: numeric vs symbolic notation</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/fig2_chmod_notations.png" alt="Numeric vs symbolic notation reaching the same target" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Both notations end up writing the same nine bits. They differ in whether you are stating an <strong>absolute</strong> target or making a <strong>relative</strong> edit.</p>
+<h2 id="numeric-notation--absolute">Numeric notation — absolute</h2>
+<p>Sum the bits per identity (<code>r=4</code>, <code>w=2</code>, <code>x=1</code>), concatenate three digits:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod <span class="m">755</span> script.sh   <span class="c1"># rwxr-xr-x  — typical executable</span>
+</span></span><span class="line"><span class="cl">chmod <span class="m">644</span> file.txt    <span class="c1"># rw-r--r--  — typical data file</span>
+</span></span><span class="line"><span class="cl">chmod <span class="m">600</span> secret.key  <span class="c1"># rw-------  — private key, ssh key, .env</span>
+</span></span><span class="line"><span class="cl">chmod <span class="m">700</span> ~/.ssh      <span class="c1"># rwx------  — private dir</span>
+</span></span><span class="line"><span class="cl">chmod <span class="m">777</span> shared      <span class="c1"># rwxrwxrwx  — almost always wrong</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Use it when you want a <strong>known final state</strong>: scripted deploys, fresh files where you don&rsquo;t care what was there before.</p>
+<h2 id="symbolic-notation--relative">Symbolic notation — relative</h2>
+<p><code>who</code> (<code>u</code>, <code>g</code>, <code>o</code>, <code>a</code> for all) + operator (<code>+</code>, <code>-</code>, <code>=</code>) + bits (<code>r</code>, <code>w</code>, <code>x</code>, <code>X</code>, <code>s</code>, <code>t</code>):</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod u+x  script.sh        <span class="c1"># add x for owner only</span>
+</span></span><span class="line"><span class="cl">chmod go-w file.txt         <span class="c1"># remove w for group AND others</span>
+</span></span><span class="line"><span class="cl">chmod <span class="nv">o</span><span class="o">=</span>r  file.txt         <span class="c1"># set others to exactly r--</span>
+</span></span><span class="line"><span class="cl">chmod a+r  notes.md         <span class="c1"># everyone can read</span>
+</span></span><span class="line"><span class="cl">chmod <span class="nv">u</span><span class="o">=</span>rwx,g<span class="o">=</span>rx,o<span class="o">=</span>    dir  <span class="c1"># multiple clauses, comma-separated</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The capital <code>X</code> is the killer feature for trees:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod -R <span class="nv">u</span><span class="o">=</span>rwX,go<span class="o">=</span>rX  project/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>X</code> adds <code>x</code> <strong>only to directories and to files that already have at least one <code>x</code> bit</strong>. Without it, <code>chmod -R 755 project/</code> makes every <code>.md</code>, <code>.png</code>, and <code>.csv</code> &ldquo;executable&rdquo; — harmless but ugly, and a gift to anyone scanning for misconfigured webroots.</p>
+<p>Use symbolic when you want to <strong>tweak one dimension</strong> without disturbing the rest.</p>
+<h1 id="chown--chgrp-changing-ownership">chown / chgrp: changing ownership</h1>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo chown alice file               <span class="c1"># change owner only</span>
+</span></span><span class="line"><span class="cl">sudo chown alice:devs file          <span class="c1"># change owner AND group</span>
+</span></span><span class="line"><span class="cl">sudo chown :devs file               <span class="c1"># change group only (or use chgrp)</span>
+</span></span><span class="line"><span class="cl">sudo chgrp devs file                <span class="c1"># same as above</span>
+</span></span><span class="line"><span class="cl">sudo chown -R alice:devs project/   <span class="c1"># recurse</span>
+</span></span><span class="line"><span class="cl">sudo chown --reference<span class="o">=</span>template new <span class="c1"># copy ownership from another file</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Ground rules:</p>
+<ul>
+<li>Only <strong>root</strong> can change ownership freely. A regular user cannot give a file away (otherwise users would dodge disk quota by re-parenting their files to someone else).</li>
+<li>The owner can <code>chgrp</code> to <strong>any group they themselves belong to</strong>. They cannot move a file into a group they&rsquo;re not a member of.</li>
+<li><code>chown</code> resets <code>setuid</code>/<code>setgid</code> bits on regular files for safety — important to remember if you <code>chown root</code> a SUID binary, you must re-set the SUID afterwards.</li>
+</ul>
+<p>Common patterns you&rsquo;ll write a hundred times:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo chown -R www-data:www-data /var/www/html       <span class="c1"># webroot</span>
+</span></span><span class="line"><span class="cl">sudo chown -R :developers       /srv/project        <span class="c1"># team folder</span>
+</span></span><span class="line"><span class="cl">sudo chown -R postgres:postgres /var/lib/postgresql <span class="c1"># database files</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="umask-the-default-permission-filter">umask: the default-permission filter</h1>
+<p><code>umask</code> is the <strong>mask of bits to subtract</strong> from the system default when a process creates a new inode. The system default is:</p>
+<ul>
+<li><code>0666</code> for regular files (no <code>x</code> — preventing accidentally-executable data)</li>
+<li><code>0777</code> for directories (<code>x</code> is needed for traversal)</li>
+</ul>
+<p>Effective permissions = default <code>AND NOT umask</code>.</p>
+<table>
+  <thead>
+      <tr>
+          <th>umask</th>
+          <th>new file</th>
+          <th>new dir</th>
+          <th>who is this for</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>022</code></td>
+          <td>644</td>
+          <td>755</td>
+          <td>desktop default; world-readable</td>
+      </tr>
+      <tr>
+          <td><code>027</code></td>
+          <td>640</td>
+          <td>750</td>
+          <td><strong>server / production</strong> — group-only outside owner</td>
+      </tr>
+      <tr>
+          <td><code>002</code></td>
+          <td>664</td>
+          <td>775</td>
+          <td>dev shared workstations with a per-user primary group (USERGROUPS)</td>
+      </tr>
+      <tr>
+          <td><code>077</code></td>
+          <td>600</td>
+          <td>700</td>
+          <td>strictest — <code>~/.ssh</code>, secrets dirs</td>
+      </tr>
+  </tbody>
+</table>
+<p>Inspect and change:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">umask</span>              <span class="c1"># 0022 — leading 0 is the special-bit slot, ignore it</span>
+</span></span><span class="line"><span class="cl"><span class="nb">umask</span> <span class="m">027</span>          <span class="c1"># current shell only</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;umask 027&#39;</span> &gt;&gt; ~/.bashrc   <span class="c1"># per-user persistent</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>System-wide defaults live in <code>/etc/login.defs</code> (<code>UMASK</code>) and <code>/etc/profile</code> / <code>/etc/pam.d/*</code>. On systemd units, set <code>UMask=</code> in the unit file rather than relying on shell config — services don&rsquo;t read <code>~/.bashrc</code>.</p>
+<h1 id="special-permission-bits-suid-sgid-sticky">Special permission bits: SUID, SGID, sticky</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/fig4_special_bits.png" alt="SUID, SGID, and sticky bit at a glance" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>chmod</code> actually takes a <strong>four-digit</strong> octal. The leading digit packs three flags: <code>4</code> (SUID), <code>2</code> (SGID), <code>1</code> (sticky). They can combine: <code>chmod 6755</code> sets SUID + SGID + 755.</p>
+<h2 id="suid-4xxx--run-as-owner">SUID (4xxx) — run as owner</h2>
+<p>When set on an executable, the process runs with the <strong>file owner&rsquo;s</strong> effective UID, regardless of who launched it. The canonical example:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ls -l /usr/bin/passwd
+</span></span><span class="line"><span class="cl">-rwsr-xr-x <span class="m">1</span> root root … /usr/bin/passwd
+</span></span><span class="line"><span class="cl"><span class="c1">#    ^  the s in the owner-x slot means SUID</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>passwd</code> needs to write <code>/etc/shadow</code> (mode <code>0640 root:shadow</code>) but unprivileged users have to be able to change their own password. SUID + a tiny, audited program is the classic answer.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod u+s prog        <span class="c1"># symbolic</span>
+</span></span><span class="line"><span class="cl">chmod <span class="m">4755</span> prog       <span class="c1"># numeric (4 = SUID)</span>
+</span></span><span class="line"><span class="cl">chmod u-s prog        <span class="c1"># remove</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>s</code> (lowercase) means SUID <strong>and</strong> the underlying <code>x</code> is set; <code>S</code> (uppercase) means SUID is set but <code>x</code> is <strong>not</strong> — almost always a misconfiguration.</p>
+<p><strong>SUID is genuinely dangerous.</strong> A bug in a SUID-root binary becomes a local privilege escalation. Audit them periodically:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo find / -xdev -perm -4000 -type f 2&gt;/dev/null
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Anything outside the standard set (<code>passwd</code>, <code>sudo</code>, <code>mount</code>, <code>su</code>, <code>ping</code> on older distros, …) deserves a justification.</p>
+<h2 id="sgid-2xxx--two-distinct-uses">SGID (2xxx) — two distinct uses</h2>
+<p><strong>On an executable</strong>: the process runs with the file&rsquo;s group as its effective GID. Used by tools that need access to a private group resource (e.g., <code>wall</code> writes to <code>/dev/tty*</code> owned by <code>tty</code>).</p>
+<p><strong>On a directory</strong> (the much more common use): files and subdirectories created inside <strong>inherit the directory&rsquo;s group</strong> instead of the creator&rsquo;s primary group. This is the right way to build a team-shared folder:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir /srv/project
+</span></span><span class="line"><span class="cl">sudo chown :developers /srv/project
+</span></span><span class="line"><span class="cl">sudo chmod <span class="m">2770</span> /srv/project        <span class="c1"># SGID + rwxrwx---</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Now anyone in <code>developers</code> who creates a file inside automatically gets <code>group=developers</code>, so other team members can read/write it. Without SGID you would have to remember to <code>chgrp</code> every file you create — and people will forget.</p>
+<h2 id="sticky-bit-1xxx--restricted-delete">Sticky bit (1xxx) — restricted delete</h2>
+<p>On a directory, the sticky bit changes one rule: <strong>only the file&rsquo;s owner (or root) may unlink or rename entries</strong>, even though the directory itself is world-writable. <code>/tmp</code> is the canonical case:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ls -ld /tmp
+</span></span><span class="line"><span class="cl">drwxrwxrwt <span class="m">17</span> root root … /tmp
+</span></span><span class="line"><span class="cl"><span class="c1">#         ^ the t in the others-x slot is the sticky bit</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Without sticky, <code>/tmp</code> (mode <code>1777</code>) would be a free-for-all where anyone could <code>rm</code> anyone else&rsquo;s session sockets, lock files, etc.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod +t  dir         <span class="c1"># symbolic</span>
+</span></span><span class="line"><span class="cl">chmod <span class="m">1777</span> /tmp       <span class="c1"># numeric</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Sticky on a <em>file</em> exists historically (used to mean &ldquo;keep text segment in swap&rdquo;) and is ignored on modern Linux.</p>
+<h1 id="common-scenarios--copy-pasteable-with-reasoning">Common scenarios — copy-pasteable, with reasoning</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/fig3_ugo_matrix.png" alt="Owner / Group / Others decision matrix on a real shared dir" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="1-permission-denied-running-a-script">1. &ldquo;Permission denied&rdquo; running a script</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ./deploy.sh
+</span></span><span class="line"><span class="cl">zsh: permission denied: ./deploy.sh
+</span></span><span class="line"><span class="cl">$ ls -l deploy.sh
+</span></span><span class="line"><span class="cl">-rw-r--r-- <span class="m">1</span> alice alice <span class="m">432</span> Jan <span class="m">18</span> 09:14 deploy.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>No <code>x</code>. Fix:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod u+x deploy.sh        <span class="c1"># only owner needs to run it</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># or, if it lives in a shared bin/</span>
+</span></span><span class="line"><span class="cl">chmod <span class="m">755</span> deploy.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If you still see &ldquo;exec format error,&rdquo; the script is missing a shebang (<code>#!/usr/bin/env bash</code> on the first line) and the kernel doesn&rsquo;t know what interpreter to use.</p>
+<h2 id="2-web-server-returns-403">2. Web server returns 403</h2>
+<p><code>nginx</code>/<code>apache</code> runs as <code>www-data</code> (Debian/Ubuntu) or <code>nginx</code> (RHEL family). It needs:</p>
+<ul>
+<li><code>r</code> on the file it serves</li>
+<li><code>x</code> on <strong>every directory in the path</strong> down to that file</li>
+</ul>
+<p>The second part is what bites people — <code>/home/alice/site/</code> typically has mode <code>700</code>, so <code>www-data</code> cannot even traverse into it. Either move the docroot under <code>/var/www/</code>, or open the path:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo chown -R www-data:www-data /var/www/html
+</span></span><span class="line"><span class="cl">sudo find /var/www/html -type d -exec chmod <span class="m">755</span> <span class="o">{}</span> <span class="se">\;</span>
+</span></span><span class="line"><span class="cl">sudo find /var/www/html -type f -exec chmod <span class="m">644</span> <span class="o">{}</span> <span class="se">\;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># equivalent in one shot:</span>
+</span></span><span class="line"><span class="cl">sudo chmod -R <span class="nv">u</span><span class="o">=</span>rwX,go<span class="o">=</span>rX /var/www/html
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="3-team-shared-project-directory">3. Team-shared project directory</h2>
+<p>Goal: everyone in <code>developers</code> can read and write everything; nobody else can even peek.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir /srv/project
+</span></span><span class="line"><span class="cl">sudo chown :developers /srv/project
+</span></span><span class="line"><span class="cl">sudo chmod <span class="m">2770</span> /srv/project        <span class="c1"># SGID + rwxrwx---</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># also nudge umask so new files are group-writable</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;umask 002&#39;</span> <span class="p">|</span> sudo tee /etc/profile.d/team-umask.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>2</code> (SGID) makes inheritance work; <code>770</code> keeps outsiders out; <code>umask 002</code> ensures new files end up <code>664</code> rather than the default <code>644</code>, so other team members can edit them.</p>
+<h2 id="4-multi-user-temp-directory">4. Multi-user temp directory</h2>
+<p>Already done by your distro — <code>/tmp</code> is <code>1777</code>. If you need a similar shared scratch space:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir /srv/scratch
+</span></span><span class="line"><span class="cl">sudo chmod <span class="m">1777</span> /srv/scratch
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="5-locking-down-a-private-key">5. Locking down a private key</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chmod <span class="m">600</span> ~/.ssh/id_ed25519
+</span></span><span class="line"><span class="cl">chmod <span class="m">700</span> ~/.ssh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>ssh</code> will outright refuse to use a key that is group- or world-readable. This is a feature.</p>
+<h1 id="acl-when-three-buckets-arent-enough">ACL: when three buckets aren&rsquo;t enough</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/fig5_acl_extension.png" alt="Classic UGO vs ACL extension" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Classic mode bits give you exactly three buckets. Real-world requirements often need more: &ldquo;let auditor <code>eve</code> read this report, but she&rsquo;s not in <code>developers</code>,&rdquo; or &ldquo;block one specific contractor from this folder.&rdquo; That is what POSIX ACLs are for.</p>
+<h2 id="reading-acls">Reading ACLs</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ getfacl report.csv
+</span></span><span class="line"><span class="cl"><span class="c1"># file: report.csv</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># owner: alice</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># group: developers</span>
+</span></span><span class="line"><span class="cl">user::rw-
+</span></span><span class="line"><span class="cl">user:eve:r--           <span class="c1"># extra entry — eve can read</span>
+</span></span><span class="line"><span class="cl">group::r--
+</span></span><span class="line"><span class="cl">group:qa:rw-           <span class="c1"># extra entry — qa can read+write</span>
+</span></span><span class="line"><span class="cl">mask::rw-              <span class="c1"># ceiling for &#34;extra&#34; entries (see below)</span>
+</span></span><span class="line"><span class="cl">other::---
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A trailing <code>+</code> in <code>ls -l</code> (e.g. <code>-rw-r-----+</code>) is the visible signal that ACL entries are present.</p>
+<h2 id="setting-acls">Setting ACLs</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">setfacl -m u:eve:r       report.csv     <span class="c1"># grant eve read</span>
+</span></span><span class="line"><span class="cl">setfacl -m g:qa:rw       report.csv     <span class="c1"># grant qa group read+write</span>
+</span></span><span class="line"><span class="cl">setfacl -m u:mallory:--- report.csv     <span class="c1"># explicitly deny mallory</span>
+</span></span><span class="line"><span class="cl">setfacl -x u:eve         report.csv     <span class="c1"># remove eve&#39;s entry</span>
+</span></span><span class="line"><span class="cl">setfacl -b               report.csv     <span class="c1"># strip all extras, back to plain UGO</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>For directories, <code>-R</code> recurses, and <strong>default ACLs</strong> propagate to new children — much like SGID, but per-user:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">setfacl -R -m   u:alice:rwx,g:devs:rwx project/   <span class="c1"># apply to everything that&#39;s there</span>
+</span></span><span class="line"><span class="cl">setfacl -R -d -m u:alice:rwx,g:devs:rwx project/  <span class="c1"># also apply to anything created later</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="the-acl-mask">The ACL mask</h2>
+<p>The <code>mask::</code> line is the maximum effective permission for any entry <strong>except</strong> <code>user::</code> (the owner) and <code>other::</code>. <code>chmod g=...</code> on an ACL&rsquo;d file edits the mask, not the actual group entry — which is a frequent surprise. To set the group entry directly:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">setfacl -m g::r-- report.csv    <span class="c1"># set the group entry, leave mask alone</span>
+</span></span><span class="line"><span class="cl">setfacl -m m::rw  report.csv    <span class="c1"># set the mask</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Filesystem must be mounted with ACL support. On modern ext4/xfs/btrfs this is the default; check with <code>tune2fs -l</code> or <code>mount | grep acl</code>.</p>
+<h1 id="chattr--lsattr-filesystem-level-attributes">chattr / lsattr: filesystem-level attributes</h1>
+<p><code>chattr</code> writes ext4/xfs attributes that sit <strong>below</strong> the permission system — they apply even to root.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo chattr +i /etc/resolv.conf      <span class="c1"># immutable: nobody can edit, delete, or rename</span>
+</span></span><span class="line"><span class="cl">sudo lsattr /etc/resolv.conf         <span class="c1"># ----i---------------- /etc/resolv.conf</span>
+</span></span><span class="line"><span class="cl">sudo chattr -i /etc/resolv.conf      <span class="c1"># remove before editing</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo chattr +a /var/log/audit.log    <span class="c1"># append-only: cannot truncate or overwrite</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> entry &gt;&gt; /var/log/audit.log     <span class="c1"># OK</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> entry &gt;  /var/log/audit.log     <span class="c1"># OPERATION NOT PERMITTED</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Use <code>+i</code> to pin critical config (<code>/etc/fstab</code>, <code>/etc/passwd</code>, <code>/etc/sudoers</code>) so a fat-fingered <code>sed -i</code> can&rsquo;t destroy a recovery boot. Use <code>+a</code> on log files to make tamper-after-the-fact harder. Both are the right answer to &ldquo;how do I stop root deleting this by accident&rdquo; — short of <code>chattr -i</code> first, root can&rsquo;t.</p>
+<h1 id="troubleshooting-checklist">Troubleshooting checklist</h1>
+<p>A short, ordered sequence covers ~90% of permission bugs.</p>
+<h2 id="step-1--who-am-i-really">Step 1 — who am I, really?</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">whoami                              <span class="c1"># interactive shell</span>
+</span></span><span class="line"><span class="cl">id                                  <span class="c1"># also lists every group I&#39;m in</span>
+</span></span><span class="line"><span class="cl">ps -o user,uid,gid,cmd -p <span class="k">$(</span>pidof nginx<span class="k">)</span>   <span class="c1"># for a service, check the actual runtime user</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If a service is the consumer, the relevant identity is the systemd <code>User=</code> / <code>Group=</code>, not your login.</p>
+<h2 id="step-2--every-directory-in-the-path">Step 2 — every directory in the path</h2>
+<p><code>r</code>+<code>x</code> on the leaf file isn&rsquo;t enough; the kernel re-checks <code>x</code> on every component. The fastest tool is <code>namei</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ namei -l /var/www/html/index.html
+</span></span><span class="line"><span class="cl">f: /var/www/html/index.html
+</span></span><span class="line"><span class="cl">drwxr-xr-x root     root     /
+</span></span><span class="line"><span class="cl">drwxr-xr-x root     root     var
+</span></span><span class="line"><span class="cl">drwxr-xr-x root     root     www
+</span></span><span class="line"><span class="cl">drwxr-x--- alice    alice    html        <span class="c1"># &lt;-- &#39;others&#39; has no x; www-data is &#39;others&#39; here</span>
+</span></span><span class="line"><span class="cl">-rw-r--r-- alice    alice    index.html
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The first line where the relevant identity lacks <code>x</code> is the culprit.</p>
+<h2 id="step-3--acl-attribute-mount-option">Step 3 — ACL? attribute? mount option?</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">getfacl  file        <span class="c1"># is there a + ACL hiding the rule?</span>
+</span></span><span class="line"><span class="cl">lsattr   file        <span class="c1"># is +i or +a pinning it?</span>
+</span></span><span class="line"><span class="cl">mount <span class="p">|</span> grep <span class="s1">&#39; on / &#39;</span>   <span class="c1"># is the fs mounted ro? noexec? nosuid?</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>/tmp</code> mounted <code>noexec</code> will silently refuse <code>./script.sh</code> no matter what <code>chmod</code> you ran.</p>
+<h2 id="step-4--selinux--apparmor">Step 4 — selinux / apparmor</h2>
+<p>On RHEL/Fedora/CentOS, <code>getenforce</code> says <code>Enforcing</code>? Then <code>ls -lZ file</code> shows the SELinux label and <code>audit2why</code> explains the latest denial. On Ubuntu, <code>aa-status</code> lists AppArmor profiles. These can deny access even when classic permissions say &ldquo;allowed.&rdquo;</p>
+<h2 id="specific-symptoms">Specific symptoms</h2>
+<p><strong><code>Permission denied</code> on a known-good script</strong> → missing <code>x</code>, missing shebang, or <code>noexec</code> mount.</p>
+<p><strong>Web server <code>403</code></strong> → <code>www-data</code> is &ldquo;others&rdquo; everywhere; check <code>namei -l</code> for a missing <code>x</code> along the path.</p>
+<p><strong><code>rm: cannot remove ...: Operation not permitted</code></strong> (note: <em>not</em> &ldquo;Permission denied&rdquo;) → <code>lsattr</code> will show <code>+i</code>. <code>chattr -i</code> first.</p>
+<p><strong>You can write to a file you don&rsquo;t own</strong> → check the <em>parent directory&rsquo;s</em> <code>w</code> bit. Owning the file is irrelevant for delete/rename.</p>
+<h1 id="mental-model-and-further-reading">Mental model and further reading</h1>
+<p>Three patterns will carry you through almost every real situation:</p>
+<ol>
+<li><strong>Files vs directories</strong>: on a file, <code>x</code> is &ldquo;is it a program.&rdquo; On a directory, <code>x</code> is the <em>only</em> gate to even reaching the contents.</li>
+<li><strong>First-match cascade</strong>: owner OR group OR others — never additive. Audit by asking &ldquo;which bucket does this caller fall into?&rdquo;</li>
+<li><strong>Special bits exist for one job each</strong>: SUID = &ldquo;let unprivileged callers do this exact privileged thing&rdquo;; SGID-on-dir = &ldquo;team folder&rdquo;; sticky = &ldquo;shared writable space without mutual sabotage.&rdquo; Outside those jobs, don&rsquo;t set them.</li>
+</ol>
+<p>Where to go next:</p>
+<ul>
+<li><code>man 1 chmod</code>, <code>man 2 chmod</code>, <code>man 5 acl</code>, <code>man 1 chattr</code> — the authoritative references, surprisingly readable.</li>
+<li><strong>Linux User Management</strong> (next article in this series) — <code>/etc/passwd</code>, <code>/etc/shadow</code>, groups, sudoers, PAM.</li>
+<li><strong>Linux Pipelines and Redirection</strong> — building on file descriptors and <code>stdin</code>/<code>stdout</code>/<code>stderr</code>.</li>
+<li><strong>MAC frameworks</strong>: SELinux (RHEL family) and AppArmor (Debian/SUSE family) layer mandatory access control on top of the discretionary model covered here. Same questions, different answers.</li>
+</ul>
+<p>If you can now read <code>drwxr-s---+ 4 alice developers</code> and immediately tell me the owner, the group, the special bit that&rsquo;s set, the fact that an ACL is in play, and what <code>bob in developers</code> versus <code>eve</code> outside it can each do — you have the model. The rest is muscle memory.</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/linux/basics/"><span class="title">Linux Basics: Core Concepts and Essential Commands</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/linux/disk-management/"><span class="title">Linux Disk Management: Partitions, Filesystems, LVM, and the Mount Stack</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-10-character-mode-string">The 10-character mode string</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#on-a-regular-file">On a regular file</a></li>
+    <li><a href="#on-a-directory">On a directory</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#numeric-notation--absolute">Numeric notation — absolute</a></li>
+    <li><a href="#symbolic-notation--relative">Symbolic notation — relative</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#suid-4xxx--run-as-owner">SUID (4xxx) — run as owner</a></li>
+    <li><a href="#sgid-2xxx--two-distinct-uses">SGID (2xxx) — two distinct uses</a></li>
+    <li><a href="#sticky-bit-1xxx--restricted-delete">Sticky bit (1xxx) — restricted delete</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#1-permission-denied-running-a-script">1. &ldquo;Permission denied&rdquo; running a script</a></li>
+    <li><a href="#2-web-server-returns-403">2. Web server returns 403</a></li>
+    <li><a href="#3-team-shared-project-directory">3. Team-shared project directory</a></li>
+    <li><a href="#4-multi-user-temp-directory">4. Multi-user temp directory</a></li>
+    <li><a href="#5-locking-down-a-private-key">5. Locking down a private key</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#reading-acls">Reading ACLs</a></li>
+    <li><a href="#setting-acls">Setting ACLs</a></li>
+    <li><a href="#the-acl-mask">The ACL mask</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#step-1--who-am-i-really">Step 1 — who am I, really?</a></li>
+    <li><a href="#step-2--every-directory-in-the-path">Step 2 — every directory in the path</a></li>
+    <li><a href="#step-3--acl-attribute-mount-option">Step 3 — ACL? attribute? mount option?</a></li>
+    <li><a href="#step-4--selinux--apparmor">Step 4 — selinux / apparmor</a></li>
+    <li><a href="#specific-symptoms">Specific symptoms</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Linux</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3200</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

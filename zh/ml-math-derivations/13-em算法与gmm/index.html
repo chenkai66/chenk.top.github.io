@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>机器学习数学推导（十三）：EM算法与GMM · Chen Kai Blog</title>
+<meta name="description" content="从 Jensen 不等式与 ELBO 出发推导 EM 算法，证明其单调上升性，并完整给出高斯混合模型（GMM）的 E 步、M 步更新公式、模型选择以及与 K-means 的关系。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/ml-math-derivations/13-em%E7%AE%97%E6%B3%95%E4%B8%8Egmm/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/ml-math-derivations/13-em%E7%AE%97%E6%B3%95%E4%B8%8Egmm/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="机器学习数学推导（十三）：EM算法与GMM">
+<meta property="og:description" content="从 Jensen 不等式与 ELBO 出发推导 EM 算法，证明其单调上升性，并完整给出高斯混合模型（GMM）的 E 步、M 步更新公式、模型选择以及与 K-means 的关系。">
+<meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/13-em%E7%AE%97%E6%B3%95%E4%B8%8Egmm/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">机器学习数学推导</a>
+         · Chapter 13
+      </div>
+      <h1>机器学习数学推导（十三）：EM算法与GMM</h1>
+      <p class="deck">从 Jensen 不等式与 ELBO 出发推导 EM 算法，证明其单调上升性，并完整给出高斯混合模型（GMM）的 E 步、M 步更新公式、模型选择以及与 K-means 的关系。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-02-01">February 1, 2026</time> · 9 min read · 4400 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" class="tag">#机器学习</a><a href="/zh/tags/%E6%9C%9F%E6%9C%9B%E6%9C%80%E5%A4%A7%E5%8C%96/" class="tag">#期望最大化</a><a href="/zh/tags/%E9%AB%98%E6%96%AF%E6%B7%B7%E5%90%88%E6%A8%A1%E5%9E%8B/" class="tag">#高斯混合模型</a><a href="/zh/tags/%E9%9A%90%E5%8F%98%E9%87%8F/" class="tag">#隐变量</a><a href="/zh/tags/em%E7%AE%97%E6%B3%95/" class="tag">#EM算法</a><a href="/zh/tags/gmm/" class="tag">#GMM</a><a href="/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/" class="tag">#数学推导</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>数据里常常藏着看不见的结构——你不知道每个样本属于哪个簇、不知道某个特征的真实取值、不知道一段文本背后是哪些主题在驱动。这些<strong>隐变量</strong>让最大似然估计变得棘手：似然函数变成&quot;对数里套求和&quot;的形式，既无闭式解，梯度法也容易绕进死胡同。<strong>EM 算法</strong>用一招看似朴素的拆解破解了这种困境：在隐变量的后验下&quot;猜&quot;一次（E 步），再把参数当成完全数据来&quot;拟合&quot;一次（M 步），交替进行。每一轮迭代都被数学保证不会让似然下降。本文从第一性原理推导 EM，借 Jensen 不等式证明其单调上升性，并把它落到最经典的应用——<strong>高斯混合模型（GMM）</strong>——上：K-means 的软化、椭球化版本。</p>
+<h2 id="你将学到">你将学到</h2>
+<ul>
+<li>隐变量为什么让 MLE 变难（&ldquo;log 套 sum&quot;问题）</li>
+<li>怎样用 Jensen 不等式构造<strong>证据下界（ELBO）</strong></li>
+<li>EM 算法等价于在 $(q, \boldsymbol{\theta})$ 上对 ELBO 做<strong>坐标上升</strong></li>
+<li>严谨证明 $\ell(\boldsymbol{\theta}^{(t+1)}) \geq \ell(\boldsymbol{\theta}^{(t)})$</li>
+<li>GMM 的完整 E 步 / M 步更新公式（任意协方差）</li>
+<li>K-means 是 GMM 的硬分配、球形协方差极限</li>
+<li>用 <strong>BIC / AIC</strong> 选择成分数 $K$</li>
+</ul>
+<h2 id="先修">先修</h2>
+<ul>
+<li>极大似然估计</li>
+<li>多元高斯密度</li>
+<li>Jensen 不等式与 KL 散度</li>
+<li>K-means 聚类</li>
+</ul>
+<hr>
+<h2 id="1-隐变量与不完全数据似然">1. 隐变量与不完全数据似然</h2>
+<h3 id="11-设定">1.1 设定</h3>
+<p>观测 $\mathbf{x}_1,\dots,\mathbf{x}_N$ 与隐变量 $z_1,\dots,z_N$ 由联合分布 $p(\mathbf{x}, z \mid \boldsymbol{\theta})$ 生成。我们只能看到 $\mathbf{X}$，看不到 $\mathbf{Z}$。<strong>不完全数据对数似然</strong>为</p>
+$$
+\ell(\boldsymbol{\theta}) \;=\; \sum_{i=1}^{N} \log p(\mathbf{x}_i \mid \boldsymbol{\theta})
+\;=\; \sum_{i=1}^{N} \log \sum_{z} p(\mathbf{x}_i, z \mid \boldsymbol{\theta}).
+$$<p><strong>问题就出在 log 里面那个求和</strong>：log 不再分配到各成分上，梯度无法分项写出，闭式最大化也走不通。</p>
+<h3 id="12-混合模型的例子">1.2 混合模型的例子</h3>
+<p>对于含 $K$ 个成分的高斯混合，</p>
+$$
+p(\mathbf{x}\mid \boldsymbol{\theta}) \;=\; \sum_{k=1}^{K} \pi_k\, \mathcal{N}(\mathbf{x}\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k).
+$$<p>如果<strong>已知</strong>每个点来自哪个成分，问题立刻退化成 $K$ 个独立的加权高斯 MLE——平凡。我们恰恰不知道，而 EM 正是在补上这一刀。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM%E7%AE%97%E6%B3%95%E4%B8%8EGMM/fig1_gmm_clusters.png" alt="GMM 三个高斯成分及其协方差椭圆" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图是 <code>sklearn.mixture.GaussianMixture</code> 在二维数据上拟合出的三个高斯成分：每个叉号是均值 $\boldsymbol{\mu}_k$，内椭圆是 1 倍标准差等高线，外椭圆是 2 倍标准差，$\pi_k$ 是各自的混合权重。</p>
+<hr>
+<h2 id="2-elbo-与-jensen-不等式">2. ELBO 与 Jensen 不等式</h2>
+<h3 id="21-引入辅助分布-q">2.1 引入辅助分布 $q$</h3>
+<p>任取一个隐变量上的分布 $q(z)$，乘除一下：</p>
+$$
+\log p(\mathbf{x}\mid \boldsymbol{\theta})
+= \log \sum_{z} q(z)\, \frac{p(\mathbf{x}, z\mid \boldsymbol{\theta})}{q(z)}.
+$$<p>由于 $\log$ 是凹函数，<strong>Jensen 不等式</strong>给出</p>
+$$
+\boxed{\;
+\log p(\mathbf{x}\mid \boldsymbol{\theta})
+\;\geq\;
+\sum_{z} q(z)\, \log \frac{p(\mathbf{x}, z\mid \boldsymbol{\theta})}{q(z)}
+\;\equiv\;
+\mathcal{L}(q,\boldsymbol{\theta}).
+\;}
+$$<p>这个 $\mathcal{L}$ 就是 <strong>证据下界（ELBO，Evidence Lower Bound）</strong>，它同时依赖 $q$ 和 $\boldsymbol{\theta}$。</p>
+<h3 id="22-精确分解">2.2 精确分解</h3>
+<p>直接代换、不需要不等式，可以得到一个<strong>等式</strong>：</p>
+$$
+\log p(\mathbf{x}\mid \boldsymbol{\theta})
+\;=\;
+\mathcal{L}(q,\boldsymbol{\theta})
+\;+\;
+\mathrm{KL}\bigl[q(z)\,\Vert\, p(z\mid \mathbf{x},\boldsymbol{\theta})\bigr].
+$$<p>由此立得两条结论：</p>
+<ol>
+<li>ELBO <strong>永远</strong> $\leq \log p(\mathbf{x}\mid\boldsymbol{\theta})$，因为 $\mathrm{KL}\geq 0$；</li>
+<li><strong>当且仅当</strong> $q(z) = p(z\mid \mathbf{x}, \boldsymbol{\theta})$（即真实后验）时，下界<strong>取紧</strong>。</li>
+</ol>
+<p>这一等式就是整个 EM 的发动机。</p>
+<hr>
+<h2 id="3-em-是-elbo-上的坐标上升">3. EM 是 ELBO 上的坐标上升</h2>
+<p>EM 反复抬高 $\mathcal{L}$，每次只动其中一个参数。</p>
+<h3 id="31-两步走">3.1 两步走</h3>
+<p><strong>E 步.</strong> 固定 $\boldsymbol{\theta}^{(t)}$，对 $q$ 最大化 $\mathcal{L}(q, \boldsymbol{\theta}^{(t)})$。最优解就是后验：</p>
+$$
+q^{(t)}(z) \;=\; p\bigl(z \mid \mathbf{x}, \boldsymbol{\theta}^{(t)}\bigr).
+$$<p>执行完 E 步，下界<strong>变紧</strong>：$\mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)}) = \log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t)})$。</p>
+<p><strong>M 步.</strong> 固定 $q^{(t)}$，对 $\boldsymbol{\theta}$ 最大化 $\mathcal{L}(q^{(t)}, \boldsymbol{\theta})$。把与 $\boldsymbol{\theta}$ 无关的 $q^{(t)}$ 的熵丢掉，等价于最大化 <strong>Q 函数</strong>：</p>
+$$
+Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})
+\;=\;
+\mathbb{E}_{z\sim q^{(t)}}\!\bigl[\log p(\mathbf{x}, z\mid \boldsymbol{\theta})\bigr].
+$$<p>直观理解：Q 函数就是&quot;在当前后验下完全数据对数似然的期望&rdquo;。</p>
+<h3 id="32-单调上升的证明">3.2 单调上升的证明</h3>
+<p>把三步串起来：</p>
+$$
+\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t)})
+\;\overset{(a)}{=}\;
+\mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)})
+\;\overset{(b)}{\leq}\;
+\mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t+1)})
+\;\overset{(c)}{\leq}\;
+\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t+1)}).
+$$<p>(a) 由 E 步使下界取紧得到；(b) 由 M 步的定义；(c) 是 ELBO 不等式。从而</p>
+$$
+\boxed{\;\ell(\boldsymbol{\theta}^{(t+1)}) \;\geq\; \ell(\boldsymbol{\theta}^{(t)})\;}
+$$<p>每轮都成立。EM 收敛到 $\ell$ 的稳定点——通常是局部极大，偶尔是鞍点。<strong>它不保证全局最优</strong>，所以多次随机重启很重要。</p>
+<h3 id="33-两条曲线的视角">3.3 两条曲线的视角</h3>
+<p>把 ELBO 与 $\log p$ 同时画出来，动力学就一目了然：每次 E 步把 KL 间隙压到零，M 步同时抬升两条曲线，间隙再度打开。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM%E7%AE%97%E6%B3%95%E4%B8%8EGMM/fig7_elbo_vs_loglik.png" alt="ELBO 与对数似然的轨迹" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>中间填色的琥珀色带就是 KL 散度 $\mathrm{KL}\bigl[q\,\Vert\, p(z\mid\mathbf{x},\boldsymbol{\theta})\bigr]$。绿色圆点标出 E 步执行后那一刻——按构造此时 KL 等于零。</p>
+<hr>
+<h2 id="4-em-for-高斯混合模型">4. EM for 高斯混合模型</h2>
+<h3 id="41-模型">4.1 模型</h3>
+<p>单个观测的生成过程：</p>
+<ol>
+<li>抽成分标号 $z_i \sim \mathrm{Categorical}(\pi_1,\dots,\pi_K)$；</li>
+<li>抽 $\mathbf{x}_i \mid z_i = k \;\sim\; \mathcal{N}(\boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)$。</li>
+</ol>
+<p>参数 $\boldsymbol{\theta} = \{\pi_k, \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k\}_{k=1}^{K}$，约束 $\sum_k \pi_k = 1$、各 $\boldsymbol{\Sigma}_k \succ 0$。</p>
+<h3 id="42-e-步责任度">4.2 E 步：责任度</h3>
+<p>隐变量是离散的，后验直接用贝叶斯公式。定义成分 $k$ 对样本 $i$ 的<strong>责任度（responsibility）</strong>：</p>
+$$
+\boxed{\;
+\gamma_{ik}
+\;=\;
+p\bigl(z_i = k \mid \mathbf{x}_i, \boldsymbol{\theta}^{(t)}\bigr)
+\;=\;
+\frac{\pi_k\,\mathcal{N}(\mathbf{x}_i\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)}{\sum_{j=1}^{K} \pi_j\,\mathcal{N}(\mathbf{x}_i\mid \boldsymbol{\mu}_j, \boldsymbol{\Sigma}_j)}.
+\;}
+$$<p>每行 $(\gamma_{i1},\dots,\gamma_{iK})$ 之和为 1，对应该样本&quot;软&quot;的成分隶属概率。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM%E7%AE%97%E6%B3%95%E4%B8%8EGMM/fig2_e_step.png" alt="E 步：软分配" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>左图把每个网格点按三个成分的责任度做颜色混合：单一成分主导处颜色纯，边界处颜色互渗。右图是 12 个采样点的责任度矩阵 $\gamma_{ik}$，每行加起来为 1。</p>
+<h3 id="43-m-步加权最大似然">4.3 M 步：加权最大似然</h3>
+<p>把高斯密度代入 $Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})$，对 $\pi_k$ 用拉格朗日乘子处理 $\sum_k \pi_k = 1$，可得闭式更新。记 $N_k = \sum_{i=1}^{N} \gamma_{ik}$ 为成分 $k$ 的<strong>有效样本数</strong>：</p>
+$$
+\boxed{\;
+\pi_k = \frac{N_k}{N},\qquad
+\boldsymbol{\mu}_k = \frac{1}{N_k}\sum_{i=1}^{N} \gamma_{ik}\,\mathbf{x}_i,\qquad
+\boldsymbol{\Sigma}_k = \frac{1}{N_k}\sum_{i=1}^{N} \gamma_{ik}\,(\mathbf{x}_i - \boldsymbol{\mu}_k)(\mathbf{x}_i - \boldsymbol{\mu}_k)^{\!\top}.
+\;}
+$$<p>形式上和单个高斯的 MLE 公式一模一样，只是把每个样本按责任度做了加权。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM%E7%AE%97%E6%B3%95%E4%B8%8EGMM/fig3_m_step.png" alt="一次 M 步：更新前 vs 更新后" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>刻意从糟糕的初值出发，仅一次 M 步，红色箭头标出三个均值被&quot;拉&quot;向真实数据的位置，协方差椭圆也撑开匹配观测散布。再迭代几轮，整个拟合基本就到位了。</p>
+<h3 id="44-实战中的收敛">4.4 实战中的收敛</h3>
+<p>跑几次随机重启，把对数似然画出来：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM%E7%AE%97%E6%B3%95%E4%B8%8EGMM/fig4_loglik_monotone.png" alt="对数似然单调不减" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>每条曲线都是非递减的——这就是 EM 的算法保证。不同的重启会停在不同的盆地里；虚线是 <code>sklearn.mixture.GaussianMixture</code> 用 <code>n_init=20</code> 拿到的最好值。<strong>实践中务必多次随机或 K-means 初始化，留下最好的那次。</strong></p>
+<hr>
+<h2 id="5-k-meansgmm-的硬分配球形极限">5. K-means：GMM 的硬分配、球形极限</h2>
+<p>令所有 $\boldsymbol{\Sigma}_k = \epsilon \mathbf{I}$，再让 $\epsilon \to 0$。高斯密度变得无限尖锐，最近的均值得到的责任度趋于 1，其它趋于 0。E 步退化为<strong>硬分配</strong>，M 步退化为对所属点取平均——这恰好就是 K-means。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM%E7%AE%97%E6%B3%95%E4%B8%8EGMM/fig6_kmeans_vs_gmm.png" alt="各向异性数据上 K-means 与 GMM 对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>在各向异性数据上对比格外清楚：K-means（左）强行划出球形 Voronoi 单元，把拉长的簇切得很别扭；GMM（右）用沿主轴方向的椭圆贴合数据。<strong>只要簇不是各向同性，或者你需要软分配概率，GMM 都应该是默认选择。</strong></p>
+<hr>
+<h2 id="6-怎么选成分数-k">6. 怎么选成分数 $K$</h2>
+<p>似然总是随 $K$ 单调增大（自由度更高），所以单看 $\ell$ 没法选 $K$。要用复杂度惩罚准则：</p>
+$$
+\mathrm{BIC}(K) = -2\,\hat{\ell}(K) + p_K\,\log N,
+\qquad
+\mathrm{AIC}(K) = -2\,\hat{\ell}(K) + 2\,p_K,
+$$<p>其中 $p_K$ 是参数总数：$d$ 维全协方差 GMM 有 $p_K = (K-1) + Kd + K\frac{d(d+1)}{2}$ 个自由参数。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM%E7%AE%97%E6%B3%95%E4%B8%8EGMM/fig5_bic_aic.png" alt="BIC/AIC 随 K 变化" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>两条曲线从 $K=1$ 到真实 $K=3$ 急剧下降，之后趋平或回升。BIC 的复杂度惩罚比 AIC 重（多了 $\log N$ 因子），通常更倾向小 $K$。这里两者都给出了正确答案。</p>
+<hr>
+<h2 id="7-参考实现">7. 参考实现</h2>
+<p>下面是直接对照公式写的极简 NumPy 实现。本文所有实验和图都用 <code>sklearn.mixture.GaussianMixture</code> 做了交叉验证。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">multivariate_normal</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GMM</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;全协方差高斯混合模型，EM 训练。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">K</span> <span class="o">=</span> <span class="n">n_components</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">reg</span> <span class="o">=</span> <span class="n">reg</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># ----- E 步：责任度 -----</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_e_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">comp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">multivariate_normal</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">means</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">covs</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ll</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">comp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-300</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">comp</span> <span class="o">/</span> <span class="p">(</span><span class="n">comp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-300</span><span class="p">),</span> <span class="n">ll</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># ----- M 步：加权 MLE -----</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_m_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">N_k</span> <span class="o">=</span> <span class="n">gamma</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">N_k</span> <span class="o">/</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">means</span> <span class="o">=</span> <span class="p">(</span><span class="n">gamma</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">N_k</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">diff</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">means</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">covs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">gamma</span><span class="p">[:,</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">diff</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">N_k</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">covs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>  <span class="c1"># 正则化避免奇异</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">N</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">means</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">covs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">)]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">prev</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">gamma</span><span class="p">,</span> <span class="n">ll</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_e_step</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">_m_step</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ll</span> <span class="o">-</span> <span class="n">prev</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">break</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">ll</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_e_step</span><span class="p">(</span><span class="n">X</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="qa">Q&amp;A</h2>
+<h3 id="em-会收敛到全局最优吗">EM 会收敛到全局最优吗？</h3>
+<p>不会。单调上升只保证收敛到稳定点，通常是局部极大，偶尔是鞍点。实战中务必多次重启（随机或 K-means 初始化），留下最终对数似然最高的那次。</p>
+<h3 id="gmm-与-k-means-何时差距明显">GMM 与 K-means 何时差距明显？</h3>
+<p>出现以下任何一种情况都该用 GMM：（i）簇形状明显椭圆/各向异性；（ii）下游需要<strong>软</strong>隶属概率做校准；（iii）需要生成式密度模型用于采样或异常打分。如果簇大致是球形、分得开，K-means 更快也够用。</p>
+<h3 id="协方差奇异--成分坍塌怎么办">协方差奇异 / 成分坍塌怎么办？</h3>
+<p>加岭正则 $\boldsymbol{\Sigma}_k + \epsilon \mathbf{I}$（参考实现就这么做的）；或者跨成分共享协方差；或限制为对角；又或者检测到坍塌就重启。</p>
+<h3 id="为什么-e-步能让下界取紧">为什么 E 步能让&quot;下界取紧&quot;？</h3>
+<p>因为 $\log p = \mathcal{L}(q,\boldsymbol{\theta}) + \mathrm{KL}[q\Vert p(z\mid\mathbf{x},\boldsymbol{\theta})]$，而 KL 恰好在 $q$ 等于真实后验时为零。</p>
+<h3 id="广义-em-是什么">广义 EM 是什么？</h3>
+<p>把 M 步从&quot;完全最大化&quot;放宽为&quot;任何能让 $Q$ 上升的更新&quot;（比如做几步梯度上升）。前面那条单调上升论证依然成立。</p>
+<h3 id="em-与变分推断的关系">EM 与变分推断的关系？</h3>
+<p>变分 EM 把 E 步的真实后验放宽到一族可处理分布 $\mathcal{Q}$。$\log p = \mathcal{L} + \mathrm{KL}$ 的分解不变，算法变成在 $\mathcal{Q}$ 内最小化 KL（E 步）、再对 $\boldsymbol{\theta}$ 最大化 $\mathcal{L}$（M 步）。详见第 14 篇。</p>
+<h3 id="em-还能解决什么问题">EM 还能解决什么问题？</h3>
+<p>隐马尔可夫模型的训练（Baum-Welch 算法）、缺失数据插补、混合专家模型、主题模型 LDA 的变分 EM——只要存在隐变量、且完全数据下的 MLE 容易做，EM 都是首选框架。</p>
+<hr>
+<h2 id="练习题与解答">练习题与解答</h2>
+<p><strong>E1（E 步计算）.</strong> 一维 GMM，$K=2$，等先验 $\pi_1 = \pi_2 = 1/2$，$\mu_1 = 0,\, \mu_2 = 3,\, \sigma^2 = 1$。计算 $x_i = 1.5$ 处的 $\gamma_{i1}$。</p>
+<p><em>解.</em> 由对称性，两成分密度在 $x=1.5$ 处相等，故 $\gamma_{i1} = 1/2$。</p>
+<p><strong>E2（M 步更新）.</strong> 两个样本 $x_1 = 1,\; x_2 = 4$，责任度 $\gamma_{11} = 0.8,\; \gamma_{21} = 0.3$。求 M 步后的 $\mu_1$。</p>
+<p><em>解.</em> $N_1 = 0.8 + 0.3 = 1.1$，$\mu_1 = (0.8 \times 1 + 0.3 \times 4) / 1.1 = 2.0 / 1.1 \approx 1.82$。</p>
+<p><strong>E3（单调上升的证明溯源）.</strong> 在链 $\log p(\boldsymbol{\theta}^{(t)}) = \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)}) \leq \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t+1)}) \leq \log p(\boldsymbol{\theta}^{(t+1)})$ 中，M 步的最优性出现在哪一步？ELBO 不等式又出现在哪一步？</p>
+<p><em>解.</em> 中间的 $\leq$ 来自 M 步对 $\boldsymbol{\theta}^{(t+1)}$ 的最优性定义；右边的 $\leq$ 是 ELBO 不等式，套到新参数上。</p>
+<p><strong>E4（球形极限退化为 K-means）.</strong> 证明：若固定所有 $\boldsymbol{\Sigma}_k = \epsilon \mathbf{I}$ 并令 $\epsilon \to 0^+$，EM 的均值更新会退化为 K-means 的均值更新。</p>
+<p><em>提示.</em> $\mathcal{N}(\mathbf{x}\mid\boldsymbol{\mu}_k, \epsilon\mathbf{I}) \propto \exp(-\Vert \mathbf{x} - \boldsymbol{\mu}_k\Vert^2 / (2\epsilon))$。当 $\epsilon \to 0$，对 $-\Vert\mathbf{x}-\boldsymbol{\mu}_k\Vert^2$ 的 softmax 退化为 hard argmin，$\gamma_{ik}\in\{0,1\}$，M 步均值即为簇均值。</p>
+<p><strong>E5（缺失数据）.</strong> 若样本 $\mathbf{x}_i$ 的第 $j$ 维缺失，怎样把缺失值并入隐变量、用 EM 同时估计参数与缺失值？</p>
+<p><em>提示.</em> 把缺失项 $x_{ij}$ 加进 $z$。E 步计算 $\mathbb{E}[x_{ij} \mid \text{已观测}, \boldsymbol{\theta}^{(t)}]$（连同二阶矩）；M 步把这些期望当作&quot;插值&quot;代入加权 MLE 更新。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li><strong>Dempster, A. P., Laird, N. M., &amp; Rubin, D. B.</strong> (1977). Maximum likelihood from incomplete data via the EM algorithm. <em>Journal of the Royal Statistical Society: Series B</em>, 39(1), 1-22.</li>
+<li><strong>Bishop, C. M.</strong> (2006). <em>Pattern Recognition and Machine Learning</em>. Springer. <strong>第 9 章</strong>。</li>
+<li><strong>Murphy, K. P.</strong> (2012). <em>Machine Learning: A Probabilistic Perspective</em>. MIT Press. <strong>第 11 章</strong>。</li>
+<li><strong>McLachlan, G., &amp; Krishnan, T.</strong> (2007). <em>The EM Algorithm and Extensions</em> (2nd ed.). Wiley.</li>
+<li><strong>Neal, R. M., &amp; Hinton, G. E.</strong> (1998). A view of the EM algorithm that justifies incremental, sparse, and other variants. <em>Learning in Graphical Models</em>, 89, 355-368.</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<ul>
+<li>上一篇：<a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81%e4%ba%8c-XGBoost%e4%b8%8eLightGBM/">第十二篇 &ndash; XGBoost与LightGBM</a>
+</li>
+<li>下一篇：<a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81%e5%9b%9b-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8e%e5%8f%98%e5%88%86EM/">第十四篇 &ndash; 变分推断与变分EM</a>
+</li>
+<li><a href="/tags/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0/">查看本系列全部20篇文章</a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到">你将学到</a></li>
+    <li><a href="#先修">先修</a></li>
+    <li><a href="#1-隐变量与不完全数据似然">1. 隐变量与不完全数据似然</a>
+      <ul>
+        <li><a href="#11-设定">1.1 设定</a></li>
+        <li><a href="#12-混合模型的例子">1.2 混合模型的例子</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-elbo-与-jensen-不等式">2. ELBO 与 Jensen 不等式</a>
+      <ul>
+        <li><a href="#21-引入辅助分布-q">2.1 引入辅助分布 </a></li>
+        <li><a href="#22-精确分解">2.2 精确分解</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-em-是-elbo-上的坐标上升">3. EM 是 ELBO 上的坐标上升</a>
+      <ul>
+        <li><a href="#31-两步走">3.1 两步走</a></li>
+        <li><a href="#32-单调上升的证明">3.2 单调上升的证明</a></li>
+        <li><a href="#33-两条曲线的视角">3.3 两条曲线的视角</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-em-for-高斯混合模型">4. EM for 高斯混合模型</a>
+      <ul>
+        <li><a href="#41-模型">4.1 模型</a></li>
+        <li><a href="#42-e-步责任度">4.2 E 步：责任度</a></li>
+        <li><a href="#43-m-步加权最大似然">4.3 M 步：加权最大似然</a></li>
+        <li><a href="#44-实战中的收敛">4.4 实战中的收敛</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-k-meansgmm-的硬分配球形极限">5. K-means：GMM 的硬分配、球形极限</a></li>
+    <li><a href="#6-怎么选成分数-k">6. 怎么选成分数 </a></li>
+    <li><a href="#7-参考实现">7. 参考实现</a></li>
+    <li><a href="#qa">Q&amp;A</a>
+      <ul>
+        <li><a href="#em-会收敛到全局最优吗">EM 会收敛到全局最优吗？</a></li>
+        <li><a href="#gmm-与-k-means-何时差距明显">GMM 与 K-means 何时差距明显？</a></li>
+        <li><a href="#协方差奇异--成分坍塌怎么办">协方差奇异 / 成分坍塌怎么办？</a></li>
+        <li><a href="#为什么-e-步能让下界取紧">为什么 E 步能让&quot;下界取紧&quot;？</a></li>
+        <li><a href="#广义-em-是什么">广义 EM 是什么？</a></li>
+        <li><a href="#em-与变分推断的关系">EM 与变分推断的关系？</a></li>
+        <li><a href="#em-还能解决什么问题">EM 还能解决什么问题？</a></li>
+      </ul>
+    </li>
+    <li><a href="#练习题与解答">练习题与解答</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">机器学习数学推导</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>9 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4400</strong></div>
+      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

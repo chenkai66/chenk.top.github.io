@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>时间序列模型（七）：N-BEATS -- 可解释的深度架构 · Chen Kai Blog</title>
+<meta name="description" content="N-BEATS 把深度学习的表达力和经典分解的可解释性合二为一：基函数展开、双重残差堆叠、M4 竞赛分析，以及完整的 PyTorch 代码。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/time-series/07-n-beats%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/time-series/07-n-beats%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="时间序列模型（七）：N-BEATS -- 可解释的深度架构">
+<meta property="og:description" content="N-BEATS 把深度学习的表达力和经典分解的可解释性合二为一：基函数展开、双重残差堆叠、M4 竞赛分析，以及完整的 PyTorch 代码。">
+<meta property="og:url" content="https://www.chenk.top/zh/time-series/07-n-beats%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">时间序列模型</a>
+         · Chapter 7
+      </div>
+      <h1>时间序列模型（七）：N-BEATS -- 可解释的深度架构</h1>
+      <p class="deck">N-BEATS 把深度学习的表达力和经典分解的可解释性合二为一：基函数展开、双重残差堆叠、M4 竞赛分析，以及完整的 PyTorch 代码。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-11-30">November 30, 2024</time> · 13 min read · 6300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/" class="tag">#时间序列</a><a href="/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a><a href="/zh/tags/n-beats/" class="tag">#N-BEATS</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>2018 年 M4 预测竞赛把 100,000 条覆盖六种频率的序列摆到一个统一榜单上。占据榜单前几位的是几十年统计预测手艺打磨出来的精调集成。然后一个<strong>纯神经网络</strong>——没有统计预处理、没有特征工程、没有递归——直接拿了第一名。这个网络就是 Oreshkin 等人的 <strong>N-BEATS</strong>：若干全连接块沿着两条残差路径堆叠在一起。它的可解释版本还把预测拆成多项式趋势和 Fourier 季节性，连统计学家最在意的&quot;可读分解&quot;也免费送了。</p>
+<p>本章把这套精简到极致的架构拆开来讲：它为什么能在同一个 benchmark 上既最准又最可解释，怎么实现，怎么调。</p>
+<h2 id="这一篇你会学到">这一篇你会学到</h2>
+<ul>
+<li>双重残差堆叠如何把一个普通的 MLP 变成层级化的分解器。</li>
+<li>基函数展开：趋势用多项式基、季节性用 Fourier 基、generic 版本用学习到的基。</li>
+<li>为什么 N-BEATS 能同时拿&quot;全场最准&quot;和&quot;全场最可解释&quot;。</li>
+<li>M4 的实际成绩单：N-BEATS 到底打赢了谁，赢了多少。</li>
+<li>一份完整的 PyTorch 实现，外加可以直接迁移的零售销量、电力需求两个案例。</li>
+</ul>
+<p><strong>前置知识</strong>：会用 PyTorch 写前馈网络。理解经典分解（趋势/季节性/残差）有帮助但不必须。</p>
+<hr>
+<h2 id="为什么纯全连接堆栈就够用">为什么纯全连接堆栈就够用</h2>
+<p>时间序列上的深度模型大多带结构先验：卷积假定平移等变、RNN 假定顺序隐状态、attention 假定两两相关。N-BEATS 反其道而行：把整个输入窗口塞进 MLP，让网络自己学最有用的分解是什么。聪明的不是层类型，是信息<strong>走的路径</strong>。</p>
+<p>具体来说 N-BEATS 做了三个有主张的选择：</p>
+<ol>
+<li><strong>若干个相同结构的块叠起来</strong>，每块同时输出一个 <em>backcast</em>（输入窗口的重构）和一个 <em>forecast</em>（对未来的预测）。</li>
+<li><strong>双重残差通路</strong>：每块把自己的 backcast 从输入残差里减掉，把自己的 forecast 加到 forecast 累加器里。下一块只看到上一块<strong>没解释掉的部分</strong>。</li>
+<li><strong>基函数输出头</strong>。块不直接输出预测值，而是输出一个小的系数向量 $\theta$，再乘以一个固定（可解释）或学习（generic）的基矩阵。</li>
+</ol>
+<p>这三点合在一起就足以拿下 M4 榜首。</p>
+<hr>
+<h2 id="架构双重残差通路">架构：双重残差通路</h2>
+<p>想象两条管道从顶向下并排穿过网络。左边那条是<strong>残差通路</strong>：起点是输入窗口 $x \in \mathbb{R}^{H}$，每一块减掉自己的 backcast 之后变小一点。右边那条是<strong>预测累加器</strong>：起点是 0，每一块把自己的 forecast 加进去之后变大一点。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/fig1_stacked_residual_blocks.png" alt="N-BEATS 的双重残差堆叠" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>数学上，对块 $b = 1, \ldots, B$：</p>
+$$
+r^{(b)} = r^{(b-1)} - \hat{x}^{(b)}, \qquad \hat{y} = \sum_{b=1}^{B} \hat{y}^{(b)},
+$$<p>其中 $r^{(0)} = x$。每块看到的残差越来越小，所以会自然地专注于剩下还没被解释掉的频率/形状。粗模式（整体趋势、主导季节周期）被前几块吃掉；细修正交给后几块。</p>
+<p>这就是梯度提升的思路，只不过装在一个端到端可微的网络里。和提升一样，<strong>顺序很重要</strong>：第一块工作最轻松（信号全在），最后一块最难（剩下的多是噪声 + 微妙结构）。</p>
+<hr>
+<h2 id="块的内部">块的内部</h2>
+<p>每个 N-BEATS 块都长一个样。给定残差输入 $r \in \mathbb{R}^{H}$：</p>
+<ol>
+<li><strong>特征提取</strong>——四层 256-512 宽的全连接 + ReLU：
+$$
+   h_1 = \mathrm{ReLU}(W_1 r + b_1), \quad \ldots, \quad h_4 = \mathrm{ReLU}(W_4 h_3 + b_4).
+   $$</li>
+<li><strong>系数投影</strong>——两个线性头分别输出 backcast 和 forecast 的系数：
+$$
+   \theta^{b} = W_b h_4, \qquad \theta^{f} = W_f h_4.
+   $$</li>
+<li><strong>基函数乘法</strong>——固定或学习的矩阵 $V$ 把系数映射到时间域：
+$$
+   \hat{x} = V_b \, \theta^{b}, \qquad \hat{y} = V_f \, \theta^{f}.
+   $$</li>
+</ol>
+<p>两个变体的差别只在 $V$ 是什么。</p>
+<h3 id="可解释趋势--季节性基">可解释：趋势 + 季节性基</h3>
+<p>趋势块用低次多项式基。设次数 $p$，时间索引 $\tau / H \in [0, 1]$：</p>
+$$
+V_{\text{trend}} = \begin{pmatrix} 1 & \tau & \tau^{2} & \cdots & \tau^{p} \end{pmatrix}, \qquad
+\hat{y}_{\text{trend}} = \sum_{i=0}^{p} \theta_i \, \tau^{i}.
+$$<p>典型选 $p = 2$ 或 $3$。够拟合&quot;先平稳上升后加速&quot;这种形状，又不会拟合出多余抖动。</p>
+<p>季节性块用 Fourier 基：</p>
+$$
+V_{\text{seas}} = \begin{pmatrix} \sin(2\pi \cdot 1 \cdot \tau / T) & \cos(2\pi \cdot 1 \cdot \tau / T) & \cdots & \sin(2\pi K \tau / T) & \cos(2\pi K \tau / T) \end{pmatrix}.
+$$<p>$K = 1, 2, 3$ 阶谐波，$T$ 是数据已知周期（月级 12，时级 24），任意形状的周期信号都能逼近。</p>
+<p>可解释架构把一个趋势栈（几个趋势块）后面接一个季节性栈（几个季节性块）。训完之后你可以画出每个栈的贡献，对业务方解释：&ldquo;这一部分是底层趋势，这一部分是周周期。&rdquo;</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/fig2_basis_decomposition.png" alt="可解释 N-BEATS 给出的趋势 &#43; 季节性分解" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="generic学习到的基">Generic：学习到的基</h3>
+<p>generic 版本让 $V_b$ 和 $V_f$ 也变成可学习矩阵。块不再被强制走&quot;趋势/季节性&quot;的语义，而是学梯度告诉它什么基有用。换来一点精度提升，代价是丢掉那张可读的分解图。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/fig3_interpretable_vs_generic.png" alt="可解释 vs generic 的栈结构" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>论文里有一条实用结论：M4 上<strong>最好</strong>的成绩来自可解释模型 + generic 模型 + 不同回看长度的<strong>集成</strong>。下文&quot;集成策略&quot;一节再展开。</p>
+<hr>
+<h2 id="为什么要走基函数输出头">为什么要走基函数输出头</h2>
+<p>块完全可以直接预测：$\hat{y} = W_y h_4$。为什么要绕一道 $\theta$ 向量 + 基矩阵？</p>
+<p>三个理由：</p>
+<ul>
+<li><strong>归纳偏置</strong>。把 forecast 强制写成&quot;少量系数 × 平滑基&quot;的线性组合，物理上限制了它去拟合噪声的能力。720 步输出 + 3 次多项式 = 趋势分量只有 4 个自由度，不可能产生振荡。这种正则化就是可解释版本能泛化的根本原因。</li>
+<li><strong>可解释性免费送</strong>。趋势栈的 $\theta_0, \theta_1, \theta_2, \theta_3$ 直接对应基线、斜率、曲率、jerk。季节性栈的系数对应特定谐波的振幅。能画出来，能讲出来。</li>
+<li><strong>参数效率</strong>。从 512 维隐状态直接连到 720 步预测，是一个 $512 \times 720 = 369K$ 的线性层。基函数头是两个小线性层（$512 \to p$，再 $p \to 720$ 走固定基），每个输出头通常远小于 10K 参数。</li>
+</ul>
+<p>后续的 PatchTST、N-HiTS、TSMixer 也都用了某种分解头——这套思路是 N-BEATS 推广出来的。</p>
+<hr>
+<h2 id="pytorch-实现">PyTorch 实现</h2>
+<p>下面是一份干净完整的实现。整个模型大概 120 行。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TrendBasis</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;多项式基：V[i, t] = (t / horizon) ** i&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">degree</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">backcast_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">forecast_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">=</span> <span class="n">degree</span>
+</span></span><span class="line"><span class="cl">        <span class="n">tb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">backcast_size</span><span class="p">)</span> <span class="o">**</span> <span class="n">i</span>
+</span></span><span class="line"><span class="cl">                          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">tf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">forecast_size</span><span class="p">)</span> <span class="o">**</span> <span class="n">i</span>
+</span></span><span class="line"><span class="cl">                          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&#34;V_b&#34;</span><span class="p">,</span> <span class="n">tb</span><span class="p">)</span>  <span class="c1"># (degree+1, H)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&#34;V_f&#34;</span><span class="p">,</span> <span class="n">tf</span><span class="p">)</span>  <span class="c1"># (degree+1, F)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@property</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">theta_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_b</span><span class="p">,</span> <span class="n">theta_f</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">theta_b</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_b</span><span class="p">,</span> <span class="n">theta_f</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_f</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SeasonalityBasis</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Fourier 基：取前 floor((H 或 F) / 2) 阶谐波。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backcast_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">forecast_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">K</span> <span class="o">=</span> <span class="n">forecast_size</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">        <span class="n">tb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">backcast_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">tf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">forecast_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">K</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Vb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">ks</span> <span class="o">*</span> <span class="n">tb</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">ks</span> <span class="o">*</span> <span class="n">tb</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Vf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">ks</span> <span class="o">*</span> <span class="n">tf</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">ks</span> <span class="o">*</span> <span class="n">tf</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&#34;V_b&#34;</span><span class="p">,</span> <span class="n">Vb</span><span class="p">)</span>  <span class="c1"># (2K, H)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&#34;V_f&#34;</span><span class="p">,</span> <span class="n">Vf</span><span class="p">)</span>  <span class="c1"># (2K, F)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@property</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">theta_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_b</span><span class="p">,</span> <span class="n">theta_f</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">theta_b</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_b</span><span class="p">,</span> <span class="n">theta_f</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_f</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GenericBasis</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;学习基：backcast/forecast 关于 theta 是线性的。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">backcast_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">forecast_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_theta_size</span> <span class="o">=</span> <span class="n">theta_size</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">linear_b</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">theta_size</span><span class="p">,</span> <span class="n">backcast_size</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">linear_f</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">theta_size</span><span class="p">,</span> <span class="n">forecast_size</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@property</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">theta_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_theta_size</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_b</span><span class="p">,</span> <span class="n">theta_f</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_b</span><span class="p">(</span><span class="n">theta_b</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_f</span><span class="p">(</span><span class="n">theta_f</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">NBeatsBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">backcast_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">hidden</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span> <span class="n">layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">basis</span> <span class="o">=</span> <span class="n">basis</span>
+</span></span><span class="line"><span class="cl">        <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="n">backcast_size</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">hidden</span><span class="p">]</span> <span class="o">*</span> <span class="n">layers</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fcs</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">units</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">units</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">fcs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">fcs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">fcs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head_b</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">basis</span><span class="o">.</span><span class="n">theta_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head_f</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">basis</span><span class="o">.</span><span class="n">theta_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">theta_b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_b</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">theta_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_f</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">basis</span><span class="p">(</span><span class="n">theta_b</span><span class="p">,</span> <span class="n">theta_f</span><span class="p">)</span>  <span class="c1"># (backcast, forecast)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">NBeats</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">blocks</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span>
+</span></span><span class="line"><span class="cl">        <span class="n">forecast</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">blk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">backcast</span><span class="p">,</span> <span class="n">fc</span> <span class="o">=</span> <span class="n">blk</span><span class="p">(</span><span class="n">residual</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">residual</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">-</span> <span class="n">backcast</span>
+</span></span><span class="line"><span class="cl">            <span class="n">forecast</span> <span class="o">=</span> <span class="n">forecast</span> <span class="o">+</span> <span class="n">fc</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">forecast</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">make_interpretable</span><span class="p">(</span><span class="n">history</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">horizon</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                       <span class="n">trend_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">seasonal_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                       <span class="n">trend_degree</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                       <span class="n">hidden</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span> <span class="n">layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NBeats</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">trend_basis</span> <span class="o">=</span> <span class="n">TrendBasis</span><span class="p">(</span><span class="n">trend_degree</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">horizon</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">trend_blocks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">NBeatsBlock</span><span class="p">(</span><span class="n">trend_basis</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">layers</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">seas_basis</span> <span class="o">=</span> <span class="n">SeasonalityBasis</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">horizon</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">seasonal_blocks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">NBeatsBlock</span><span class="p">(</span><span class="n">seas_basis</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">layers</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">NBeats</span><span class="p">(</span><span class="n">blocks</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">make_generic</span><span class="p">(</span><span class="n">history</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">horizon</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">num_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">theta_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">hidden</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span> <span class="n">layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NBeats</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">basis</span> <span class="o">=</span> <span class="n">GenericBasis</span><span class="p">(</span><span class="n">theta_size</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">horizon</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">NBeatsBlock</span><span class="p">(</span><span class="n">basis</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">layers</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">NBeats</span><span class="p">(</span><span class="n">blocks</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一个小但重要的细节：可解释版本里，<code>TrendBasis</code> 和 <code>SeasonalityBasis</code> 实例<strong>在同一个栈内的所有块之间共享</strong>。每个块有自己的 MLP 和系数头，但它们都乘同一个固定基矩阵——既保住了归纳偏置，也省下一点参数。</p>
+<hr>
+<h2 id="训练配方">训练配方</h2>
+<p>Oreshkin 等人的配方很朴素：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">Adam</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.optim.lr_scheduler</span> <span class="kn">import</span> <span class="n">CosineAnnealingLR</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_nbeats</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">opt</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sched</span> <span class="o">=</span> <span class="n">CosineAnnealingLR</span><span class="p">(</span><span class="n">opt</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="n">epochs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">crit</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">L1Loss</span><span class="p">()</span>  <span class="c1"># MAE；论文按数据集用 sMAPE/MASE/MAPE，</span>
+</span></span><span class="line"><span class="cl">                        <span class="c1"># L1 是个稳妥默认</span>
+</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">ep</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">train_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="o">=</span> <span class="n">xb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">yb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">crit</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">xb</span><span class="p">),</span> <span class="n">yb</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">train_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">*</span> <span class="n">xb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sched</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">train_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">val_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="ow">in</span> <span class="n">val_loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="o">=</span> <span class="n">xb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">yb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">val_loss</span> <span class="o">+=</span> <span class="n">crit</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">xb</span><span class="p">),</span> <span class="n">yb</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">*</span> <span class="n">xb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">val_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">val_loss</span> <span class="o">&lt;</span> <span class="n">best</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">best</span> <span class="o">=</span> <span class="n">val_loss</span>
+</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="s2">&#34;nbeats.pt&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">ep</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">ep</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: train </span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> val </span><span class="si">{</span><span class="n">val_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>实操上的几个点：</p>
+<ul>
+<li><strong>损失函数</strong>：M4 用 sMAPE；很多真实数据上 MAE（L1）比 MSE 稳，因为它不会过度惩罚离群点。选和你的评估指标一致的损失。</li>
+<li><strong>逐窗口标准化</strong>：把<strong>每个输入窗口</strong>减去自身均值除以自身标准差再喂网络，预测结果再逆变换回去。这一步比损失函数选择重要得多，否则网络要额外去学每条序列的尺度，浪费容量。</li>
+<li><strong>Early stopping</strong>：N-BEATS 喜欢长训练，但大多数数据集大约 50 epoch 后就走平了。盯着 val loss，不动了就停。</li>
+</ul>
+<hr>
+<h2 id="n-beats-在-m4-上赢了什么">N-BEATS 在 M4 上赢了什么</h2>
+<p>M4 比赛包含统计方法（ARIMA、ETS、Theta）、冠军 Smyl 的 ES-RNN 混合模型、第二名 FFORMA 这种基于特征元学习的方法。N-BEATS 没做任何统计预处理，就在总体 sMAPE 和六个频率桶里的五个上都赢了。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/fig4_m4_results.png" alt="N-BEATS 在 M4 上的成绩" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>论文里的数字：</p>
+<ul>
+<li><strong>N-BEATS（可解释 + generic 集成）：sMAPE 11.135</strong></li>
+<li>N-BEATS（仅 generic）：sMAPE 11.168</li>
+<li>Smyl ES-RNN（M4 冠军）：sMAPE 11.374</li>
+<li>FFORMA：sMAPE 11.720</li>
+<li>最好的经典方法（Theta）：sMAPE 12.309</li>
+</ul>
+<p>绝对差距在 sMAPE 单位上看不算大，但跨年/季/月/周/日的桶里都稳定领先。小时级是唯一一个 Smyl ES-RNN 反超的桶，差距 0.4 sMAPE。</p>
+<p>更深的结论是：足够表达力 + 合适归纳偏置的深度模型，可以从零学出统计学家用几十年手工打磨的东西。</p>
+<hr>
+<h2 id="集成配方里没大声说的另一半">集成：配方里没大声说的另一半</h2>
+<p>仔细读 M4 论文你会注意到一行脚注：表头那个 N-BEATS 数字是 <strong>180 个模型实例的中位数</strong>预测。每个实例在三件事上有差异：回看长度（2H, 3H, &hellip;, 7H）、训练损失（sMAPE vs MASE vs MAPE）、随机种子。单模型表现明显比集成差。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/07-N-BEATS%E6%B7%B1%E5%BA%A6%E6%9E%B6%E6%9E%84/fig5_ensemble_strategy.png" alt="为什么 N-BEATS 论文都报集成结果" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>右图的实证曲线显示边际效益递减：大部分收益来自前 ~30 个成员。生产环境几乎不用真训 180 个——10 到 30 个，混合不同回看长度和种子，基本就把提升吃掉了。</p>
+<p>简易集成工具：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">EnsembleNBeats</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">models</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">NBeats</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">models</span> <span class="o">=</span> <span class="n">models</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">aggregator</span><span class="o">=</span><span class="s2">&#34;median&#34;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">outs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">m</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">outs</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">aggregator</span> <span class="o">==</span> <span class="s2">&#34;median&#34;</span> <span class="k">else</span> <span class="n">outs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>中位数比均值更适合 sMAPE 这类损失，因为它对&quot;某个模型在某窗口上抽风&quot;更鲁棒。</p>
+<hr>
+<h2 id="案例-1月度零售销量">案例 1：月度零售销量</h2>
+<p><strong>任务</strong>：给定过去 36 个月销量，预测多店连锁的下 12 个月单量。强假日季节性（12 月峰）、向上趋势 + 偶发促销，约 200 条不同的产品-门店序列。</p>
+<p><strong>架构选择</strong>：可解释版本。业务团队需要能够指着月度预测说&quot;$X$ 来自底层趋势，$Y$ 来自循环的 12 月节日抬升，$Z$ 是残差。&quot;<code>[3 个趋势块] + [3 个季节性块]</code> 的可解释栈直接给你这个。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">make_interpretable</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">history</span><span class="o">=</span><span class="mi">36</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">trend_blocks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">seasonal_blocks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">trend_degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>                     <span class="c1"># 平滑的多年趋势</span>
+</span></span><span class="line"><span class="cl">    <span class="n">hidden</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>训完之后可以提取每个栈的贡献，看看每一部分到底学了什么：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">stack_contributions</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">NBeats</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;单窗口下，按栈拆出 forecast 贡献。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cur_stack</span> <span class="o">=</span> <span class="s2">&#34;trend&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cumulative</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">model</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">basis</span><span class="o">.</span><span class="n">V_f</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">blk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">blocks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">backcast</span><span class="p">,</span> <span class="n">fc</span> <span class="o">=</span> <span class="n">blk</span><span class="p">(</span><span class="n">residual</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">residual</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">-</span> <span class="n">backcast</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cumulative</span> <span class="o">=</span> <span class="n">cumulative</span> <span class="o">+</span> <span class="n">fc</span>
+</span></span><span class="line"><span class="cl">        <span class="n">next_stack</span> <span class="o">=</span> <span class="s2">&#34;seasonality&#34;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">blk</span><span class="o">.</span><span class="n">basis</span><span class="p">,</span> <span class="n">SeasonalityBasis</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&#34;trend&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">blocks</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">basis</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">blk</span><span class="o">.</span><span class="n">basis</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="p">[</span><span class="n">cur_stack</span><span class="p">]</span> <span class="o">=</span> <span class="n">cumulative</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">cumulative</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">cumulative</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">cur_stack</span> <span class="o">=</span> <span class="n">next_stack</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">out</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">contribs</span> <span class="o">=</span> <span class="n">stack_contributions</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x_val</span><span class="p">[:</span><span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># contribs[&#34;trend&#34;]        -&gt; 12 个月的趋势分量</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># contribs[&#34;seasonality&#34;]  -&gt; 12 个月的季节性分量</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>典型数字</strong>：5 年历史的真实零售序列上，可解释 N-BEATS 能在 12 个月 horizon 上拿到 7-12% MAPE，与最好的梯度提升 + 特征工程管道相当——但完全不用做特征工程。可解释性才是真正的赢点：让业务团队能用已知促销活动覆盖 12 月季节性的模型，比在回测上多 0.5% 精度的黑盒有用得多。</p>
+<hr>
+<h2 id="案例-2小时级电力需求">案例 2：小时级电力需求</h2>
+<p><strong>任务</strong>：给定过去 168 小时（一周）的电网总需求，预测未来 24 小时。强日周期 + 周周期，对天气敏感，热浪期间会有需求尖峰。</p>
+<p><strong>架构选择</strong>：generic。模式复杂（多分辨率日 + 周 + 天气驱动），业务团队主要关心精度——预测每多 1 MW 误差就意味着多备一份运营储备。换更深的 generic 栈，宽隐状态。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">make_generic</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">history</span><span class="o">=</span><span class="mi">168</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_blocks</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">theta_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">hidden</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>这里逐窗口标准化最关键</strong>。需求水平随季节大幅变化；不做标准化的话网络会浪费容量去学&quot;冬天比夏天大&quot;。做了之后网络只需学形状。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">normalise_window</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mu</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sd</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-6</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span> <span class="o">/</span> <span class="n">sd</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sd</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 前向：</span>
+</span></span><span class="line"><span class="cl"><span class="n">x_norm</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sd</span> <span class="o">=</span> <span class="n">normalise_window</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">y_norm</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_norm</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">y_hat</span> <span class="o">=</span> <span class="n">y_norm</span> <span class="o">*</span> <span class="n">sd</span> <span class="o">+</span> <span class="n">mu</span>  <span class="c1"># 广播到 (B, H)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>典型数字</strong>：公开 ETT（Electricity Transformer Temperature）数据集上 24 小时 horizon，10 个 generic N-BEATS 集成的 MSE 大约 0.31，明显领先 LSTM（约 0.42），实现成本远低于 Informer 但精度可比。</p>
+<hr>
+<h2 id="超参-cheat-sheet">超参 cheat sheet</h2>
+<p>新数据集上的实用起点：</p>
+<table>
+  <thead>
+      <tr>
+          <th>超参</th>
+          <th>默认（可解释）</th>
+          <th>默认（generic）</th>
+          <th>调参提示</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>回看 <code>history</code></td>
+          <td>horizon × 4-7</td>
+          <td>horizon × 4-7</td>
+          <td>越大覆盖越多季节；以 2 倍步长试。</td>
+      </tr>
+      <tr>
+          <td>隐藏宽度</td>
+          <td>256</td>
+          <td>512</td>
+          <td>验证 loss 高位停就调大。</td>
+      </tr>
+      <tr>
+          <td>块内 MLP 层数</td>
+          <td>4</td>
+          <td>4</td>
+          <td>极少需要改。</td>
+      </tr>
+      <tr>
+          <td>趋势次数</td>
+          <td>2 或 3</td>
+          <td>&ndash;</td>
+          <td>看到曲率就 3，否则 2。</td>
+      </tr>
+      <tr>
+          <td>趋势块数</td>
+          <td>3</td>
+          <td>&ndash;</td>
+          <td>趋势 RMSE 主导误差时加。</td>
+      </tr>
+      <tr>
+          <td>季节性块数</td>
+          <td>3</td>
+          <td>&ndash;</td>
+          <td>多分辨率季节性时加。</td>
+      </tr>
+      <tr>
+          <td>Generic 块数</td>
+          <td>&ndash;</td>
+          <td>20-30</td>
+          <td>一般继续加还能涨，慢慢涨。</td>
+      </tr>
+      <tr>
+          <td>Generic $\theta$</td>
+          <td>&ndash;</td>
+          <td>32</td>
+          <td>16 欠拟合，64+ 一般无用。</td>
+      </tr>
+      <tr>
+          <td>损失</td>
+          <td>MAE / sMAPE</td>
+          <td>MAE / sMAPE</td>
+          <td>与评估指标对齐。</td>
+      </tr>
+      <tr>
+          <td>优化器</td>
+          <td>Adam，lr 1e-3</td>
+          <td>Adam，lr 1e-3</td>
+          <td>cosine annealing，不需要 warmup。</td>
+      </tr>
+      <tr>
+          <td>集成大小</td>
+          <td>10-30</td>
+          <td>10-30</td>
+          <td>中位数聚合。</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="什么时候不用-n-beats">什么时候<strong>不</strong>用 N-BEATS</h2>
+<ul>
+<li><strong>超长 horizon（&gt;1000 步）</strong>。$\theta \to \hat{y}$ 的输出投影成为参数瓶颈。换 <strong>N-HiTS</strong>（N-BEATS 的后继）或 PatchTST，它们用多采样率分层来扩展。</li>
+<li><strong>跨特征强相关的多变量序列</strong>。N-BEATS 设计时是单变量。要么每个变量训一份，要么换 TFT / Informer / DeepAR。</li>
+<li><strong>极短序列（~50 个观测）</strong>。MLP 主干有几万参数；这种数据量上 Theta 或 ETS 会赢。</li>
+<li><strong>在线流式预测</strong>。N-BEATS 处理固定窗口而不是流式隐状态。LSTM 或 TCN 更合适。</li>
+<li><strong>预测必须满足硬约束</strong>（非负、整数）。N-BEATS 输出无约束实数；你可以后处理或用带输出 clip 的分位损失，但带原生分布输出的模型（DeepAR）可能更省事。</li>
+</ul>
+<hr>
+<h2 id="qa">Q&amp;A</h2>
+<h3 id="为什么偏要用多项式和-fourier">为什么偏要用多项式和 Fourier？</h3>
+<p>多项式在紧区间上对连续函数稠密（Stone-Weierstrass），Fourier 对周期函数稠密。两者合在一起对&quot;平滑趋势 + 周期分量&quot;是非常强的先验，恰好匹配大多数真实序列的样子。</p>
+<h3 id="3-次多项式的趋势块能学高阶行为吗">3 次多项式的趋势块能学高阶行为吗？</h3>
+<p>局部能，整体不行。每个块看到的是上一批块之后的<strong>残差</strong>，所以三块趋势栈相当于复合三个三次函数，对任何合理 horizon 上的趋势都够。</p>
+<h3 id="为什么用-adam-不用-sgd">为什么用 Adam 不用 SGD？</h3>
+<p>经验上 N-BEATS 用 Adam 收敛快很多。论文报告 SGD 需要激进的学习率调参才能匹配 Adam 的默认。</p>
+<h3 id="n-beats-需要位置编码吗">N-BEATS 需要位置编码吗？</h3>
+<p>不需要。MLP 把整个窗口当固定大小向量看；位置隐含在输入向量的列索引里，输出端的基矩阵则把每步时间索引编码进去了。</p>
+<h3 id="怎么把-n-beats-扩展到带外生变量天气节假日">怎么把 N-BEATS 扩展到带外生变量（天气、节假日）？</h3>
+<p>官方扩展 <strong>N-BEATS-X</strong>：把外生协变量拼到输入窗口，再给每块加一个辅助输入头。生产里很多场景，简单地把外生序列沿输入向量 concat、然后稍微加宽第一层 MLP 就够用。</p>
+<h3 id="n-hits-是什么是不是直接上它就行">N-HiTS 是什么，是不是直接上它就行？</h3>
+<p>N-HiTS（2023）是同一批作者的后继。它在输出端加了多采样率下采样和插值，能扩展到更长 horizon（720+ 步）且跑得更快。短到中等 horizon（&lt;100 步）上，原版 N-BEATS 仍然有竞争力且更简单。</p>
+<p><strong>为啥一定要集成？我单模型挺好。</strong>
+你这个数据集上幸运而已。论文显示在 10 万条 M4 序列上单模型方差很大——哪怕 5 个成员的集成也能再省 1-2 sMAPE。如果只是单点估计 + 数据小，可以略；如果要报数字，一定要集成。</p>
+<hr>
+<h2 id="小结">小结</h2>
+<p>N-BEATS 是一个&quot;架构无聊到极致&quot;的模型，赢就赢在把对的块按对的顺序堆起来。双重残差通路给了它类似 boosting 的行为；基函数输出头给了它强归纳偏置和（可解释版本里）免费分解；M4 榜单证明这个组合既打得过经典方法也打得过递归深度模型。</p>
+<p>对于大多数采样规整、有明显趋势/季节性的单变量预测问题，N-BEATS 是开箱可用的最强基线之一。从可解释版本起步以争取 stakeholder 认可，需要每一分精度时切换到（或与）generic 版本集成，记得跨回看长度和种子做集成。</p>
+<p>下一章我们用 <strong>Informer</strong> 收尾，它解决的是另一个问题：怎么让 Transformer 跑到几千步 horizon，而 $\mathcal{O}(L^2)$ 的注意力代价不会把你压垮。</p>
+<hr>
+<h2 id="参考资料">参考资料</h2>
+<ul>
+<li>Oreshkin, B. N., Carpov, D., Chapados, N., &amp; Bengio, Y. (2020). <em>N-BEATS: Neural Basis Expansion Analysis for Interpretable Time Series Forecasting.</em> ICLR.</li>
+<li>Makridakis, S., Spiliotis, E., &amp; Assimakopoulos, V. (2020). <em>The M4 Competition: 100,000 Time Series and 61 Forecasting Methods.</em> International Journal of Forecasting, 36(1).</li>
+<li>Smyl, S. (2020). <em>A Hybrid Method of Exponential Smoothing and Recurrent Neural Networks for Time Series Forecasting.</em> International Journal of Forecasting, 36(1).</li>
+<li>Challu, C. et al. (2023). <em>N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting.</em> AAAI.</li>
+<li>Olivares, K. et al. (2023). <em>Neural Basis Expansion Analysis with Exogenous Variables: Forecasting Electricity Prices with N-BEATS-X.</em> International Journal of Forecasting.</li>
+</ul>
+<hr>
+<p><strong>系列导航</strong></p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#这一篇你会学到">这一篇你会学到</a></li>
+    <li><a href="#为什么纯全连接堆栈就够用">为什么纯全连接堆栈就够用</a></li>
+    <li><a href="#架构双重残差通路">架构：双重残差通路</a></li>
+    <li><a href="#块的内部">块的内部</a>
+      <ul>
+        <li><a href="#可解释趋势--季节性基">可解释：趋势 + 季节性基</a></li>
+        <li><a href="#generic学习到的基">Generic：学习到的基</a></li>
+      </ul>
+    </li>
+    <li><a href="#为什么要走基函数输出头">为什么要走基函数输出头</a></li>
+    <li><a href="#pytorch-实现">PyTorch 实现</a></li>
+    <li><a href="#训练配方">训练配方</a></li>
+    <li><a href="#n-beats-在-m4-上赢了什么">N-BEATS 在 M4 上赢了什么</a></li>
+    <li><a href="#集成配方里没大声说的另一半">集成：配方里没大声说的另一半</a></li>
+    <li><a href="#案例-1月度零售销量">案例 1：月度零售销量</a></li>
+    <li><a href="#案例-2小时级电力需求">案例 2：小时级电力需求</a></li>
+    <li><a href="#超参-cheat-sheet">超参 cheat sheet</a></li>
+    <li><a href="#什么时候不用-n-beats">什么时候<strong>不</strong>用 N-BEATS</a></li>
+    <li><a href="#qa">Q&amp;A</a>
+      <ul>
+        <li><a href="#为什么偏要用多项式和-fourier">为什么偏要用多项式和 Fourier？</a></li>
+        <li><a href="#3-次多项式的趋势块能学高阶行为吗">3 次多项式的趋势块能学高阶行为吗？</a></li>
+        <li><a href="#为什么用-adam-不用-sgd">为什么用 Adam 不用 SGD？</a></li>
+        <li><a href="#n-beats-需要位置编码吗">N-BEATS 需要位置编码吗？</a></li>
+        <li><a href="#怎么把-n-beats-扩展到带外生变量天气节假日">怎么把 N-BEATS 扩展到带外生变量（天气、节假日）？</a></li>
+        <li><a href="#n-hits-是什么是不是直接上它就行">N-HiTS 是什么，是不是直接上它就行？</a></li>
+      </ul>
+    </li>
+    <li><a href="#小结">小结</a></li>
+    <li><a href="#参考资料">参考资料</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">时间序列模型</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6300</strong></div>
+      <div class="row"><span>Published</span><strong>Nov 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Transfer Learning (3): Domain Adaptation · Chen Kai Blog</title>
+<meta name="description" content="A practical guide to domain adaptation: covariate shift, label shift, DANN with gradient reversal, MMD alignment, CORAL, self-training, AdaBN, and a complete DANN implementation.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/transfer-learning/03-domain-adaptation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/transfer-learning/03-domain-adaptation/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Transfer Learning (3): Domain Adaptation">
+<meta property="og:description" content="A practical guide to domain adaptation: covariate shift, label shift, DANN with gradient reversal, MMD alignment, CORAL, self-training, AdaBN, and a complete DANN implementation.">
+<meta property="og:url" content="https://www.chenk.top/en/transfer-learning/03-domain-adaptation/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Transfer Learning</a>
+         · Chapter 3
+      </div>
+      <h1>Transfer Learning (3): Domain Adaptation</h1>
+      <p class="deck">A practical guide to domain adaptation: covariate shift, label shift, DANN with gradient reversal, MMD alignment, CORAL, self-training, AdaBN, and a complete DANN implementation.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-05-13">May 13, 2025</time> · 17 min read · 3600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/transfer-learning/" class="tag">#Transfer Learning</a><a href="/en/tags/domain-adaptation/" class="tag">#Domain Adaptation</a><a href="/en/tags/mmd/" class="tag">#MMD</a><a href="/en/tags/dann/" class="tag">#DANN</a><a href="/en/tags/distribution-shift/" class="tag">#Distribution Shift</a><a href="/en/tags/adversarial-learning/" class="tag">#Adversarial Learning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Your autonomous-driving stack works perfectly on sunny California freeways. Then it rains in Seattle. Top-1 accuracy drops from 95% to 70%. The model did not get worse — the <em>data distribution shifted</em>, and your training set never told it what wet asphalt looks like at dusk.</p>
+<p>This is the everyday problem of <strong>domain adaptation</strong>: you have abundant labelled data in one distribution (the <em>source</em>) and unlabelled data in another (the <em>target</em>), and you need the model to perform on the target. This article shows you how, from first-principles theory to a working DANN implementation.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>Three flavours of distribution shift — covariate, label, concept — and how each is fixed</li>
+<li>The Ben-David bound: why adaptation is possible, and the precise quantity it lets you reduce</li>
+<li>DANN: adversarial alignment with the gradient reversal layer, in one backward pass</li>
+<li>MMD and CORAL: explicit, non-adversarial distribution-matching losses</li>
+<li>Self-training, AdaBN, CycleGAN, ADDA — the rest of the modern toolbox</li>
+<li>A complete DANN implementation in PyTorch</li>
+<li>A decision tree for picking a method, plus benchmark numbers on Office-31 and DomainNet</li>
+</ul>
+<p><strong>Prerequisites:</strong> Parts 1–2 of this series, basic familiarity with GAN-style adversarial training.</p>
+<hr>
+<h2 id="1-three-faces-of-distribution-shift">1. Three Faces of Distribution Shift</h2>
+<p>A <strong>domain</strong> is a feature space $\mathcal{X}$ with a marginal distribution $P(X)$. A <strong>task</strong> is a label space $\mathcal{Y}$ with a conditional distribution $P(Y \mid X)$. Domain adaptation studies what happens when the source and target disagree on one of these.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Setting</th>
+          <th>Source</th>
+          <th>Target</th>
+          <th>Goal</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Source domain</strong> $\mathcal{D}_S$</td>
+          <td>many labelled $(x_i, y_i)$</td>
+          <td>—</td>
+          <td>—</td>
+      </tr>
+      <tr>
+          <td><strong>Target domain</strong> $\mathcal{D}_T$</td>
+          <td>—</td>
+          <td>mostly unlabelled $x_j$</td>
+          <td>learn $f: \mathcal{X} \to \mathcal{Y}$ that works on $\mathcal{D}_T$</td>
+      </tr>
+  </tbody>
+</table>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig1_distribution_shift.png" alt="Source vs target distribution alignment" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure is the entire game in one picture: before adaptation, the source-trained boundary slices through empty target space; after adaptation, both domains share a feature manifold and the same boundary works.</p>
+<h3 id="11-covariate-shift--the-input-distribution-moved">1.1 Covariate shift — the input distribution moved</h3>
+$$P_S(X) \neq P_T(X), \qquad P_S(Y \mid X) = P_T(Y \mid X)$$<p>The <em>labelling rule</em> is unchanged; only what you observe is different. Examples:</p>
+<ul>
+<li>A spam filter trained on 2020 email and deployed in 2026: topics drift, but spam is still spam.</li>
+<li>CT scans from a Siemens scanner used to evaluate scans from a GE machine: the imaging characteristics differ, but radiologists score them the same way.</li>
+</ul>
+<p><strong>Standard fix — importance weighting.</strong> Reweight every source sample by the density ratio $w(x) = P_T(x) / P_S(x)$. The weighted source ERM then estimates the <em>target</em> risk:</p>
+$$\mathbb{E}_{P_T}[\ell(f(X), Y)] = \mathbb{E}_{P_S}\!\left[\frac{P_T(X)}{P_S(X)}\,\ell(f(X), Y)\right].$$<p>Estimating densities in high dimensions is hopeless, so practitioners estimate the <em>ratio</em> directly with KLIEP, uLSIF, or a probabilistic classifier (Bayes-optimal classifier between source and target gives you the ratio for free).</p>
+<h3 id="12-label-shift--the-prevalence-moved">1.2 Label shift — the prevalence moved</h3>
+$$P_S(Y) \neq P_T(Y), \qquad P_S(X \mid Y) = P_T(X \mid Y)$$<p>Class-conditional appearance is unchanged; only base rates differ. Examples:</p>
+<ul>
+<li>An ICU model deployed in outpatient clinics where disease prevalence is much lower.</li>
+<li>A recommender trained on a young-skewing pilot, deployed across all age cohorts.</li>
+</ul>
+<p><strong>Standard fix.</strong> Estimate the target prior $P_T(Y)$ by EM on unlabelled target data (BBSE / RLLS work well), then rescale each source-trained probability by $P_T(y) / P_S(y)$ and renormalise.</p>
+<h3 id="13-concept-shift--the-rule-itself-moved">1.3 Concept shift — the rule itself moved</h3>
+$$P_S(Y \mid X) \neq P_T(Y \mid X)$$<p>This is the hard case. &ldquo;Sick&rdquo; is positive in a music review and negative in a product review even though the <em>word</em> is identical. With no target labels at all, no method can untangle this — concept shift demands at least a few labelled target examples (the <em>semi-supervised</em> DA setting).</p>
+<hr>
+<h2 id="2-theory-the-ben-david-bound">2. Theory: the Ben-David Bound</h2>
+<p>Why is adaptation possible at all? The classical answer is the bound of Ben-David et al. (2010). For any hypothesis $h$ in class $\mathcal{H}$:</p>
+$$
+\epsilon_T(h) \;\leq\; \epsilon_S(h) \;+\; \tfrac{1}{2}\, d_{\mathcal{H}\Delta\mathcal{H}}(\mathcal{D}_S, \mathcal{D}_T) \;+\; \lambda^{*}.
+$$<table>
+  <thead>
+      <tr>
+          <th>Term</th>
+          <th>Meaning</th>
+          <th>What you can do about it</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>$\epsilon_S(h)$</td>
+          <td>source-domain error</td>
+          <td>train better on the source</td>
+      </tr>
+      <tr>
+          <td>$d_{\mathcal{H}\Delta\mathcal{H}}$</td>
+          <td>symmetric-difference divergence between domains</td>
+          <td><strong>this is what domain adaptation reduces</strong></td>
+      </tr>
+      <tr>
+          <td>$\lambda^{*}$</td>
+          <td>error of the best joint predictor</td>
+          <td>irreducible — if it is large, no method will save you</td>
+      </tr>
+  </tbody>
+</table>
+<p>Two takeaways:</p>
+<ol>
+<li><strong>Adaptation is bounded by an oracle.</strong> If source and target tasks are fundamentally different ($\lambda^*$ large), you are out of luck — you need new labels, not a fancier loss.</li>
+<li><strong>Domain divergence has a tractable proxy.</strong> Train a binary classifier to distinguish source from target features. If it gets near 50% accuracy, your features are domain-invariant. <em>This is exactly the mechanism DANN automates.</em></li>
+</ol>
+<hr>
+<h2 id="3-dann--adversarial-alignment-in-one-backward-pass">3. DANN — Adversarial Alignment in One Backward Pass</h2>
+<p><strong>Domain-Adversarial Neural Network</strong> (Ganin et al., 2016) is the most influential adversarial method, and the cleanest implementation of &ldquo;minimise the domain divergence proxy&rdquo;.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig2_dann_architecture.png" alt="DANN architecture with Gradient Reversal Layer" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="31-three-subnetworks-one-shared-trunk">3.1 Three subnetworks, one shared trunk</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Subnet</th>
+          <th>Role</th>
+          <th>Trained on</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Feature extractor</strong> $G_f$</td>
+          <td>maps $x$ to $f = G_f(x)$</td>
+          <td>both domains</td>
+      </tr>
+      <tr>
+          <td><strong>Label predictor</strong> $G_y$</td>
+          <td>classifies $f \to \hat{y}$</td>
+          <td>source labels</td>
+      </tr>
+      <tr>
+          <td><strong>Domain discriminator</strong> $G_d$</td>
+          <td>classifies $f \to$ source/target</td>
+          <td>both domains</td>
+      </tr>
+  </tbody>
+</table>
+<p>The objective is a minimax:</p>
+$$
+\min_{G_f,\, G_y}\; \max_{G_d}\quad \mathcal{L}_y(G_y \circ G_f) \;-\; \lambda\, \mathcal{L}_d(G_d \circ G_f).
+$$<p>$G_d$ wants to tell the domains apart; $G_f$ wants to fool $G_d$ while still letting $G_y$ classify the source correctly.</p>
+<h3 id="32-the-gradient-reversal-layer-grl">3.2 The Gradient Reversal Layer (GRL)</h3>
+<p>A naive minimax requires alternating optimisation, which is fragile (think early GANs). DANN&rsquo;s contribution is to make the whole system trainable in <strong>one</strong> backward pass via the Gradient Reversal Layer:</p>
+$$
+\text{forward: }\; \text{GRL}(x) = x, \qquad
+\text{backward: }\; \frac{\partial\,\text{GRL}}{\partial x} = -\lambda\, I.
+$$<p>GRL sits on the path from features to the domain head. During backprop, the discriminator&rsquo;s gradient flips sign before reaching $G_f$, so the same <code>loss.backward()</code> call:</p>
+<ul>
+<li>updates $G_y$ to classify better (normal gradients),</li>
+<li>updates $G_d$ to discriminate better (normal gradients),</li>
+<li>updates $G_f$ to <em>confuse</em> $G_d$ (reversed gradients on the domain term) while still helping $G_y$.</li>
+</ul>
+<p>No alternating training, no separate optimisers, no manual freezing.</p>
+<h3 id="33-the-adversarial-weight-schedule">3.3 The adversarial weight schedule</h3>
+<p>DANN does not turn $\lambda$ on at full strength — that destroys early learning. Instead it follows a sigmoid ramp:</p>
+$$\lambda_p = \frac{2}{1 + \exp(-\gamma p)} - 1, \qquad \gamma \approx 10,$$<p>where $p \in [0, 1]$ is training progress. Early on ($\lambda \approx 0$), the network just learns good source features. As training proceeds ($\lambda \to 1$), domain alignment kicks in. Skipping this schedule is the single most common cause of &ldquo;DANN trains but does worse than source-only&rdquo;.</p>
+<hr>
+<h2 id="4-mmd--matching-means-in-an-rkhs">4. MMD — Matching Means in an RKHS</h2>
+<p>Adversarial alignment is powerful but unstable. The non-adversarial alternative is to define an explicit distance between distributions and minimise it directly. <strong>Maximum Mean Discrepancy</strong> (Gretton et al., 2012) is the standard choice.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig3_mmd_kernel.png" alt="Maximum Mean Discrepancy: kernel mean embeddings" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="41-the-idea">4.1 The idea</h3>
+<p>A kernel $k(x, y) = \langle \phi(x), \phi(y) \rangle_{\mathcal{H}}$ implicitly maps each sample into a (possibly infinite-dimensional) RKHS $\mathcal{H}$. The <strong>kernel mean embedding</strong> of a distribution $P$ is the average feature</p>
+$$\mu_P = \mathbb{E}_{X \sim P}[\phi(X)] \;\in\; \mathcal{H}.$$<p>For <em>characteristic</em> kernels (the Gaussian RBF being the canonical example), the map $P \mapsto \mu_P$ is injective — two distributions are equal iff their kernel means are. So we can measure how different two distributions are by the RKHS distance of their means:</p>
+$$\text{MMD}^2(P_S, P_T) = \|\mu_{P_S} - \mu_{P_T}\|_{\mathcal{H}}^2.$$<p>The figure shows this graphically: even when raw histograms overlap a little, the kernel mean embeddings make the gap explicit, and the shaded area is exactly $\text{MMD}^2$.</p>
+<h3 id="42-the-estimator-you-actually-compute">4.2 The estimator you actually compute</h3>
+<p>Because the embedding is implicit, expand the squared norm and the inner product becomes a kernel evaluation:</p>
+$$
+\widehat{\text{MMD}}^2 = \frac{1}{n_s^2}\sum_{i,j} k(x_i^s, x_j^s) + \frac{1}{n_t^2}\sum_{i,j} k(x_i^t, x_j^t) - \frac{2}{n_s n_t}\sum_{i,j} k(x_i^s, x_j^t).
+$$<p>This is differentiable in the features, so you can drop it straight into a deep network as an extra loss:</p>
+$$\mathcal{L} = \mathcal{L}_{\text{task}} + \lambda \cdot \widehat{\text{MMD}}^2\!\big(G_f(X_S),\, G_f(X_T)\big).$$<p>This is <strong>DAN / DDC</strong> (Long et al., 2015; Tzeng et al., 2014).</p>
+<h3 id="43-practical-tips">4.3 Practical tips</h3>
+<ul>
+<li><strong>Use multi-kernel MMD.</strong> A mixture $k = \sum_u \beta_u k_{\sigma_u}$ of Gaussian RBFs at several bandwidths is robust to bandwidth misspecification.</li>
+<li><strong>Median heuristic for $\sigma$.</strong> Set the bandwidth to the median pairwise distance in the batch — cheap, robust, almost always good enough.</li>
+<li><strong>Apply MMD to deeper layers.</strong> Lower layers carry domain-specific texture; the abstraction at the top is what you want aligned.</li>
+</ul>
+<h3 id="44-mmd-vs-dann-at-a-glance">4.4 MMD vs DANN at a glance</h3>
+<table>
+  <thead>
+      <tr>
+          <th></th>
+          <th>MMD</th>
+          <th>DANN</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Distance</td>
+          <td>Kernel-based RKHS norm</td>
+          <td>Jensen–Shannon (via discriminator)</td>
+      </tr>
+      <tr>
+          <td>Optimisation</td>
+          <td>Direct minimisation</td>
+          <td>Adversarial minimax (GRL)</td>
+      </tr>
+      <tr>
+          <td>Stability</td>
+          <td>Very stable</td>
+          <td>Sometimes oscillates</td>
+      </tr>
+      <tr>
+          <td>Expressiveness</td>
+          <td>Tied to kernel choice</td>
+          <td>More flexible</td>
+      </tr>
+      <tr>
+          <td>Best when</td>
+          <td>Small/medium gap, less data</td>
+          <td>Large gap, abundant data</td>
+      </tr>
+  </tbody>
+</table>
+<p>A reasonable default workflow: try MMD first; switch to DANN if MMD plateaus.</p>
+<hr>
+<h2 id="5-coral--aligning-second-order-statistics">5. CORAL — Aligning Second-Order Statistics</h2>
+<p>If matching means is good, matching means and <em>covariances</em> is often better. <strong>CORAL</strong> (Sun &amp; Saenko, 2016) does exactly this.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig4_coral_covariance.png" alt="CORAL covariance alignment" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Let $C_S$ and $C_T$ be the feature covariance matrices in source and target. The CORAL loss is</p>
+$$\mathcal{L}_{\text{CORAL}} = \frac{1}{4 d^2} \|C_S - C_T\|_F^2.$$<p><strong>Intuition — whitening + recolouring.</strong> Multiplying the source features by $C_S^{-1/2} C_T^{1/2}$ first removes the source&rsquo;s covariance fingerprint, then paints on the target&rsquo;s. Deep CORAL just adds the loss above to a deep network and lets the gradients do the same job implicitly.</p>
+<p>CORAL is dirt cheap (one matrix and one Frobenius norm per batch), entirely deterministic, and surprisingly competitive on mild shifts. It is a great baseline before reaching for MMD or DANN.</p>
+<hr>
+<h2 id="6-adabn--the-free-lunch-you-should-always-try-first">6. AdaBN — The Free Lunch You Should Always Try First</h2>
+<p>The simplest domain adaptation trick of all: <strong>recompute batch-norm statistics on the target.</strong></p>
+<p>Standard BN at test time uses the running mean and variance accumulated during source training. If the target has a different distribution, those statistics are wrong, and they sit between every conv layer and the next non-linearity. AdaBN (Li et al., 2017):</p>
+<ol>
+<li>Train normally on source.</li>
+<li>With weights frozen, run forward passes over unlabelled target data and recompute $\mu_T, \sigma_T^2$ for every BN layer.</li>
+<li>At deployment, swap source statistics for target ones.</li>
+</ol>
+<p>Cost: minutes. Code change: replacing a few <code>BatchNorm</code> running stats. Effect: routinely reclaims 2–10 points of accuracy under covariate shift. Always try this <em>first</em> before any fancier method.</p>
+<hr>
+<h2 id="7-gan-based-and-pixel-level-adaptation">7. GAN-Based and Pixel-Level Adaptation</h2>
+<p>Sometimes the gap is so visual — synthetic to real, day to night — that aligning <em>features</em> is too late. You want to translate the inputs themselves.</p>
+<ul>
+<li><strong>CycleGAN</strong> learns two generators $G: \mathcal{X}_S \to \mathcal{X}_T$ and $F: \mathcal{X}_T \to \mathcal{X}_S$ subject to cycle consistency $F(G(x)) \approx x$. Translate source images into target style, then train your classifier on the translated images with the original source labels. Beware: cycle consistency does <em>not</em> guarantee semantic preservation; combine with a perceptual or identity loss for safety.</li>
+<li><strong>ADDA</strong> decouples the source and target encoders. Stage 1: train a source encoder + classifier normally. Stage 2: initialise a <em>target</em> encoder from the source, then adapt it adversarially against a domain discriminator while keeping the classifier frozen. Stage 3: at test time, route target inputs through the <em>target</em> encoder and the <em>source</em> classifier. This asymmetry gives ADDA more capacity than DANN at the cost of an extra training stage.</li>
+</ul>
+<hr>
+<h2 id="8-self-training--bootstrapping-labels-on-the-target">8. Self-Training — Bootstrapping Labels on the Target</h2>
+<p>Adversarial and statistical alignment treat the target as one undifferentiated cloud. <strong>Self-training</strong> (also called pseudo-labelling) goes further: it uses your current model to produce target labels and then trains on them.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig6_self_training.png" alt="Self-training / pseudo-labelling" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The loop is:</p>
+<ol>
+<li>Train $f$ on the source.</li>
+<li>Predict on every target sample; keep only those where $\max_y f(x)_y > \tau$ (a high confidence threshold).</li>
+<li>Treat the kept (input, prediction) pairs as new labelled data and retrain.</li>
+<li>Iterate.</li>
+</ol>
+<p>Self-training is powerful and underestimated, but it has one infamous failure mode: <strong>confirmation bias</strong>. Wrong but confident predictions get re-fed into training and amplified. The standard mitigations are:</p>
+<ul>
+<li>a high threshold $\tau$ (typically 0.9+),</li>
+<li>class-balanced selection (cap the number kept per class),</li>
+<li>consistency regularisation under augmentations (FixMatch-style),</li>
+<li>restarting from the source model at each round rather than from the previous self-trained one.</li>
+</ul>
+<hr>
+<h2 id="9-decision-tree--which-method-when">9. Decision Tree — Which Method, When?</h2>
+<pre tabindex="0"><code>1. Do you have any target-domain labels?
+   ├─ yes → semi-supervised DA: fine-tune + importance weighting
+   └─ no  → step 2
+
+2. Where is the shift?
+   ├─ P(X) differs only          → step 3
+   ├─ P(Y) differs only          → label-shift correction (BBSE / EM)
+   └─ P(Y|X) differs (concept)   → you need some target labels
+
+3. How big is the visual / feature gap?
+   ├─ tiny   → AdaBN (always try first)
+   ├─ small  → AdaBN + Deep CORAL
+   ├─ medium → MMD (DAN) or DANN
+   ├─ large  → DANN / CDAN, or pixel-level (CycleGAN, ADDA)
+   └─ enormous (sim → real) → CycleGAN + ADDA + self-training
+</code></pre><p>In practice a strong pipeline often <em>combines</em> methods: AdaBN for the easy gains, MMD or DANN for feature alignment, then a self-training round for the last few points.</p>
+<hr>
+<h2 id="10-benchmarks--how-much-does-this-actually-help">10. Benchmarks — How Much Does This Actually Help?</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig7_office31_benchmark.png" alt="Office-31 and DomainNet benchmark" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The numbers are representative literature averages with a ResNet-50 backbone. Two things worth noticing:</p>
+<ul>
+<li><strong>The biggest jump is from &ldquo;nothing&rdquo; to &ldquo;anything&rdquo;.</strong> Even AdaBN closes a meaningful chunk of the gap. Doing <em>something</em> matters far more than choosing the perfect method.</li>
+<li><strong>DomainNet is genuinely harder than Office-31.</strong> A 40% accuracy on DomainNet still represents a strong method — the dataset has 345 classes across 6 wildly different visual styles. Always interpret DA accuracies relative to a source-only baseline, not in absolute terms.</li>
+</ul>
+<hr>
+<h2 id="11-where-domain-adaptation-earns-its-keep">11. Where Domain Adaptation Earns Its Keep</h2>
+<ul>
+<li><strong>Medical imaging</strong> — Siemens vs GE scanners, 1.5T vs 3T MRI, hospital A vs hospital B.</li>
+<li><strong>Autonomous driving</strong> — sunny to rainy, city A to city B, simulation to real.</li>
+<li><strong>Recommendation</strong> — country to country, year to year, web to mobile.</li>
+<li><strong>NLP</strong> — movie reviews to product reviews, news to social, formal to informal.</li>
+<li><strong>Sim-to-real</strong> — synthetic data to real sensor data in robotics and self-driving.</li>
+</ul>
+<p>The common pattern: <strong>source labels are abundant, target labels are expensive or impossible, and the model has to ship anyway.</strong></p>
+<hr>
+<h2 id="12-visualising-the-effect--t-sne-before-and-after">12. Visualising the Effect — t-SNE Before and After</h2>
+<p>A standard sanity check after training a DA model: project source and target features through t-SNE. Before adaptation, samples cluster by <em>domain</em>; after, they cluster by <em>class</em>.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig5_tsne_before_after.png" alt="t-SNE before vs after domain adaptation" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>If your &ldquo;after&rdquo; plot still shows two domain blobs, alignment failed. If it shows one blob with class structure, alignment worked. This single picture is more diagnostic than any single number.</p>
+<hr>
+<h2 id="13-complete-implementation-dann">13. Complete Implementation: DANN</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span><span class="lnt">144
+</span><span class="lnt">145
+</span><span class="lnt">146
+</span><span class="lnt">147
+</span><span class="lnt">148
+</span><span class="lnt">149
+</span><span class="lnt">150
+</span><span class="lnt">151
+</span><span class="lnt">152
+</span><span class="lnt">153
+</span><span class="lnt">154
+</span><span class="lnt">155
+</span><span class="lnt">156
+</span><span class="lnt">157
+</span><span class="lnt">158
+</span><span class="lnt">159
+</span><span class="lnt">160
+</span><span class="lnt">161
+</span><span class="lnt">162
+</span><span class="lnt">163
+</span><span class="lnt">164
+</span><span class="lnt">165
+</span><span class="lnt">166
+</span><span class="lnt">167
+</span><span class="lnt">168
+</span><span class="lnt">169
+</span><span class="lnt">170
+</span><span class="lnt">171
+</span><span class="lnt">172
+</span><span class="lnt">173
+</span><span class="lnt">174
+</span><span class="lnt">175
+</span><span class="lnt">176
+</span><span class="lnt">177
+</span><span class="lnt">178
+</span><span class="lnt">179
+</span><span class="lnt">180
+</span><span class="lnt">181
+</span><span class="lnt">182
+</span><span class="lnt">183
+</span><span class="lnt">184
+</span><span class="lnt">185
+</span><span class="lnt">186
+</span><span class="lnt">187
+</span><span class="lnt">188
+</span><span class="lnt">189
+</span><span class="lnt">190
+</span><span class="lnt">191
+</span><span class="lnt">192
+</span><span class="lnt">193
+</span><span class="lnt">194
+</span><span class="lnt">195
+</span><span class="lnt">196
+</span><span class="lnt">197
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">TensorDataset</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="kn">import</span> <span class="n">Function</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">accuracy_score</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GradientReversalFunction</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Identity in the forward pass, negates the gradient in the backward pass.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lambda_</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ctx</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="n">lambda_</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">grad_output</span><span class="o">.</span><span class="n">neg</span><span class="p">()</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">lambda_</span><span class="p">,</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GradientReversalLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">set_lambda</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="n">val</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">GradientReversalFunction</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FeatureExtractor</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="mi">28</span> <span class="o">*</span> <span class="mi">28</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LabelPredictor</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">feature_dim</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DomainDiscriminator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">feature_dim</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DANN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Domain-Adversarial Neural Network.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="mi">28</span> <span class="o">*</span> <span class="mi">28</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">feature_extractor</span> <span class="o">=</span> <span class="n">FeatureExtractor</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">label_predictor</span> <span class="o">=</span> <span class="n">LabelPredictor</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">domain_discriminator</span> <span class="o">=</span> <span class="n">DomainDiscriminator</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">grl</span> <span class="o">=</span> <span class="n">GradientReversalLayer</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_extractor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">class_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_predictor</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">grl</span><span class="o">.</span><span class="n">set_lambda</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">domain_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_discriminator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grl</span><span class="p">(</span><span class="n">features</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">class_logits</span><span class="p">,</span> <span class="n">domain_logits</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DANNTrainer</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">source_loader</span><span class="p">,</span> <span class="n">target_loader</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">num_epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cpu&#34;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">10.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">source_loader</span> <span class="o">=</span> <span class="n">source_loader</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span> <span class="o">=</span> <span class="n">target_loader</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">test_loader</span> <span class="o">=</span> <span class="n">test_loader</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_epochs</span> <span class="o">=</span> <span class="n">num_epochs</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">class_criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">domain_criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCELoss</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_adaptive_lambda</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Sigmoid ramp from 0 -&gt; 1 across training.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">p</span> <span class="o">=</span> <span class="n">epoch</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_epochs</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">p</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">source_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">target_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n_batches</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_loader</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">lambda_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adaptive_lambda</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_batches</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">src_x</span><span class="p">,</span> <span class="n">src_y</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">source_iter</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">source_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">src_x</span><span class="p">,</span> <span class="n">src_y</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">source_iter</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tgt_x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">target_iter</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">target_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tgt_x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">target_iter</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">src_x</span> <span class="o">=</span> <span class="n">src_x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">src_y</span> <span class="o">=</span> <span class="n">src_y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">tgt_x</span> <span class="o">=</span> <span class="n">tgt_x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># Forward — both heads, both domains.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">src_class_logits</span><span class="p">,</span> <span class="n">src_dom_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">src_x</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">_</span><span class="p">,</span> <span class="n">tgt_dom_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">tgt_x</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># Source classification loss.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">class_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_criterion</span><span class="p">(</span><span class="n">src_class_logits</span><span class="p">,</span> <span class="n">src_y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Domain discrimination loss (source = 1, target = 0).</span>
+</span></span><span class="line"><span class="cl">            <span class="n">d_loss_s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_criterion</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">src_dom_logits</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">src_dom_logits</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">d_loss_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_criterion</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tgt_dom_logits</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tgt_dom_logits</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">domain_loss</span> <span class="o">=</span> <span class="n">d_loss_s</span> <span class="o">+</span> <span class="n">d_loss_t</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">class_loss</span> <span class="o">+</span> <span class="n">domain_loss</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">total_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">total_loss</span> <span class="o">/</span> <span class="n">n_batches</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">preds</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">preds</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="n">labels</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">accuracy_score</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">preds</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">best</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_epochs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">acc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">lam</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adaptive_lambda</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">  loss=</span><span class="si">{</span><span class="n">loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  &#34;</span>
+</span></span><span class="line"><span class="cl">                      <span class="sa">f</span><span class="s2">&#34;target_acc=</span><span class="si">{</span><span class="n">acc</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  lambda=</span><span class="si">{</span><span class="n">lam</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">acc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;best target accuracy: </span><span class="si">{</span><span class="n">best</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="n">N</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">28</span> <span class="o">*</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">10</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Simulated source and target with distribution shift.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">src_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">src_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="p">(</span><span class="n">N</span><span class="p">,))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tgt_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>     <span class="c1"># shifted</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tgt_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="p">(</span><span class="n">N</span><span class="p">,))</span>           <span class="c1"># not used in training</span>
+</span></span><span class="line"><span class="cl">    <span class="n">test_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>
+</span></span><span class="line"><span class="cl">    <span class="n">test_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="p">(</span><span class="mi">2000</span><span class="p">,))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">BS</span> <span class="o">=</span> <span class="mi">128</span>
+</span></span><span class="line"><span class="cl">    <span class="n">src_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">src_x</span><span class="p">,</span> <span class="n">src_y</span><span class="p">),</span> <span class="n">BS</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tgt_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">tgt_x</span><span class="p">,</span> <span class="n">tgt_y</span><span class="p">),</span> <span class="n">BS</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">test_x</span><span class="p">,</span> <span class="n">test_y</span><span class="p">),</span> <span class="n">BS</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">DANN</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">trainer</span> <span class="o">=</span> <span class="n">DANNTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">src_loader</span><span class="p">,</span> <span class="n">tgt_loader</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                          <span class="n">num_epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&#34;__main__&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">main</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="how-this-code-works">How this code works</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Component</th>
+          <th>Role</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>GradientReversalLayer</code></td>
+          <td>Identity forward, negated-gradient backward — turns the minimax into a single backward pass.</td>
+      </tr>
+      <tr>
+          <td><code>_adaptive_lambda</code></td>
+          <td>Sigmoid ramp $\frac{2}{1 + e^{-\gamma p}} - 1$ — start small so the network learns features first.</td>
+      </tr>
+      <tr>
+          <td><code>class_loss</code></td>
+          <td>Standard cross-entropy on source labels only (no target labels used).</td>
+      </tr>
+      <tr>
+          <td><code>domain_loss</code></td>
+          <td>BCE: source = 1, target = 0 — trains the discriminator.</td>
+      </tr>
+      <tr>
+          <td>GRL + domain head</td>
+          <td>Reversed gradients flow back to $G_f$ → it learns to <em>hide</em> the domain.</td>
+      </tr>
+      <tr>
+          <td><code>evaluate(alpha=0)</code></td>
+          <td>At test time we set $\lambda = 0$; the GRL is irrelevant — only the classification head is used.</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="summary">Summary</h2>
+<p>Domain adaptation tackles the most practical problem in transfer learning: training data and deployment data come from different distributions. The toolkit, in roughly increasing order of effort:</p>
+<ul>
+<li><strong>AdaBN</strong> — recompute batch-norm statistics on target; free, no retraining, always try first.</li>
+<li><strong>CORAL</strong> — match source and target <em>covariance</em> matrices; cheap, deterministic.</li>
+<li><strong>MMD (DAN)</strong> — match kernel mean embeddings; stable, principled, multi-kernel default.</li>
+<li><strong>DANN</strong> — adversarial domain alignment via the gradient reversal layer; one backward pass.</li>
+<li><strong>CDAN / ADDA</strong> — more flexible variants for larger gaps.</li>
+<li><strong>CycleGAN</strong> — pixel-level translation when feature alignment is not enough.</li>
+<li><strong>Self-training</strong> — pseudo-labels with a confidence gate; the last few points of accuracy.</li>
+</ul>
+<p>The Ben-David bound tells you what is possible: shrink the source error and the domain divergence, and target error follows — <em>as long as</em> the joint optimal error is small. If it is not, no amount of alignment will help; you need labels.</p>
+<p>Next: <a href="/en/transfer-learning-4-few-shot-learning/">Part 4 — Few-Shot Learning</a>
+, where we drop the assumption of abundant source data altogether and learn from a handful of examples per class.</p>
+<hr>
+<h2 id="references">References</h2>
+<ol>
+<li>Ganin et al. (2016). Domain-Adversarial Training of Neural Networks. JMLR. <a href="https://arxiv.org/abs/1505.07818" target="_blank" rel="noopener noreferrer">arXiv:1505.07818 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Long et al. (2015). Learning Transferable Features with Deep Adaptation Networks. ICML. <a href="https://arxiv.org/abs/1502.02791" target="_blank" rel="noopener noreferrer">arXiv:1502.02791 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Sun &amp; Saenko (2016). Deep CORAL: Correlation Alignment for Deep Domain Adaptation. ECCV. <a href="https://arxiv.org/abs/1607.01719" target="_blank" rel="noopener noreferrer">arXiv:1607.01719 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Zhu et al. (2017). Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks (CycleGAN). ICCV. <a href="https://arxiv.org/abs/1703.10593" target="_blank" rel="noopener noreferrer">arXiv:1703.10593 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Tzeng et al. (2017). Adversarial Discriminative Domain Adaptation (ADDA). CVPR. <a href="https://arxiv.org/abs/1702.05464" target="_blank" rel="noopener noreferrer">arXiv:1702.05464 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Long et al. (2018). Conditional Adversarial Domain Adaptation (CDAN). NeurIPS. <a href="https://arxiv.org/abs/1705.10667" target="_blank" rel="noopener noreferrer">arXiv:1705.10667 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Ben-David et al. (2010). A Theory of Learning from Different Domains. <em>Machine Learning</em>.</li>
+<li>Li et al. (2017). Revisiting Batch Normalization for Practical Domain Adaptation (AdaBN). <a href="https://arxiv.org/abs/1603.04779" target="_blank" rel="noopener noreferrer">arXiv:1603.04779 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Gretton et al. (2012). A Kernel Two-Sample Test (MMD). JMLR. <a href="https://jmlr.org/papers/v13/gretton12a.html" target="_blank" rel="noopener noreferrer">paper <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Lipton et al. (2018). Detecting and Correcting for Label Shift with Black Box Predictors. ICML. <a href="https://arxiv.org/abs/1802.03916" target="_blank" rel="noopener noreferrer">arXiv:1802.03916 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Sohn et al. (2020). FixMatch: Simplifying Semi-Supervised Learning with Consistency and Confidence. NeurIPS. <a href="https://arxiv.org/abs/2001.07685" target="_blank" rel="noopener noreferrer">arXiv:2001.07685 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ol>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Part</th>
+          <th>Topic</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><a href="/en/transfer-learning-1-fundamentals-and-core-concepts/">1</a>
+</td>
+          <td>Fundamentals and Core Concepts</td>
+      </tr>
+      <tr>
+          <td><a href="/en/transfer-learning-2-pre-training-and-fine-tuning/">2</a>
+</td>
+          <td>Pre-training and Fine-tuning</td>
+      </tr>
+      <tr>
+          <td><strong>3</strong></td>
+          <td><strong>Domain Adaptation</strong> (you are here)</td>
+      </tr>
+      <tr>
+          <td><a href="/en/transfer-learning-4-few-shot-learning/">4</a>
+</td>
+          <td>Few-Shot Learning</td>
+      </tr>
+      <tr>
+          <td><a href="/en/transfer-learning-5-knowledge-distillation/">5</a>
+</td>
+          <td>Knowledge Distillation</td>
+      </tr>
+      <tr>
+          <td><a href="/en/transfer-learning-6-multi-task-learning/">6</a>
+</td>
+          <td>Multi-Task Learning</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#1-three-faces-of-distribution-shift">1. Three Faces of Distribution Shift</a>
+      <ul>
+        <li><a href="#11-covariate-shift--the-input-distribution-moved">1.1 Covariate shift — the input distribution moved</a></li>
+        <li><a href="#12-label-shift--the-prevalence-moved">1.2 Label shift — the prevalence moved</a></li>
+        <li><a href="#13-concept-shift--the-rule-itself-moved">1.3 Concept shift — the rule itself moved</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-theory-the-ben-david-bound">2. Theory: the Ben-David Bound</a></li>
+    <li><a href="#3-dann--adversarial-alignment-in-one-backward-pass">3. DANN — Adversarial Alignment in One Backward Pass</a>
+      <ul>
+        <li><a href="#31-three-subnetworks-one-shared-trunk">3.1 Three subnetworks, one shared trunk</a></li>
+        <li><a href="#32-the-gradient-reversal-layer-grl">3.2 The Gradient Reversal Layer (GRL)</a></li>
+        <li><a href="#33-the-adversarial-weight-schedule">3.3 The adversarial weight schedule</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-mmd--matching-means-in-an-rkhs">4. MMD — Matching Means in an RKHS</a>
+      <ul>
+        <li><a href="#41-the-idea">4.1 The idea</a></li>
+        <li><a href="#42-the-estimator-you-actually-compute">4.2 The estimator you actually compute</a></li>
+        <li><a href="#43-practical-tips">4.3 Practical tips</a></li>
+        <li><a href="#44-mmd-vs-dann-at-a-glance">4.4 MMD vs DANN at a glance</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-coral--aligning-second-order-statistics">5. CORAL — Aligning Second-Order Statistics</a></li>
+    <li><a href="#6-adabn--the-free-lunch-you-should-always-try-first">6. AdaBN — The Free Lunch You Should Always Try First</a></li>
+    <li><a href="#7-gan-based-and-pixel-level-adaptation">7. GAN-Based and Pixel-Level Adaptation</a></li>
+    <li><a href="#8-self-training--bootstrapping-labels-on-the-target">8. Self-Training — Bootstrapping Labels on the Target</a></li>
+    <li><a href="#9-decision-tree--which-method-when">9. Decision Tree — Which Method, When?</a></li>
+    <li><a href="#10-benchmarks--how-much-does-this-actually-help">10. Benchmarks — How Much Does This Actually Help?</a></li>
+    <li><a href="#11-where-domain-adaptation-earns-its-keep">11. Where Domain Adaptation Earns Its Keep</a></li>
+    <li><a href="#12-visualising-the-effect--t-sne-before-and-after">12. Visualising the Effect — t-SNE Before and After</a></li>
+    <li><a href="#13-complete-implementation-dann">13. Complete Implementation: DANN</a>
+      <ul>
+        <li><a href="#how-this-code-works">How this code works</a></li>
+      </ul>
+    </li>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Transfer Learning</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>17 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3600</strong></div>
+      <div class="row"><span>Published</span><strong>May 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

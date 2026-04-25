@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>计算机视觉中的线性代数 -- 从像素到三维重建 · Chen Kai Blog</title>
+<meta name="description" content="计算机视觉几乎完全建立在线性代数之上：图像是矩阵，几何变换是矩阵乘法，相机成像是投影矩阵，三维重建是求解线性方程组。本章带你串起齐次坐标、单应矩阵、相机标定、对极几何、SfM 与 SLAM 的完整脉络。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="计算机视觉中的线性代数 -- 从像素到三维重建">
+<meta property="og:description" content="计算机视觉几乎完全建立在线性代数之上：图像是矩阵，几何变换是矩阵乘法，相机成像是投影矩阵，三维重建是求解线性方程组。本章带你串起齐次坐标、单应矩阵、相机标定、对极几何、SfM 与 SLAM 的完整脉络。">
+<meta property="og:url" content="https://www.chenk.top/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">线性代数</a>
+         · Chapter 17
+      </div>
+      <h1>计算机视觉中的线性代数 -- 从像素到三维重建</h1>
+      <p class="deck">计算机视觉几乎完全建立在线性代数之上：图像是矩阵，几何变换是矩阵乘法，相机成像是投影矩阵，三维重建是求解线性方程组。本章带你串起齐次坐标、单应矩阵、相机标定、对极几何、SfM 与 SLAM 的完整脉络。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-04-23">April 23, 2025</time> · 15 min read · 7400 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/" class="tag">#线性代数</a><a href="/zh/tags/%E4%B8%89%E7%BB%B4%E9%87%8D%E5%BB%BA/" class="tag">#三维重建</a><a href="/zh/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89/" class="tag">#计算机视觉</a><a href="/zh/tags/%E7%9B%B8%E6%9C%BA%E6%A8%A1%E5%9E%8B/" class="tag">#相机模型</a><a href="/zh/tags/%E5%AF%B9%E6%9E%81%E5%87%A0%E4%BD%95/" class="tag">#对极几何</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>计算机视觉的核心任务是让机器&quot;看懂&quot;图像。让人惊讶的是，整个学科几乎都建立在线性代数之上：图像本身就是矩阵，几何变换是矩阵乘法，相机成像是一个 $3 \times 4$ 的投影矩阵，两视图几何浓缩成一句 $\mathbf{x}_2^\top \mathbf{F}\,\mathbf{x}_1 = 0$，三维重建则是稀疏线性最小二乘问题。换上这副眼镜再去看 CV，你会发现原本五花八门的算法不过是同一套线性代数工具的不同用法。</p>
+<blockquote>
+<p><strong>本章将学到</strong></p>
+<ul>
+<li>图像如何对应到矩阵、张量与高维向量</li>
+<li>旋转、缩放、错切、平移如何统一成矩阵乘法（齐次坐标的真正用意）</li>
+<li>为什么透视变换需要单应矩阵 $\mathbf{H}$，以及如何从对应点拟合它</li>
+<li>针孔相机模型与投影矩阵 $\mathbf{P} = \mathbf{K}[\mathbf{R}\,|\,\mathbf{t}]$</li>
+<li>对极几何、基础矩阵 / 本质矩阵、三角测量</li>
+<li>SVD 图像压缩与 Eckart-Young 定理</li>
+<li>卷积作为矩阵乘法；Harris 与光流是同一个 $2\times 2$ 特征值问题</li>
+</ul>
+<p><strong>预备知识：</strong> 线性变换（第 3 章）、特征分解（第 6 章）、SVD（第 9 章）</p>
+</blockquote>
+<hr>
+<h2 id="1-图像矩阵张量向量">1 图像：矩阵、张量、向量</h2>
+<h3 id="从像素到矩阵">从像素到矩阵</h3>
+<p>相机传感器是一格格&quot;光桶&quot;。每个桶在曝光期间收集到的光子数，归一化到固定区间后，就是图像在相应位置的像素值。一张 $H \times W$ 的灰度图像，就是一个矩阵：</p>
+$$
+\mathbf{I} \in \mathbb{R}^{H \times W}, \qquad I_{ij} \in [0, 1].
+$$<p>故事到这里其实就讲完了。后面所有图像处理操作，都只是对这个矩阵做某种线性代数运算。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig1_image_as_matrix.png" alt="灰度图是矩阵，彩色图是 H x W x 3 的张量。" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="彩色图三通道张量">彩色图：三通道张量</h3>
+<p>彩色相机通过红绿蓝三种滤色片，每个像素记录三个亮度值，得到一个三维数组：</p>
+$$
+\mathcal{I} \in \mathbb{R}^{H \times W \times 3}.
+$$<p>NumPy 用 <code>(H, W, 3)</code> 形状存储；PyTorch 习惯 <code>(3, H, W)</code>。把彩色图转成灰度时，通常按人眼亮度感知加权：</p>
+$$
+Y = 0.299\,R + 0.587\,G + 0.114\,B.
+$$<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">cv2</span>
+</span></span><span class="line"><span class="cl"><span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s1">&#39;photo.jpg&#39;</span><span class="p">)</span>           <span class="c1"># (H, W, 3), 注意 BGR 顺序</span>
+</span></span><span class="line"><span class="cl"><span class="n">B</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">R</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="mi">255</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">gray</span> <span class="o">=</span> <span class="mf">0.299</span> <span class="o">*</span> <span class="n">R</span> <span class="o">+</span> <span class="mf">0.587</span> <span class="o">*</span> <span class="n">G</span> <span class="o">+</span> <span class="mf">0.114</span> <span class="o">*</span> <span class="n">B</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="把图像看成高维向量">把图像看成高维向量</h3>
+<p>很多机器学习算法（PCA、SVM、全连接层）只接受向量输入。我们把 $H \times W$ 的图像按列（或按行）拉平：</p>
+$$
+\mathrm{vec}(\mathbf{I}) \in \mathbb{R}^{HW}.
+$$<p>一张 $640 \times 480$ 的图，就成为 30 多万维空间里的一个点，每个坐标轴对应一个像素位置。两张图片的相似度可以直接用<strong>余弦相似度</strong>度量：</p>
+$$
+\cos\theta = \frac{\mathbf{a}^\top \mathbf{b}}{\lVert\mathbf{a}\rVert\,\lVert\mathbf{b}\rVert}.
+$$<p>图像检索、人脸识别都是这么做的。但维度太高也意味着 &ldquo;邻近&rdquo; 的几何意义不太可靠 &ndash; 这正是后面要用 PCA / SVD 把它压到一个真正有视觉意义的低维子空间的原因。</p>
+<hr>
+<h2 id="2-几何变换--矩阵乘法">2 几何变换 = 矩阵乘法</h2>
+<h3 id="为什么用矩阵">为什么用矩阵</h3>
+<p>一个几何变换把每个像素坐标 $(x, y)$ 映射到新位置。用矩阵描述变换有两个无可替代的好处：</p>
+<ul>
+<li><strong>组合就是相乘</strong>：先做 $\mathbf{A}$ 再做 $\mathbf{B}$，整体效果就是 $\mathbf{B}\mathbf{A}$；</li>
+<li><strong>逆变换就是矩阵求逆</strong>：撤销操作不用重新推公式。</li>
+</ul>
+<h3 id="旋转缩放错切">旋转、缩放、错切</h3>
+<p>绕原点逆时针旋转角度 $\theta$ 的矩阵是：</p>
+$$
+\mathbf{R}(\theta) = \begin{bmatrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta\end{bmatrix}.
+$$<p>旋转矩阵有三个让人特别舒服的性质：它是<strong>正交矩阵</strong>（$\mathbf{R}^\top\mathbf{R} = \mathbf{I}$），所以 $\mathbf{R}^{-1} = \mathbf{R}^\top$；行列式 $\det \mathbf{R} = 1$，因此保面积、保朝向；旋转角可以相加，$\mathbf{R}(\alpha)\mathbf{R}(\beta) = \mathbf{R}(\alpha + \beta)$。</p>
+<p>缩放和错切也同样简单：</p>
+$$
+\mathbf{S} = \begin{bmatrix}s_x & 0 \\ 0 & s_y\end{bmatrix}, \qquad
+\mathbf{H}_k = \begin{bmatrix}1 & k \\ 0 & 1\end{bmatrix}.
+$$<h3 id="顺序很重要">顺序很重要</h3>
+<p>变换组合从右往左读：$\mathbf{T} = \mathbf{R}\,\mathbf{S}$ 表示&quot;先缩放、再旋转&quot;。换个顺序结果一般就不一样了（唯一安全的例外是等比缩放，它和旋转可以交换）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">rotation_matrix</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">c</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="n">s</span><span class="p">],</span> <span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">c</span><span class="p">]])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="o">=</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span> <span class="o">@</span> <span class="n">S</span>        <span class="c1"># 先 S 再 R</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="3-齐次坐标把平移也变成线性">3 齐次坐标：把平移也变成线性</h2>
+<h3 id="平移的尴尬">平移的尴尬</h3>
+<p>旋转、缩放、错切都让原点保持不动，所以是线性变换 $\mathbf{y} = \mathbf{A}\mathbf{x}$。但<strong>平移</strong> $\mathbf{y} = \mathbf{x} + \mathbf{t}$ 把原点搬走了，不再线性 &ndash; 这意味着平移不能写成普通的矩阵乘法。我们希望所有几何变换都用同一种语言描述，怎么办？</p>
+<h3 id="升一维的小魔法">升一维的小魔法</h3>
+<p>把每个 2D 点末尾加一个 $1$：</p>
+$$
+\begin{bmatrix} x \\ y \end{bmatrix} \;\longrightarrow\; \begin{bmatrix} x \\ y \\ 1 \end{bmatrix}.
+$$<p>在升维后的空间里，平移就成了线性变换：</p>
+<h1 id="beginbmatrix-x--y--1-endbmatrix">$$
+\begin{bmatrix} x&rsquo; \ y&rsquo; \ 1 \end{bmatrix}</h1>
+<p>\begin{bmatrix} 1 &amp; 0 &amp; t_x \ 0 &amp; 1 &amp; t_y \ 0 &amp; 0 &amp; 1 \end{bmatrix}
+\begin{bmatrix} x \ y \ 1 \end{bmatrix}.
+$$</p>
+<p>几何上，我们把 2D 平面&quot;嵌入&quot;到 3D 空间的 $z = 1$ 切片里。原本看似平移的操作，其实是 3D 里的一个错切；而错切是线性的。所有仿射变换都装进同一个 $3 \times 3$ 矩阵：</p>
+$$
+\mathbf{M} =
+\begin{bmatrix}
+a_{11} & a_{12} & t_x \\
+a_{21} & a_{22} & t_y \\
+0 & 0 & 1
+\end{bmatrix}.
+$$<p>左上 $2 \times 2$ 块负责线性变换，右列负责平移，最后一行的 $(0, 0, 1)$ 标记着&quot;这是个仿射变换&quot;。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig3_affine_transforms.png" alt="旋转、缩放、平移在齐次坐标下都是 3x3 矩阵。" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="绕任意点旋转">绕任意点旋转</h3>
+<p>最常见的扩展：绕图像中心 $(c_x, c_y)$ 而不是绕原点旋转。三步搞定：</p>
+$$
+\mathbf{M} = \mathbf{T}(c_x, c_y)\,\mathbf{R}(\theta)\,\mathbf{T}(-c_x, -c_y).
+$$<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">affine_matrix</span><span class="p">(</span><span class="n">rotation_deg</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">translation</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">rotation_deg</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">c</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span> <span class="o">=</span> <span class="n">scale</span><span class="p">;</span> <span class="n">tx</span><span class="p">,</span> <span class="n">ty</span> <span class="o">=</span> <span class="n">translation</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">sx</span> <span class="o">*</span> <span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="n">sy</span> <span class="o">*</span> <span class="n">s</span><span class="p">,</span> <span class="n">tx</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                     <span class="p">[</span><span class="n">sx</span> <span class="o">*</span> <span class="n">s</span><span class="p">,</span>  <span class="n">sy</span> <span class="o">*</span> <span class="n">c</span><span class="p">,</span> <span class="n">ty</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span>       <span class="mi">0</span><span class="p">,</span>      <span class="mi">1</span><span class="p">]])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">M</span> <span class="o">=</span> <span class="n">affine_matrix</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">),</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># OpenCV 用的是 2x3 的前两行：</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># warped = cv2.warpAffine(img, M[:2, :], (W, H))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="4-透视变换与单应矩阵">4 透视变换与单应矩阵</h2>
+<h3 id="仿射变换不够用">仿射变换不够用</h3>
+<p>仿射变换保持平行线平行 &ndash; 但现实世界里，平行的铁轨在远方明明会<strong>汇聚</strong>。同样地，斜着拍一张平面物体（如一张纸），照片上的矩形会变成不规则四边形。要把这种&quot;近大远小&quot;翻译成数学，需要更一般的<strong>投影变换</strong>。</p>
+<h3 id="3-times-3-的单应矩阵">$3 \times 3$ 的单应矩阵</h3>
+<p><strong>单应矩阵 (homography)</strong> 是一个一般的 $3 \times 3$ 可逆矩阵 $\mathbf{H}$，作用在齐次坐标上：</p>
+$$
+\begin{bmatrix} x' \\ y' \\ w' \end{bmatrix}
+= \mathbf{H}
+\begin{bmatrix} x \\ y \\ 1 \end{bmatrix},
+\qquad
+u = x'/w', \quad v = y'/w'.
+$$<p>它和仿射矩阵的根本区别在最后一行：仿射矩阵的底行固定为 $(0, 0, 1)$，而单应允许那一行非零。正是这些非零项制造了<strong>透视除法</strong> $w'$，把平行线弯成了汇聚的样子。</p>
+<p>由于矩阵整体只在尺度意义下确定，单应矩阵有 $9 - 1 = 8$ 个自由度。每对对应点 $(x_i, y_i) \leftrightarrow (u_i, v_i)$ 提供两个约束方程，因此理论上<strong>四对点</strong>就够了。实际中我们用更多噪声点，把所有约束堆成</p>
+$$
+\mathbf{A}\,\mathbf{h} = \mathbf{0}
+$$<p>然后用 SVD 解：取最小奇异值对应的右奇异向量作为 $\mathbf{h}$。这就是<strong>直接线性变换 (DLT)</strong> 算法 &ndash; 也是本章后面所有投影几何估计算法的原型。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig4_homography.png" alt="从一张倾斜拍摄的平面照片，通过单应矩阵 H 矫正回正视图。" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">src</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([[</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span><span class="p">],[</span><span class="mi">200</span><span class="p">,</span><span class="mi">100</span><span class="p">],[</span><span class="mi">200</span><span class="p">,</span><span class="mi">200</span><span class="p">],[</span><span class="mi">100</span><span class="p">,</span><span class="mi">200</span><span class="p">]])</span>
+</span></span><span class="line"><span class="cl"><span class="n">dst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([[</span><span class="mi">120</span><span class="p">,</span> <span class="mi">90</span><span class="p">],[</span><span class="mi">220</span><span class="p">,</span><span class="mi">110</span><span class="p">],[</span><span class="mi">210</span><span class="p">,</span><span class="mi">220</span><span class="p">],[</span> <span class="mi">90</span><span class="p">,</span><span class="mi">210</span><span class="p">]])</span>
+</span></span><span class="line"><span class="cl"><span class="n">H</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findHomography</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RANSAC</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># corrected = cv2.warpPerspective(img, H, (W, H))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>它出现在哪些场景：</strong> 全景拼接（相机只旋转时，每对相邻图像之间就是一个 $\mathbf{H}$）；文档扫描 App（把斜拍的纸面纠正成正视图）；增强现实（把虚拟物体贴到检测出来的平面标志上）；自动驾驶里把车前视图变成俯视 BEV 图。</p>
+<hr>
+<h2 id="5-针孔相机与投影矩阵">5 针孔相机与投影矩阵</h2>
+<h3 id="针孔几何">针孔几何</h3>
+<p>最简单的相机模型把镜头想象成一个无穷小的针孔位于原点，成像平面位于距离 $f$ 处（焦距）。相机坐标系下的 3D 点 $(X, Y, Z)$ 投影到像平面上：</p>
+$$
+u = f\,\frac{X}{Z}, \qquad v = f\,\frac{Y}{Z}.
+$$<p>除以深度 $Z$ 正是&quot;近大远小&quot;效果的来源：远的东西在像上变小。</p>
+<h3 id="内参从毫米到像素">内参：从毫米到像素</h3>
+<p>真实传感器像素并非单位长度，主点也未必和光轴重合。把这些常数塞进一个矩阵，就得到<strong>相机内参矩阵</strong>：</p>
+$$
+\mathbf{K} =
+\begin{bmatrix} f_x & s & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix},
+$$<p>其中 $f_x, f_y$ 是以像素为单位的焦距，$(c_x, c_y)$ 是主点像素坐标，$s$ 是传感器的倾斜量（现代相机基本为零）。</p>
+<h3 id="外参与完整投影方程">外参与完整投影方程</h3>
+<p>世界坐标系一般不等于相机坐标系，二者之间是一个刚体运动：先旋转 $\mathbf{R}$，再平移 $\mathbf{t}$。把所有部分串起来：</p>
+<h1 id="beginbmatrix-u--v--1-endbmatrix">$$
+\lambda
+\begin{bmatrix} u \ v \ 1 \end{bmatrix}</h1>
+<p>\mathbf{K},[\mathbf{R},|,\mathbf{t}]
+\begin{bmatrix} X \ Y \ Z \ 1 \end{bmatrix}
+= \mathbf{P},\mathbf{X}_w,
+$$</p>
+<p>其中 $\mathbf{P} \in \mathbb{R}^{3 \times 4}$ 就是<strong>投影矩阵</strong>，$\lambda$ 吸收了透视除法引入的尺度因子。一共 11 个参数：5 个内参 + 6 个位姿（3 个旋转角 + 3 个平移分量）。</p>
+<p><figure>
+  <img src="./17-%e8%ae%a1%e7%ae%97%e6%9c%ba%e8%a7%86%e8%a7%89%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/fig5_camera_projection.png" alt="针孔相机投影：3D 点经 P = K[R|t] 变成 2D 像素。" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">project</span><span class="p">(</span><span class="n">X_world</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Xc</span> <span class="o">=</span> <span class="n">X_world</span> <span class="o">@</span> <span class="n">R</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">t</span>                 <span class="c1"># 世界坐标 -&gt; 相机坐标</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x</span>  <span class="o">=</span> <span class="n">Xc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">Xc</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>                <span class="c1"># 透视除法</span>
+</span></span><span class="line"><span class="cl">    <span class="n">y</span>  <span class="o">=</span> <span class="n">Xc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">Xc</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">u</span>  <span class="o">=</span> <span class="n">K</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">K</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">v</span>  <span class="o">=</span> <span class="n">K</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span> <span class="o">+</span> <span class="n">K</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="张正友标定法">张正友标定法</h3>
+<p>从一组已知尺寸的棋盘格图像估计 $\mathbf{K}$ 和畸变系数，就是<strong>相机标定</strong>。张正友 1999 年的算法把它分解成&quot;每张棋盘图先估一个单应矩阵 → 利用旋转矩阵列向量正交的约束抽出关于 $\mathbf{K}^{-\top}\mathbf{K}^{-1}$ 的线性方程 → 最后非线性细化&quot;三步。OpenCV 的 <code>calibrateCamera</code> 一行调用就能跑完整套流程。</p>
+<hr>
+<h2 id="6-两视图对极几何">6 两视图：对极几何</h2>
+<h3 id="对极约束">对极约束</h3>
+<p>同一个 3D 点经过两个相机分别拍到了 $\mathbf{x}_1$ 和 $\mathbf{x}_2$。这两个像点之间不是无关的 &ndash; 3D 点、两个相机光心、两个像点这五个点必然<strong>共面</strong>（这个面叫对极平面）。把&quot;共面&quot;这个事翻译成代数，就是</p>
+$$
+\mathbf{x}_2^\top\,\mathbf{F}\,\mathbf{x}_1 = 0,
+$$<p>其中 $\mathbf{F}$ 就是 $3 \times 3$ 的<strong>基础矩阵</strong>。它只依赖于两台相机的相对位姿，与场景无关。给定第一幅图中的一点 $\mathbf{x}_1$，它在第二幅图中的对应点必落在某条直线上 &ndash; 这条<strong>对极线</strong>就是 $\boldsymbol{\ell}_2 = \mathbf{F}\,\mathbf{x}_1$。立体匹配的搜索范围因此从二维的整张图压到了一维的一条线。</p>
+<h3 id="本质矩阵-vs-基础矩阵">本质矩阵 vs 基础矩阵</h3>
+<p>如果相机已标定，使用归一化坐标 $\hat{\mathbf{x}} = \mathbf{K}^{-1}\mathbf{x}$，相同的约束就变成了<strong>本质矩阵</strong>：</p>
+$$
+\hat{\mathbf{x}}_2^\top\,\mathbf{E}\,\hat{\mathbf{x}}_1 = 0, \qquad \mathbf{F} = \mathbf{K}_2^{-\top}\,\mathbf{E}\,\mathbf{K}_1^{-1}.
+$$<p>本质矩阵有特殊的结构 $\mathbf{E} = [\mathbf{t}]_\times \mathbf{R}$，其中 $[\mathbf{t}]_\times$ 是平移向量的反对称矩阵。对 $\mathbf{E}$ 做 SVD 就可以恢复出<strong>两台相机的相对位姿</strong> $(\mathbf{R}, \mathbf{t})$ &ndash; 不过 $\mathbf{t}$ 的绝对长度永远未知，这是单目视觉无法消除的&quot;尺度模糊&quot;。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">F</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findFundamentalMat</span><span class="p">(</span><span class="n">pts1</span><span class="p">,</span> <span class="n">pts2</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FM_RANSAC</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">E</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findEssentialMat</span><span class="p">(</span><span class="n">pts1</span><span class="p">,</span> <span class="n">pts2</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RANSAC</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">_</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">recoverPose</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="n">pts1</span><span class="p">,</span> <span class="n">pts2</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="7-三维重建三角测量sfmbundle-adjustment">7 三维重建：三角测量、SfM、Bundle Adjustment</h2>
+<h3 id="三角测量是个线性方程组">三角测量是个线性方程组</h3>
+<p>已知两个投影矩阵 $\mathbf{P}_1, \mathbf{P}_2$，以及一对对应点 $\mathbf{x}_1 \leftrightarrow \mathbf{x}_2$，每幅图的关系 $\lambda_i \mathbf{x}_i = \mathbf{P}_i \mathbf{X}$ 在消去未知深度 $\lambda_i$ 后给出两个关于 3D 点 $\mathbf{X}$ 的线性约束。把它们堆起来就是 $4 \times 4$ 的线性方程组 $\mathbf{A}\mathbf{X} = \mathbf{0}$，用 SVD 取最小奇异值对应的右奇异向量，再做齐次除法就得到 3D 坐标。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">X4</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">triangulatePoints</span><span class="p">(</span><span class="n">P1</span><span class="p">,</span> <span class="n">P2</span><span class="p">,</span> <span class="n">pts1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">pts2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">X3</span> <span class="o">=</span> <span class="p">(</span><span class="n">X4</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">/</span> <span class="n">X4</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="structure-from-motion">Structure from Motion</h3>
+<p><strong>SfM</strong> 把三角测量推广到多视图。常见的增量式流程：</p>
+<ol>
+<li><strong>特征检测与匹配</strong>：所有图像两两之间用 SIFT / ORB 匹配；</li>
+<li><strong>初始化</strong>：选两张视差适中的图，用 5 点法 + RANSAC 估计 $\mathbf{E}$，恢复相对位姿，三角测量出初始点云；</li>
+<li><strong>逐张加入</strong>：每加入一张新图，用 <strong>PnP</strong> 求解新相机位姿，再三角测量出能新看到的 3D 点；</li>
+<li><strong>全局精化</strong>：调用 Bundle Adjustment 同时优化所有变量。</li>
+</ol>
+<h3 id="bundle-adjustment">Bundle Adjustment</h3>
+<p>多视图几何里的旗舰优化问题：联合优化<strong>所有</strong>相机参数 $\{\mathbf{P}_i\}$ 和<strong>所有</strong> 3D 点 $\{\mathbf{X}_j\}$，使总重投影误差最小：</p>
+$$
+\min_{\{\mathbf{P}_i\},\,\{\mathbf{X}_j\}}\;\sum_{(i,j)\in\mathcal{V}} \rho\!\left(\lVert \mathbf{x}_{ij} - \pi(\mathbf{P}_i, \mathbf{X}_j)\rVert^2\right),
+$$<p>$\pi$ 是投影函数，$\rho$ 是 Huber 这类鲁棒核函数（用来压制外点）。这是一个变量数百万级的非线性最小二乘，但雅可比矩阵是<strong>块稀疏</strong>的：每个观测只涉及一个相机和一个 3D 点。Levenberg-Marquardt 配合 Schur 补就能利用这种稀疏性，让笔记本电脑也跑得动。</p>
+<hr>
+<h2 id="8-slam实时跑的线性代数">8 SLAM：实时跑的线性代数</h2>
+<h3 id="slam-问题">SLAM 问题</h3>
+<p>机器人在未知环境中移动，一边读传感器数据，一边同时估计自己的轨迹和环境地图，这就是 <strong>SLAM</strong>（Simultaneous Localization And Mapping）。现代 SLAM 本质上就是在线版的 Bundle Adjustment，里面有两块特别有意思的线性代数。</p>
+<h3 id="用李群表示位姿">用李群表示位姿</h3>
+<p>3D 刚体位姿生活在矩阵群</p>
+$$
+\mathbf{T} = \begin{bmatrix}\mathbf{R} & \mathbf{t} \\ \mathbf{0}^\top & 1\end{bmatrix} \in SE(3)
+$$<p>里，其中 $\mathbf{R} \in SO(3)$。把 $\mathbf{R}$ 当成 9 个自由变量直接优化很麻烦 &ndash; 我们必须时时刻刻保证 $\mathbf{R}^\top\mathbf{R} = \mathbf{I}$。<strong>李代数</strong> $\mathfrak{se}(3) \cong \mathbb{R}^6$ 是一个无约束的向量空间，指数映射 $\mathbf{T} = \exp(\boldsymbol{\xi}^\wedge)$ 在两者之间来回切换。我们在 $\mathbb{R}^6$ 里自由地走梯度，再映射回 $SE(3)$ &ndash; 干干净净，没有约束。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">skew</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+</span></span><span class="line"><span class="cl">                     <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+</span></span><span class="line"><span class="cl">                     <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">]])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">so3_exp</span><span class="p">(</span><span class="n">phi</span><span class="p">):</span>                    <span class="c1"># 罗德里格斯公式</span>
+</span></span><span class="line"><span class="cl">    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="mf">1e-10</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">a</span> <span class="o">=</span> <span class="n">phi</span> <span class="o">/</span> <span class="n">theta</span><span class="p">;</span> <span class="n">A</span> <span class="o">=</span> <span class="n">skew</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">*</span> <span class="n">A</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">A</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="位姿图优化">位姿图优化</h3>
+<p>现代 SLAM 框架（g2o、GTSAM、Ceres）把问题建成<strong>因子图</strong>：节点是位姿和路标，边是带协方差 $\boldsymbol{\Omega}_k$ 的相对测量。优化目标：</p>
+$$
+\min\;\sum_k \lVert \mathbf{e}_k\rVert^2_{\boldsymbol{\Omega}_k}.
+$$<p>用 Gauss-Newton 迭代求解，每一步都要解一个稀疏线性方程组：</p>
+$$
+\mathbf{H}\,\Delta\mathbf{x} = -\mathbf{b},
+$$<p>其中 $\mathbf{H} = \mathbf{J}^\top \boldsymbol{\Omega}\,\mathbf{J}$ 继承了图的稀疏结构。在 $\mathbf{H}$ 上跑稀疏 Cholesky 分解，几乎是所有现代 SLAM 系统的内层循环。</p>
+<hr>
+<h2 id="9-图像滤波--矩阵乘法">9 图像滤波 = 矩阵乘法</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig2_convolution_kernels.png" alt="三种经典 3x3 卷积核（边缘、模糊、锐化）的输入输出对比。" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="卷积是一个超大稀疏有结构的线性映射">卷积是一个超大、稀疏、有结构的线性映射</h3>
+<p>二维卷积 $\mathbf{G} = \mathbf{I} \ast \mathbf{K}$，把图像拉成向量后写成矩阵乘法 $\mathbf{g} = \mathbf{T}\mathbf{i}$，这里 $\mathbf{T}$ 是从卷积核构造出来的<strong>双重块 Toeplitz 矩阵</strong>。我们当然不会把 $\mathbf{T}$ 真的存下来 &ndash; 那要 $(HW)^2$ 个元素 &ndash; 但它的存在让我们可以用线性代数的语言分析卷积（事实上 $\mathbf{T}$ 的特征值正好是卷积核的离散傅里叶变换）。</p>
+<h3 id="三个该背下来的卷积核">三个该背下来的卷积核</h3>
+<p><strong>均值核</strong>（低通，模糊）。在邻域内平均；权重之和为 1，所以不改变整体亮度。</p>
+$$
+\mathbf{K}_{\text{blur}} = \tfrac{1}{9}\begin{bmatrix}1 & 1 & 1\\ 1 & 1 & 1\\ 1 & 1 & 1\end{bmatrix}
+$$<p><strong>拉普拉斯核</strong>（带通，边缘）。离散二阶导；权重之和为 0，平坦区直接归零，只有突变处才被点亮。</p>
+$$
+\mathbf{K}_{\text{edge}} = \begin{bmatrix}0 & -1 & 0\\ -1 & 4 & -1\\ 0 & -1 & 0\end{bmatrix}
+$$<p><strong>锐化核</strong>（高通 + 恒等）。&ldquo;原图加上自己的边缘&rdquo;：</p>
+$$
+\mathbf{K}_{\text{sharp}} = \begin{bmatrix}0 & -1 & 0\\ -1 & 5 & -1\\ 0 & -1 & 0\end{bmatrix} = \mathbf{I} + \mathbf{K}_{\text{edge}}.
+$$<h3 id="卷积定理">卷积定理</h3>
+<p>任何线性平移不变滤波器在傅里叶基下都是对角的 &ndash; 空域卷积等于频域逐点相乘：</p>
+$$
+\mathcal{F}[\mathbf{I} \ast \mathbf{K}] = \mathcal{F}[\mathbf{I}] \cdot \mathcal{F}[\mathbf{K}].
+$$<p>设计滤波器，本质上就是设计它的频率响应：低通去噪、高通提边、带通抓纹理。</p>
+<hr>
+<h2 id="10-两个看似不同其实是同一个-2times-2-特征值问题的算法">10 两个看似不同、其实是同一个 $2\times 2$ 特征值问题的算法</h2>
+<h3 id="harris-角点结构张量">Harris 角点：结构张量</h3>
+<p>在某个像素附近，把局部梯度的统计量打包成 <strong>结构张量</strong>：</p>
+$$
+\mathbf{M} = \sum_{(x, y) \in W} w(x, y)
+\begin{bmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2 \end{bmatrix}.
+$$<p>这是一个 $2 \times 2$ 的对称半正定矩阵。它的两个特征值 $\lambda_1 \ge \lambda_2 \ge 0$ 描述了窗口内图像沿两个主方向的变化幅度：</p>
+<table>
+  <thead>
+      <tr>
+          <th>特征值</th>
+          <th>局部结构</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>都很小</td>
+          <td>平坦区</td>
+      </tr>
+      <tr>
+          <td>一大一小</td>
+          <td>边缘</td>
+      </tr>
+      <tr>
+          <td>都很大</td>
+          <td>角点</td>
+      </tr>
+  </tbody>
+</table>
+<p>Harris 巧妙地避开了显式求特征值，引入响应函数</p>
+$$
+R = \det(\mathbf{M}) - k\,\mathrm{trace}(\mathbf{M})^2 = \lambda_1\lambda_2 - k(\lambda_1 + \lambda_2)^2,
+$$<p>只有当两个特征值都大时 $R$ 才会很大，正好刻画&quot;角点&quot;。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">harris</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span> <span class="n">win</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ksize</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Ix</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Sobel</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CV_64F</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ksize</span><span class="o">=</span><span class="n">ksize</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Iy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Sobel</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CV_64F</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ksize</span><span class="o">=</span><span class="n">ksize</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Sxx</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">GaussianBlur</span><span class="p">(</span><span class="n">Ix</span> <span class="o">*</span> <span class="n">Ix</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">win</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Syy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">GaussianBlur</span><span class="p">(</span><span class="n">Iy</span> <span class="o">*</span> <span class="n">Iy</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">win</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Sxy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">GaussianBlur</span><span class="p">(</span><span class="n">Ix</span> <span class="o">*</span> <span class="n">Iy</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">win</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">detM</span><span class="p">,</span> <span class="n">trM</span> <span class="o">=</span> <span class="n">Sxx</span> <span class="o">*</span> <span class="n">Syy</span> <span class="o">-</span> <span class="n">Sxy</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">Sxx</span> <span class="o">+</span> <span class="n">Syy</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">detM</span> <span class="o">-</span> <span class="n">k</span> <span class="o">*</span> <span class="n">trM</span> <span class="o">**</span> <span class="mi">2</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="光流同一个矩阵又出现了">光流：同一个矩阵又出现了</h3>
+<p>光流估计的是相邻两帧之间每个像素的位移 $(u, v)$。假设亮度守恒，把第一帧到第二帧的灰度变化做一阶泰勒展开，得到<strong>亮度恒定方程</strong>：</p>
+$$
+I_x\,u + I_y\,v + I_t = 0.
+$$<p>一个标量方程，两个未知数 &ndash; 局部欠定（这就是著名的<strong>光圈问题</strong>）。Lucas-Kanade 的解法：假设 $(u, v)$ 在小窗口内是常数，对窗口内每个像素列一个方程，得到一个超定线性系统，用最小二乘求解：</p>
+$$
+\underbrace{\begin{bmatrix} \sum I_x^2 & \sum I_x I_y \\ \sum I_x I_y & \sum I_y^2 \end{bmatrix}}_{\text{正是结构张量 } \mathbf{M}}
+\begin{bmatrix} u \\ v \end{bmatrix}
+= -\begin{bmatrix} \sum I_x I_t \\ \sum I_y I_t \end{bmatrix}.
+$$<p>这个方程组解得好不好，取决于 $\mathbf{M}$ 的条件数 &ndash; 也就是说<strong>取决于这块区域是不是角点</strong>。同一个特征值分析告诉 Harris 哪里有角点，也告诉 Lucas-Kanade 它的光流估计可不可信。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig7_optical_flow.png" alt="光流：从亮度恒定方程局部最小二乘解出来的位移向量场。" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<hr>
+<h2 id="11-svd-图像压缩">11 SVD 图像压缩</h2>
+<p>任何 $H \times W$ 灰度图都可以做奇异值分解：</p>
+$$
+\mathbf{I} = \sum_{i=1}^{r} \sigma_i\,\mathbf{u}_i\,\mathbf{v}_i^\top, \qquad \sigma_1 \ge \sigma_2 \ge \cdots \ge 0.
+$$<p><strong>Eckart-Young 定理</strong>（第 9 章）告诉我们：截断到前 $k$ 项得到的 $\mathbf{I}_k$ 在 Frobenius 范数和谱范数下都是最佳的秩 $k$ 近似。自然图像的奇异值衰减很快 &ndash; 视觉上有意义的能量集中在前几十个分量里 &ndash; 所以一个不大的 $k$ 就足以让我们认出图片。</p>
+<p>存储成本从 $HW$ 降到 $k(H + W + 1)$，压缩率约为 $k(H + W) / (HW)$。SVD 在自然图像上比不过 JPEG（JPEG 利用了 DCT 系数的感知冗余），但它概念清晰，并且是低秩近似在视觉里其他用途的金标准：人脸识别（Eigenfaces）、背景建模（RPCA）、图像去噪都源于同一个思想。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/17-%E8%AE%A1%E7%AE%97%E6%9C%BA%E8%A7%86%E8%A7%89%E4%B8%AD%E7%9A%84%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/fig6_svd_compression.png" alt="SVD 在三个不同秩下的低秩重建及奇异值谱。" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<hr>
+<h2 id="12-现代深度视觉里的线性代数">12 现代深度视觉里的线性代数</h2>
+<h3 id="im2col把卷积写成矩阵乘法">im2col：把卷积写成矩阵乘法</h3>
+<p>GPU 在稠密矩阵乘法上跑得飞快。<strong>im2col</strong> 技巧把每次卷积重写成一次巨大的 <code>gemm</code>：把每个感受野展开成列向量，把所有卷积核展开成行向量，做一次矩阵乘法，再 reshape 回特征图。机制上看，CNN 就是一连串矩阵乘法 + 逐元素非线性。</p>
+<h3 id="自注意力也是矩阵乘法">自注意力也是矩阵乘法</h3>
+<p>Transformer 的自注意力模块就是</p>
+$$
+\mathrm{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \mathrm{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V},
+$$<p>而 $\mathbf{Q}, \mathbf{K}, \mathbf{V}$ 都是序列的线性投影。Vision Transformer (ViT) 把图像切成块作为 token 输入，整个前向过程就是一座矩阵乘法的塔。</p>
+<h3 id="batchnorm-推理时是仿射变换">BatchNorm 推理时是仿射变换</h3>
+<p>推理时，BatchNorm 用固定的统计量配合学到的 $(\gamma, \beta)$ 做逐元素仿射：$y = \gamma\,\hat{x} + \beta$。这个变换可以在部署时与前一层卷积<strong>合并</strong>，从计算图里彻底消失。</p>
+<hr>
+<h2 id="练习题">练习题</h2>
+<h3 id="基础题">基础题</h3>
+<ol>
+<li>写出对灰度图 $\mathbf{I}$ 做下列操作的矩阵表达式：(a) 上下翻转；(b) 左右翻转；(c) 亮度 $+50$；(d) 对比度 $\times 1.5$。</li>
+<li>证明二维旋转矩阵：(a) $\det \mathbf{R} = 1$；(b) $\mathbf{R}^{-1} = \mathbf{R}^\top$；(c) $\mathbf{R}(\alpha)\mathbf{R}(\beta) = \mathbf{R}(\alpha + \beta)$。</li>
+<li>用 $3 \times 3$ 齐次矩阵分别表示并合并：先平移 $(2, 3)$，再绕原点旋转 $45^\circ$，再缩放 $2$ 倍。</li>
+</ol>
+<h3 id="进阶题">进阶题</h3>
+<ol start="4">
+<li>为什么单应矩阵理论上需要 4 对点？写出 DLT 算法对应的 $\mathbf{A}\mathbf{h} = \mathbf{0}$ 系统。</li>
+<li>证明本质矩阵可以分解为 $\mathbf{E} = [\mathbf{t}]_\times \mathbf{R}$。利用 SVD $\mathbf{E} = \mathbf{U} \boldsymbol{\Sigma} \mathbf{V}^\top$ 恢复 $\mathbf{R}$ 与 $\mathbf{t}$（差一个符号）。</li>
+<li>给定两个投影矩阵和一对像点，推导三角测量的线性方程组 $\mathbf{A}\mathbf{X} = \mathbf{0}$。</li>
+</ol>
+<h3 id="编程题">编程题</h3>
+<ol start="7">
+<li>从零实现仿射变换：手工构造 $3 \times 3$ 矩阵，用反向映射 + 双线性插值完成图像变换。</li>
+<li>实现<strong>八点法</strong>估计 $\mathbf{F}$，包含坐标归一化和 SVD 强制 rank-2 约束。</li>
+<li>实现完整的 Harris 角点检测，含非极大值抑制。</li>
+</ol>
+<h3 id="应用题">应用题</h3>
+<ol start="10">
+<li>设计一个全景拼接系统。为什么相机只做旋转时单应矩阵就够用？多张图累积下来的误差怎么处理？曝光不一致怎么处理？</li>
+<li>实现一个简单的单目视觉里程计：提特征 → 帧间匹配 → 估 $\mathbf{E}$ → 恢复相对位姿 → 累加轨迹。讨论尺度漂移问题，以及如何检测跟踪失败。</li>
+</ol>
+<hr>
+<h2 id="本章小结">本章小结</h2>
+<p>计算机视觉与线性代数密不可分。</p>
+<p><strong>表示</strong>：灰度图是矩阵，彩色图是三通道张量，拉平后是 $\mathbb{R}^{HW}$ 中的向量。</p>
+<p><strong>几何</strong>：旋转、缩放、错切是线性变换；齐次坐标把平移也提升成线性操作；透视则需要单应矩阵 &ndash; 它的&quot;非平凡&quot;之处就在最后一行。</p>
+<p><strong>相机与三维</strong>：针孔相机是 $3 \times 4$ 投影矩阵 $\mathbf{P} = \mathbf{K}[\mathbf{R}\,|\,\mathbf{t}]$；两视图几何浓缩在基础矩阵 $\mathbf{F}$ 里；三角测量、SfM、Bundle Adjustment 都是（稀疏）线性最小二乘。</p>
+<p><strong>状态估计</strong>：SLAM 在 $SE(3)$ 流形上做优化，李代数让旋转优化无约束化；位姿图优化的内层循环是稀疏 Cholesky。</p>
+<p><strong>滤波与特征</strong>：卷积是巨大的块 Toeplitz 乘法。Harris 与光流共享同一个 $2 \times 2$ 结构张量的特征值分析。</p>
+<p><strong>压缩与学习</strong>：SVD 给出图像的最优低秩近似；CNN、Transformer 都是矩阵乘法的塔；BatchNorm 在推理时退化为一个仿射映射。</p>
+<p>把这套东西内化以后，再读 CV 的论文，你会觉得它们不再是一堆毫不相关的算法，而是同一套线性代数工具不断被重新组合的结果。</p>
+<hr>
+<h2 id="参考资料">参考资料</h2>
+<ul>
+<li>Hartley, R., &amp; Zisserman, A. <em>Multiple View Geometry in Computer Vision</em> (第 2 版). Cambridge University Press, 2004.</li>
+<li>Szeliski, R. <em>Computer Vision: Algorithms and Applications</em> (第 2 版). Springer, 2022.</li>
+<li>Forsyth, D. A., &amp; Ponce, J. <em>Computer Vision: A Modern Approach</em> (第 2 版). Pearson, 2011.</li>
+<li>Strang, G. <em>Introduction to Linear Algebra</em> (第 5 版). Wellesley-Cambridge Press, 2016.</li>
+<li>Barfoot, T. D. <em>State Estimation for Robotics</em>. Cambridge University Press, 2017.</li>
+<li>Zhang, Z. &ldquo;A flexible new technique for camera calibration.&rdquo; <em>IEEE TPAMI</em> 22(11), 2000.</li>
+<li>Lucas, B., &amp; Kanade, T. &ldquo;An iterative image registration technique with an application to stereo vision.&rdquo; <em>IJCAI</em>, 1981.</li>
+<li>Harris, C., &amp; Stephens, M. &ldquo;A combined corner and edge detector.&rdquo; <em>Alvey Vision Conference</em>, 1988.</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<ul>
+<li><strong>上一篇：</strong> <a href="/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e5%8d%81%e5%85%ad-%e6%b7%b1%e5%ba%a6%e5%ad%a6%e4%b9%a0%e4%b8%ad%e7%9a%84%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0/">第十六章：深度学习中的线性代数</a>
+</li>
+<li><strong>下一篇：</strong> <a href="/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e5%8d%81%e5%85%ab-%e5%89%8d%e6%b2%bf%e5%ba%94%e7%94%a8%e4%b8%8e%e6%80%bb%e7%bb%93/">第十八章：前沿应用与总结</a>
+</li>
+<li><strong>完整系列：</strong> 线性代数的本质（1&ndash;18）</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-图像矩阵张量向量">1 图像：矩阵、张量、向量</a>
+      <ul>
+        <li><a href="#从像素到矩阵">从像素到矩阵</a></li>
+        <li><a href="#彩色图三通道张量">彩色图：三通道张量</a></li>
+        <li><a href="#把图像看成高维向量">把图像看成高维向量</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-几何变换--矩阵乘法">2 几何变换 = 矩阵乘法</a>
+      <ul>
+        <li><a href="#为什么用矩阵">为什么用矩阵</a></li>
+        <li><a href="#旋转缩放错切">旋转、缩放、错切</a></li>
+        <li><a href="#顺序很重要">顺序很重要</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-齐次坐标把平移也变成线性">3 齐次坐标：把平移也变成线性</a>
+      <ul>
+        <li><a href="#平移的尴尬">平移的尴尬</a></li>
+        <li><a href="#升一维的小魔法">升一维的小魔法</a></li>
+      </ul>
+    </li>
+  </ul>
+
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#绕任意点旋转">绕任意点旋转</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-透视变换与单应矩阵">4 透视变换与单应矩阵</a>
+      <ul>
+        <li><a href="#仿射变换不够用">仿射变换不够用</a></li>
+        <li><a href="#3-times-3-的单应矩阵"> 的单应矩阵</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-针孔相机与投影矩阵">5 针孔相机与投影矩阵</a>
+      <ul>
+        <li><a href="#针孔几何">针孔几何</a></li>
+        <li><a href="#内参从毫米到像素">内参：从毫米到像素</a></li>
+        <li><a href="#外参与完整投影方程">外参与完整投影方程</a></li>
+      </ul>
+    </li>
+  </ul>
+
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#张正友标定法">张正友标定法</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-两视图对极几何">6 两视图：对极几何</a>
+      <ul>
+        <li><a href="#对极约束">对极约束</a></li>
+        <li><a href="#本质矩阵-vs-基础矩阵">本质矩阵 vs 基础矩阵</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-三维重建三角测量sfmbundle-adjustment">7 三维重建：三角测量、SfM、Bundle Adjustment</a>
+      <ul>
+        <li><a href="#三角测量是个线性方程组">三角测量是个线性方程组</a></li>
+        <li><a href="#structure-from-motion">Structure from Motion</a></li>
+        <li><a href="#bundle-adjustment">Bundle Adjustment</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-slam实时跑的线性代数">8 SLAM：实时跑的线性代数</a>
+      <ul>
+        <li><a href="#slam-问题">SLAM 问题</a></li>
+        <li><a href="#用李群表示位姿">用李群表示位姿</a></li>
+        <li><a href="#位姿图优化">位姿图优化</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-图像滤波--矩阵乘法">9 图像滤波 = 矩阵乘法</a>
+      <ul>
+        <li><a href="#卷积是一个超大稀疏有结构的线性映射">卷积是一个超大、稀疏、有结构的线性映射</a></li>
+        <li><a href="#三个该背下来的卷积核">三个该背下来的卷积核</a></li>
+        <li><a href="#卷积定理">卷积定理</a></li>
+      </ul>
+    </li>
+    <li><a href="#10-两个看似不同其实是同一个-2times-2-特征值问题的算法">10 两个看似不同、其实是同一个  特征值问题的算法</a>
+      <ul>
+        <li><a href="#harris-角点结构张量">Harris 角点：结构张量</a></li>
+        <li><a href="#光流同一个矩阵又出现了">光流：同一个矩阵又出现了</a></li>
+      </ul>
+    </li>
+    <li><a href="#11-svd-图像压缩">11 SVD 图像压缩</a></li>
+    <li><a href="#12-现代深度视觉里的线性代数">12 现代深度视觉里的线性代数</a>
+      <ul>
+        <li><a href="#im2col把卷积写成矩阵乘法">im2col：把卷积写成矩阵乘法</a></li>
+        <li><a href="#自注意力也是矩阵乘法">自注意力也是矩阵乘法</a></li>
+        <li><a href="#batchnorm-推理时是仿射变换">BatchNorm 推理时是仿射变换</a></li>
+      </ul>
+    </li>
+    <li><a href="#练习题">练习题</a>
+      <ul>
+        <li><a href="#基础题">基础题</a></li>
+        <li><a href="#进阶题">进阶题</a></li>
+        <li><a href="#编程题">编程题</a></li>
+        <li><a href="#应用题">应用题</a></li>
+      </ul>
+    </li>
+    <li><a href="#本章小结">本章小结</a></li>
+    <li><a href="#参考资料">参考资料</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">线性代数</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
+      <div class="row"><span>Word count</span><strong>7400</strong></div>
+      <div class="row"><span>Published</span><strong>Apr 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

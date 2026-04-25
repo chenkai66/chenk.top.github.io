@@ -1,0 +1,1061 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Recommendation Systems (15): Real-Time Recommendation and Online Learning · Chen Kai Blog</title>
+<meta name="description" content="A practitioner&#39;s guide to real-time recommendation: streaming pipelines (Kafka &#43; Flink), online learning (SGD, FTRL, AdaGrad), bandits (UCB, Thompson Sampling, LinUCB), latency budgets, feature freshness, concept drift, and the cache-vs-compute trade-off you actually tune in production.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/recommendation-systems/15-real-time-online/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/recommendation-systems/15-real-time-online/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Recommendation Systems (15): Real-Time Recommendation and Online Learning">
+<meta property="og:description" content="A practitioner&#39;s guide to real-time recommendation: streaming pipelines (Kafka &#43; Flink), online learning (SGD, FTRL, AdaGrad), bandits (UCB, Thompson Sampling, LinUCB), latency budgets, feature freshness, concept drift, and the cache-vs-compute trade-off you actually tune in production.">
+<meta property="og:url" content="https://www.chenk.top/en/recommendation-systems/15-real-time-online/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-2);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Recommendation Systems</a>
+         · Chapter 15
+      </div>
+      <h1>Recommendation Systems (15): Real-Time Recommendation and Online Learning</h1>
+      <p class="deck">A practitioner&#39;s guide to real-time recommendation: streaming pipelines (Kafka &#43; Flink), online learning (SGD, FTRL, AdaGrad), bandits (UCB, Thompson Sampling, LinUCB), latency budgets, feature freshness, concept drift, and the cache-vs-compute trade-off you actually tune in production.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-01-12">January 12, 2026</time> · 21 min read · 4400 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/recommendation-systems/" class="tag">#Recommendation Systems</a><a href="/en/tags/real-time/" class="tag">#Real-Time</a><a href="/en/tags/online-learning/" class="tag">#Online Learning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <blockquote>
+<p>A user opens your app at 14:02 and searches for &ldquo;trail running shoes&rdquo;. By 15:30 they have moved on and are reading kitchen reviews. A model that retrains nightly is still showing them Salomon ads at 16:00 — and that gap is exactly the bug a real-time system fixes. The interesting part is not &ldquo;make it faster&rdquo; but &ldquo;what <em>should</em> be fast&rdquo; — most features add nothing to AUC even when made real-time, and the wrong design point burns money for no lift.</p>
+</blockquote>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li><strong>The two paths</strong>: a real-time recommender is two pipelines glued together — an <em>asynchronous write-path</em> (events → state → model) and a <em>synchronous read-path</em> (request → recall → rank → response).</li>
+<li><strong>Where the milliseconds go</strong>: latency is not an average; the p99 tail is what users feel. We break down the 100 ms budget by stage and by percentile.</li>
+<li><strong>Online learning in practice</strong>: SGD, AdaGrad, and the production workhorse — FTRL-Proximal — that powers Google&rsquo;s Ad Click Prediction.</li>
+<li><strong>Bandits</strong>: UCB1, Thompson Sampling, and contextual LinUCB — what their regret bounds actually mean when items churn daily.</li>
+<li><strong>Streaming architecture</strong>: a concrete Kafka + Flink + KV-store layout, with checkpointing and exactly-once semantics.</li>
+<li><strong>Concept drift</strong>: how to detect it (ADWIN, DDM, page-Hinkley) and what to do once you have.</li>
+<li><strong>Cache vs compute</strong>: the trade-off you actually tune — and why the answer is almost always <em>hybrid</em>.</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Python and NumPy (Parts 1-2)</li>
+<li>SGD and loss functions (Part 7)</li>
+<li>The recommendation pipeline overview (Part 11)</li>
+</ul>
+<hr>
+<h2 id="1-why-real-time-and-what-real-time-actually-means">1. Why real-time, and what &ldquo;real-time&rdquo; actually means</h2>
+<p>Three realities push toward real time:</p>
+<ol>
+<li><strong>Sessions are short.</strong> Median session length on a feed app is 3-7 minutes. A model that updates daily literally never sees most sessions before they end.</li>
+<li><strong>Trends are short-lived.</strong> A meme video can hit 80 % of its lifetime engagement in the first 6 hours. Yesterday&rsquo;s batch model has nothing to recommend it with.</li>
+<li><strong>The feedback loop is the model.</strong> Once you serve a recommendation, the click that comes back is the <em>next</em> training example. Closing that loop in seconds vs days is the difference between a learning system and a stale one.</li>
+</ol>
+<p>But &ldquo;real-time&rdquo; is not a single thing — it is a spectrum:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Tier</th>
+          <th>Update cadence</th>
+          <th>Typical use</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Real-time</td>
+          <td>&lt; 1 second</td>
+          <td>session intent, in-feed dedup, abuse signals</td>
+      </tr>
+      <tr>
+          <td>Near-real-time</td>
+          <td>1 second – 1 hour</td>
+          <td>recent-click sequences, per-creator CTR</td>
+      </tr>
+      <tr>
+          <td>Hourly</td>
+          <td>1 – 24 hours</td>
+          <td>trending topics, item popularity decay</td>
+      </tr>
+      <tr>
+          <td>Batch</td>
+          <td>1+ days</td>
+          <td>user demographics, item embeddings, retrieval index</td>
+      </tr>
+  </tbody>
+</table>
+<p>The mistake is to make <em>everything</em> real-time. As Figure 4 shows, demographics and item metadata gain almost nothing from a real-time pipeline — but recent click sequences gain 2-3 AUC points. <strong>Real-time is a budget you spend on the features that move the metric.</strong></p>
+<hr>
+<h2 id="2-the-two-path-architecture">2. The two-path architecture</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig1_pipeline.png" alt="Real-time recommendation system: an asynchronous write-path keeps state fresh, while a synchronous read-path serves under a hard latency SLO" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A real-time recommender decomposes cleanly into two paths:</p>
+<p><strong>Write-path (asynchronous, throughput-bound).</strong> Events leave the client, hit a Kafka topic partitioned by <code>user_id</code>, get aggregated by a Flink job into rolling windows (last-N clicks, 10-minute CTR, etc.), and land in two places: a <em>feature store</em> (Redis or RocksDB) for the read-path to consume, and an <em>online learner</em> that updates model weights. A new model snapshot is pushed to a registry every few minutes.</p>
+<p><strong>Read-path (synchronous, latency-bound).</strong> A serving request arrives. We do recall (ANN over embeddings, plus inverted indexes for fresh items), then a <em>single round-trip</em> feature fetch from the store, then ranking, then re-ranking for diversity / business rules, then return. Total budget: &lt; 100 ms.</p>
+<p>The discipline is keeping these two paths decoupled. The serving path <strong>never</strong> writes to the model, never trains, never blocks on stream processing. If the streaming side falls behind, serving keeps working with slightly stale features — degraded, not down.</p>
+<hr>
+<h2 id="3-the-latency-budget--where-every-millisecond-goes">3. The latency budget — where every millisecond goes</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig2_latency_budget.png" alt="Latency budget broken down by stage and percentile, showing p50/p95/p99 across recall, feature fetch, ranker, and re-rank" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A 100 ms end-to-end SLO is the industry norm for feed-style products (perception research puts the &ldquo;feels instant&rdquo; threshold around 100-200 ms for visual updates). Inside that budget, the split looks roughly like this:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Stage</th>
+          <th>p50</th>
+          <th>p95</th>
+          <th>p99</th>
+          <th>Notes</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Network in</td>
+          <td>4</td>
+          <td>7</td>
+          <td>12</td>
+          <td>TLS handshake amortised by keep-alive</td>
+      </tr>
+      <tr>
+          <td>Recall (ANN)</td>
+          <td>10</td>
+          <td>18</td>
+          <td>28</td>
+          <td>HNSW or ScaNN over 100 M items</td>
+      </tr>
+      <tr>
+          <td>Feature fetch</td>
+          <td>6</td>
+          <td>14</td>
+          <td>30</td>
+          <td>Redis pipeline; tail = GC / network</td>
+      </tr>
+      <tr>
+          <td>Ranker (DNN)</td>
+          <td>18</td>
+          <td>32</td>
+          <td>55</td>
+          <td>Batched scoring over ~500 candidates</td>
+      </tr>
+      <tr>
+          <td>Re-rank + logging</td>
+          <td>4</td>
+          <td>9</td>
+          <td>18</td>
+          <td>Diversity, biz rules, async log</td>
+      </tr>
+      <tr>
+          <td>Network out</td>
+          <td>3</td>
+          <td>6</td>
+          <td>11</td>
+          <td></td>
+      </tr>
+      <tr>
+          <td><strong>End-to-end</strong></td>
+          <td><strong>45</strong></td>
+          <td><strong>86</strong></td>
+          <td><strong>154</strong></td>
+          <td>p99 blows the SLO — that&rsquo;s normal</td>
+      </tr>
+  </tbody>
+</table>
+<p>Two practical lessons:</p>
+<ol>
+<li><strong>Average latency lies.</strong> A p50 of 45 ms looks like room to spare. The p99 of 154 ms means 1 % of requests miss the SLO — that&rsquo;s millions per day on a billion-request platform.</li>
+<li><strong>The ranker dominates.</strong> Batching candidates, model distillation, and TensorRT/ONNX-Runtime quantization buy more than any single optimization elsewhere. Pinterest reported a 30 % p99 reduction by moving from a 6-layer DNN to a distilled 2-layer student plus feature crosses.</li>
+</ol>
+<hr>
+<h2 id="4-streaming-kafka--flink-in-production">4. Streaming: Kafka + Flink in production</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig5_streaming_arch.png" alt="Streaming reference architecture: clients write to Kafka topics, Flink performs stateful aggregation and online learning, output is fanned out to feature store, model registry, and metrics" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="41-kafka--the-durable-transport">4.1 Kafka — the durable transport</h3>
+<p>Kafka&rsquo;s role is narrow but essential: a durable, partitioned, replayable log. Three properties matter:</p>
+<ul>
+<li><strong>Partitioning by <code>user_id</code></strong> keeps a single user&rsquo;s events on a single partition, which preserves causal order — critical for stateful joins like &ldquo;did the click come before or after the impression?&rdquo;.</li>
+<li><strong>Replication</strong> (typically <code>replication-factor=3</code>) means a broker can die without data loss.</li>
+<li><strong>Retention</strong> lets you replay the last 7 days for backfilling a new model — the same code path serves online and recovery.</li>
+</ul>
+<p>What Kafka does <em>not</em> do: aggregation, joins, machine learning. It is a postal service.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">kafka</span> <span class="kn">import</span> <span class="n">KafkaProducer</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">time</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">producer</span> <span class="o">=</span> <span class="n">KafkaProducer</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">bootstrap_servers</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;kafka-1:9092&#34;</span><span class="p">,</span> <span class="s2">&#34;kafka-2:9092&#34;</span><span class="p">,</span> <span class="s2">&#34;kafka-3:9092&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">value_serializer</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">key_serializer</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">acks</span><span class="o">=</span><span class="s2">&#34;all&#34;</span><span class="p">,</span>        <span class="c1"># wait for all in-sync replicas</span>
+</span></span><span class="line"><span class="cl">    <span class="n">enable_idempotence</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># exactly-once producer semantics</span>
+</span></span><span class="line"><span class="cl">    <span class="n">compression_type</span><span class="o">=</span><span class="s2">&#34;lz4&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">linger_ms</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>       <span class="c1"># tiny batching window — trades 5ms latency for 10x throughput</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">emit_click</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">item_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Emit one click event. Same partition for the same user.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">producer</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">topic</span><span class="o">=</span><span class="s2">&#34;clicks&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">key</span><span class="o">=</span><span class="n">user_id</span><span class="p">,</span>                <span class="c1"># partition key</span>
+</span></span><span class="line"><span class="cl">        <span class="n">value</span><span class="o">=</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;user_id&#34;</span><span class="p">:</span> <span class="n">user_id</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;item_id&#34;</span><span class="p">:</span> <span class="n">item_id</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;position&#34;</span><span class="p">:</span> <span class="n">position</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;ts&#34;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="42-flink--the-stateful-compute">4.2 Flink — the stateful compute</h3>
+<p>Where Kafka is a transport, Flink is a <em>stateful</em> stream processor. The killer feature is <strong>exactly-once processing under failure</strong>, achieved by Chandy-Lamport-style distributed snapshots: every checkpoint interval (default 60 s), Flink atomically captures the state of every operator and writes it to durable storage (S3). On failure, it rewinds Kafka offsets to the last checkpoint and replays — the externally visible effect is as if no failure occurred.</p>
+<p>A canonical Flink job for click attribution:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># Flink SQL — last-10-minute CTR per user, written to feature store</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pyflink.table</span> <span class="kn">import</span> <span class="n">EnvironmentSettings</span><span class="p">,</span> <span class="n">StreamTableEnvironment</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">t_env</span> <span class="o">=</span> <span class="n">StreamTableEnvironment</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">environment_settings</span><span class="o">=</span><span class="n">EnvironmentSettings</span><span class="o">.</span><span class="n">in_streaming_mode</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">t_env</span><span class="o">.</span><span class="n">execute_sql</span><span class="p">(</span><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">CREATE TABLE clicks (
+</span></span></span><span class="line"><span class="cl"><span class="s2">    user_id STRING,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    item_id STRING,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    ts BIGINT,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    event_time AS TO_TIMESTAMP_LTZ(ts, 3),
+</span></span></span><span class="line"><span class="cl"><span class="s2">    WATERMARK FOR event_time AS event_time - INTERVAL &#39;5&#39; SECOND
+</span></span></span><span class="line"><span class="cl"><span class="s2">) WITH (
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#39;connector&#39; = &#39;kafka&#39;,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#39;topic&#39; = &#39;clicks&#39;,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#39;properties.bootstrap.servers&#39; = &#39;kafka-1:9092&#39;,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#39;format&#39; = &#39;json&#39;,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#39;scan.startup.mode&#39; = &#39;latest-offset&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s2">)
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">t_env</span><span class="o">.</span><span class="n">execute_sql</span><span class="p">(</span><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">CREATE TABLE user_features (
+</span></span></span><span class="line"><span class="cl"><span class="s2">    user_id STRING,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    window_end TIMESTAMP(3),
+</span></span></span><span class="line"><span class="cl"><span class="s2">    clicks_10m BIGINT,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    PRIMARY KEY (user_id) NOT ENFORCED
+</span></span></span><span class="line"><span class="cl"><span class="s2">) WITH (
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#39;connector&#39; = &#39;redis&#39;,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#39;host&#39; = &#39;redis.prod&#39;,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#39;ttl-sec&#39; = &#39;900&#39;
+</span></span></span><span class="line"><span class="cl"><span class="s2">)
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 10-minute hopping window, slide 1 minute → emit fresh CTR every minute</span>
+</span></span><span class="line"><span class="cl"><span class="n">t_env</span><span class="o">.</span><span class="n">execute_sql</span><span class="p">(</span><span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">INSERT INTO user_features
+</span></span></span><span class="line"><span class="cl"><span class="s2">SELECT
+</span></span></span><span class="line"><span class="cl"><span class="s2">    user_id,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    HOP_END(event_time, INTERVAL &#39;1&#39; MINUTE, INTERVAL &#39;10&#39; MINUTE) AS window_end,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    COUNT(*) AS clicks_10m
+</span></span></span><span class="line"><span class="cl"><span class="s2">FROM clicks
+</span></span></span><span class="line"><span class="cl"><span class="s2">GROUP BY
+</span></span></span><span class="line"><span class="cl"><span class="s2">    user_id,
+</span></span></span><span class="line"><span class="cl"><span class="s2">    HOP(event_time, INTERVAL &#39;1&#39; MINUTE, INTERVAL &#39;10&#39; MINUTE)
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;&#34;&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The watermark is the part most people get wrong. It says &ldquo;I will not see any event with <code>event_time &lt; watermark</code>.&rdquo; That gives Flink permission to <em>close</em> and emit a window. Set it too tight and you drop late events; set it too loose and your features are systematically delayed.</p>
+<hr>
+<h2 id="5-online-learning-from-sgd-to-ftrl">5. Online learning: from SGD to FTRL</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig3_online_vs_batch.png" alt="Online learning vs batch retraining — left: convergence on a stationary task; right: behavior under concept drift" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="51-the-core-update">5.1 The core update</h3>
+<p>For a logistic ranker with parameters $\theta$ and a single example $(x_t, y_t)$:</p>
+$$\theta_{t+1} = \theta_t - \eta_t \, \nabla_\theta \mathcal{L}(\sigma(\theta_t^\top x_t), y_t)$$<p>That is plain SGD. It works, but on web-scale CTR data — millions of sparse features, each appearing in a small fraction of examples — it has two problems:</p>
+<ol>
+<li><strong>No per-feature learning rate</strong>: a feature that fires 1 in 10 000 needs bigger steps than one that fires every example.</li>
+<li><strong>No sparsity</strong>: weights drift away from zero on noise. A model with 10⁹ parameters that never zeros any of them is unservable.</li>
+</ol>
+<h3 id="52-adagrad--adaptive-per-feature-step">5.2 AdaGrad — adaptive per-feature step</h3>
+<p>AdaGrad fixes the first problem by accumulating squared gradients per feature:</p>
+$$\theta_{t+1, i} = \theta_{t, i} - \frac{\eta}{\sqrt{G_{t, i} + \varepsilon}} g_{t, i}, \quad G_{t, i} = \sum_{s=1}^{t} g_{s, i}^2$$<p>A rare feature has small $G$, so it gets a big step the few times it does fire. A common feature has large $G$ and is updated cautiously.</p>
+<h3 id="53-ftrl-proximal--the-production-workhorse">5.3 FTRL-Proximal — the production workhorse</h3>
+<p>FTRL-Proximal (McMahan et al., <em>Ad Click Prediction: a View from the Trenches</em>, KDD 2013 — the paper Google published describing the algorithm running their ad system) combines AdaGrad&rsquo;s per-feature scaling with $L_1$ regularization that produces <em>exact</em> zeros, not just small weights. The per-coordinate update:</p>
+$$
+z_{t,i} \leftarrow z_{t-1,i} + g_{t,i} - \frac{\sigma_{t,i}}{\eta} \theta_{t-1,i},
+\qquad
+\theta_{t,i} =
+\begin{cases}
+0 & \text{if } |z_{t,i}| \le \lambda_1 \\
+-\frac{1}{\eta_{t,i}} \big(z_{t,i} - \mathrm{sign}(z_{t,i}) \lambda_1\big) & \text{otherwise}
+\end{cases}
+$$<p>where $\sigma_{t,i} = \frac{1}{\eta_{t,i}} - \frac{1}{\eta_{t-1,i}}$ and $\eta_{t,i} = \alpha / (\beta + \sqrt{\sum_s g_{s,i}^2})$.</p>
+<p>The crucial property: the model is genuinely sparse. Google reported FTRL-Proximal cutting model size by an order of magnitude versus naive SGD with $L_2$ — at the same AUC.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FTRLProximal</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;FTRL-Proximal for online logistic regression.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Reference: McMahan et al., &#34;Ad Click Prediction: a View from the
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Trenches&#34;, KDD 2013. The actual algorithm in Google ads at the time.
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_features</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">l1</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">l2</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n_features</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">l1</span><span class="p">,</span> <span class="n">l2</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># z and n are the only persisted state — w is recomputed lazily</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_sq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Lazy materialization of w_i from (z_i, n_sq_i).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z</span><span class="p">,</span> <span class="n">n_sq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_sq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sign</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">z</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">sign</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n_sq</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict_proba</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">x_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Sparse prediction; only iterate over non-zero features.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">v</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_indices</span><span class="p">,</span> <span class="n">x_values</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">),</span> <span class="o">-</span><span class="mf">35.0</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">x_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Single-example update. Returns the pre-update probability.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">x_indices</span><span class="p">,</span> <span class="n">x_values</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_indices</span><span class="p">,</span> <span class="n">x_values</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">g</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="n">v</span>                       <span class="c1"># gradient on this feature</span>
+</span></span><span class="line"><span class="cl">            <span class="n">sigma</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_sq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">g</span> <span class="o">*</span> <span class="n">g</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_sq</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>   <span class="o">+=</span> <span class="n">g</span> <span class="o">-</span> <span class="n">sigma</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">n_sq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">g</span> <span class="o">*</span> <span class="n">g</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">p</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="54-online-vs-batch--the-picture">5.4 Online vs batch — the picture</h3>
+<p>The left panel of Figure 3 shows the stationary case: online learning converges smoothly while batch retraining produces a staircase — a fresh snapshot every 200 events, plateaus in between. On a stable task the gap closes in expectation, but online wins on integral over time.</p>
+<p>The right panel is where it matters: a sudden distribution shift (a viral event, a new product launch, a holiday). The batch model, blind to anything outside its training window, takes a full window to recover. Online learning starts adjusting on the very first new example and is back to near-peak AUC in roughly 100 events. <strong>In production, drift is the rule, not the exception</strong> — and that is what makes online learning a real lever, not just an academic preference.</p>
+<hr>
+<h2 id="6-feature-freshness--how-much-does-it-actually-matter">6. Feature freshness — how much does it actually matter?</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig4_freshness_auc.png" alt="Feature staleness vs AUC: AUC degrades roughly linearly in log-staleness, and the loss is almost entirely in the behavioral feature family" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The freshness question is what a serious team argues about, because making something real-time is <em>expensive</em>. The empirical pattern from public reports (Meta&rsquo;s deep learning recommendation models, Pinterest&rsquo;s PinnerSAGE, ByteDance&rsquo;s Monolith) is consistent:</p>
+<ul>
+<li><strong>AUC drops roughly linearly in log-staleness.</strong> Going from 1 second to 1 minute: tiny loss. From 1 minute to 1 hour: meaningful (~0.005 AUC). From 1 hour to 1 day: substantial (~0.015-0.020 AUC).</li>
+<li><strong>The loss is concentrated in behavioral features.</strong> Recent click sequences and session intent are responsible for ~80 % of the freshness premium. Demographics and item metadata are essentially flat — you could update them weekly with no measurable impact.</li>
+</ul>
+<p>This shapes the architecture: do not pay the streaming cost for features that don&rsquo;t pay back. A typical feed system runs three pipelines side by side — real-time for behavioral, hourly for popularity-style aggregates, daily for embeddings and demographics.</p>
+<hr>
+<h2 id="7-bandits--the-principled-exploration-story">7. Bandits — the principled exploration story</h2>
+<h3 id="71-the-problem-in-one-sentence">7.1 The problem in one sentence</h3>
+<p>You have $K$ items to choose from. Each item has an unknown click probability $\mu_i$. Each round you pick one, observe its click, and update. Over $T$ rounds, <strong>regret</strong> is what you lost relative to always picking the best:</p>
+$$R_T = T \mu^* - \mathbb{E}\!\left[\sum_{t=1}^T \mu_{a_t}\right]$$<p>A &ldquo;good&rdquo; algorithm has <em>sublinear regret</em>: $R_T = o(T)$, i.e. average per-round loss → 0.</p>
+<h3 id="72-ucb1--be-optimistic-in-the-face-of-uncertainty">7.2 UCB1 — be optimistic in the face of uncertainty</h3>
+<p>UCB1 (Auer et al., 2002) picks the arm with the highest <em>upper confidence bound</em>:</p>
+$$a_t = \arg\max_i \left( \hat\mu_i + \sqrt{\frac{2 \ln t}{n_i}} \right)$$<p>where $n_i$ is how many times arm $i$ has been pulled. The bonus shrinks as $n_i$ grows — explore until you&rsquo;re sure, then exploit. UCB1 achieves $O(\log T)$ regret, which is provably optimal up to constants for stationary bandits (Lai-Robbins lower bound).</p>
+<h3 id="73-thompson-sampling--the-bayesian-way">7.3 Thompson Sampling — the Bayesian way</h3>
+<p>Maintain a posterior over each arm&rsquo;s success rate. For Bernoulli rewards, the conjugate prior is Beta:</p>
+$$\theta_i \sim \text{Beta}(\alpha_i, \beta_i), \quad \text{update: } (\alpha_i, \beta_i) \leftarrow (\alpha_i + r, \beta_i + 1 - r)$$<p>Each round, <em>sample</em> one $\theta_i$ from each arm&rsquo;s posterior and pick the highest sample. Wide posteriors get explored (their samples are noisy and occasionally land high); narrow posteriors get exploited. Thompson Sampling matches UCB1&rsquo;s $O(\log T)$ asymptotically (Agrawal &amp; Goyal, 2012) and beats it in practice on most benchmarks, while being simpler to extend to delayed feedback, batched updates, and complex reward models.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ThompsonSampling</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Bernoulli Thompson Sampling. Production-grade implementation
+</span></span></span><span class="line"><span class="cl"><span class="s2">    is the same — the only addition is decay (alpha, beta *= 0.99 daily)
+</span></span></span><span class="line"><span class="cl"><span class="s2">    to handle non-stationary item populations.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_arms</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_arms</span><span class="p">)</span>   <span class="c1"># successes + 1</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_arms</span><span class="p">)</span>   <span class="c1"># failures + 1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">beta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arm</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">reward</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">reward</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">[</span><span class="n">arm</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="n">arm</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="74-linucb--context-that-actually-matters">7.4 LinUCB — context that actually matters</h3>
+<p>Plain bandits learn a global ranking. The whole point of recommendation is <em>personalization</em>. LinUCB (Li et al., <em>A Contextual-Bandit Approach to Personalized News Article Recommendation</em>, WWW 2010 — the algorithm Yahoo used for front-page personalization) assumes the expected reward is linear in a context vector $x_t$:</p>
+$$\mathbb{E}[r_a \mid x_t] = x_t^\top \theta_a$$<p>Each arm maintains a ridge regression model $(A_a, b_a)$ where $A_a = I + \sum X X^\top$ and $b_a = \sum r X$. The selection rule:</p>
+$$a_t = \arg\max_a \left( x_t^\top \hat\theta_a + \alpha \sqrt{x_t^\top A_a^{-1} x_t} \right), \quad \hat\theta_a = A_a^{-1} b_a$$<p>The bonus term $\sqrt{x_t^\top A_a^{-1} x_t}$ is the predictive standard deviation of ridge regression — large when the current context is unlike anything we&rsquo;ve seen for this arm. Regret is $\tilde O(\sqrt{d T})$ where $d$ is the context dimension.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LinUCB</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;LinUCB — disjoint model variant.
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Reference: Li, Chu, Langford, Schapire, WWW 2010.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_arms</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_features</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n_features</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_arms</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_features</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_arms</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ucbs</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">A_a</span><span class="p">,</span> <span class="n">b_a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">A_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">A_a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">theta</span> <span class="o">=</span> <span class="n">A_inv</span> <span class="o">@</span> <span class="n">b_a</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ucbs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">@</span> <span class="n">theta</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x</span> <span class="o">@</span> <span class="n">A_inv</span> <span class="o">@</span> <span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">ucbs</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arm</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">reward</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">[</span><span class="n">arm</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">[</span><span class="n">arm</span><span class="p">]</span> <span class="o">+=</span> <span class="n">reward</span> <span class="o">*</span> <span class="n">x</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>In practice you almost never use a &ldquo;pure&rdquo; LinUCB. The serving system runs a deep ranker; bandits live one layer above, deciding <em>which strategy</em> (creator-boost, fresh-item-boost, exploitation) to allocate to a given request. The arms are policies, not items.</p>
+<hr>
+<h2 id="8-concept-drift--detect-dont-pretend-it-isnt-there">8. Concept drift — detect, don&rsquo;t pretend it isn&rsquo;t there</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig6_drift_detection.png" alt="Concept drift detection: top — observed CTR with rolling mean and reference window; bottom — z-score detector firing on gradual and abrupt drift" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Online learning adapts to drift only if the learner <em>can</em> adapt — if the learning rate has decayed to nothing, it can&rsquo;t. Production systems explicitly detect drift and react.</p>
+<h3 id="81-three-classical-detectors">8.1 Three classical detectors</h3>
+<ul>
+<li><strong>Page-Hinkley test</strong>: cumulative sum of deviations from the mean; alarm when CUSUM exceeds a threshold. Good for monotonic drift.</li>
+<li><strong>DDM (Drift Detection Method, Gama et al. 2004)</strong>: tracks the binomial error rate $p_t$ and its standard deviation. Warning at $p_t + s_t \ge p_{\min} + 2 s_{\min}$, alarm at $\ge p_{\min} + 3 s_{\min}$.</li>
+<li><strong>ADWIN (Bifet &amp; Gavaldà 2007)</strong>: maintains an adaptive window; whenever the mean of two sub-windows differs by more than a Hoeffding bound, the older half is dropped. Provably bounded false-alarm rate.</li>
+</ul>
+<p>The simple z-score variant in Figure 6 is what you actually deploy for a v1: keep a reference window of &ldquo;known-good&rdquo; performance, compute the z-score of recent rolling-mean CTR vs that reference, alarm at $|z| > 3$.</p>
+<h3 id="82-reacting-to-drift">8.2 Reacting to drift</h3>
+<p>Detection without a response is just an alert. Practical reactions, in order of cost:</p>
+<ol>
+<li><strong>Bump the learning rate</strong> (cheap, reversible). Multiply $\eta$ by 2-5x for a fixed window.</li>
+<li><strong>Reset bandit posteriors</strong> (medium). Halve $\alpha, \beta$ for affected arms — keeps the prior shape but doubles uncertainty.</li>
+<li><strong>Force a checkpoint reload</strong> (expensive). Roll back to the last known-good snapshot, replay from Kafka, retrain on the post-drift window.</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DriftAdaptiveLearner</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_learner</span><span class="p">,</span> <span class="n">base_lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">z_thresh</span><span class="o">=</span><span class="mf">3.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">learner</span> <span class="o">=</span> <span class="n">base_learner</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base_lr</span> <span class="o">=</span> <span class="n">base_lr</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">window</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">z_thresh</span> <span class="o">=</span> <span class="n">z_thresh</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">recent</span> <span class="o">=</span> <span class="p">[]</span>        <span class="c1"># rolling errors</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ref_mean</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ref_std</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">learner</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">err</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">pred</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">recent</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recent</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">recent</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Establish reference once, after first window has stabilized</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_mean</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recent</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">ref_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recent</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">ref_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recent</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-6</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Detect drift</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_mean</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recent</span><span class="p">[</span><span class="o">-</span><span class="mi">50</span><span class="p">:])</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_std</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">z_thresh</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">learner</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_lr</span> <span class="o">*</span> <span class="mi">4</span>   <span class="c1"># bump</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Reset reference after handling — avoids permanent over-eager state</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">recent</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">ref_mean</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">learner</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="9-cache-vs-compute--the-trade-off-you-actually-tune">9. Cache vs compute — the trade-off you actually tune</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/15-real-time-online/fig7_cache_vs_compute.png" alt="Cache vs compute: left — latency, freshness, and cost as a function of cache TTL; right — Pareto front of strategies, with hybrid winning" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Every read-path decision lands somewhere on this trade-off:</p>
+<ul>
+<li><strong>Always recompute</strong> is correct but expensive — every request hits the model, every feature is computed fresh.</li>
+<li><strong>Aggressive caching</strong> is cheap and fast but stale — minutes-old features for a session that just changed intent.</li>
+<li><strong>The hybrid pattern</strong> is what production systems converge to:
+<ul>
+<li><strong>Hot path</strong> (top users / active sessions / recent items): compute live, no cache.</li>
+<li><strong>Cold path</strong> (everyone else): serve from cache with a 30-60 s TTL.</li>
+<li><strong>Negative cache</strong>: explicitly cache &ldquo;nothing changed&rdquo; responses to avoid repeated computation on idle users.</li>
+</ul>
+</li>
+</ul>
+<p>The right panel of Figure 7 shows why: a 60-second TTL captures most of the latency win at a tiny freshness cost; pure recompute spends 5x the compute for ~0.005 AUC. The &ldquo;always recompute&rdquo; point is on the front but rarely worth it.</p>
+<hr>
+<h2 id="10-putting-it-together--a-minimal-but-realistic-system">10. Putting it together — a minimal but realistic system</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RealtimeRanker</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;End-to-end real-time ranker. Combines:
+</span></span></span><span class="line"><span class="cl"><span class="s2">      - Feature store (fresh features from Flink)
+</span></span></span><span class="line"><span class="cl"><span class="s2">      - FTRL-Proximal online learner (per-event weight update)
+</span></span></span><span class="line"><span class="cl"><span class="s2">      - LinUCB on top of the learner&#39;s score (exploration layer)
+</span></span></span><span class="line"><span class="cl"><span class="s2">      - Drift detector (escalates learning rate on regime change)
+</span></span></span><span class="line"><span class="cl"><span class="s2">      - Snapshot rollback (production safety)
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_features</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_strategies</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">scorer</span> <span class="o">=</span> <span class="n">FTRLProximal</span><span class="p">(</span><span class="n">n_features</span><span class="o">=</span><span class="n">n_features</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                    <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">l1</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">l2</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Bandit chooses among ranking strategies, not items</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">bandit</span> <span class="o">=</span> <span class="n">LinUCB</span><span class="p">(</span><span class="n">n_arms</span><span class="o">=</span><span class="n">n_strategies</span><span class="p">,</span> <span class="n">n_features</span><span class="o">=</span><span class="n">n_features</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">drift</span>  <span class="o">=</span> <span class="n">DriftDetector</span><span class="p">(</span><span class="n">z_thresh</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">snapshots</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># circular buffer of (ts, scorer)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">candidates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 1. Bandit picks the strategy</span>
+</span></span><span class="line"><span class="cl">        <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bandit</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 2. Score every candidate with FTRL — sparse vectors</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scored</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">            <span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s2">&#34;id&#34;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorer</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s2">&#34;idx&#34;</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="s2">&#34;val&#34;</span><span class="p">]),</span> <span class="n">c</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">candidates</span>
+</span></span><span class="line"><span class="cl">        <span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 3. Strategy modifies the scoring (e.g. fresh-boost, creator-boost)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scored</span> <span class="o">=</span> <span class="n">apply_strategy</span><span class="p">(</span><span class="n">strategy</span><span class="p">,</span> <span class="n">scored</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scored</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="o">-</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">scored</span><span class="p">[:</span><span class="mi">20</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">observe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">x_idx</span><span class="p">,</span> <span class="n">x_val</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">strategy</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;One feedback loop iteration.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Update online learner</span>
+</span></span><span class="line"><span class="cl">        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorer</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">x_idx</span><span class="p">,</span> <span class="n">x_val</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Update bandit on the strategy that was actually played</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">bandit</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">strategy</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">reward</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Feed drift detector with calibration error</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">drift</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">y</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">scorer</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*=</span> <span class="mi">4</span>              <span class="c1"># bump learning rate</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Periodic safety snapshot</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">snapshots</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">snapshots</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">600</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">snapshots</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scorer</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">snapshots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">snapshots</span><span class="p">[</span><span class="o">-</span><span class="mi">12</span><span class="p">:]</span>  <span class="c1"># keep 2 hours</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A few things that look like trivia but matter in production:</p>
+<ul>
+<li>The bandit operates on <em>strategies</em>, not items. The action space of &ldquo;pick one item out of 100 M&rdquo; is too large for any contextual bandit to converge — but &ldquo;pick one of 4 ranking heuristics&rdquo; is exactly its sweet spot.</li>
+<li>Snapshots are a circular buffer of the <em>online learner state</em>, not the predictions. If a bad batch of training data corrupts weights, you roll back the state and replay clean events from Kafka.</li>
+<li><code>DriftDetector</code> reads calibration error (<code>|p - y|</code>), not raw CTR. Calibration drift catches more failure modes than rate drift alone.</li>
+</ul>
+<hr>
+<h2 id="q--a">Q &amp; A</h2>
+<p><strong>Q: How do I A/B test an online learning system?</strong>
+Standard A/B tests assume independent observations, but online learners <em>learn from their treatment group</em>. The fix is to use <strong>interleaved comparisons</strong> (Chapelle et al., 2012) or to hold a separate &ldquo;frozen&rdquo; model in one arm and the live online model in the other, then compare <em>cumulative</em> reward, not per-request CTR.</p>
+<p><strong>Q: What is the actual difference between Flink and Spark Streaming?</strong>
+Flink processes events one at a time with millisecond latency; Spark Streaming processes them in micro-batches with seconds of latency. For recommendations, Flink&rsquo;s lower latency <em>and</em> its more mature exactly-once state management both matter — virtually every recently-built feed system at scale uses Flink (or proprietary equivalents like Twitter&rsquo;s Heron, ByteDance&rsquo;s Aiops).</p>
+<p><strong>Q: Is online learning unstable?</strong>
+It can be, and that is the failure mode you must engineer against. Three protections: (1) bound the learning rate; (2) clip gradients; (3) keep snapshots and a rollback path. Google&rsquo;s FTRL paper devotes a full section to &ldquo;tricks of the trade&rdquo; — saturation guards, per-coordinate learning rate floors, calibration loss monitoring — that exist solely to make production online learning behave.</p>
+<p><strong>Q: How do bandits handle delayed reward?</strong>
+Two patterns. <strong>Batched updates</strong>: collect $k$ observations, update with all of them, repeat. Both UCB and Thompson Sampling have proofs that batching multiplies regret by a factor of at most $\log k$. <strong>Optimistic counters</strong>: when an arm is pulled, increment $n_i$ immediately and assume reward = mean (or 0 for safety) — correct it once the real reward arrives. The optimistic variant is what production systems use because it keeps the system from over-pulling a single arm during a delay window.</p>
+<p><strong>Q: When should I <em>not</em> use a real-time pipeline?</strong>
+When the feature is slow-moving (demographics, long-term taste embeddings), when the cost of a stale recommendation is small (warehouse search, browsing taxonomies), or when you can&rsquo;t measure improvement (a freshness bump from 1 h to 1 s on a low-traffic surface is invisible in the noise). A real-time pipeline costs ~10-100x of a daily batch — earn it.</p>
+<hr>
+<h2 id="summary">Summary</h2>
+<ul>
+<li>A real-time recommender is <strong>two pipelines glued together</strong> by a feature store and a model registry: an asynchronous write-path that keeps state fresh, and a synchronous read-path that serves under a hard SLO.</li>
+<li><strong>Latency is a tail problem.</strong> Optimise for p99, not p50 — the ranker dominates and is where distillation and quantisation pay back.</li>
+<li><strong>Online learning is FTRL-Proximal in production.</strong> It is the algorithm Google published for ad CTR; SGD/AdaGrad are stepping stones.</li>
+<li><strong>Streaming is Kafka + Flink.</strong> Kafka is durable transport; Flink is stateful compute with exactly-once semantics via distributed snapshots.</li>
+<li><strong>Freshness has a price curve.</strong> Behavioral features pay back the streaming cost; demographics and item metadata don&rsquo;t.</li>
+<li><strong>Bandits work above the ranker, not at the item level.</strong> Their action space is &ldquo;which policy&rdquo;, not &ldquo;which item&rdquo;.</li>
+<li><strong>Drift will happen.</strong> Detect it (z-score, ADWIN, DDM), react cheaply (bump $\eta$), keep a rollback path.</li>
+<li><strong>Cache vs compute is not a binary.</strong> The production answer is hybrid — hot path live, cold path cached, with a 30-60 s TTL covering 95 % of traffic at a fraction of the cost.</li>
+</ul>
+<p>The rule of thumb that has held across every system I have seen at scale: <em>make real-time only what moves AUC, and budget the rest by how often it actually changes</em>.</p>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<p>This is <strong>Part 15 of 16</strong> in the Recommendation Systems series.</p>
+<p><strong>Previous</strong>: <a href="/en/recommendation-systems-14-cross-domain-cold-start/">Part 14 &ndash; Cross-Domain Recommendation and Cold-Start Solutions</a>
+
+<strong>Next</strong>: <a href="/en/recommendation-systems-16-industrial-practice/">Part 16 &ndash; Industrial Architecture and Best Practices</a>
+</p>
+<p><a href="/categories/Recommendation-Systems/">View all parts in the Recommendation Systems series</a>
+</p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-why-real-time-and-what-real-time-actually-means">1. Why real-time, and what &ldquo;real-time&rdquo; actually means</a></li>
+    <li><a href="#2-the-two-path-architecture">2. The two-path architecture</a></li>
+    <li><a href="#3-the-latency-budget--where-every-millisecond-goes">3. The latency budget — where every millisecond goes</a></li>
+    <li><a href="#4-streaming-kafka--flink-in-production">4. Streaming: Kafka + Flink in production</a>
+      <ul>
+        <li><a href="#41-kafka--the-durable-transport">4.1 Kafka — the durable transport</a></li>
+        <li><a href="#42-flink--the-stateful-compute">4.2 Flink — the stateful compute</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-online-learning-from-sgd-to-ftrl">5. Online learning: from SGD to FTRL</a>
+      <ul>
+        <li><a href="#51-the-core-update">5.1 The core update</a></li>
+        <li><a href="#52-adagrad--adaptive-per-feature-step">5.2 AdaGrad — adaptive per-feature step</a></li>
+        <li><a href="#53-ftrl-proximal--the-production-workhorse">5.3 FTRL-Proximal — the production workhorse</a></li>
+        <li><a href="#54-online-vs-batch--the-picture">5.4 Online vs batch — the picture</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-feature-freshness--how-much-does-it-actually-matter">6. Feature freshness — how much does it actually matter?</a></li>
+    <li><a href="#7-bandits--the-principled-exploration-story">7. Bandits — the principled exploration story</a>
+      <ul>
+        <li><a href="#71-the-problem-in-one-sentence">7.1 The problem in one sentence</a></li>
+        <li><a href="#72-ucb1--be-optimistic-in-the-face-of-uncertainty">7.2 UCB1 — be optimistic in the face of uncertainty</a></li>
+        <li><a href="#73-thompson-sampling--the-bayesian-way">7.3 Thompson Sampling — the Bayesian way</a></li>
+        <li><a href="#74-linucb--context-that-actually-matters">7.4 LinUCB — context that actually matters</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-concept-drift--detect-dont-pretend-it-isnt-there">8. Concept drift — detect, don&rsquo;t pretend it isn&rsquo;t there</a>
+      <ul>
+        <li><a href="#81-three-classical-detectors">8.1 Three classical detectors</a></li>
+        <li><a href="#82-reacting-to-drift">8.2 Reacting to drift</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-cache-vs-compute--the-trade-off-you-actually-tune">9. Cache vs compute — the trade-off you actually tune</a></li>
+    <li><a href="#10-putting-it-together--a-minimal-but-realistic-system">10. Putting it together — a minimal but realistic system</a></li>
+    <li><a href="#q--a">Q &amp; A</a></li>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Recommendation Systems</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>21 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4400</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

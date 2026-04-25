@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Transfer Learning (6): Multi-Task Learning · Chen Kai Blog</title>
+<meta name="description" content="Train one model on multiple tasks simultaneously. Covers hard vs. soft parameter sharing, gradient conflicts (PCGrad, GradNorm, CAGrad), auxiliary task design, and a complete multi-task framework with dynamic weight balancing.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/transfer-learning/06-multi-task-learning/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/transfer-learning/06-multi-task-learning/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Transfer Learning (6): Multi-Task Learning">
+<meta property="og:description" content="Train one model on multiple tasks simultaneously. Covers hard vs. soft parameter sharing, gradient conflicts (PCGrad, GradNorm, CAGrad), auxiliary task design, and a complete multi-task framework with dynamic weight balancing.">
+<meta property="og:url" content="https://www.chenk.top/en/transfer-learning/06-multi-task-learning/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Transfer Learning</a>
+         · Chapter 6
+      </div>
+      <h1>Transfer Learning (6): Multi-Task Learning</h1>
+      <p class="deck">Train one model on multiple tasks simultaneously. Covers hard vs. soft parameter sharing, gradient conflicts (PCGrad, GradNorm, CAGrad), auxiliary task design, and a complete multi-task framework with dynamic weight balancing.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-05-31">May 31, 2025</time> · 20 min read · 4200 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/transfer-learning/" class="tag">#Transfer Learning</a><a href="/en/tags/multi-task-learning/" class="tag">#Multi-Task Learning</a><a href="/en/tags/parameter-sharing/" class="tag">#Parameter Sharing</a><a href="/en/tags/gradient-conflict/" class="tag">#Gradient Conflict</a><a href="/en/tags/pcgrad/" class="tag">#PCGrad</a><a href="/en/tags/gradnorm/" class="tag">#GradNorm</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>A self-driving car looking through a single camera needs to do three things at once: detect cars and pedestrians, segment lanes and free space, and estimate how far away each pixel is. You could train three separate networks. You would burn 3x the parameters, run 3x the forward passes at inference, and ignore the obvious fact that all three tasks need the same kind of low-level features (edges, surfaces, occlusion cues).</p>
+<p>Multi-task learning (MTL) is the alternative: one shared backbone, one task-specific head per output, all trained jointly. Done well, you cut parameters by 60% <strong>and</strong> lift accuracy on every task because each task acts as a regularizer for the others. Done badly, two of your three tasks regress and you waste a week wondering why.</p>
+<p>This article is about doing it well. The hard parts are not the architecture — that is one diagram. The hard parts are (1) the loss-scale mismatch between a cross-entropy term and an L2 depth term, (2) the gradient conflicts that arise 30-50% of the time when two tasks pull in different directions, and (3) figuring out which tasks even belong in the same model. We will cover the architectures (hard vs soft sharing, cross-stitch, MTAN), the optimizers that survive contact with real loss landscapes (Uncertainty Weighting, GradNorm, PCGrad, CAGrad), and a runnable PyTorch framework that ties it all together.</p>
+<h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li>Why MTL works at all — the regularization, data-augmentation and efficiency views</li>
+<li>Hard vs soft parameter sharing, and the cross-stitch / MTAN middle ground</li>
+<li>How to measure task affinity <em>before</em> committing to a multi-task design</li>
+<li>Gradient conflicts: what they are, how often they happen, how PCGrad and CAGrad fix them</li>
+<li>Loss-scale balancing with Uncertainty Weighting (Kendall et al.) and GradNorm</li>
+<li>A complete PyTorch implementation of all three balancing methods</li>
+</ul>
+<p><strong>Prerequisites:</strong> Parts 1-2 of this series, comfort training neural networks in PyTorch.</p>
+<hr>
+<h2 id="why-multi-task-learning">Why Multi-Task Learning?</h2>
+<h3 id="shared-structure-tasks-that-need-the-same-features">Shared structure: tasks that need the same features</h3>
+<p>The clearest case for MTL is when several tasks demand the same low-level representations:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Task</th>
+          <th>What the features must encode</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Object detection</td>
+          <td>Spatial layout, object boundaries, textures</td>
+      </tr>
+      <tr>
+          <td>Semantic segmentation</td>
+          <td>Spatial layout, object boundaries, textures</td>
+      </tr>
+      <tr>
+          <td>Depth estimation</td>
+          <td>Spatial layout, textures, geometric cues</td>
+      </tr>
+  </tbody>
+</table>
+<p>Three tasks, one set of underlying features. Training three encoders separately means each one rediscovers edges, surfaces, and shape priors from scratch. Sharing the encoder forces those features to be learned <strong>once</strong>, with the supervisory signal of all three tasks pushing in the same direction.</p>
+<h3 id="regularization-view">Regularization view</h3>
+<p>Given $T$ tasks with losses $\mathcal{L}_1, \ldots, \mathcal{L}_T$, shared parameters $\theta_{\text{sh}}$, and task-specific parameters $\theta_t$, the joint objective is</p>
+$$
+\mathcal{L}_{\text{MTL}} \;=\; \sum_{t=1}^{T} w_t \cdot \mathcal{L}_t(\theta_{\text{sh}}, \theta_t).
+$$<p>The shared parameters $\theta_{\text{sh}}$ must lie in the intersection of the &ldquo;good for task $t$&rdquo; regions for <em>every</em> $t$. That intersection is much smaller than any single task&rsquo;s region, which acts as an <strong>implicit prior</strong> on $\theta_{\text{sh}}$. Empirically the model overfits less to any one task&rsquo;s noise — exactly the kind of regularization Caruana (1997) showed in the original MTL paper.</p>
+<h3 id="data-augmentation-view">Data-augmentation view</h3>
+<p>When the main task is data-starved, related auxiliary tasks supply additional supervisory signal through the shared parameters.</p>
+<p><strong>Concrete:</strong> low-resource MT from English to Swahili (~100K parallel pairs). Add an auxiliary English-to-French task (~10M pairs). The shared English encoder now sees 100x more English sentences. The Swahili side gains nothing directly, but the encoder it depends on becomes much better — typical reported gains are 5-20% BLEU on the low-resource task.</p>
+<h3 id="compute-efficiency">Compute efficiency</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Setup</th>
+          <th>Parameters</th>
+          <th>Forward passes</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>3 separate ResNet-50 models</td>
+          <td>75 M</td>
+          <td>3</td>
+      </tr>
+      <tr>
+          <td>1 shared encoder + 3 lightweight heads</td>
+          <td>31 M</td>
+          <td>1</td>
+      </tr>
+  </tbody>
+</table>
+<p>About 60% fewer parameters and a single forward pass for all three predictions — visualised on the right of Figure 6 below. For real-time systems (autonomous driving, AR, on-device) this is often the <em>primary</em> reason to do MTL.</p>
+<h3 id="the-risk-negative-transfer">The risk: negative transfer</h3>
+<p>MTL is not free. When tasks demand genuinely different features, joint training underperforms separate training. The classic counter-example:</p>
+<ul>
+<li><strong>Face recognition</strong> needs fine-grained textural detail of the inner face.</li>
+<li><strong>Scene classification</strong> needs coarse global layout.</li>
+</ul>
+<p>Forcing both through the same backbone gives you a backbone that is mediocre at both. The cure is not to give up on MTL — it is to either (a) measure the conflict before training (next section), (b) use soft sharing so the tasks can diverge, or (c) use a gradient-surgery method that prevents one task from actively harming the other.</p>
+<hr>
+<h2 id="parameter-sharing-strategies">Parameter Sharing Strategies</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig1_hard_vs_soft_sharing.png" alt="Hard vs soft parameter sharing" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="hard-parameter-sharing">Hard parameter sharing</h3>
+<p>The default and still the strongest baseline. All tasks share the backbone; each gets its own head:</p>
+$$
+\text{features} \;=\; G_{\text{shared}}(x), \qquad
+\hat{y}_t \;=\; G_t^{\text{head}}(\text{features}) \quad \forall\, t.
+$$<p><strong>Design rules of thumb:</strong></p>
+<ul>
+<li>Share the first 70-80% of layers (general features).</li>
+<li>Keep the last 20-30% task-specific (each head can be 1-3 layers).</li>
+<li>Make heads wide enough that task-specific patterns have room to live.</li>
+</ul>
+<p>Hard sharing gives you the strongest regularization, the smallest parameter count, and is impossible to misconfigure. <strong>Always start here.</strong></p>
+<h3 id="soft-parameter-sharing">Soft parameter sharing</h3>
+<p>Each task has its own backbone, but a coupling term encourages the parallel parameters to stay similar:</p>
+$$
+\mathcal{L} \;=\; \sum_t \mathcal{L}_t(\theta_t) \;+\; \lambda \!\!\sum_{i \neq j} \! \lVert \theta_i - \theta_j \rVert^2.
+$$<p>The dashed yellow lines on the right of Figure 1 show those coupling terms. The model can break the symmetry layer by layer — useful when tasks need similar but not identical features.</p>
+<h3 id="cross-stitch-networks">Cross-Stitch Networks</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig2_cross_stitch.png" alt="Cross-stitch networks" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Cross-stitch networks (Misra et al., 2016) sit between hard and soft sharing. Each task has its own column of layers, but at every layer a small <strong>cross-stitch unit</strong> lets the two activations mix:</p>
+$$
+\tilde{x}_A^{\,l} \;=\; \alpha_{AA}\, x_A^{\,l} + \alpha_{AB}\, x_B^{\,l},
+\qquad
+\tilde{x}_B^{\,l} \;=\; \alpha_{BA}\, x_A^{\,l} + \alpha_{BB}\, x_B^{\,l}.
+$$<p>The four scalars $\alpha_{\bullet\bullet}$ per layer are learned. Their values are interpretable: large $\alpha_{AB}$ at a given layer means task $A$ leans heavily on task $B$&rsquo;s features at that depth — useful as a diagnostic, not just an architectural trick.</p>
+<h3 id="multi-task-attention-network-mtan">Multi-Task Attention Network (MTAN)</h3>
+<p>MTAN (Liu et al., 2019) shares a single backbone but lets each task carve out its own subset of the shared features through a sigmoid attention mask:</p>
+$$
+\text{mask}_t = \sigma(W_t \cdot F_{\text{shared}} + b_t), \qquad
+F_t = \text{mask}_t \odot F_{\text{shared}}.
+$$<p>The mask is per-task and per-layer, so each task can &ldquo;tune in&rdquo; to different channels at different depths. MTAN is usually the strongest soft-sharing variant for vision MTL.</p>
+<h3 id="choosing-between-them">Choosing between them</h3>
+<ul>
+<li><strong>Hard sharing.</strong> Default. Tasks closely related (same modality, same level of abstraction).</li>
+<li><strong>Cross-stitch / MTAN.</strong> When you observe negative transfer with hard sharing, but the tasks still share a lot.</li>
+<li><strong>Fully soft sharing or completely separate models.</strong> When tasks share little — at this point ask whether MTL is even the right tool.</li>
+</ul>
+<hr>
+<h2 id="measuring-task-affinity-before-you-commit">Measuring Task Affinity <em>Before</em> You Commit</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig7_task_affinity.png" alt="Task affinity matrix and grouping" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>You should not pick the tasks for an MTL model based on intuition alone. Three quantitative tests are cheap and worth doing first.</p>
+<ol>
+<li><strong>Transfer-experiment affinity</strong> (Taskonomy-style). Train on task $A$, fine-tune on task $B$, compare against a from-scratch baseline. Improvement = positive affinity.</li>
+<li><strong>Gradient cosine similarity.</strong> Train a small joint model for one epoch, log $\cos(\nabla_\theta \mathcal{L}_A, \nabla_\theta \mathcal{L}_B)$ at each step. Consistently negative = the tasks are fighting.</li>
+<li><strong>Feature similarity (CKA).</strong> Compare learned representations across tasks. High CKA = the same backbone can serve both.</li>
+</ol>
+<p>Figure 7 (left) shows a typical affinity matrix for seven vision tasks. Notice the tight cluster around <code>Detect / Segment / Edges</code> (all 0.78+) and the much looser ties to <code>Caption</code>. The dendrogram on the right turns those numbers into a concrete grouping recommendation: rather than one giant shared encoder, train</p>
+<pre tabindex="0"><code>Group 1: Detect + Segment + Edges       -&gt; shared encoder A
+Group 2: Depth + Normals                -&gt; shared encoder B
+Group 3: Pose + Caption                 -&gt; shared encoder C
+</code></pre><p>Standley et al. (2020) showed that automated task grouping found this way (RL or hierarchical clustering) consistently beats both hand-grouping and a single global encoder.</p>
+<hr>
+<h2 id="gradient-conflicts-and-task-balancing">Gradient Conflicts and Task Balancing</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig3_gradient_conflict.png" alt="Gradient conflict and PCGrad" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>This is where most MTL projects bleed performance. The architecture is fine; the optimizer is silently wrecking one task to help another.</p>
+<h3 id="what-conflict-means-precisely">What &ldquo;conflict&rdquo; means precisely</h3>
+<p>Two tasks&rsquo; gradients on the shared parameters conflict when</p>
+$$
+\nabla \mathcal{L}_1 \cdot \nabla \mathcal{L}_2 \;<\; 0.
+$$<p>Figure 3 (left) makes the geometry obvious. Task 1&rsquo;s gradient $g_1$ points right-and-up; task 2&rsquo;s $g_2$ points left-and-up. Their average $\bar{g}$ has nearly zero component along $g_1$ — i.e. <strong>the naive sum-of-losses gradient barely helps task 1 at all</strong>. The cosine similarity between $g_1$ and $g_2$ is $-0.43$ in this example.</p>
+<p>How often does this happen in practice? Figure 3 (right) shows a representative empirical distribution of $\cos$ values during a multi-task training run: roughly <strong>45% of updates conflict</strong>, often persistently across epochs.</p>
+<h3 id="static-weights-the-baselines">Static weights (the baselines)</h3>
+<p><strong>Uniform</strong> ($w_t = 1$): simple, occasionally fine, but breaks badly when loss scales differ. A classification cross-entropy of $\sim 1$ averaged with a depth MSE of $\sim 100$ means the optimizer is essentially doing single-task depth learning.</p>
+<p><strong>Hand-tuned weights</strong>: works if you have one or two tasks and a week to spare. Does not scale.</p>
+<h3 id="uncertainty-weighting-kendall-et-al-2018">Uncertainty Weighting (Kendall et al., 2018)</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig5_uncertainty_weighting.png" alt="Uncertainty weighting" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Treat each task&rsquo;s output as a Gaussian with learned noise $\sigma_t$. The negative log-likelihood becomes</p>
+$$
+\mathcal{L} \;=\; \sum_t \frac{1}{2\sigma_t^2}\, \mathcal{L}_t \;+\; \log \sigma_t.
+$$<p>Two things to notice from Figure 5:</p>
+<ul>
+<li><strong>Left panel.</strong> For a fixed task loss $\mathcal{L}$, the combined objective has a unique minimum at $\sigma^* = \sqrt{\mathcal{L}}$. Without the $\log \sigma$ term the optimizer would push $\sigma_t \to \infty$ to drive the weighted loss to zero — the regularizer is what keeps the trick honest.</li>
+<li><strong>Right panel.</strong> Tasks with raw losses spanning two orders of magnitude (<code>1</code>, <code>50</code>, <code>0.3</code>) end up contributing comparable weighted losses (<code>1.4</code>, <code>2.8</code>, <code>0.15</code>) once the learned $\sigma_t$ kicks in.</li>
+</ul>
+<p>Typical gain over uniform weights: 2-5%. Cost: $T$ extra scalar parameters. Cheap and almost always worth turning on.</p>
+<h3 id="gradnorm-balancing-gradient-magnitudes-by-training-speed">GradNorm: balancing gradient magnitudes by training speed</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig4_gradnorm.png" alt="GradNorm dynamics" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Uncertainty weighting balances <em>loss magnitudes</em>. GradNorm (Chen et al., 2018) balances <em>gradient magnitudes</em>, conditioned on each task&rsquo;s training progress.</p>
+<p>Define each task&rsquo;s relative inverse training rate</p>
+$$
+\tilde{r}_t \;=\; \frac{\mathcal{L}_t(t)\,/\,\mathcal{L}_t(0)}{\overline{\mathcal{L}(t)\,/\,\mathcal{L}(0)}}.
+$$<p>A value of $\tilde{r}_t > 1$ means task $t$ has shrunk its loss less than average — it is <em>falling behind</em>. GradNorm then nudges $w_t$ so that</p>
+$$
+\lVert w_t \nabla \mathcal{L}_t \rVert \;\approx\; \overline{G}\cdot \tilde{r}_t^{\,\alpha},
+$$<p>where $\overline{G}$ is the mean shared-parameter gradient norm and $\alpha \!\approx\! 1.5$ controls aggressiveness.</p>
+<p>Figure 4 walks through a 60-epoch simulation:</p>
+<ul>
+<li><strong>Left.</strong> Three tasks with very different loss scales and convergence rates.</li>
+<li><strong>Middle.</strong> Their relative training rates $\tilde{r}_t$. The slow regression task drifts above 1; the fast auxiliary task drops below.</li>
+<li><strong>Right.</strong> GradNorm responds by <em>raising</em> the lagging task&rsquo;s weight and <em>lowering</em> the leading task&rsquo;s weight, all without manual intervention.</li>
+</ul>
+<p>Reported gains over uniform weights: 3-8% across multiple benchmarks.</p>
+<h3 id="pcgrad-project-away-the-conflicting-component">PCGrad: project away the conflicting component</h3>
+<p>PCGrad (Yu et al., 2020) tackles direction, not magnitude. Whenever two task gradients conflict, project one onto the <em>normal plane</em> of the other, removing the part that actively hurts:</p>
+$$
+g_i' \;=\; g_i \;-\; \frac{g_i \cdot g_j}{\lVert g_j \rVert^2}\, g_j
+\qquad \text{when } g_i \cdot g_j < 0.
+$$<p>After projection $g_i' \cdot g_j = 0$ — no remaining conflict. The green arrow $g_1^{PC}$ in Figure 3 (left) shows the result: it preserves the part of $g_1$ that does not hurt $g_2$.</p>
+<p>Pseudocode:</p>
+<pre tabindex="0"><code>for each task i:
+    g_i = backward pass on loss_i
+    for each other task j:
+        if g_i . g_j &lt; 0:                     # conflict
+            g_i = g_i - proj(g_i, g_j)        # remove conflicting component
+final_gradient = mean of all modified gradients
+</code></pre><p><strong>Theoretical guarantee:</strong> the final gradient does not increase any task&rsquo;s loss to first order.</p>
+<p>Reported on NYUv2 (segmentation + depth + normals):</p>
+<ul>
+<li>Uniform weights: mIoU 40.2%, depth error 0.61</li>
+<li>PCGrad:         mIoU 42.7%, depth error 0.58</li>
+</ul>
+<h3 id="cagrad-globally-optimal-conflict-resolution">CAGrad: globally optimal conflict resolution</h3>
+<p>CAGrad (Liu et al., 2021) generalises PCGrad by solving a single QP that finds the smallest update vector still aligned with every task gradient:</p>
+$$
+g^{*} \;=\; \arg\min_g \lVert g \rVert^2 \quad \text{s.t.}\quad g \cdot g_t \geq 0 \;\; \forall t.
+$$<p>This is the <em>Pareto-optimal</em> descent direction — guaranteed not to harm any task, and globally rather than pairwise. Cost is $\mathcal{O}(T^2)$ per step instead of pairwise PCGrad. For $T \leq 5$ tasks, just use CAGrad.</p>
+<h3 id="comparison-and-combinability">Comparison and combinability</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Method</th>
+          <th>What it controls</th>
+          <th>Cost</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Uniform</td>
+          <td>Nothing</td>
+          <td>Free</td>
+      </tr>
+      <tr>
+          <td>Uncertainty weighting</td>
+          <td>Loss magnitudes</td>
+          <td>$T$ params</td>
+      </tr>
+      <tr>
+          <td>GradNorm</td>
+          <td>Gradient magnitudes</td>
+          <td>$T$ params + 1 backward</td>
+      </tr>
+      <tr>
+          <td>PCGrad</td>
+          <td>Gradient directions</td>
+          <td>$T$ backwards</td>
+      </tr>
+      <tr>
+          <td>CAGrad</td>
+          <td>Gradient directions (global)</td>
+          <td>$T$ backwards + QP</td>
+      </tr>
+  </tbody>
+</table>
+<p>GradNorm (magnitude) and PCGrad/CAGrad (direction) are <strong>orthogonal</strong>. Combining GradNorm + PCGrad is a strong default for $T \geq 3$ tasks with mismatched scales.</p>
+<hr>
+<h2 id="how-much-does-any-of-this-buy-you">How Much Does Any of This Buy You?</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig6_mtl_vs_single_task.png" alt="MTL vs single-task performance and cost" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Figure 6 puts the methods next to each other on a NYUv2-style benchmark with three tasks:</p>
+<ul>
+<li><strong>Left.</strong> Per-task improvement vs single-task baselines. Uniform MTL already wins on every task (the regularization effect is real). Uncertainty Weighting adds ~1-2 points. GradNorm and PCGrad add another 1-2 points each. CAGrad sits at the top.</li>
+<li><strong>Right.</strong> The cost/efficiency win is independent of the balancing method: shared encoder + 3 heads cuts parameters from 75M to 31M and forward passes from 3 to 1.</li>
+</ul>
+<p>Practical takeaway: a competent MTL setup with PCGrad or CAGrad regularly produces a model that is <strong>smaller, faster, and more accurate</strong> than the single-task ensemble it replaces. That is the unusual case where engineering and accuracy point in the same direction.</p>
+<hr>
+<h2 id="auxiliary-task-design">Auxiliary Task Design</h2>
+<p>When your real interest is one main task and you are using MTL purely as a regularizer, the design question becomes: which auxiliary tasks to add?</p>
+<h3 id="self-supervised-auxiliaries-free-supervision">Self-supervised auxiliaries (free supervision)</h3>
+<ul>
+<li><strong>Rotation prediction.</strong> Rotate inputs by 0 / 90 / 180 / 270, predict the angle. Teaches orientation and object structure.</li>
+<li><strong>Jigsaw puzzles.</strong> Shuffle image patches, predict the permutation. Teaches spatial layout.</li>
+<li><strong>Contrastive (SimCLR / MoCo).</strong> Pull together two augmentations of the same input; push apart different inputs. Teaches augmentation-invariant features.</li>
+</ul>
+<h3 id="domain-specific-auxiliaries">Domain-specific auxiliaries</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Main task</th>
+          <th>Useful auxiliaries</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Object detection</td>
+          <td>Edge detection, depth estimation</td>
+      </tr>
+      <tr>
+          <td>Named entity recognition</td>
+          <td>POS tagging, dependency parsing</td>
+      </tr>
+      <tr>
+          <td>CTR prediction</td>
+          <td>Conversion rate, dwell time, follow probability</td>
+      </tr>
+      <tr>
+          <td>Speech recognition</td>
+          <td>Speaker ID, voice activity, noise classification</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="how-many-auxiliaries">How many auxiliaries?</h3>
+<ul>
+<li>Start with 1-2 of the most plausibly related ones.</li>
+<li>Add more only while validation on the <em>main</em> task keeps improving.</li>
+<li>2-4 auxiliaries is typical; beyond ~10 you should be clustering tasks (Figure 7) instead of stacking them.</li>
+</ul>
+<hr>
+<h2 id="complete-implementation">Complete Implementation</h2>
+<p>A self-contained PyTorch framework supporting hard parameter sharing with three balancing options: uniform, PCGrad, and GradNorm.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span><span class="lnt">144
+</span><span class="lnt">145
+</span><span class="lnt">146
+</span><span class="lnt">147
+</span><span class="lnt">148
+</span><span class="lnt">149
+</span><span class="lnt">150
+</span><span class="lnt">151
+</span><span class="lnt">152
+</span><span class="lnt">153
+</span><span class="lnt">154
+</span><span class="lnt">155
+</span><span class="lnt">156
+</span><span class="lnt">157
+</span><span class="lnt">158
+</span><span class="lnt">159
+</span><span class="lnt">160
+</span><span class="lnt">161
+</span><span class="lnt">162
+</span><span class="lnt">163
+</span><span class="lnt">164
+</span><span class="lnt">165
+</span><span class="lnt">166
+</span><span class="lnt">167
+</span><span class="lnt">168
+</span><span class="lnt">169
+</span><span class="lnt">170
+</span><span class="lnt">171
+</span><span class="lnt">172
+</span><span class="lnt">173
+</span><span class="lnt">174
+</span><span class="lnt">175
+</span><span class="lnt">176
+</span><span class="lnt">177
+</span><span class="lnt">178
+</span><span class="lnt">179
+</span><span class="lnt">180
+</span><span class="lnt">181
+</span><span class="lnt">182
+</span><span class="lnt">183
+</span><span class="lnt">184
+</span><span class="lnt">185
+</span><span class="lnt">186
+</span><span class="lnt">187
+</span><span class="lnt">188
+</span><span class="lnt">189
+</span><span class="lnt">190
+</span><span class="lnt">191
+</span><span class="lnt">192
+</span><span class="lnt">193
+</span><span class="lnt">194
+</span><span class="lnt">195
+</span><span class="lnt">196
+</span><span class="lnt">197
+</span><span class="lnt">198
+</span><span class="lnt">199
+</span><span class="lnt">200
+</span><span class="lnt">201
+</span><span class="lnt">202
+</span><span class="lnt">203
+</span><span class="lnt">204
+</span><span class="lnt">205
+</span><span class="lnt">206
+</span><span class="lnt">207
+</span><span class="lnt">208
+</span><span class="lnt">209
+</span><span class="lnt">210
+</span><span class="lnt">211
+</span><span class="lnt">212
+</span><span class="lnt">213
+</span><span class="lnt">214
+</span><span class="lnt">215
+</span><span class="lnt">216
+</span><span class="lnt">217
+</span><span class="lnt">218
+</span><span class="lnt">219
+</span><span class="lnt">220
+</span><span class="lnt">221
+</span><span class="lnt">222
+</span><span class="lnt">223
+</span><span class="lnt">224
+</span><span class="lnt">225
+</span><span class="lnt">226
+</span><span class="lnt">227
+</span><span class="lnt">228
+</span><span class="lnt">229
+</span><span class="lnt">230
+</span><span class="lnt">231
+</span><span class="lnt">232
+</span><span class="lnt">233
+</span><span class="lnt">234
+</span><span class="lnt">235
+</span><span class="lnt">236
+</span><span class="lnt">237
+</span><span class="lnt">238
+</span><span class="lnt">239
+</span><span class="lnt">240
+</span><span class="lnt">241
+</span><span class="lnt">242
+</span><span class="lnt">243
+</span><span class="lnt">244
+</span><span class="lnt">245
+</span><span class="lnt">246
+</span><span class="lnt">247
+</span><span class="lnt">248
+</span><span class="lnt">249
+</span><span class="lnt">250
+</span><span class="lnt">251
+</span><span class="lnt">252
+</span><span class="lnt">253
+</span><span class="lnt">254
+</span><span class="lnt">255
+</span><span class="lnt">256
+</span><span class="lnt">257
+</span><span class="lnt">258
+</span><span class="lnt">259
+</span><span class="lnt">260
+</span><span class="lnt">261
+</span><span class="lnt">262
+</span><span class="lnt">263
+</span><span class="lnt">264
+</span><span class="lnt">265
+</span><span class="lnt">266
+</span><span class="lnt">267
+</span><span class="lnt">268
+</span><span class="lnt">269
+</span><span class="lnt">270
+</span><span class="lnt">271
+</span><span class="lnt">272
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">Dataset</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torchvision</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== Network Architecture =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SharedEncoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Shared backbone: first 3 blocks of ResNet-18.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">resnet</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">resnet18</span><span class="p">(</span><span class="n">pretrained</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">stem</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">resnet</span><span class="o">.</span><span class="n">conv1</span><span class="p">,</span> <span class="n">resnet</span><span class="o">.</span><span class="n">bn1</span><span class="p">,</span> <span class="n">resnet</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span> <span class="n">resnet</span><span class="o">.</span><span class="n">maxpool</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span> <span class="o">=</span> <span class="n">resnet</span><span class="o">.</span><span class="n">layer1</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span> <span class="o">=</span> <span class="n">resnet</span><span class="o">.</span><span class="n">layer2</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span> <span class="o">=</span> <span class="n">resnet</span><span class="o">.</span><span class="n">layer3</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stem</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TaskHead</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Task-specific classification or regression head.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">num_outputs</span><span class="p">,</span> <span class="n">task_type</span><span class="o">=</span><span class="s1">&#39;classification&#39;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_type</span> <span class="o">=</span> <span class="n">task_type</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">AdaptiveAvgPool2d</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">num_outputs</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultiTaskNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Hard parameter sharing: shared encoder + task-specific heads.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_configs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">SharedEncoder</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">heads</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">            <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span> <span class="n">TaskHead</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;num_classes&#39;</span><span class="p">],</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">task_configs</span>
+</span></span><span class="line"><span class="cl">        <span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">head</span><span class="p">(</span><span class="n">features</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">head</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">heads</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== PCGrad =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PCGrad</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Projecting Conflicting Gradients (Yu et al., NeurIPS 2020).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">task_names</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span> <span class="o">=</span> <span class="n">task_names</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_project</span><span class="p">(</span><span class="n">g_i</span><span class="p">,</span> <span class="n">g_j</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">g_i</span><span class="p">,</span> <span class="n">g_j</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">dot</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">g_i</span> <span class="o">=</span> <span class="n">g_i</span> <span class="o">-</span> <span class="p">(</span><span class="n">dot</span> <span class="o">/</span> <span class="p">(</span><span class="n">g_j</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span> <span class="o">*</span> <span class="n">g_j</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">g_i</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">losses</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 1. Per-task flattened gradients on the shared parameters.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">grads</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">losses</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">grads</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">            <span class="p">])</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 2. Project away conflicting components pairwise.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">modified</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ni</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">g</span> <span class="o">=</span> <span class="n">grads</span><span class="p">[</span><span class="n">ni</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">nj</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">grads</span><span class="p">[</span><span class="n">nj</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">modified</span><span class="p">[</span><span class="n">ni</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 3. Use the average modified gradient for the optimizer step.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">avg_grad</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">modified</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">modified</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;params&#39;</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">avg_grad</span><span class="p">[</span><span class="n">idx</span><span class="p">:</span><span class="n">idx</span> <span class="o">+</span> <span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">idx</span> <span class="o">+=</span> <span class="n">n</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== GradNorm =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GradNorm</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Gradient normalization for adaptive loss balancing
+</span></span></span><span class="line"><span class="cl"><span class="s2">    (Chen et al., ICML 2018).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">task_names</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.025</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span> <span class="o">=</span> <span class="n">task_names</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">task_names</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight_optim</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">],</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">losses</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">l</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">losses</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">weighted</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weighted</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Per-task gradient norms on the shared encoder only.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">shared_params</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="n">grad_norms</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">wl</span> <span class="ow">in</span> <span class="n">weighted</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">wl</span><span class="p">,</span> <span class="n">shared_params</span><span class="p">,</span> <span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">grad_norms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">g</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">grads</span><span class="p">])))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">avg_norm</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">grad_norms</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">grad_norms</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">avg_ratio</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># GradNorm loss: drive ||w_t * grad_t|| toward avg_norm * r_t^alpha.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">gn_loss</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">grad_norms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">avg_norm</span> <span class="o">*</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                <span class="o">/</span> <span class="p">(</span><span class="n">avg_ratio</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight_optim</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">gn_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight_optim</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Renormalize so that sum of weights stays equal to T.</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">data</span> <span class="o">*=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">total</span><span class="p">,</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== Trainer =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MTLTrainer</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Multi-task trainer supporting uniform, PCGrad, and GradNorm.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">task_configs</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;uniform&#39;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_configs</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">task_configs</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">task_configs</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;pcgrad&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">pcgrad</span> <span class="o">=</span> <span class="n">PCGrad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;gradnorm&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">gradnorm</span> <span class="o">=</span> <span class="n">GradNorm</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_losses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">losses</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_configs</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">losses</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stats</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;total&#39;</span><span class="p">]}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">inputs</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">targets</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">batch</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">losses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_losses</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;uniform&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">losses</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;pcgrad&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">pcgrad</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">losses</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;gradnorm&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradnorm</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">stats</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                             <span class="k">else</span> <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;total&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">total</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                               <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">total</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nb</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="o">/</span> <span class="n">nb</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">correct</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">inputs</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">targets</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">batch</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">total</span> <span class="o">+=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_configs</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">correct</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">targets</span><span class="p">[</span><span class="n">n</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">correct</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">/</span> <span class="n">total</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== Demo =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DummyMTLDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s1">&#39;input&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s1">&#39;task1&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="p">())</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="s1">&#39;task2&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="p">())</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="n">configs</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;task1&#39;</span><span class="p">,</span> <span class="s1">&#39;num_classes&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;classification&#39;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;task2&#39;</span><span class="p">,</span> <span class="s1">&#39;num_classes&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;classification&#39;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;cuda&#39;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;cpu&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">DummyMTLDataset</span><span class="p">(</span><span class="mi">1000</span><span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">DummyMTLDataset</span><span class="p">(</span><span class="mi">200</span><span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;pcgrad&#39;</span><span class="p">,</span> <span class="s1">&#39;gradnorm&#39;</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="si">}</span><span class="se">\n</span><span class="s2">Method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span> <span class="o">=</span> <span class="n">MultiTaskNet</span><span class="p">(</span><span class="n">configs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">trainer</span> <span class="o">=</span> <span class="n">MTLTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">configs</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">stats</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train_epoch</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: &#34;</span>
+</span></span><span class="line"><span class="cl">                  <span class="o">+</span> <span class="s2">&#34; &#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">                  <span class="o">+</span> <span class="s2">&#34; | &#34;</span>
+</span></span><span class="line"><span class="cl">                  <span class="o">+</span> <span class="s2">&#34; &#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%&#34;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">main</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="code-architecture">Code architecture</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Component</th>
+          <th>Role</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>SharedEncoder</code></td>
+          <td>First 3 ResNet-18 blocks as the shared feature extractor.</td>
+      </tr>
+      <tr>
+          <td><code>TaskHead</code></td>
+          <td>Per-task classification or regression head.</td>
+      </tr>
+      <tr>
+          <td><code>MultiTaskNet</code></td>
+          <td>Hard parameter sharing: encoder + <code>ModuleDict</code> of heads.</td>
+      </tr>
+      <tr>
+          <td><code>PCGrad</code></td>
+          <td>Projects pairwise-conflicting gradients before averaging.</td>
+      </tr>
+      <tr>
+          <td><code>GradNorm</code></td>
+          <td>Learns per-task weights so gradient magnitudes track $\tilde{r}_t^\alpha$.</td>
+      </tr>
+      <tr>
+          <td><code>MTLTrainer</code></td>
+          <td>Single interface wrapping uniform, PCGrad, and GradNorm methods.</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="faq">FAQ</h2>
+<h3 id="when-should-i-reach-for-mtl-in-the-first-place">When should I reach for MTL in the first place?</h3>
+<p>Three honest reasons: (1) tasks share low-level features and you want regularization, (2) the main task is data-starved and an auxiliary task can lend supervision through the shared encoder, (3) you need to serve multiple predictions cheaply at inference. If none of those apply, MTL is the wrong tool.</p>
+<h3 id="how-do-i-diagnose-whether-tasks-are-conflicting">How do I diagnose whether tasks are conflicting?</h3>
+<p>Two cheap checks. (a) Log $\cos(\nabla \mathcal{L}_A, \nabla \mathcal{L}_B)$ on the shared parameters — persistently negative values mean conflict (Figure 3 right). (b) Compare per-task accuracy in the multi-task model to single-task baselines. If any task drops, you have negative transfer.</p>
+<h3 id="hard-sharing-or-soft-sharing">Hard sharing or soft sharing?</h3>
+<p>Start with hard sharing — it is simpler, gives stronger regularization, and uses fewer parameters. Move to cross-stitch / MTAN only after you observe negative transfer that survives PCGrad and GradNorm.</p>
+<h3 id="my-loss-scales-differ-by-100x-what-do-i-do">My loss scales differ by 100x. What do I do?</h3>
+<p>Don&rsquo;t hand-tune weights — it never converges. Use Uncertainty Weighting (Figure 5) as the lowest-effort fix; switch to GradNorm if you also need to track training-speed differences across tasks.</p>
+<h3 id="can-i-combine-pcgrad-with-gradnorm">Can I combine PCGrad with GradNorm?</h3>
+<p>Yes — they are orthogonal. GradNorm controls magnitudes, PCGrad controls directions. The standard combination is: (1) use GradNorm to compute $w_t$, (2) form weighted per-task gradients $w_t g_t$, (3) apply PCGrad to those. For 3+ tasks with mismatched scales this is the sane default.</p>
+<h3 id="how-many-auxiliary-tasks-should-i-add">How many auxiliary tasks should I add?</h3>
+<p>1-2 to start, never more than 4 without first checking the affinity matrix. Beyond ~10 tasks, cluster them (Figure 7) and train one shared encoder per cluster.</p>
+<hr>
+<h2 id="summary">Summary</h2>
+<p>Multi-task learning lets you train one model that does several jobs while being smaller and often more accurate than the single-task models it replaces. The architecture is the easy part — hard parameter sharing with task-specific heads is rarely beaten. The hard part is keeping the training loop honest:</p>
+<ul>
+<li><strong>Loss-scale balancing</strong> via Uncertainty Weighting or GradNorm is essentially mandatory whenever your tasks span different output types or magnitudes.</li>
+<li><strong>Gradient conflicts</strong> affect 30-50% of updates — PCGrad (cheap) or CAGrad (better) prevent them silently degrading individual tasks.</li>
+<li><strong>Task selection</strong> matters more than any optimizer trick — measure affinity with gradient cosine or transfer experiments before committing to a multi-task design.</li>
+<li><strong>Hard sharing first</strong>, soft / cross-stitch only when measurements say you need it.</li>
+</ul>
+<p>Next up in the series is <strong>zero-shot learning</strong> — classifying categories the model has never seen during training, using attribute or language descriptions to bridge the gap.</p>
+<hr>
+<h2 id="references">References</h2>
+<ol>
+<li>Caruana, R. (1997). Multitask Learning. <em>Machine Learning</em>.</li>
+<li>Misra et al. (2016). Cross-Stitch Networks for Multi-task Learning. CVPR. <a href="https://arxiv.org/abs/1604.03539" target="_blank" rel="noopener noreferrer">arXiv:1604.03539 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Kendall et al. (2018). Multi-Task Learning Using Uncertainty to Weigh Losses. CVPR. <a href="https://arxiv.org/abs/1705.07115" target="_blank" rel="noopener noreferrer">arXiv:1705.07115 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Chen et al. (2018). GradNorm: Gradient Normalization for Adaptive Loss Balancing. ICML. <a href="https://arxiv.org/abs/1711.02257" target="_blank" rel="noopener noreferrer">arXiv:1711.02257 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Liu et al. (2019). End-to-End Multi-Task Learning with Attention (MTAN). CVPR. <a href="https://arxiv.org/abs/1803.10704" target="_blank" rel="noopener noreferrer">arXiv:1803.10704 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Standley et al. (2020). Which Tasks Should Be Learned Together in Multi-task Learning? ICML. <a href="https://arxiv.org/abs/1905.07553" target="_blank" rel="noopener noreferrer">arXiv:1905.07553 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Yu et al. (2020). Gradient Surgery for Multi-Task Learning (PCGrad). NeurIPS. <a href="https://arxiv.org/abs/2001.06782" target="_blank" rel="noopener noreferrer">arXiv:2001.06782 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Liu et al. (2021). Conflict-Averse Gradient Descent (CAGrad). NeurIPS. <a href="https://arxiv.org/abs/2110.14048" target="_blank" rel="noopener noreferrer">arXiv:2110.14048 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ol>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Part</th>
+          <th>Topic</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><a href="/en/transfer-learning-1-fundamentals-and-core-concepts/">1</a>
+</td>
+          <td>Fundamentals and Core Concepts</td>
+      </tr>
+      <tr>
+          <td><a href="/en/transfer-learning-2-pre-training-and-fine-tuning/">2</a>
+</td>
+          <td>Pre-training and Fine-tuning</td>
+      </tr>
+      <tr>
+          <td><a href="/en/transfer-learning-3-domain-adaptation/">3</a>
+</td>
+          <td>Domain Adaptation</td>
+      </tr>
+      <tr>
+          <td><a href="/en/transfer-learning-4-few-shot-learning/">4</a>
+</td>
+          <td>Few-Shot Learning</td>
+      </tr>
+      <tr>
+          <td><a href="/en/transfer-learning-5-knowledge-distillation/">5</a>
+</td>
+          <td>Knowledge Distillation</td>
+      </tr>
+      <tr>
+          <td><strong>6</strong></td>
+          <td><strong>Multi-Task Learning</strong> (you are here)</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#why-multi-task-learning">Why Multi-Task Learning?</a>
+      <ul>
+        <li><a href="#shared-structure-tasks-that-need-the-same-features">Shared structure: tasks that need the same features</a></li>
+        <li><a href="#regularization-view">Regularization view</a></li>
+        <li><a href="#data-augmentation-view">Data-augmentation view</a></li>
+        <li><a href="#compute-efficiency">Compute efficiency</a></li>
+        <li><a href="#the-risk-negative-transfer">The risk: negative transfer</a></li>
+      </ul>
+    </li>
+    <li><a href="#parameter-sharing-strategies">Parameter Sharing Strategies</a>
+      <ul>
+        <li><a href="#hard-parameter-sharing">Hard parameter sharing</a></li>
+        <li><a href="#soft-parameter-sharing">Soft parameter sharing</a></li>
+        <li><a href="#cross-stitch-networks">Cross-Stitch Networks</a></li>
+        <li><a href="#multi-task-attention-network-mtan">Multi-Task Attention Network (MTAN)</a></li>
+        <li><a href="#choosing-between-them">Choosing between them</a></li>
+      </ul>
+    </li>
+    <li><a href="#measuring-task-affinity-before-you-commit">Measuring Task Affinity <em>Before</em> You Commit</a></li>
+    <li><a href="#gradient-conflicts-and-task-balancing">Gradient Conflicts and Task Balancing</a>
+      <ul>
+        <li><a href="#what-conflict-means-precisely">What &ldquo;conflict&rdquo; means precisely</a></li>
+        <li><a href="#static-weights-the-baselines">Static weights (the baselines)</a></li>
+        <li><a href="#uncertainty-weighting-kendall-et-al-2018">Uncertainty Weighting (Kendall et al., 2018)</a></li>
+        <li><a href="#gradnorm-balancing-gradient-magnitudes-by-training-speed">GradNorm: balancing gradient magnitudes by training speed</a></li>
+        <li><a href="#pcgrad-project-away-the-conflicting-component">PCGrad: project away the conflicting component</a></li>
+        <li><a href="#cagrad-globally-optimal-conflict-resolution">CAGrad: globally optimal conflict resolution</a></li>
+        <li><a href="#comparison-and-combinability">Comparison and combinability</a></li>
+      </ul>
+    </li>
+    <li><a href="#how-much-does-any-of-this-buy-you">How Much Does Any of This Buy You?</a></li>
+    <li><a href="#auxiliary-task-design">Auxiliary Task Design</a>
+      <ul>
+        <li><a href="#self-supervised-auxiliaries-free-supervision">Self-supervised auxiliaries (free supervision)</a></li>
+        <li><a href="#domain-specific-auxiliaries">Domain-specific auxiliaries</a></li>
+        <li><a href="#how-many-auxiliaries">How many auxiliaries?</a></li>
+      </ul>
+    </li>
+    <li><a href="#complete-implementation">Complete Implementation</a>
+      <ul>
+        <li><a href="#code-architecture">Code architecture</a></li>
+      </ul>
+    </li>
+    <li><a href="#faq">FAQ</a>
+      <ul>
+        <li><a href="#when-should-i-reach-for-mtl-in-the-first-place">When should I reach for MTL in the first place?</a></li>
+        <li><a href="#how-do-i-diagnose-whether-tasks-are-conflicting">How do I diagnose whether tasks are conflicting?</a></li>
+        <li><a href="#hard-sharing-or-soft-sharing">Hard sharing or soft sharing?</a></li>
+        <li><a href="#my-loss-scales-differ-by-100x-what-do-i-do">My loss scales differ by 100x. What do I do?</a></li>
+        <li><a href="#can-i-combine-pcgrad-with-gradnorm">Can I combine PCGrad with GradNorm?</a></li>
+        <li><a href="#how-many-auxiliary-tasks-should-i-add">How many auxiliary tasks should I add?</a></li>
+      </ul>
+    </li>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Transfer Learning</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>20 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4200</strong></div>
+      <div class="row"><span>Published</span><strong>May 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

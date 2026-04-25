@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Reinforcement Learning (9): Multi-Agent Reinforcement Learning · Chen Kai Blog</title>
+<meta name="description" content="A working tour of multi-agent RL: Markov games, the non-stationarity and credit-assignment problems, CTDE, value decomposition (VDN, QMIX), counterfactual baselines (COMA), MADDPG, communication topologies, and the league-training pipeline behind AlphaStar and OpenAI Five — with a runnable QMIX mixer in PyTorch.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/reinforcement-learning/09-multi-agent-rl/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/reinforcement-learning/09-multi-agent-rl/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Reinforcement Learning (9): Multi-Agent Reinforcement Learning">
+<meta property="og:description" content="A working tour of multi-agent RL: Markov games, the non-stationarity and credit-assignment problems, CTDE, value decomposition (VDN, QMIX), counterfactual baselines (COMA), MADDPG, communication topologies, and the league-training pipeline behind AlphaStar and OpenAI Five — with a runnable QMIX mixer in PyTorch.">
+<meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/09-multi-agent-rl/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Reinforcement Learning</a>
+         · Chapter 9
+      </div>
+      <h1>Reinforcement Learning (9): Multi-Agent Reinforcement Learning</h1>
+      <p class="deck">A working tour of multi-agent RL: Markov games, the non-stationarity and credit-assignment problems, CTDE, value decomposition (VDN, QMIX), counterfactual baselines (COMA), MADDPG, communication topologies, and the league-training pipeline behind AlphaStar and OpenAI Five — with a runnable QMIX mixer in PyTorch.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-09-10">September 10, 2025</time> · 12 min read · 2500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/reinforcement-learning/" class="tag">#Reinforcement Learning</a><a href="/en/tags/multi-agent/" class="tag">#Multi-Agent</a><a href="/en/tags/qmix/" class="tag">#QMIX</a><a href="/en/tags/maddpg/" class="tag">#MADDPG</a><a href="/en/tags/game-theory/" class="tag">#Game Theory</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Single-agent RL rests on one quiet but enormous assumption: the environment is stationary. The transition kernel does not change while the agent learns. The moment a second learner shares the world, that assumption collapses. Each agent now sees an environment whose dynamics shift as its peers update, rewards become entangled across agents, and the joint action space explodes combinatorially. These are not engineering nuisances. They are the reason multi-agent RL needs its own algorithms instead of just <em>running DQN n times in parallel</em>.</p>
+<p>The payoff for solving this is large. AlphaStar reached Grandmaster on the StarCraft II ladder, OpenAI Five won against the world champions in Dota 2, and cooperative MARL is increasingly the workhorse for warehouse robotics, traffic-signal control, and multi-LLM agent systems. This chapter builds the conceptual backbone — Markov games, CTDE, value decomposition, counterfactual credit — and lands on a clean QMIX mixer you can drop into your own training loop.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>The four hard problems unique to MARL: <strong>non-stationarity</strong>, <strong>credit assignment</strong>, <strong>partial observability</strong>, and <strong>scalability</strong></li>
+<li>The game-theoretic vocabulary you actually need: Markov games, Nash equilibria, Pareto fronts, social dilemmas</li>
+<li><strong>CTDE</strong> — centralised training, decentralised execution — and why it dominates</li>
+<li><strong>Value decomposition</strong>: VDN, QMIX, and the monotonicity constraint that makes greedy execution sound</li>
+<li><strong>Multi-agent actor-critic</strong>: MADDPG (centralised critic per agent) and <strong>COMA</strong> (counterfactual baselines)</li>
+<li><strong>Communication</strong>: when broadcast, sparse, and attention-based message passing each pay off</li>
+<li>The engineering of <strong>AlphaStar&rsquo;s league</strong> and <strong>OpenAI Five&rsquo;s</strong> scale-out training</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Q-learning and DQN (Part 2)</li>
+<li>Actor-critic and policy gradients (Part 3, Part 6)</li>
+<li>Comfort with expectations and conditional probabilities; we keep formal game theory minimal</li>
+</ul>
+<hr>
+<h2 id="1-why-marl-is-genuinely-harder-than-single-agent-rl">1. Why MARL is genuinely harder than single-agent RL</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig1_scenarios.png" alt="Cooperative, competitive, and mixed-motive multi-agent regimes" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The reward structure decides almost everything else. In <strong>cooperative</strong> games every agent shares the team reward — coordinated soccer plays, swarm logistics, StarCraft micro-management. <strong>Competitive</strong> games are zero-sum: one agent&rsquo;s gain is another&rsquo;s loss, and the right tool is some form of self-play. The interesting middle ground is <strong>mixed-motive</strong> (general-sum) games — markets, traffic, negotiation, congestion control — where short-term self-interest can torpedo long-term collective welfare (the prisoner&rsquo;s dilemma is the canonical 2×2 case, and the figure shows it as the third payoff matrix).</p>
+<p>Within any of these regimes, four obstacles break the single-agent toolbox.</p>
+<p><strong>Non-stationarity.</strong> From agent $i$&rsquo;s point of view the transition is $P(s' \mid s, a_i, a_{-i})$, where $a_{-i}$ denotes everyone else&rsquo;s actions. As the others&rsquo; policies $\pi_{-i}$ keep updating during training, the <em>effective</em> transition kernel that $i$ sees keeps drifting. Off-policy methods like DQN, which assume a fixed data-generating distribution, can diverge or oscillate.</p>
+<p><strong>Credit assignment.</strong> When the team gets a single reward $r$ for an episode-long collaboration, who actually earned it? A naive shared gradient encourages free-riding: an agent that does nothing receives the same credit as one that did the heavy lifting. Counterfactual baselines (COMA, Section 5) and value decomposition (Section 4) are the two principled answers.</p>
+<p><strong>Partial observability.</strong> Each agent sees only its own observation $o_i$. There is no Markov state available at execution time. Recurrent networks plus belief-state-style representations are typical, but the deeper fix is to architect training so that <em>the centralised critic</em> sees more than execution does.</p>
+<p><strong>Scalability.</strong> With $n$ agents and $|A|$ actions each, the joint action space is $|A|^n$. Without exploiting structure, even modest cooperative tasks become intractable.</p>
+<p>The dominant resolution to all four — and the conceptual backbone of the chapter — is <strong>CTDE</strong>.</p>
+<hr>
+<h2 id="2-ctde-train-with-everything-execute-with-almost-nothing">2. CTDE: train with everything, execute with almost nothing</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig2_ctde.png" alt="Centralized training with decentralized execution" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The idea is asymmetric. During training we let the algorithm peek at the full state and at every agent&rsquo;s action — a <em>centralised</em> critic, mixer, or value function. At deployment we keep only the per-agent policies that condition on local observations. The execution interface is decentralised; the optimisation interface is not.</p>
+<p>CTDE works because the things that make MARL hard (non-stationarity, credit assignment, partial observability) are properties of the <em>learning</em> phase, while the constraints that make MARL practical (limited bandwidth, asynchronous control, privacy) are properties of the <em>execution</em> phase. CTDE puts each problem in its own corner. Almost every modern cooperative MARL algorithm — VDN, QMIX, MADDPG, COMA, MAPPO — is a CTDE method; they differ only in <em>what</em> the centralised object is and <em>how</em> it is decomposed.</p>
+<hr>
+<h2 id="3-markov-games-and-nash-equilibria-just-enough-to-be-useful">3. Markov games and Nash equilibria, just enough to be useful</h2>
+<p>A <strong>Markov game</strong> generalises the MDP to $n$ agents:</p>
+$$
+\langle \mathcal{N}, \mathcal{S}, \{A_i\}_{i\in\mathcal{N}}, P, \{r_i\}_{i\in\mathcal{N}}, \gamma \rangle.
+$$<p>Each agent $i$ has its own action set $A_i$ and its own reward $r_i(s, a_1, \ldots, a_n)$. A <strong>Nash equilibrium</strong> is a joint policy $\pi^* = (\pi_1^*, \ldots, \pi_n^*)$ where no single agent can improve unilaterally:</p>
+$$
+V_i(\pi_i^*, \pi_{-i}^*) \;\geq\; V_i(\pi_i, \pi_{-i}^*) \qquad \forall \pi_i,\, \forall i.
+$$<p>Two facts make Nash equilibria a slippery target. First, they are typically not unique; second, they are not always Pareto optimal. In the <em>fully cooperative</em> case, where $r_1 = \cdots = r_n$, the picture simplifies dramatically — the problem reduces to maximising a single team return, and Nash equilibrium and Pareto optimality collapse onto the same set. That is why most of the algorithmic machinery in this chapter targets the cooperative setting first; competitive and mixed-motive cases borrow from it but layer additional ideas (self-play, opponent modelling, regularisation) on top.</p>
+<hr>
+<h2 id="4-value-decomposition-vdn-and-qmix">4. Value decomposition: VDN and QMIX</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig3_qmix.png" alt="QMIX architecture and monotonic factorisation" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Value decomposition is a CTDE recipe for the cooperative case. We learn a per-agent value function $Q_i(o_i, a_i)$ for execution and a <em>combined</em> $Q_\text{tot}(s, \mathbf{a})$ for training, then we constrain the relationship between them so that decentralised greedy action selection on $Q_i$ is equivalent to joint greedy selection on $Q_\text{tot}$. This is the <strong>Individual-Global-Max (IGM)</strong> property:</p>
+$$
+\arg\max_{\mathbf{a}} Q_\text{tot}(s, \mathbf{a}) \;=\; \big(\arg\max_{a_1} Q_1(o_1, a_1),\; \ldots,\; \arg\max_{a_n} Q_n(o_n, a_n)\big).
+$$<h3 id="vdn-additive-decomposition">VDN: additive decomposition</h3>
+<p><a href="https://arxiv.org/abs/1706.05296" target="_blank" rel="noopener noreferrer">Sunehag et al., 2017 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ take the simplest sufficient condition:</p>
+$$
+Q_\text{tot}(s, \mathbf{a}) \;=\; \sum_{i=1}^{n} Q_i(o_i, a_i).
+$$<p>Sums are monotonic in each summand, so IGM holds trivially. The cost is expressivity: VDN cannot represent any non-additive interaction between agents.</p>
+<h3 id="qmix-monotonic-mixing">QMIX: monotonic mixing</h3>
+<p><a href="https://arxiv.org/abs/1803.11485" target="_blank" rel="noopener noreferrer">QMIX <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ keeps IGM but generalises <em>additive</em> to <em>monotonic</em>. A neural <strong>mixing network</strong> combines the $Q_i$ into $Q_\text{tot}$ subject to</p>
+$$
+\frac{\partial Q_\text{tot}}{\partial Q_i} \;\geq\; 0 \qquad \forall i.
+$$<p>The constraint is enforced by <em>constructing</em> the mixer&rsquo;s weights to be non-negative — by passing them through an absolute value or a softplus. Crucially, the weights themselves are produced by a <strong>hypernetwork</strong> conditioned on the global state $s$, so different states can reweight agents differently (and the mixer can express interactions that pure summation cannot). The right panel of the figure shows the resulting $Q_\text{tot}$ surface: monotone in each $Q_i$, so the joint argmax aligns with the pair of per-agent argmaxes.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">QMixer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;QMIX mixing network with state-conditioned positive weights.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_agents</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span> <span class="o">=</span> <span class="n">n_agents</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">hidden_dim</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Hypernetwork: state -&gt; mixing weights (kept &gt;= 0 via abs)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hyper_w1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">n_agents</span> <span class="o">*</span> <span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hyper_b1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hyper_w2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Final scalar bias is unconstrained</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hyper_b2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_qs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;agent_qs: (B, n_agents)   state: (B, state_dim)   -&gt;  (B, 1)&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">B</span> <span class="o">=</span> <span class="n">agent_qs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">agent_qs</span> <span class="o">=</span> <span class="n">agent_qs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">w1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hyper_w1</span><span class="p">(</span><span class="n">state</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">b1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hyper_b1</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">hidden</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">elu</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">agent_qs</span><span class="p">,</span> <span class="n">w1</span><span class="p">)</span> <span class="o">+</span> <span class="n">b1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">w2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hyper_w2</span><span class="p">(</span><span class="n">state</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">b2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hyper_b2</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q_tot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">w2</span><span class="p">)</span> <span class="o">+</span> <span class="n">b2</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">q_tot</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Train it exactly like a DQN target — sample transitions, build the TD target on $Q_\text{tot}$, backprop through the mixer into all per-agent networks. At execution time, every agent runs its own $Q_i$ and never touches the mixer.</p>
+<p>A practical note: QMIX cannot represent every IGM-decomposable function (its monotonicity is <em>sufficient</em> but not <em>necessary</em>). <a href="https://arxiv.org/abs/1905.05408" target="_blank" rel="noopener noreferrer">QTRAN <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ and <a href="https://arxiv.org/abs/2008.01062" target="_blank" rel="noopener noreferrer">QPLEX <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ push this frontier, at the cost of more complex losses and engineering.</p>
+<hr>
+<h2 id="5-multi-agent-actor-critic-maddpg-and-coma">5. Multi-agent actor-critic: MADDPG and COMA</h2>
+<h3 id="maddpg-a-centralised-critic-per-agent">MADDPG: a centralised critic per agent</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig5_maddpg.png" alt="MADDPG centralised critic, decentralised actor" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><a href="https://arxiv.org/abs/1706.02275" target="_blank" rel="noopener noreferrer">MADDPG <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ is the natural CTDE extension of DDPG. Each agent $i$ has</p>
+<ul>
+<li>an <strong>actor</strong> $\mu_i(o_i)$ that conditions only on its local observation, and</li>
+<li>a <strong>critic</strong> $Q_i(s, a_1, \ldots, a_n)$ that conditions on the full state and <em>every</em> agent&rsquo;s action.</li>
+</ul>
+<p>The actor is updated with the deterministic policy gradient through its own critic; the critic is updated with a TD target that uses target actors of all agents:</p>
+$$
+y \;=\; r_i \;+\; \gamma \, Q_i^{\text{tgt}}\!\left(s', \mu_1^{\text{tgt}}(o_1'), \ldots, \mu_n^{\text{tgt}}(o_n')\right).
+$$<p>Because the critic conditions on $a_{-i}$, the environment looks stationary <em>to the critic</em> — its inputs include the very thing that was changing under it. The actor remains decentralised, so deployment is unchanged. MADDPG works in cooperative, competitive, and mixed-motive settings; the replay buffer simply stores joint trajectories.</p>
+<h3 id="coma-counterfactual-credit-assignment">COMA: counterfactual credit assignment</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig4_coma.png" alt="COMA counterfactual baseline" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><a href="https://arxiv.org/abs/1705.08926" target="_blank" rel="noopener noreferrer">COMA <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ attacks the credit-assignment problem head-on. It uses a single centralised critic $Q(s, \mathbf{a})$ and, for each agent $i$, a <strong>counterfactual baseline</strong> that holds everyone else&rsquo;s actions fixed and averages out $i$&rsquo;s action under its own policy:</p>
+$$
+A_i(s, \mathbf{a}) \;=\; Q(s, \mathbf{a}) \;-\; \sum_{a_i'} \pi_i(a_i' \mid o_i) \, Q\!\left(s, (a_i', a_{-i})\right).
+$$<p>Read this carefully. The first term is the value of what actually happened. The second is the <em>expected</em> value if agent $i$ had sampled some other action <em>while everyone else did exactly what they did</em>. The difference is precisely $i$&rsquo;s marginal contribution. When the team reward is shared, this is the right object to do policy gradient on — it removes the noise from $a_{-i}$ without introducing bias. The figure shows the four-action case: only the chosen action receives a non-trivial advantage.</p>
+<p>The trick that makes COMA tractable is that the centralised critic outputs a vector of $Q$-values for all candidate actions of agent $i$ at once, so the baseline is a single dot product against the policy probabilities — no extra environment rollouts needed.</p>
+<hr>
+<h2 id="6-communication-how-much-should-agents-tell-each-other">6. Communication: how much should agents tell each other?</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig6_communication.png" alt="Communication topologies: broadcast, sparse, attention" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Sometimes decentralised execution is too restrictive — agents really do need to share information at test time. The design space is a spectrum.</p>
+<p><strong>Broadcast</strong> — every agent sends a fixed-size message to every other agent. Conceptually clean, but message volume grows as $O(n^2)$ per step, which is fatal beyond a few dozen agents.</p>
+<p><strong>Sparse / k-NN</strong> — each agent only talks to its $k$ nearest neighbours (in space, in a graph, in role). Linear in $n$ for fixed $k$. CommNet, IC3Net and TarMAC all live near this end.</p>
+<p><strong>Attention</strong> — soft, learned routing. Each agent issues a query, peers respond with keys, and message weights are computed by softmax. The cost is $O(n^2)$ in attention scores but messages can be heavily pruned (top-$k$ attention) and the structure is end-to-end differentiable. This is the dominant choice in modern MARL and the natural bridge to multi-LLM-agent systems, where attention-style routing maps directly onto tool-use and agent orchestration patterns.</p>
+<p>The right knob is task-dependent: for tightly-coupled robotics teams, dense communication is fine; for thousands of microservices or vehicles, sparse or attention-pruned schemes are the only feasible designs.</p>
+<hr>
+<h2 id="7-scaling-marl-alphastar-openai-five-and-league-training">7. Scaling MARL: AlphaStar, OpenAI Five, and league training</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/09-multi-agent-rl/fig7_league.png" alt="AlphaStar league training and flagship MARL systems" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Both <a href="https://www.nature.com/articles/s41586-019-1724-z" target="_blank" rel="noopener noreferrer">AlphaStar <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ (StarCraft II) and <a href="https://arxiv.org/abs/1912.06680" target="_blank" rel="noopener noreferrer">OpenAI Five <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ (Dota 2) succeed by treating <em>training-population design</em> as a first-class engineering concern. Naive self-play tends to cycle — agent A learns to beat B, B learns to beat A&rsquo;s new policy and forgets why it used to beat A&rsquo;s old policy, and so on. <strong>AlphaStar&rsquo;s league</strong> explicitly decouples three populations:</p>
+<ul>
+<li><strong>Main agents</strong> — the agents that will actually be deployed; they are the optimisation target.</li>
+<li><strong>Main exploiters</strong> — separate agents whose only job is to find weaknesses in the main agents, forcing them to round out their game.</li>
+<li><strong>League exploiters</strong> — periodically reset agents that maintain <em>strategic diversity</em> so the league does not collapse onto a narrow style.</li>
+</ul>
+<p>A pool of <em>frozen historical checkpoints</em> is matched against current learners with prioritised fictitious self-play (PFSP), which biases match-making toward opponents the current learner is just barely beating. Together these mechanisms prevent the catastrophic forgetting that breaks naive self-play.</p>
+<p>OpenAI Five takes a different cut. Each Dota hero is controlled by an independent LSTM policy with a shared parameter set; the team-level coordination problem is handed off to a hand-engineered shared reward and an enormous compute budget — roughly <em>180 years of self-play per day</em>. The lesson from both systems is the same: at industrial scale, the <em>training curriculum</em> matters at least as much as the per-agent algorithm.</p>
+<p>These ideas are migrating outside games. RLHF (Part 12) and tool-use agent orchestration both increasingly look like multi-population training — a population of policies, a population of evaluators, and prioritised match-making between them.</p>
+<hr>
+<h2 id="frequently-asked-questions">Frequently asked questions</h2>
+<h3 id="why-does-qmix-need-the-monotonicity-constraint">Why does QMIX need the monotonicity constraint?</h3>
+<p>So that decentralised greedy execution is consistent with centralised joint optimisation. If $\partial Q_\text{tot}/\partial Q_i$ could go negative, an agent acting greedily on its own $Q_i$ might <em>lower</em> the team value. Monotonicity makes the per-agent argmax and the joint argmax coincide.</p>
+<h3 id="when-do-marl-systems-get-stuck-in-suboptimal-equilibria">When do MARL systems get stuck in suboptimal equilibria?</h3>
+<p>Whenever the optimal joint action requires <em>coordinated</em> exploration — both agents must simultaneously try the risky move for it to look good. If random exploration almost never produces that joint action, the system converges to a safer but Pareto-dominated equilibrium. The fixes are joint exploration (committed-exploration schedules), explicit communication, and opponent modelling.</p>
+<h3 id="how-does-sample-complexity-scale-with-the-number-of-agents">How does sample complexity scale with the number of agents?</h3>
+<p>For cooperative tasks where value decomposition holds, sample complexity grows roughly linearly in $n$ — that is the entire point of QMIX. Without decomposition, learning $Q(s, \mathbf{a})$ over the joint action space is exponential in $n$.</p>
+<h3 id="independent-learners-vs-ctde--is-ctde-always-worth-it">Independent learners vs CTDE — is CTDE always worth it?</h3>
+<p>For very small populations or when global state is genuinely unavailable, independent Q-learning can work and is much simpler to implement. As soon as credit assignment matters or the team is more than 3–4 agents, CTDE methods pull ahead and the gap widens fast.</p>
+<h3 id="does-any-of-this-transfer-to-multi-llm-agent-systems">Does any of this transfer to multi-LLM-agent systems?</h3>
+<p>Yes. Centralised critics map onto outer evaluators, decentralised actors onto sub-agents, attention-based communication onto tool routing, and league training onto the population-of-evaluators pattern that is becoming standard in agentic RLHF.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Sunehag et al., <em>Value-Decomposition Networks for Cooperative Multi-Agent Learning</em>, AAMAS 2018. <a href="https://arxiv.org/abs/1706.05296" target="_blank" rel="noopener noreferrer">arXiv:1706.05296 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Rashid et al., <em>QMIX: Monotonic Value Function Factorisation for Deep Multi-Agent RL</em>, ICML 2018. <a href="https://arxiv.org/abs/1803.11485" target="_blank" rel="noopener noreferrer">arXiv:1803.11485 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Lowe et al., <em>Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments</em> (MADDPG), NeurIPS 2017. <a href="https://arxiv.org/abs/1706.02275" target="_blank" rel="noopener noreferrer">arXiv:1706.02275 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Foerster et al., <em>Counterfactual Multi-Agent Policy Gradients</em> (COMA), AAAI 2018. <a href="https://arxiv.org/abs/1705.08926" target="_blank" rel="noopener noreferrer">arXiv:1705.08926 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Vinyals et al., <em>Grandmaster level in StarCraft II using multi-agent reinforcement learning</em>, Nature 575, 2019.</li>
+<li>OpenAI et al., <em>Dota 2 with Large Scale Deep Reinforcement Learning</em>, 2019. <a href="https://arxiv.org/abs/1912.06680" target="_blank" rel="noopener noreferrer">arXiv:1912.06680 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Yu et al., <em>The Surprising Effectiveness of PPO in Cooperative Multi-Agent Games</em> (MAPPO), NeurIPS 2022. <a href="https://arxiv.org/abs/2103.01955" target="_blank" rel="noopener noreferrer">arXiv:2103.01955 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<ul>
+<li><strong>Previous</strong>: <a href="/en/reinforcement-learning-8-alphago-and-mcts/">Part 8 — AlphaGo and MCTS</a>
+</li>
+<li><strong>Next</strong>: <a href="/en/reinforcement-learning-10-offline-reinforcement-learning/">Part 10 — Offline Reinforcement Learning</a>
+</li>
+<li><a href="/tags/Reinforcement-Learning/">View all 12 parts in the RL series</a>
+</li>
+</ul>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/reinforcement-learning/08-alphago-and-mcts/"><span class="title">Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/reinforcement-learning/10-offline-reinforcement-learning/"><span class="title">Reinforcement Learning (10): Offline Reinforcement Learning</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-why-marl-is-genuinely-harder-than-single-agent-rl">1. Why MARL is genuinely harder than single-agent RL</a></li>
+    <li><a href="#2-ctde-train-with-everything-execute-with-almost-nothing">2. CTDE: train with everything, execute with almost nothing</a></li>
+    <li><a href="#3-markov-games-and-nash-equilibria-just-enough-to-be-useful">3. Markov games and Nash equilibria, just enough to be useful</a></li>
+    <li><a href="#4-value-decomposition-vdn-and-qmix">4. Value decomposition: VDN and QMIX</a>
+      <ul>
+        <li><a href="#vdn-additive-decomposition">VDN: additive decomposition</a></li>
+        <li><a href="#qmix-monotonic-mixing">QMIX: monotonic mixing</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-multi-agent-actor-critic-maddpg-and-coma">5. Multi-agent actor-critic: MADDPG and COMA</a>
+      <ul>
+        <li><a href="#maddpg-a-centralised-critic-per-agent">MADDPG: a centralised critic per agent</a></li>
+        <li><a href="#coma-counterfactual-credit-assignment">COMA: counterfactual credit assignment</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-communication-how-much-should-agents-tell-each-other">6. Communication: how much should agents tell each other?</a></li>
+    <li><a href="#7-scaling-marl-alphastar-openai-five-and-league-training">7. Scaling MARL: AlphaStar, OpenAI Five, and league training</a></li>
+    <li><a href="#frequently-asked-questions">Frequently asked questions</a>
+      <ul>
+        <li><a href="#why-does-qmix-need-the-monotonicity-constraint">Why does QMIX need the monotonicity constraint?</a></li>
+        <li><a href="#when-do-marl-systems-get-stuck-in-suboptimal-equilibria">When do MARL systems get stuck in suboptimal equilibria?</a></li>
+        <li><a href="#how-does-sample-complexity-scale-with-the-number-of-agents">How does sample complexity scale with the number of agents?</a></li>
+        <li><a href="#independent-learners-vs-ctde--is-ctde-always-worth-it">Independent learners vs CTDE — is CTDE always worth it?</a></li>
+        <li><a href="#does-any-of-this-transfer-to-multi-llm-agent-systems">Does any of this transfer to multi-LLM-agent systems?</a></li>
+      </ul>
+    </li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Reinforcement Learning</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2500</strong></div>
+      <div class="row"><span>Published</span><strong>Sep 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

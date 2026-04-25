@@ -1,0 +1,1111 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux 文件操作深入解析 · Chen Kai Blog</title>
+<meta name="description" content="深入讲解 Unix 管道模型：stdin/stdout/stderr 与文件描述符、各种重定向写法、grep/awk/sed/cut/sort/uniq/xargs 工具链、命名管道与进程替换，配大量可直接套用的日志一行命令。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/linux/%E6%96%87%E4%BB%B6%E6%93%8D%E4%BD%9C%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linux/%E6%96%87%E4%BB%B6%E6%93%8D%E4%BD%9C%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux 文件操作深入解析">
+<meta property="og:description" content="深入讲解 Unix 管道模型：stdin/stdout/stderr 与文件描述符、各种重定向写法、grep/awk/sed/cut/sort/uniq/xargs 工具链、命名管道与进程替换，配大量可直接套用的日志一行命令。">
+<meta property="og:url" content="https://www.chenk.top/zh/linux/%E6%96%87%E4%BB%B6%E6%93%8D%E4%BD%9C%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+         · Chapter 8
+      </div>
+      <h1>Linux 文件操作深入解析</h1>
+      <p class="deck">深入讲解 Unix 管道模型：stdin/stdout/stderr 与文件描述符、各种重定向写法、grep/awk/sed/cut/sort/uniq/xargs 工具链、命名管道与进程替换，配大量可直接套用的日志一行命令。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-04-02">April 2, 2022</time> · 15 min read · 7500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/linux/" class="tag">#Linux</a><a href="/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/" class="tag">#云计算</a><a href="/zh/tags/%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86/" class="tag">#系统管理</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>在命令行上拉开效率差距的，从来不是会多少命令，而是能不能把命令&quot;拼起来&quot;——把一堆小工具串成一条清晰的数据流。管道符 <code>|</code> 正是 Unix 哲学的体现：每个工具只做一件事并把它做好（<code>grep</code> 只过滤、<code>awk</code> 只提取字段、<code>sort</code> 只排序），然后通过管道把它们组合成一条可读、可调试、可维护的流水线。本文从数据流模型讲起——<code>stdin</code>、<code>stdout</code>、<code>stderr</code> 以及它们背后的文件描述符——再系统过一遍各种重定向写法（<code>&gt;</code>、<code>&gt;&gt;</code>、<code>&lt;</code>、<code>2&gt;</code>、<code>2&gt;&amp;1</code>、<code>&amp;&gt;</code>），然后把文本处理工具链（<code>grep</code>、<code>awk</code>、<code>sed</code>、<code>cut</code>、<code>tr</code>、<code>sort</code>、<code>uniq</code>、<code>xargs</code>、<code>tee</code>）一次讲透，最后补上两个大多数入门教程跳过的话题：命名管道（FIFO）和进程替换。读完之后，你应该能把很多&quot;得写个脚本才行&quot;的小需求，用一两行可读的命令搞定，也能更轻松地看懂别人写的 one-liner。</p>
+<h1 id="数据流模型stdinstdoutstderr">数据流模型：stdin、stdout、stderr</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/pipelines/fig1_pipe_data_flow.png" alt="管道数据流：stdin / stdout / stderr" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>每个 Linux 进程一启动就自带三个打开的文件描述符。理解了它们，本文后面的内容才会真正立得住。</p>
+<table>
+  <thead>
+      <tr>
+          <th>流</th>
+          <th>FD</th>
+          <th>默认去向</th>
+          <th>典型用途</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>stdin</strong></td>
+          <td>0</td>
+          <td>终端键盘</td>
+          <td>进程从这里读输入</td>
+      </tr>
+      <tr>
+          <td><strong>stdout</strong></td>
+          <td>1</td>
+          <td>终端屏幕</td>
+          <td>正常结果往这里写</td>
+      </tr>
+      <tr>
+          <td><strong>stderr</strong></td>
+          <td>2</td>
+          <td>终端屏幕</td>
+          <td>诊断信息、警告、错误往这里写</td>
+      </tr>
+  </tbody>
+</table>
+<p>不那么显然的一点是 <strong>stdout 和 stderr 是分开的</strong>。它们默认都通向终端，所以交互式使用时看起来没区别——但内核把它们放在两个不同的文件描述符上。这种分离正是管道安全的根本原因：</p>
+<ul>
+<li>管道符 <code>|</code> 只传递 fd 1（stdout）。写到 fd 2 上的错误信息，不会污染流入下一阶段的数据。</li>
+<li>你可以把正常输出存进文件，同时让错误信息留在终端实时刷新；反过来也可以。</li>
+<li>脚本可以平时一句话不说，只有在出错时才通过 stderr 报警。</li>
+</ul>
+<p>一个最小演示：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ls /etc /nonexistent
+</span></span><span class="line"><span class="cl">ls: cannot access <span class="s1">&#39;/nonexistent&#39;</span>: No such file or directory   <span class="c1"># stderr</span>
+</span></span><span class="line"><span class="cl">/etc:                                                          <span class="c1"># stdout</span>
+</span></span><span class="line"><span class="cl">adduser.conf
+</span></span><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">$ ls /etc /nonexistent &gt; out.txt
+</span></span><span class="line"><span class="cl">ls: cannot access <span class="s1">&#39;/nonexistent&#39;</span>: No such file or directory   <span class="c1"># stderr 仍然显示在终端</span>
+</span></span><span class="line"><span class="cl">$ cat out.txt
+</span></span><span class="line"><span class="cl">/etc:
+</span></span><span class="line"><span class="cl">adduser.conf
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>只有 stdout 被存进了 <code>out.txt</code>，stderr 直接走到终端，因为我们没有重定向它。</p>
+<h2 id="文件描述符就是几个整数">文件描述符就是几个整数</h2>
+<p>文件描述符是内核给打开文件分配的句柄。在每个进程里，fd 0 / 1 / 2 留给三个标准流，之后每次 <code>open()</code> 拿到的就是 fd 3、4、5……。可以通过 <code>/proc</code> 看一个活进程的所有 fd：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ls -l /proc/<span class="nv">$$</span>/fd          <span class="c1"># $$ 是当前 shell 的 PID</span>
+</span></span><span class="line"><span class="cl">lrwx------ <span class="m">1</span> kchen kchen <span class="m">64</span> ... <span class="m">0</span> -&gt; /dev/pts/0
+</span></span><span class="line"><span class="cl">lrwx------ <span class="m">1</span> kchen kchen <span class="m">64</span> ... <span class="m">1</span> -&gt; /dev/pts/0
+</span></span><span class="line"><span class="cl">lrwx------ <span class="m">1</span> kchen kchen <span class="m">64</span> ... <span class="m">2</span> -&gt; /dev/pts/0
+</span></span><span class="line"><span class="cl">lr-x------ <span class="m">1</span> kchen kchen <span class="m">64</span> ... <span class="m">3</span> -&gt; /var/log/syslog
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>shell 里写的每一个重定向、每一个管道，归根结底都是 <strong>在程序启动前重新接线这几个小整数</strong>。<code>&gt;</code> 的意思是&quot;exec 之前把 fd 1 替换成这个文件&quot;；<code>|</code> 的意思是&quot;exec 之前把生产者的 fd 1 和消费者的 fd 0 换成内核管道的两端&quot;。</p>
+<h1 id="重定向把文件描述符接到哪里去">重定向：把文件描述符接到哪里去</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/pipelines/fig2_redirection.png" alt="重定向：每个 fd 的去向" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图把日常会用到的六种写法摆在一起，下面把全套写法过一遍。</p>
+<h2 id="stdout-和-">stdout：<code>&gt;</code> 和 <code>&gt;&gt;</code></h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;hello&#34;</span> &gt; out.txt        <span class="c1"># 截断后写入</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;world&#34;</span> &gt;&gt; out.txt       <span class="c1"># 追加，保留原内容</span>
+</span></span><span class="line"><span class="cl">ls -l &gt; filelist.txt          <span class="c1"># 保存目录列表</span>
+</span></span><span class="line"><span class="cl">date &gt;&gt; deploy.log            <span class="c1"># 给日志加一行时间戳</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>&gt;</code> 是破坏性的——shell 会在命令真正运行之前就把目标文件清空。如果命令随后失败了，原内容已经丢了。拿不准的时候用 <code>&gt;&gt;</code> 然后再清理，或者先写到一个临时路径里。</p>
+<h2 id="stderr2-和-2">stderr：<code>2&gt;</code> 和 <code>2&gt;&gt;</code></h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">make 2&gt; build-errors.log              <span class="c1"># 只把错误写文件，正常输出留在屏幕</span>
+</span></span><span class="line"><span class="cl">./long-job 2&gt;&gt; errors.log             <span class="c1"># 多次运行的错误都追加到一起</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一种常见组合是&quot;丢掉无关输出，只留错误&quot;：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./scan-disks &gt; /dev/null 2&gt;&gt; scan-errors.log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="同时处理两路">同时处理两路</h2>
+<p>正确的写法有两种，还有一种被广为流传的错写法。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 现代写法（bash / zsh 推荐）：</span>
+</span></span><span class="line"><span class="cl">cmd <span class="p">&amp;</span>&gt; out.log
+</span></span><span class="line"><span class="cl">cmd <span class="p">&amp;</span>&gt;&gt; out.log         <span class="c1"># 追加模式</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 传统写法，老 shell 也兼容：</span>
+</span></span><span class="line"><span class="cl">cmd &gt; out.log 2&gt;<span class="p">&amp;</span><span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>传统写法有个顺序陷阱，每个人都会踩一次：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 错的写法：先把 fd 2 复制到当前 fd 1（也就是终端）的位置，</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 然后才把 fd 1 改向文件。结果 stderr 留在终端，stdout 进了文件——</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 跟想要的完全反过来。</span>
+</span></span><span class="line"><span class="cl">cmd 2&gt;<span class="p">&amp;</span><span class="m">1</span> &gt; out.log
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 对的写法：先把 fd 1 改到文件，再把 fd 2 指向&#34;fd 1 现在指向的位置&#34;。</span>
+</span></span><span class="line"><span class="cl">cmd &gt; out.log 2&gt;<span class="p">&amp;</span><span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>从左往右读，记住 <code>2&gt;&amp;1</code> 的语义是&quot;让 fd 2 指向 fd 1 此刻指向的地方&quot;——而不是&quot;把 fd 2 合并进 fd 1&quot;。</p>
+<h2 id="丢弃输出devnull">丢弃输出：<code>/dev/null</code></h2>
+<p><code>/dev/null</code> 是内核里的&quot;垃圾桶&quot;。写进去的数据被全部丢弃，从它读则立刻得到 EOF。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">cmd &gt; /dev/null              <span class="c1"># 静默正常输出</span>
+</span></span><span class="line"><span class="cl">cmd 2&gt; /dev/null             <span class="c1"># 只静默错误</span>
+</span></span><span class="line"><span class="cl">cmd <span class="p">&amp;</span>&gt; /dev/null              <span class="c1"># 全部静默</span>
+</span></span><span class="line"><span class="cl">cmd &gt; /dev/null 2&gt;<span class="p">&amp;</span><span class="m">1</span> <span class="p">&amp;</span>        <span class="c1"># 完全静默地放后台跑</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>典型用途：cron 里的脚本（出错时才发邮件）、能力探测（<code>command -v jq &gt; /dev/null</code>）、单纯关心&quot;命令是不是 0 退出&quot;的判断。</p>
+<h2 id="stdinhere-dochere-string">stdin：<code>&lt;</code>、here-doc、here-string</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sort &lt; names.txt              <span class="c1"># 用文件喂 stdin</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Here-document：多行字面量作为 stdin</span>
+</span></span><span class="line"><span class="cl">cat <span class="s">&lt;&lt;EOF &gt; /etc/motd
+</span></span></span><span class="line"><span class="cl"><span class="s">Welcome to $(hostname)
+</span></span></span><span class="line"><span class="cl"><span class="s">Today is $(date &#39;+%Y-%m-%d&#39;)
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Here-string：单行字面量作为 stdin</span>
+</span></span><span class="line"><span class="cl">grep -E <span class="s2">&#34;ERROR|WARN&#34;</span> <span class="o">&lt;&lt;&lt;</span> <span class="s2">&#34;</span><span class="nv">$line</span><span class="s2">&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Here-doc 是把配置文件内嵌进脚本、把多行 SQL 喂给 <code>psql</code>、不开新文件就拼小模板的标准方式。默认会做变量展开；如果想要 body 里的内容原样保留，把分隔符引起来：<code>&lt;&lt;'EOF'</code>。</p>
+<h1 id="管道符组合的精髓">管道符：组合的精髓</h1>
+<p>管道是 Unix 里最简单的进程间通信原语，也是本文剩下内容能成立的前提。<code>producer | consumer</code> 同时做了三件事：</p>
+<ol>
+<li>向内核申请一条匿名管道——一段内存里的小环形缓冲，有读端和写端两个。</li>
+<li>fork 出生产者，把它的 fd 1 通过 dup2 接到管道的写端。</li>
+<li>fork 出消费者，把它的 fd 0 通过 dup2 接到管道的读端。</li>
+</ol>
+<p>两个进程随后 <strong>并发运行</strong>：生产者写、消费者读，缓冲满或空时由内核阻塞其中一方。整个过程不在硬盘上落任何临时文件。</p>
+<p>一个标准例子：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ cat access.log <span class="p">|</span> grep <span class="s2">&#34;404&#34;</span> <span class="p">|</span> wc -l
+</span></span><span class="line"><span class="cl"><span class="m">137</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><ul>
+<li><code>cat access.log</code>——把日志内容流向自己的 stdout</li>
+<li><code>grep &quot;404&quot;</code>——从 stdin 读，只保留匹配行</li>
+<li><code>wc -l</code>——从 stdin 读，输出行数</li>
+</ul>
+<p>这种风格之所以好，理由有三个：</p>
+<ul>
+<li><strong>没有中间文件</strong>，数据全在内存里流动，不需要清理。</li>
+<li><strong>流式</strong>，生产者刚写出第一行，消费者就开始处理，不必等整个文件读完。</li>
+<li><strong>可组合</strong>，每一步都能独立测试、独立替换。</li>
+</ul>
+<h2 id="无意义地用-catuuoc">&ldquo;无意义地用 cat&rdquo;（UUOC）</h2>
+<p>上面的例子可以更直接地写：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grep <span class="s2">&#34;404&#34;</span> access.log <span class="p">|</span> wc -l
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>绝大多数过滤工具都接受文件名参数，省掉那个 <code>cat</code> 既快一点也清楚一点。只有在你确实需要&quot;流&quot;——比如要拼多个文件、或为了让管道从上到下读起来更顺——才用 <code>cat file |</code> 开头。</p>
+<h2 id="用-tee-调试管道">用 <code>tee</code> 调试管道</h2>
+<p><code>tee</code> 像水管的三通：把 stdin 写进若干文件 <strong>同时</strong> 也写到 stdout，下游阶段照样能拿到数据。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">grep <span class="s2">&#34;404&#34;</span> access.log <span class="p">|</span> tee 404.log <span class="p">|</span> wc -l
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>现在你既得到了行数，又把所有匹配行存进了 <code>404.log</code> 方便事后查看。当一条管道行为不对时，往中间塞一个 <code>tee /tmp/stage-N.txt</code>，跑一次，再 <code>head /tmp/stage-N.txt</code> 看看那一段到底流的是什么。</p>
+<p><code>tee -a</code> 是追加而不是截断。<code>tee</code> 还有一个常见用法：在普通用户的 shell 里以 root 身份写文件——</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;127.0.0.1 example.local&#34;</span> <span class="p">|</span> sudo tee -a /etc/hosts
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>（直接写 <code>sudo echo ... &gt;&gt; /etc/hosts</code> 是不行的，因为重定向是由你当前的 shell 完成的，而那个 shell 不是 root。）</p>
+<h1 id="文本处理工具链">文本处理工具链</h1>
+<p>六个工具就能覆盖绝大多数日志和文本处理场景。把每个工具的 <em>用途</em> 想清楚，就不会动不动想去掏 Python 了。</p>
+<h2 id="grep过滤行">grep：过滤行</h2>
+<p><code>grep</code> 留下匹配模式的行，必须掌握的参数：</p>
+<table>
+  <thead>
+      <tr>
+          <th>参数</th>
+          <th>含义</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>-i</code></td>
+          <td>忽略大小写</td>
+      </tr>
+      <tr>
+          <td><code>-v</code></td>
+          <td>反向匹配（保留 <strong>不</strong> 匹配的行）</td>
+      </tr>
+      <tr>
+          <td><code>-n</code></td>
+          <td>显示行号</td>
+      </tr>
+      <tr>
+          <td><code>-E</code></td>
+          <td>扩展正则（`</td>
+      </tr>
+      <tr>
+          <td><code>-F</code></td>
+          <td>固定字符串（不当正则用，处理纯文本时更安全也更快）</td>
+      </tr>
+      <tr>
+          <td><code>-r</code> / <code>-R</code></td>
+          <td>递归子目录</td>
+      </tr>
+      <tr>
+          <td><code>-l</code></td>
+          <td>只输出包含匹配的文件名</td>
+      </tr>
+      <tr>
+          <td><code>-c</code></td>
+          <td>只输出匹配行数</td>
+      </tr>
+      <tr>
+          <td><code>-A N</code> / <code>-B N</code> / <code>-C N</code></td>
+          <td>显示匹配后 / 前 / 前后各 N 行</td>
+      </tr>
+      <tr>
+          <td><code>-o</code></td>
+          <td>只输出匹配的部分，每个匹配一行</td>
+      </tr>
+  </tbody>
+</table>
+<p>实战组合：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 多关键词、忽略大小写、带 3 行上下文</span>
+</span></span><span class="line"><span class="cl">grep -iEC <span class="m">3</span> <span class="s2">&#34;error|fail|timeout&#34;</span> /var/log/syslog
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 全工程找 import requests 的 Python 文件</span>
+</span></span><span class="line"><span class="cl">grep -rln --include<span class="o">=</span><span class="s1">&#39;*.py&#39;</span> <span class="s2">&#34;^import requests&#34;</span> .
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 匹配 ERROR 但排除 ERROR_HANDLED</span>
+</span></span><span class="line"><span class="cl">grep <span class="s2">&#34;ERROR&#34;</span> app.log <span class="p">|</span> grep -v <span class="s2">&#34;ERROR_HANDLED&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 抽出日志里所有 URL 并去重</span>
+</span></span><span class="line"><span class="cl">grep -oE <span class="s1">&#39;https?://[^ &#34;]+&#39;</span> access.log <span class="p">|</span> sort -u
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>-F</code> 值得单独提一下：当要搜的是一个含有正则特殊字符的字面字符串（路径、IP、堆栈片段），<code>grep -F</code> 比手动转义更安全也更快。</p>
+<h2 id="awk列与聚合">awk：列与聚合</h2>
+<p><code>awk</code> 是一门小型编程语言，模型是&quot;对每一行，按字段切开后执行一段动作&quot;。只要你的数据有 <em>列</em>，要做投影、按列筛选、按列聚合，就该想到它。</p>
+<p>心智模型：</p>
+<ul>
+<li>默认分隔符是&quot;任意空白&quot;，<code>-F</code> 可改。</li>
+<li><code>$1</code>、<code>$2</code> 是字段引用，<code>$0</code> 是整行；<code>NF</code> 是字段数，<code>NR</code> 是行号。</li>
+<li>程序由若干 <code>pattern { action }</code> 构成，两部分都可省略。</li>
+<li><code>BEGIN { ... }</code> 在读入前执行一次，<code>END { ... }</code> 在读完后执行一次。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 投影：从 Nginx access log 里取 IP 和状态码</span>
+</span></span><span class="line"><span class="cl">awk <span class="s1">&#39;{ print $1, $9 }&#39;</span> access.log
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 数值条件过滤：只看 5xx</span>
+</span></span><span class="line"><span class="cl">awk <span class="s1">&#39;$9 &gt;= 500 { print }&#39;</span> access.log
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 聚合：按 IP 计数</span>
+</span></span><span class="line"><span class="cl">awk <span class="s1">&#39;{ count[$1]++ } END { for (ip in count) print count[ip], ip }&#39;</span> access.log <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  <span class="p">|</span> sort -nr <span class="p">|</span> head
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 自定义分隔符：解析 /etc/passwd</span>
+</span></span><span class="line"><span class="cl">awk -F: <span class="s1">&#39;{ print $1, $7 }&#39;</span> /etc/passwd
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 求平均（假设第 10 列是响应时间，单位毫秒）</span>
+</span></span><span class="line"><span class="cl">awk <span class="s1">&#39;{ sum += $10; n++ } END { if (n) print sum / n }&#39;</span> access.log
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 多条件：5xx 且响应时间超过 1 秒</span>
+</span></span><span class="line"><span class="cl">awk <span class="s1">&#39;$9 &gt;= 500 &amp;&amp; $10 &gt; 1000 { print $1, $7, $9, $10 }&#39;</span> access.log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>count[$key]++ ... END { for (k in count) print count[k], k }</code> 这个聚合套路是核心生产力：每次想写 Python 来&quot;按某字段统计&quot;之前，先看看一行 awk 是不是就够了。</p>
+<h2 id="sed流编辑">sed：流编辑</h2>
+<p><code>sed</code> 是非交互式编辑器。日常 95% 的场景是替换和删除。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 替换（每行只替换第一处）</span>
+</span></span><span class="line"><span class="cl">sed <span class="s1">&#39;s/foo/bar/&#39;</span>      file.txt
+</span></span><span class="line"><span class="cl">sed <span class="s1">&#39;s/foo/bar/g&#39;</span>     file.txt    <span class="c1"># 每行所有匹配</span>
+</span></span><span class="line"><span class="cl">sed -E <span class="s1">&#39;s|/old/path|/new/path|g&#39;</span>  file.txt   <span class="c1"># 用 | 当分隔符，省得转义斜杠</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 删除行</span>
+</span></span><span class="line"><span class="cl">sed <span class="s1">&#39;/^$/d&#39;</span>           file.txt    <span class="c1"># 空行</span>
+</span></span><span class="line"><span class="cl">sed <span class="s1">&#39;/^#/d&#39;</span>           file.txt    <span class="c1"># 注释行</span>
+</span></span><span class="line"><span class="cl">sed <span class="s1">&#39;1,10d&#39;</span>           file.txt    <span class="c1"># 前 10 行</span>
+</span></span><span class="line"><span class="cl">sed <span class="s1">&#39;$d&#39;</span>              file.txt    <span class="c1"># 最后一行</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 只打印某段（-n 抑制默认输出）</span>
+</span></span><span class="line"><span class="cl">sed -n <span class="s1">&#39;10,20p&#39;</span> file.txt
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 按行号插入 / 追加</span>
+</span></span><span class="line"><span class="cl">sed <span class="s1">&#39;1i\#!/usr/bin/env bash&#39;</span>  script.sh
+</span></span><span class="line"><span class="cl">sed <span class="s1">&#39;$a\# end of file&#39;</span>        script.sh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 原地修改并保留 .bak 备份</span>
+</span></span><span class="line"><span class="cl">sed -i.bak <span class="s1">&#39;s/listen 80;/listen 8080;/&#39;</span> /etc/nginx/nginx.conf
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两个能省时间的小提醒：</p>
+<ul>
+<li>替换的分隔符 <strong>不一定</strong> 是 <code>/</code>。当模式里本来就有斜杠时，<code>sed 's|a/b|c/d|'</code> 比 <code>sed 's/a\/b/c\/d/'</code> 可读得多。</li>
+<li><code>sed -i</code> 在 GNU sed 和 BSD sed（macOS）上行为不同。<code>sed -i.bak '...'</code> 在两边都能用——总是写一个带后缀的备份，是值得养成的习惯。</li>
+</ul>
+<h2 id="cuttr用不上-awksed-时的轻量选手">cut、tr：用不上 awk/sed 时的轻量选手</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># cut：按分隔符取列</span>
+</span></span><span class="line"><span class="cl">cut -d<span class="s1">&#39;,&#39;</span> -f1,3        data.csv         <span class="c1"># CSV 第 1 和第 3 列</span>
+</span></span><span class="line"><span class="cl">cut -d<span class="s1">&#39;:&#39;</span> -f1,7        /etc/passwd      <span class="c1"># 用户名和 shell</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># cut：按字符位置（定宽数据）</span>
+</span></span><span class="line"><span class="cl">cut -c1-8              file.txt         <span class="c1"># 每行前 8 个字符</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># tr：字符级替换 / 删除</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;HELLO&#34;</span> <span class="p">|</span> tr <span class="s1">&#39;A-Z&#39;</span> <span class="s1">&#39;a-z&#39;</span>           <span class="c1"># 转小写</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;a b c&#34;</span> <span class="p">|</span> tr <span class="s1">&#39; &#39;</span> <span class="s1">&#39;\n&#39;</span>              <span class="c1"># 空格变换行</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;abc123&#34;</span> <span class="p">|</span> tr -d <span class="s1">&#39;0-9&#39;</span>             <span class="c1"># 删数字</span>
+</span></span><span class="line"><span class="cl">tr -s <span class="s1">&#39; &#39;</span> &lt; file                        <span class="c1"># 把多个空格压成一个</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>分隔符固定、只想取列时用 <code>cut</code>，比 awk 更省字。涉及字符级别的事（大小写、按字符切分、去掉某类字符）就用 <code>tr</code>。</p>
+<h2 id="sortuniq排序与分组">sort、uniq：排序与分组</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sort file.txt              <span class="c1"># 字典序</span>
+</span></span><span class="line"><span class="cl">sort -n file.txt           <span class="c1"># 数字序（这样 &#34;10&#34; 才会排在 &#34;9&#34; 后面）</span>
+</span></span><span class="line"><span class="cl">sort -h file.txt           <span class="c1"># 人类可读的容量（1K、2M、3G）</span>
+</span></span><span class="line"><span class="cl">sort -r file.txt           <span class="c1"># 反向</span>
+</span></span><span class="line"><span class="cl">sort -k2,2 file.txt        <span class="c1"># 按第 2 列（按空白切）</span>
+</span></span><span class="line"><span class="cl">sort -t<span class="s1">&#39;,&#39;</span> -k3,3n data.csv <span class="c1"># CSV 第 3 列，按数字</span>
+</span></span><span class="line"><span class="cl">sort -u file.txt           <span class="c1"># 一遍排序+去重</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">uniq           file        <span class="c1"># 合并相邻重复</span>
+</span></span><span class="line"><span class="cl">uniq -c        file        <span class="c1"># 统计相邻重复出现次数</span>
+</span></span><span class="line"><span class="cl">uniq -d        file        <span class="c1"># 只显示有重复的行</span>
+</span></span><span class="line"><span class="cl">uniq -u        file        <span class="c1"># 只显示没有重复的行</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>关于 <code>uniq</code> 最重要的一句话：<strong>它只能处理相邻的重复</strong>。所以你几乎总要写成 <code>sort | uniq -c | sort -nr</code> 才能得到一份按频次排好的报表——第一个 <code>sort</code> 让重复挨在一起，<code>uniq -c</code> 计数，第二个 <code>sort -nr</code> 按数字倒序排。</p>
+<h1 id="实战nginx-日志分流">实战：Nginx 日志分流</h1>
+<p>下面这几条命令值得每个值班的人背下来。假设 <code>access.log</code> 是标准的 combined 格式（第 1 列是客户端 IP，第 7 列是路径，第 9 列是状态码）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 访问最多的 10 个客户端 IP</span>
+</span></span><span class="line"><span class="cl">awk <span class="s1">&#39;{ print $1 }&#39;</span> access.log <span class="p">|</span> sort <span class="p">|</span> uniq -c <span class="p">|</span> sort -nr <span class="p">|</span> head
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 访问最多的 10 个 URL</span>
+</span></span><span class="line"><span class="cl">awk <span class="s1">&#39;{ print $7 }&#39;</span> access.log <span class="p">|</span> sort <span class="p">|</span> uniq -c <span class="p">|</span> sort -nr <span class="p">|</span> head
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 状态码分布</span>
+</span></span><span class="line"><span class="cl">awk <span class="s1">&#39;{ print $9 }&#39;</span> access.log <span class="p">|</span> sort <span class="p">|</span> uniq -c <span class="p">|</span> sort -nr
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 最近 1 小时的所有 5xx（假设日志时间戳是可排序的）</span>
+</span></span><span class="line"><span class="cl">grep <span class="s2">&#34;</span><span class="k">$(</span>date -d <span class="s1">&#39;1 hour ago&#39;</span> <span class="s1">&#39;+%d/%b/%Y:%H&#39;</span><span class="k">)</span><span class="s2">&#34;</span> access.log <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  <span class="p">|</span> awk <span class="s1">&#39;$9 &gt;= 500&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 哪些 IP 在打哪些 4xx 路径？</span>
+</span></span><span class="line"><span class="cl">awk <span class="s1">&#39;$9 &gt;= 400 &amp;&amp; $9 &lt; 500 { print $1, $9, $7 }&#39;</span> access.log <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  <span class="p">|</span> sort <span class="p">|</span> uniq -c <span class="p">|</span> sort -nr <span class="p">|</span> head -20
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/pipelines/fig3_grep_awk_sed_pipeline.png" alt="grep | awk | sort | uniq 流水线" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图把第三条命令拆开了：每一阶段都在 <strong>收窄或聚合</strong> 数据，到右端就只剩屏幕能装下的一份排好序的统计了。任何中间位置都可以塞个 <code>tee</code> 进去看具体形态。</p>
+<h1 id="xargs当下游需要的是参数而不是-stdin">xargs：当下游需要的是参数而不是 stdin</h1>
+<p>管道传的是 stdin。但很多最想串进来的工具——<code>rm</code>、<code>cp</code>、<code>mv</code>、<code>chmod</code>、<code>git checkout</code>——接收的是 <strong>参数</strong>，不是 stdin。<code>xargs</code> 就是这两种接口之间的桥。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.tmp&#34;</span> <span class="p">|</span> xargs rm        <span class="c1"># 删除当前目录下所有 *.tmp</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>没有 <code>xargs</code> 的话，<code>find ... | rm</code> 什么也不做：<code>rm</code> 根本不读 stdin。</p>
+<h2 id="空格与换行的坑">空格与换行的坑</h2>
+<p><code>find | xargs</code> 这种朴素写法，一旦文件名里有空格或换行（是的，文件名里出现换行是合法的）就会出错。<code>xargs</code> 默认按空白分词，于是 <code>my file.txt</code> 会被拆成两个参数。永远把 <code>find -print0</code> 和 <code>xargs -0</code> 配对使用：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.tmp&#34;</span> -print0 <span class="p">|</span> xargs -0 rm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>-print0</code> 用 NUL 字节做分隔符；<code>-0</code> 让 <code>xargs</code> 也按 NUL 切。NUL 是唯一不可能出现在文件名里的字节，所以这种组合稳如磐石。</p>
+<p>更简洁也常常更优雅的做法是干脆不用 <code>xargs</code>，让 <code>find</code> 自己调命令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.tmp&#34;</span> -exec rm <span class="o">{}</span> +     <span class="c1"># 批量调用，等价于 xargs -0</span>
+</span></span><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.tmp&#34;</span> -delete           <span class="c1"># 删除有内置写法</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>-exec ... {} +</code> 会把参数尽可能塞进一次调用里；<code>-exec ... {} \;</code> 是每个文件单独调一次（慢一些，但适用于&quot;每次调用都要独立&quot;的场景）。</p>
+<h2 id="常用参数">常用参数</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 用占位符</span>
+</span></span><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.log&#34;</span> <span class="p">|</span> xargs -I<span class="o">{}</span> cp <span class="o">{}</span> <span class="o">{}</span>.bak
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 限制每次调用的参数个数（避免 argv 太长）</span>
+</span></span><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.json&#34;</span> -print0 <span class="p">|</span> xargs -0 -n <span class="m">100</span> jq -c .
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 并行：跑 N 个进程</span>
+</span></span><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.json&#34;</span> -print0 <span class="p">|</span> xargs -0 -P <span class="m">8</span> -n <span class="m">1</span> jq -c . &gt; /dev/null
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 每次调用前交互确认（小心模式）</span>
+</span></span><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.tmp&#34;</span> -print0 <span class="p">|</span> xargs -0 -p rm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>-P</code> 是把&quot;扫一遍所有 JSON 文件做语法检查&quot;从 30 秒变成 4 秒（8 核机器上）的关键。配合 <code>-n 1</code> 让每次调用只接一个文件，否则一个慢的会拖累整批。</p>
+<h1 id="命名管道fifo">命名管道（FIFO）</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/pipelines/fig4_named_pipes.png" alt="匿名管道 vs 命名管道（FIFO）" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>|</code> 创建的是 <strong>匿名管道</strong>——存在于内核内存里，文件系统上没有名字，生产者和消费者退出后就消失。两端必须在同一条命令行上。</p>
+<p><strong>命名管道</strong>（FIFO）是文件系统上有名字的管道。用 <code>mkfifo</code> 创建之后，任意两个进程——可能在不同终端、不同时刻启动——都能挂上去通信。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ mkfifo /tmp/jobs
+</span></span><span class="line"><span class="cl">$ ls -l /tmp/jobs
+</span></span><span class="line"><span class="cl">prw-r--r-- <span class="m">1</span> kchen kchen <span class="m">0</span> ... /tmp/jobs    <span class="c1"># 开头那个 &#39;p&#39; 表示这是 FIFO</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 消费者（终端 A）：阻塞读 FIFO，逐行处理</span>
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="nb">read</span> job<span class="p">;</span> <span class="k">do</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">echo</span> <span class="s2">&#34;[worker] processing </span><span class="nv">$job</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">    sleep <span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="k">done</span> &lt; /tmp/jobs
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 生产者（终端 B）：把任务丢进 FIFO</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;task-1&#34;</span> &gt; /tmp/jobs
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;task-2&#34;</span> &gt; /tmp/jobs
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>第一次用会被两条语义绊住：</p>
+<ul>
+<li>对 FIFO 的 <code>read</code> <strong>会阻塞</strong>，直到有人写。同样，<code>write</code> 也会阻塞，直到有人读（内核管道缓冲很小，一般 64 KiB）。</li>
+<li>写还在但读全部退出时，写方会收到 <code>SIGPIPE</code>。读还在但写全部退出时，下一次 read 会返回 EOF。</li>
+</ul>
+<p>这种阻塞行为正是它的 <em>用处</em>：FIFO 就是一个零配置的微型任务队列或信号通道。常见用法包括：脚本之间的简单信号、给一拨突发的生产者前面挡一个长时间运行的消费者、把多个短命进程的日志汇聚到一个轮转器。</p>
+<p>用完 <code>rm /tmp/jobs</code> 清理掉就行——FIFO 就是个文件。</p>
+<h1 id="进程替换cmd-与-cmd">进程替换：<code>&lt;(cmd)</code> 与 <code>&gt;(cmd)</code></h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/pipelines/fig5_process_substitution.png" alt="进程替换：&lt;(cmd) 把命令的 stdout 暴露成一个文件名" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>进程替换回答了一个问题：&ldquo;如果我想把命令的输出喂给一个只接受文件名参数的工具，怎么办？&rdquo;</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">diff &lt;<span class="o">(</span>sort file1<span class="o">)</span> &lt;<span class="o">(</span>sort file2<span class="o">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>bash 在背后做了这样一件事：<code>&lt;(sort file1)</code> 展开成一个路径——通常是 <code>/dev/fd/63</code>——读这个路径就能得到内层命令的 stdout。<code>diff</code> 把它当作一个普通文件打开，完全意识不到对面是个进程。</p>
+<p>写成等价的临时文件版本，对比一下就明白价值在哪：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sort file1 &gt; /tmp/a
+</span></span><span class="line"><span class="cl">sort file2 &gt; /tmp/b
+</span></span><span class="line"><span class="cl">diff /tmp/a /tmp/b
+</span></span><span class="line"><span class="cl">rm /tmp/a /tmp/b
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>bash 替你做了所有 bookkeeping，而且内层命令是并发跑的，生产者和消费者在重叠执行而不是串行。</p>
+<p>输出形式 <code>&gt;(cmd)</code> 也存在——展开成的路径写入时会变成内层命令的 stdin。实战中少见，但能让人写出这样的模式：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 用 tee 把一份流分给两个并发消费者</span>
+</span></span><span class="line"><span class="cl">some_command <span class="p">|</span> tee &gt;<span class="o">(</span>gzip &gt; out.gz<span class="o">)</span> &gt;<span class="o">(</span>sha256sum &gt; out.sha256<span class="o">)</span> &gt; /dev/null
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>进程替换是 bash / zsh / ksh 的特性，纯 POSIX <code>sh</code> 没有。要写可移植脚本就退回到临时文件加 <code>trap &quot;rm -f $tmp&quot; EXIT</code> 的写法。</p>
+<h1 id="实战批量文件操作">实战：批量文件操作</h1>
+<p>几个运维里反复出现的套路。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 递归设置 web 目录权限：文件 644，目录 755</span>
+</span></span><span class="line"><span class="cl">find /var/www/html -type f -exec chmod <span class="m">644</span> <span class="o">{}</span> +
+</span></span><span class="line"><span class="cl">find /var/www/html -type d -exec chmod <span class="m">755</span> <span class="o">{}</span> +
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 压缩所有 7 天前的日志</span>
+</span></span><span class="line"><span class="cl">find /var/log -name <span class="s2">&#34;*.log&#34;</span> -mtime +7 -exec gzip <span class="o">{}</span> +
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 删除空文件（往往是写入失败留下的残骸）</span>
+</span></span><span class="line"><span class="cl">find /tmp -type f -empty -delete
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 用 shell 参数展开把 img_*.jpg 批量改名为 photo_*.jpg</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> f in img_*.jpg<span class="p">;</span> <span class="k">do</span>
+</span></span><span class="line"><span class="cl">    mv -- <span class="s2">&#34;</span><span class="nv">$f</span><span class="s2">&#34;</span> <span class="s2">&#34;</span><span class="si">${</span><span class="nv">f</span><span class="p">/img_/photo_</span><span class="si">}</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 用 rename(1)（Debian/Ubuntu 上叫 perl-rename）做同样的事</span>
+</span></span><span class="line"><span class="cl">rename <span class="s1">&#39;s/^img_/photo_/&#39;</span> img_*.jpg
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 找大于 100 MB 的文件并按大小倒序列出</span>
+</span></span><span class="line"><span class="cl">find / -xdev -type f -size +100M -exec du -h <span class="o">{}</span> + 2&gt;/dev/null <span class="p">|</span> sort -hr <span class="p">|</span> head
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>mv</code> 后面那个 <code>--</code> 是个值得养成的小习惯：它告诉命令&quot;参数列表结束了&quot;，这样以 <code>-</code> 开头的文件名就不会被当成选项。</p>
+<h1 id="安全与最佳实践">安全与最佳实践</h1>
+<p>几条避免最常见管道事故的规则。</p>
+<p><strong>1. 永远不要解析 <code>ls</code> 的输出。</strong> <code>ls</code> 是给人看的，输出格式不是稳定的交换格式。空格、换行、glob 字符、locale 相关的日期格式都会让朴素的解析挂掉。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 错的</span>
+</span></span><span class="line"><span class="cl">ls *.log <span class="p">|</span> xargs rm
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 对的</span>
+</span></span><span class="line"><span class="cl">find . -maxdepth <span class="m">1</span> -name <span class="s2">&#34;*.log&#34;</span> -print0 <span class="p">|</span> xargs -0 rm
+</span></span><span class="line"><span class="cl"><span class="c1"># 或者直接：</span>
+</span></span><span class="line"><span class="cl">rm -- *.log
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>2. 破坏性命令先预览。</strong> 把 <code>-delete</code> 换成 <code>-print</code>（或把 <code>rm</code> 换成 <code>echo rm</code>），文件清单看着没问题再真删：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.tmp&#34;</span> -print     <span class="c1"># 预览</span>
+</span></span><span class="line"><span class="cl">find . -name <span class="s2">&#34;*.tmp&#34;</span> -delete    <span class="c1"># 实删</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>3. 所有变量展开都加引号。</strong> 这是&quot;在我机器上是好的&quot;问题最大的源头：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">dir</span><span class="o">=</span><span class="s2">&#34;my reports&#34;</span>
+</span></span><span class="line"><span class="cl">rm -rf <span class="nv">$dir</span>       <span class="c1"># 错：被展开成 &#34;rm -rf my reports&#34;，把 &#39;my&#39; 和 &#39;reports&#39; 都删了</span>
+</span></span><span class="line"><span class="cl">rm -rf -- <span class="s2">&#34;</span><span class="nv">$dir</span><span class="s2">&#34;</span>  <span class="c1"># 对</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>4. 脚本里加 <code>set -euo pipefail</code>。</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/usr/bin/env bash
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="nb">set</span> -euo pipefail   <span class="c1"># -e: 出错就退出；-u: 用未定义变量就退出；-o pipefail: 管道里任一阶段失败整条算失败</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>不加 <code>pipefail</code> 的话，管道的退出码是 <strong>最后一个</strong> 阶段的退出码。中间阶段悄悄失败（<code>grep</code> 没匹配到、<code>sort</code> 写不下盘）会被掩盖。加了 <code>pipefail</code>，第一个非零退出会传播到外面。</p>
+<p><strong>5. 不要 <code>eval</code>，更不要把外部输入直接塞进 shell 命令。</strong> 来自外部的值要么先做正则校验（<code>[[ &quot;$x&quot; =~ ^[A-Za-z0-9._-]+$ ]]</code>），要么作为参数传给一个不调用 shell 的工具。</p>
+<h1 id="总结">总结</h1>
+<p>到这里，你应该有了一张完整的图，而不是一堆零散的命令：</p>
+<ul>
+<li><strong>数据流模型</strong>：三个流（stdin/stdout/stderr）映射到三个文件描述符（0/1/2）。管道只传 stdout。</li>
+<li><strong>重定向</strong>：<code>&gt;</code> <code>&gt;&gt;</code> <code>&lt;</code> <code>2&gt;</code> <code>2&gt;&amp;1</code> <code>&amp;&gt;</code> <code>&lt;&lt;</code> <code>&lt;&lt;&lt;</code>，六种写法覆盖所有场景，并且你理解 <em>为什么</em> <code>2&gt;&amp;1 &gt;file</code> 是错的。</li>
+<li><strong>工具链</strong>：<code>grep</code> 过滤、<code>awk</code> 投影与聚合、<code>sed</code> 编辑、<code>cut</code>/<code>tr</code> 简单场景、<code>sort | uniq -c | sort -nr</code> 出频次榜。</li>
+<li><strong>参数桥接</strong>：<code>xargs</code>（以及 <code>find -exec ... {} +</code>）打通 stdin 风格和 argv 风格的工具，并且记得用 NUL 分隔来兜住带空格的文件名。</li>
+<li><strong>两个少见但好用的模式</strong>：命名管道用于跨进程会合；进程替换用于&quot;我需要文件名，但手头是命令&quot;。</li>
+<li><strong>安全</strong>：变量加引号、删之前先预览、永不解析 <code>ls</code>，每个脚本顶上都写 <code>set -euo pipefail</code>。</li>
+</ul>
+<p><strong>扩展阅读</strong></p>
+<ul>
+<li><a href="https://github.com/jlevy/the-art-of-command-line" target="_blank" rel="noopener noreferrer">The Art of Command Line <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ —— 一份精挑细选的命令行惯用法清单。</li>
+<li><code>man bash</code>，重点看 <strong>REDIRECTION</strong>、<strong>Pipelines</strong>、<strong>Process Substitution</strong> 三节。</li>
+<li><code>info coreutils</code> —— <code>grep</code>、<code>sort</code>、<code>cut</code>、<code>tr</code>、<code>uniq</code> 等的权威参考。</li>
+</ul>
+<p>这是 Linux 系列的最后一篇。前面七篇给了你模型——进程、文件、权限、磁盘、服务、软件包、用户——这一篇给的是 <strong>黏合剂</strong>。真实的运维工作大半就是 <strong>应用这层黏合剂</strong>：把&quot;我得知道 X&quot;翻译成一行命令，把&quot;对这里所有文件做某操作&quot;翻译成一句安全的 <code>find ... -exec</code>，把 shell 当成你手头最通用的可编程工具来用。</p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#文件描述符就是几个整数">文件描述符就是几个整数</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#stdout-和-">stdout：<code>&gt;</code> 和 <code>&gt;&gt;</code></a></li>
+    <li><a href="#stderr2-和-2">stderr：<code>2&gt;</code> 和 <code>2&gt;&gt;</code></a></li>
+    <li><a href="#同时处理两路">同时处理两路</a></li>
+    <li><a href="#丢弃输出devnull">丢弃输出：<code>/dev/null</code></a></li>
+    <li><a href="#stdinhere-dochere-string">stdin：<code>&lt;</code>、here-doc、here-string</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#无意义地用-catuuoc">&ldquo;无意义地用 cat&rdquo;（UUOC）</a></li>
+    <li><a href="#用-tee-调试管道">用 <code>tee</code> 调试管道</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#grep过滤行">grep：过滤行</a></li>
+    <li><a href="#awk列与聚合">awk：列与聚合</a></li>
+    <li><a href="#sed流编辑">sed：流编辑</a></li>
+    <li><a href="#cuttr用不上-awksed-时的轻量选手">cut、tr：用不上 awk/sed 时的轻量选手</a></li>
+    <li><a href="#sortuniq排序与分组">sort、uniq：排序与分组</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#空格与换行的坑">空格与换行的坑</a></li>
+    <li><a href="#常用参数">常用参数</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
+      <div class="row"><span>Word count</span><strong>7500</strong></div>
+      <div class="row"><span>Published</span><strong>Apr 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

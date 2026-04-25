@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>时间序列模型（二）：LSTM -- 门控机制与长期依赖 · Chen Kai Blog</title>
+<meta name="description" content="LSTM 的遗忘门、输入门和输出门如何解决梯度消失问题。完整的 PyTorch 时间序列预测代码和实用调参技巧。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/time-series/02-lstm/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/time-series/02-lstm/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="时间序列模型（二）：LSTM -- 门控机制与长期依赖">
+<meta property="og:description" content="LSTM 的遗忘门、输入门和输出门如何解决梯度消失问题。完整的 PyTorch 时间序列预测代码和实用调参技巧。">
+<meta property="og:url" content="https://www.chenk.top/zh/time-series/02-lstm/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">时间序列模型</a>
+         · Chapter 2
+      </div>
+      <h1>时间序列模型（二）：LSTM -- 门控机制与长期依赖</h1>
+      <p class="deck">LSTM 的遗忘门、输入门和输出门如何解决梯度消失问题。完整的 PyTorch 时间序列预测代码和实用调参技巧。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-09-16">September 16, 2024</time> · 7 min read · 3200 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/" class="tag">#时间序列</a><a href="/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a><a href="/zh/tags/lstm/" class="tag">#LSTM</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <h2 id="本章要点">本章要点</h2>
+<ul>
+<li>为什么普通 RNN 在长序列上失败，LSTM 如何修复梯度问题</li>
+<li>每个门（遗忘门、输入门、输出门）的直觉与&quot;细胞状态高速公路&quot;</li>
+<li>如何为单步与多步时间序列预测构建 LSTM 的输入/输出</li>
+<li>实战配方：正则化、回望长度选择、双向 vs 堆叠 LSTM、LSTM vs GRU 的取舍</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>神经网络基础（前向传播、反向传播）</li>
+<li>熟悉 PyTorch（<code>nn.Module</code>、张量、优化器）</li>
+<li>本系列第一部分（推荐但非必需）</li>
+</ul>
+<hr>
+<h2 id="1-lstm-要解决的问题">1. LSTM 要解决的问题</h2>
+$$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$$$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.$$<p>两种坏情况都会发生：</p>
+<ul>
+<li>如果 $W_h$ 的最大奇异值小于 1，乘积<strong>指数衰减</strong>——网络无法从超过 ~10 步的历史中学到任何东西。</li>
+<li>如果大于 1，乘积<strong>指数爆炸</strong>——训练直接发散。</li>
+</ul>
+<p>LSTM（Hochreiter &amp; Schmidhuber, 1997）的做法是把单一的循环状态拆成<strong>两个</strong>状态、外加三个可学习的门，由这些门来决定记什么、覆盖什么、输出什么。结果是一个沿时间轴近乎加性的更新方式，让梯度有机会&quot;走&quot;完几百步的反向路径。</p>
+<h2 id="2-lstm-单元的解剖">2. LSTM 单元的解剖</h2>
+<p>在一个 LSTM cell 内部，四个子单元共享同一份输入 $[h_{t-1}, x_t]$，给出三个 sigmoid 门和一个 $\tanh$ 候选：</p>
+$$
+\begin{aligned}
+f_t &= \sigma(W_f [h_{t-1}, x_t] + b_f) && \text{遗忘门} \\
+i_t &= \sigma(W_i [h_{t-1}, x_t] + b_i) && \text{输入门} \\
+\tilde C_t &= \tanh(W_C [h_{t-1}, x_t] + b_C) && \text{候选} \\
+o_t &= \sigma(W_o [h_{t-1}, x_t] + b_o) && \text{输出门}
+\end{aligned}
+$$<p>四个量合成为细胞状态更新和隐藏输出：</p>
+$$
+C_t = f_t \odot C_{t-1} + i_t \odot \tilde C_t, \qquad
+h_t = o_t \odot \tanh(C_t).
+$$<p>$\odot$ 是逐元素乘法。<strong>用大白话翻译一下</strong>：擦掉 $1 - f_t$ 比例的旧记忆，写入 $i_t$ 比例的新候选，最后通过 $o_t$ 这副&quot;滤镜&quot;看一眼结果。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/fig1_lstm_cell.png" alt="LSTM 单元结构：三个 sigmoid 门加一个 tanh 候选位于细胞状态高速公路下方。遗忘门与输入流相乘擦除旧记忆，输入门缩放候选写入新记忆，输出门把过滤后的状态作为隐藏状态暴露出去。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>LSTM 单元——三个门作用在一条细胞状态高速公路上。</em></p>
+<h3 id="为什么细胞状态如此关键">为什么细胞状态如此关键</h3>
+<p>隐藏状态 $h_t$ 是网络其它部分能看到的东西，但<strong>真正的记忆</strong>住在细胞状态 $C_t$ 里。$C_t$ 沿着时间轴形成一条不间断的水平线，只被逐元素乘法（$f_t$）和加法（$i_t \odot \tilde C_t$）触碰——<strong>从不</strong>被新的矩阵乘法重写。这一个设计选择，就是梯度能够穿越数百步的根本原因。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/fig2_state_highway.png" alt="两条并行的状态流：绿色的细胞状态高速公路用近似恒等的更新承载长期记忆；紫色虚线是被门过滤后的隐藏状态，是下游层真正看到的视图。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>细胞状态 vs 隐藏状态——两条并行的信息流。</em></p>
+<h3 id="把梯度流写出来">把梯度流写出来</h3>
+$$\frac{\partial C_t}{\partial C_{t-1}} = f_t,$$$$\frac{\partial C_T}{\partial C_k} = \prod_{t=k+1}^{T} f_t.$$<p>只要模型想记住某个分量，它就能学会让对应的 $f_t$ 接近 1，于是该分量的梯度也保持接近 1。整个魔法就这一招。</p>
+<h2 id="3-一个最小可用的-pytorch-实现">3. 一个最小可用的 PyTorch 实现</h2>
+<p>不论是单变量还是多变量预测，下面这段代码就够用了：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LSTMForecaster</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">output_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">hidden_size</span><span class="o">=</span><span class="n">hidden_size</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span> <span class="k">if</span> <span class="n">num_layers</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># x: (batch, seq_len, input_size)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>              <span class="c1"># (batch, seq_len, hidden_size)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">out</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])</span>     <span class="c1"># 取最后一个时间步</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>几个不那么显然的细节：</p>
+<ul>
+<li><code>batch_first=True</code> 让输入形状变成 <code>(batch, seq_len, features)</code>，几乎所有人都希望是这种约定。</li>
+<li>内置的 <code>dropout</code> 参数<strong>只作用于层与层之间</strong>，不会在时间步之间丢弃激活。要想做 recurrent dropout，得用 <code>nn.LSTMCell</code> 自己实现，或者借鉴 AWD-LSTM 的 <code>weight_drop</code> 技巧。</li>
+<li>把遗忘门偏置初始化为 <strong>+1</strong>，让网络从&quot;倾向记住&quot;开始。PyTorch 默认不会这么做：</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">lstm</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="s2">&#34;bias&#34;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">n</span> <span class="o">//</span> <span class="mi">4</span> <span class="p">:</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>   <span class="c1"># 遗忘门偏置</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="4-从单元到预测器">4. 从单元到预测器</h2>
+<p>时间序列预测的标准流程：</p>
+<ol>
+<li><strong>窗口化序列</strong>：把序列切成长度为 $L$ 的重叠窗口——这就是<em>回望长度</em>。</li>
+<li><strong>每个特征单独标准化</strong>：用训练集的均值和标准差。</li>
+<li>训练模型预测下一个值（单步），或下 $H$ 个值（多步）。</li>
+<li>在<strong>按时间顺序</strong>留出的尾部上验证——绝不打乱。</li>
+</ol>
+<p>在含噪的季节性信号上，一个干净的单步预测大致是这样的：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/fig3_forecast.png" alt="单步 LSTM 预测与真实序列的对比。蓝色阴影带是测试窗口残差标准差给出的 95% 区间。模型同时跟住了 24 步与 75 步两种季节分量，只有约一步的特征性滞后。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>在带噪季节信号上的单步 LSTM 预测 vs 实际值。</em></p>
+<h3 id="多步预测递归-vs-直接">多步预测：递归 vs 直接</h3>
+<p>当预测视野 $H > 1$ 时，常见两种策略：</p>
+<table>
+  <thead>
+      <tr>
+          <th>策略</th>
+          <th>做法</th>
+          <th>取舍</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>递归（recursive）</strong></td>
+          <td>训练一个单步模型，把它的预测当作下一步输入再喂回去。</td>
+          <td>简单，但误差累积——方差按 $\sqrt{H}$ 增长。</td>
+      </tr>
+      <tr>
+          <td><strong>直接（direct）</strong></td>
+          <td>训练 $H$ 个独立的预测头（或一个 $H$ 维输出的模型），每个头预测某一未来步。</td>
+          <td>参数更多，但没有误差反馈环。</td>
+      </tr>
+  </tbody>
+</table>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/fig4_multistep.png" alt="多步预测：黄色递归预测的不确定性带随视野扩大形成扇形展开；绿色直接预测保持基本不变的带宽。点划竖线标示预测原点。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>多步预测——递归会累积误差；直接预测以参数为代价换取更紧的置信区间。</em></p>
+<p>实战中常见的折中是 <strong>seq2seq + teacher forcing</strong>：LSTM 编码器把回望窗口压缩成一对 $(h, C)$，LSTM 解码器逐步生成 $H$ 个输出；训练时解码器以一定概率喂入<em>真实</em>的上一步值（scheduled sampling），而非自己的预测。这是当前生产环境里最常见的范式。</p>
+<h2 id="5-架构变体">5. 架构变体</h2>
+<h3 id="双向-lstmbilstm">双向 LSTM（BiLSTM）</h3>
+$$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/fig5_bilstm.png" alt="双向 LSTM：紫色正向链从左到右扫描，黄色反向链从右到左扫描，每个时间步的输出是两条隐藏状态的拼接。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>双向 LSTM——每一步都同时利用过去与未来上下文。</em></p>
+<p><strong>适用于</strong>序列标注、分类、缺失值插补——任何在推理时<strong>整段序列已知</strong>的场景。<strong>不要</strong>用于实时预测：训练时让模型偷看 $x_{t+1}, x_{t+2}, \dots$ 再预测 $x_{t+1}$，本质上是数据泄漏，上线必崩。</p>
+<h3 id="堆叠深层lstm">堆叠（深层）LSTM</h3>
+<p>堆叠多层让上层处理更平滑、更慢的特征：第 1 层看原始输入，第 2 层看第 1 层的隐藏状态，依此类推。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/fig6_stacked_lstm.png" alt="三层堆叠 LSTM：每层在时间方向递归，并把隐藏状态向上传给下一层。底层捕捉短的局部结构，高层组合出更长程、更抽象的模式。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>堆叠 LSTM——时间维度上的层级特征提取。</em></p>
+<p>实战中<strong>2~3 层</strong>是预测任务的甜点。再深一般没什么收益，且在没有残差连接时会显著加重<strong>深度方向</strong>（不是时间方向）的梯度消失。</p>
+<h2 id="6-一套真能跑出效果的训练配方">6. 一套真能跑出效果的训练配方</h2>
+<p>下面这套默认值，对几千到几十万训练窗口的单/多变量预测问题基本都管用：</p>
+<table>
+  <thead>
+      <tr>
+          <th>超参</th>
+          <th>默认</th>
+          <th>何时偏离默认</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>回望长度 $L$</td>
+          <td>序列主导周期的 2~3 倍</td>
+          <td>用自相关分析挑选——下文有方法</td>
+      </tr>
+      <tr>
+          <td><code>hidden_size</code></td>
+          <td>64</td>
+          <td>训练样本 $\geq$ 5 万时可上 128~256</td>
+      </tr>
+      <tr>
+          <td><code>num_layers</code></td>
+          <td>2</td>
+          <td>数据少时 1 层；3 层只在加残差时考虑</td>
+      </tr>
+      <tr>
+          <td><code>dropout</code></td>
+          <td>0.2</td>
+          <td>看到过拟合就上调到 0.5</td>
+      </tr>
+      <tr>
+          <td>优化器</td>
+          <td>Adam，lr = 1e-3</td>
+          <td>长训练用 AdamW + 余弦退火</td>
+      </tr>
+      <tr>
+          <td>Batch size</td>
+          <td>32~64</td>
+          <td>增大时学习率按 $\sqrt{B/32}$ 放缩</td>
+      </tr>
+      <tr>
+          <td>损失</td>
+          <td>MSE 或 Huber</td>
+          <td>目标分布厚尾/有离群值时用 Huber</td>
+      </tr>
+      <tr>
+          <td>梯度裁剪</td>
+          <td><code>clip_grad_norm_(..., 1.0)</code></td>
+          <td>永远开——便宜的爆炸梯度保险</td>
+      </tr>
+      <tr>
+          <td>早停</td>
+          <td>patience = 8~10</td>
+          <td>监控验证集损失，并恢复最优权重</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="怎么挑回望长度">怎么挑回望长度</h3>
+<p>画自相关函数（ACF），找到自相关系数 $|\rho_k|$ 仍然超过某个小阈值（比如 0.1）的最大滞后 $k$，再向上取整到下一个主季节周期。对于含日和周双重周期的小时级数据，168（一周）是个自然上限。</p>
+<h3 id="一次健康训练的样子">一次健康训练的样子</h3>
+<p>健康的 LSTM 训练曲线里，验证损失会紧贴训练损失下降，到达谷底后开始上抬——这就是模型开始记忆训练集的信号。早停在最优验证损失之后再等若干个 epoch，然后回滚到最优权重：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/fig7_training_curves.png" alt="训练与验证损失走过 60 个 epoch。绿色虚线标出最优验证 epoch（约 35），紫色点划线标出 patience=8 后早停触发的位置。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>带早停的 LSTM 训练曲线——恢复绿色那一刻的权重，不是紫色那一刻。</em></p>
+<h2 id="7-lstm-vs-gru该选哪个">7. LSTM vs GRU——该选哪个？</h2>
+<table>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>LSTM</th>
+          <th>GRU</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>门数</td>
+          <td>3 个（遗忘、输入、输出）</td>
+          <td>2 个（重置、更新）</td>
+      </tr>
+      <tr>
+          <td>独立细胞状态 $C_t$</td>
+          <td>有</td>
+          <td>无</td>
+      </tr>
+      <tr>
+          <td>单元参数</td>
+          <td>4 个权重矩阵</td>
+          <td>3 个权重矩阵</td>
+      </tr>
+      <tr>
+          <td>速度</td>
+          <td>基线</td>
+          <td>快约 25%，精度相当</td>
+      </tr>
+      <tr>
+          <td>典型适用</td>
+          <td>长序列、超大数据集、需要最大容量</td>
+          <td>小数据集、实时推理、移动/边缘部署</td>
+      </tr>
+  </tbody>
+</table>
+<p>经验上，大多数预测任务里 LSTM 与 GRU 的差距都在噪声范围内。<strong>默认从 GRU 起步</strong>，迭代更快；当数据量足够大且依赖跨数百步时再换 LSTM。一旦序列超过约 500 步，两者通常都会被时序卷积网络（第 6 部分）或 Informer 类稀疏 Transformer（第 8 部分）超越。</p>
+<h2 id="8-常见踩坑">8. 常见踩坑</h2>
+<ul>
+<li><strong>忘了按特征独立标准化</strong>。LSTM 对量纲敏感，把原始股价和百分比收益率混在一份输入里，肯定训不动。</li>
+<li><strong>跨训练/测试边界打乱时间序列窗口</strong>。用 <code>TimeSeriesSplit</code> 或固定的时间切分。</li>
+<li><strong>把最后一步隐藏状态当作预测</strong>。它只是一个特征向量，仍然需要线性输出头，并且<strong>目标值也要标准化</strong>。</li>
+<li><strong>拿 BiLSTM 做预测</strong>。在 notebook 里看上去无敌（因为它在偷看未来），上线就崩。</li>
+<li><strong>没定好回望长度就先调 hidden size</strong>。回望长度决定了 cell 能看到什么；窗口太短，把 cell 加宽也没意义。</li>
+<li><strong>只跑一个随机种子就下结论</strong>。RNN 训练噪声大，至少跑 3 个种子取均值±方差。</li>
+</ul>
+<h2 id="总结">总结</h2>
+<p>LSTM 通过一条带有近似加性更新的<strong>细胞状态高速公路</strong>解决了梯度消失问题，并用三个乘性门控制这条高速公路：遗忘门决定擦除什么，输入门决定写入什么，输出门决定暴露什么。因为长程梯度变成了<strong>遗忘门的乘积</strong>而不是循环雅可比的乘积，模型可以学到几百步长的依赖。</p>
+<p>落到时间序列，这就翻译成一套实战配方：用合理的回望长度对序列窗口化，堆 1~3 层中等宽度的 LSTM，用 dropout + 早停做正则化，长视野优先选直接多步而非递归，BiLSTM 仅用于离线任务。下一部分进入 GRU——LSTM 的轻量近亲，用更少的参数做几乎同样的事。</p>
+<h2 id="参考资料">参考资料</h2>
+<ul>
+<li>Hochreiter &amp; Schmidhuber, <em>Long Short-Term Memory</em>, Neural Computation (1997)</li>
+<li>Gers, Schmidhuber &amp; Cummins, <em>Learning to Forget: Continual Prediction with LSTM</em> (2000)——遗忘门偏置 +1 这一招的出处</li>
+<li>Olah, <em>Understanding LSTM Networks</em>, colah.github.io (2015)——经典图示讲解</li>
+<li>Greff et al., <em>LSTM: A Search Space Odyssey</em>, IEEE TNNLS (2017)——LSTM 各种变体的实证研究</li>
+</ul>
+<hr>
+<p><strong>系列导航</strong></p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#本章要点">本章要点</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#1-lstm-要解决的问题">1. LSTM 要解决的问题</a></li>
+    <li><a href="#2-lstm-单元的解剖">2. LSTM 单元的解剖</a>
+      <ul>
+        <li><a href="#为什么细胞状态如此关键">为什么细胞状态如此关键</a></li>
+        <li><a href="#把梯度流写出来">把梯度流写出来</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-一个最小可用的-pytorch-实现">3. 一个最小可用的 PyTorch 实现</a></li>
+    <li><a href="#4-从单元到预测器">4. 从单元到预测器</a>
+      <ul>
+        <li><a href="#多步预测递归-vs-直接">多步预测：递归 vs 直接</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-架构变体">5. 架构变体</a>
+      <ul>
+        <li><a href="#双向-lstmbilstm">双向 LSTM（BiLSTM）</a></li>
+        <li><a href="#堆叠深层lstm">堆叠（深层）LSTM</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-一套真能跑出效果的训练配方">6. 一套真能跑出效果的训练配方</a>
+      <ul>
+        <li><a href="#怎么挑回望长度">怎么挑回望长度</a></li>
+        <li><a href="#一次健康训练的样子">一次健康训练的样子</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-lstm-vs-gru该选哪个">7. LSTM vs GRU——该选哪个？</a></li>
+    <li><a href="#8-常见踩坑">8. 常见踩坑</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#参考资料">参考资料</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">时间序列模型</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>7 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3200</strong></div>
+      <div class="row"><span>Published</span><strong>Sep 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

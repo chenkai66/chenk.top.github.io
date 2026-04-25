@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>机器学习数学推导（十）：半朴素贝叶斯与贝叶斯网络 · Chen Kai Blog</title>
+<meta name="description" content="从 SPODE、TAN、AODE 到完整的贝叶斯网络：通过单依赖树、超父集成与图结构学习，把朴素贝叶斯和全联合分布之间的鸿沟逐级填平。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="机器学习数学推导（十）：半朴素贝叶斯与贝叶斯网络">
+<meta property="og:description" content="从 SPODE、TAN、AODE 到完整的贝叶斯网络：通过单依赖树、超父集成与图结构学习，把朴素贝叶斯和全联合分布之间的鸿沟逐级填平。">
+<meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">机器学习数学推导</a>
+         · Chapter 10
+      </div>
+      <h1>机器学习数学推导（十）：半朴素贝叶斯与贝叶斯网络</h1>
+      <p class="deck">从 SPODE、TAN、AODE 到完整的贝叶斯网络：通过单依赖树、超父集成与图结构学习，把朴素贝叶斯和全联合分布之间的鸿沟逐级填平。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-01-29">January 29, 2026</time> · 10 min read · 4700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" class="tag">#机器学习</a><a href="/zh/tags/%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/" class="tag">#半朴素贝叶斯</a><a href="/zh/tags/%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/" class="tag">#贝叶斯网络</a><a href="/zh/tags/tan/" class="tag">#TAN</a><a href="/zh/tags/aode/" class="tag">#AODE</a><a href="/zh/tags/%E6%A6%82%E7%8E%87%E5%9B%BE%E6%A8%A1%E5%9E%8B/" class="tag">#概率图模型</a><a href="/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/" class="tag">#数学推导</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <blockquote>
+<p><strong>引子。</strong> 朴素贝叶斯假定特征在给定类别后两两独立——这是个非常方便的谎言，让我们能用一遍数据扫描就训出一个分类器，但几乎在所有 UCI 基准上，基于树结构和小型概率图的模型都能稳稳地把它再压一个百分点。这一篇沿着「依赖关系」的轴线从 0 走到 d：先看从「全独立」到「全联合」之间的三个甜蜜点——SPODE、TAN、AODE，再把这套因子分解的思路推到极致，就得到贝叶斯网络。</p>
+</blockquote>
+<h2 id="你将学到">你将学到</h2>
+<ul>
+<li>为什么完整的条件独立假设几乎总是失败，放松它会让参数量怎样增长；</li>
+<li><strong>SPODE</strong>：所有特征共享一个「超父」；</li>
+<li><strong>TAN</strong>：每个特征自己挑一个父亲，挑选规则是 Chow-Liu 的最大生成树；</li>
+<li><strong>AODE</strong>：对所有合格的超父做平均，去掉模型选择带来的方差；</li>
+<li><strong>贝叶斯网络</strong>：DAG 因子分解、d-分离、马尔可夫毯、变量消除、联合树；</li>
+<li>实战决策表：什么时候用 NB、TAN、AODE 还是完整 BN。</li>
+</ul>
+<h2 id="预备知识">预备知识</h2>
+<ul>
+<li>联合分布、条件独立、互信息；</li>
+<li>生成树、树上的动态规划；</li>
+<li>熟悉 <a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b9%9d-%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af/">第 9 篇：朴素贝叶斯</a>
+。</li>
+</ul>
+<hr>
+<h2 id="1-为什么要放松独立性">1. 为什么要放松独立性？</h2>
+<h3 id="11-那个方便的谎言">1.1 那个「方便的谎言」</h3>
+<p>朴素贝叶斯的因子分解是</p>
+$$
+P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k).
+$$<p>它假定一旦类别给定，特征之间就互不相关。这个假定几乎在每一类真实数据上都会失效：</p>
+<ul>
+<li><strong>文本。</strong> 即使限定在「机器学习文章」这一类内，二元组「machine learning」的频率也远远高于 $P(\text{machine})\,P(\text{learning})$ 给出的预测；</li>
+<li><strong>医学。</strong> 在「流感」病例中，<em>发热</em> 与 <em>咳嗽</em> 仍然高度相关——它们共享同一条下游生理通路；</li>
+<li><strong>图像。</strong> 不论类别为何，相邻像素几乎总是相似。</li>
+</ul>
+<p>当条件独立被严重违反时，后验 $P(c\mid\mathbf{x})$ 会<strong>严重过自信</strong>：胜出的类别仍然能胜出，但置信度被吹得过高，相邻候选类之间的相对排序也会乱。</p>
+<h3 id="12-模型谱">1.2 模型谱</h3>
+<table>
+  <thead>
+      <tr>
+          <th>模型</th>
+          <th>允许的依赖</th>
+          <th>参数量</th>
+          <th>准确率</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>朴素贝叶斯</td>
+          <td>无</td>
+          <td>$O(K d)$</td>
+          <td>基线</td>
+      </tr>
+      <tr>
+          <td>单依赖（SPODE / TAN / AODE）</td>
+          <td>每个特征 1 个父亲</td>
+          <td>$O(K d S)$</td>
+          <td>提升</td>
+      </tr>
+      <tr>
+          <td>$k$ 依赖</td>
+          <td>每个特征 $k$ 个父亲</td>
+          <td>$O(K d S^{k})$</td>
+          <td>继续提升</td>
+      </tr>
+      <tr>
+          <td>全联合</td>
+          <td>任意</td>
+          <td>$O(K S^{d})$</td>
+          <td>最优但不可行</td>
+      </tr>
+  </tbody>
+</table>
+<p>其中 $S$ 是平均特征取值数，$K$ 是类别数。<strong>经验上的甜蜜点是 $k=1$</strong>：相比朴素贝叶斯只多付一个 $S$ 倍的代价，准确率却能拿到这一系列阶梯里最大的一档跳跃。</p>
+<hr>
+<h2 id="2-单依赖估计ode">2. 单依赖估计（ODE）</h2>
+<h3 id="21-spode用一个共享的超父">2.1 SPODE：用一个共享的超父</h3>
+<p>挑一个特征 $x^{(p)}$ 作为「超父」，让所有其他特征同时依赖于类别和它：</p>
+$$
+P(\mathbf{x}\mid c_k) \;=\; P(x^{(p)}\mid c_k)\prod_{j\neq p} P(x^{(j)}\mid c_k,\,x^{(p)}).
+$$<p><strong>怎么读这个模型。</strong> 朴素贝叶斯说「给定类别，所有特征互不相关」；SPODE 改口说「给定类别后，还有一个隐性的中间变量影响所有特征」。比如在垃圾邮件识别里，这个中间变量可能就是 <em>free</em> 这个词——它出不出现，会同时影响 <em>click</em>、<em>offer</em>、<em>winner</em> 这些词的概率。</p>
+<p><strong>带拉普拉斯平滑的极大似然估计。</strong></p>
+$$
+\hat{P}(x^{(j)}{=}v\mid c_k,\,x^{(p)}{=}u)
+\;=\;
+\frac{\#\{x^{(j)}{=}v,\,c_k,\,x^{(p)}{=}u\}+\alpha}
+     {\#\{c_k,\,x^{(p)}{=}u\}+\alpha\,S_j}.
+$$<p><strong>怎么挑超父。</strong> 两个常见准则：</p>
+$$
+p^{*} \;=\; \arg\max_{p}\, I(X^{(p)};Y),
+\qquad
+p^{*} \;=\; \arg\max_{p}\,\sum_{j\neq p} I(X^{(j)};Y\mid X^{(p)}).
+$$<p>前者挑「跟 $Y$ 关系最紧」的特征，后者挑「条件化它之后能最大化解释其余特征」的那个。两个都是启发式——之所以后面要发明 AODE 和 TAN，恰恰因为这一步选择是脆弱的。</p>
+<h3 id="22-aode把所有合格超父都平均掉">2.2 AODE：把所有合格超父都平均掉</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/fig4_aode.png" alt="AODE：每选一个超父就得到一个 SPODE，AODE 把它们求平均" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>思路。</strong> 既然挑哪个超父都不踏实，干脆把所有支撑量足够的超父对应的 SPODE 都加起来：</p>
+$$
+\hat{P}(c_k\mid\mathbf{x})\;\propto\;
+\sum_{i:\;n_i\geq m} P(c_k)\,P(x^{(i)}\mid c_k)\prod_{j\neq i} P(x^{(j)}\mid c_k,\,x^{(i)}).
+$$<p>其中 $n_i$ 是训练集中取值 $x^{(i)}$ 出现的样本数，阈值 $m$（典型取 30）用来过滤掉支撑过少、估计不可靠的超父。</p>
+<p><strong>它好在哪。</strong></p>
+<ol>
+<li><strong>不需要做结构搜索。</strong> 模型固定，只需要数 counter；</li>
+<li><strong>降方差。</strong> 把 $d$ 个高度相关的 SPODE 求平均，作用类似 bagging；</li>
+<li><strong>实现极其简单。</strong> 跟 SPODE 完全相同的统计量，再对 $i$ 求一次和。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.naive_bayes</span> <span class="kn">import</span> <span class="n">BernoulliNB</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">cross_val_score</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 三个二值特征，给定类别后 x1、x2 都依赖 x0，因此 NB 的独立性假设被破坏</span>
+</span></span><span class="line"><span class="cl"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">N</span> <span class="o">=</span> <span class="mi">500</span>
+</span></span><span class="line"><span class="cl"><span class="n">y</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.8</span> <span class="o">*</span> <span class="n">y</span> <span class="o">+</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">y</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">x1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x0</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>  <span class="c1"># 依赖 x0</span>
+</span></span><span class="line"><span class="cl"><span class="n">x2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x0</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>  <span class="c1"># 依赖 x0</span>
+</span></span><span class="line"><span class="cl"><span class="n">X</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;Naive Bayes 5 折 CV:&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="n">cross_val_score</span><span class="p">(</span><span class="n">BernoulliNB</span><span class="p">(),</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 在这种数据上 AODE 通常会稳稳地高出 NB 几个百分点。</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="3-tan树增广朴素贝叶斯">3. TAN：树增广朴素贝叶斯</h2>
+<h3 id="31-每个特征自己挑爸爸">3.1 每个特征自己挑爸爸</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/fig3_nb_vs_tan.png" alt="朴素贝叶斯（星形）vs TAN（星形 &#43; 增广树）" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>SPODE 强迫所有特征共享同一个超父，TAN 则放宽一点：让每个特征<strong>自己</strong>挑一个额外的父亲——所有这些选择必须形成一棵树：</p>
+$$
+P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k,\,x^{(\pi_j)}),
+$$<p>其中 $\pi_j$ 是特征 $j$ 在增广树中的唯一父亲（树根没有父亲，相应那一项退化为 $P(x^{(j)}\mid c_k)$）。</p>
+<h3 id="32-用-chow-liu-学这棵树">3.2 用 Chow-Liu 学这棵树</h3>
+<p><strong>定理（Chow &amp; Liu 1968；Friedman, Geiger, Goldszmidt 1997）。</strong> 在所有树结构的增广方案中，最大化条件似然的那个，等价于以条件互信息为权重的<strong>最大生成树</strong>：</p>
+$$
+w_{jk} \;=\; I(X^{(j)};X^{(k)}\mid Y)
+\;=\;
+\sum_{y,x_j,x_k} P(x_j,x_k,y)\,
+\log\frac{P(x_j,x_k\mid y)}{P(x_j\mid y)\,P(x_k\mid y)}.
+$$<p><strong>这个权重在度量什么？</strong> 度量的是「类别已经解释完之后，$X^{(j)}$ 与 $X^{(k)}$ 之间残留的相关性」。权重大的边，就是最值得我们花参数去建模的依赖。</p>
+<p><strong>算法。</strong></p>
+<ol>
+<li>在 $d$ 个特征上建完全图；</li>
+<li>把边 $(j,k)$ 的权重设为 $I(X^{(j)};X^{(k)}\mid Y)$；</li>
+<li>用 Kruskal 或 Prim 求最大生成树，复杂度 $O(d^{2}\log d)$；</li>
+<li>选根（常用 $\arg\max_j I(X^{(j)};Y)$）；</li>
+<li>从根开始把无向树定向为有向树。</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">conditional_mutual_info</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;从数据计算 I(X_j ; X_k | Y)，自然对数。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cmi</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">);</span> <span class="n">p_c</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Xc</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">vj</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">vk</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p_jk</span> <span class="o">=</span> <span class="p">((</span><span class="n">Xc</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="n">vj</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">Xc</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">vk</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p_j</span>  <span class="o">=</span> <span class="p">(</span><span class="n">Xc</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="n">vj</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p_k</span>  <span class="o">=</span> <span class="p">(</span><span class="n">Xc</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">vk</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">p_jk</span><span class="p">,</span> <span class="n">p_j</span><span class="p">,</span> <span class="n">p_k</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">cmi</span> <span class="o">+=</span> <span class="n">p_c</span> <span class="o">*</span> <span class="n">p_jk</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p_jk</span> <span class="o">/</span> <span class="p">(</span><span class="n">p_j</span> <span class="o">*</span> <span class="n">p_k</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">cmi</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在前面那个合成数据上，依赖对 $(x_0,x_1)$ 的 CMI 会显著大于独立对 $(x_0,x_2)$，而这正是 Kruskal 会优先连接的边。</p>
+<hr>
+<h2 id="4-贝叶斯网络">4. 贝叶斯网络</h2>
+<p>NB 与 TAN 都是某个更一般对象的特例：贝叶斯网络。下面把镜头拉远，看看图模型的全貌。</p>
+<h3 id="41-dag-因子分解">4.1 DAG 因子分解</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/fig1_dag.png" alt="四变量玩具网络：Cloudy / Sprinkler / Rain / WetGrass" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>贝叶斯网络</strong> 是一个有向无环图 $\mathcal{G}=(V,E)$，每个节点配一张<strong>条件概率表</strong>（CPT）。联合分布按图的结构分解为</p>
+$$
+P(X_1,\dots,X_n) \;=\; \prod_{i=1}^{n} P\bigl(X_i\mid \mathrm{Pa}(X_i)\bigr).
+$$<p><strong>因子分解的价值。</strong> 上图四个二值变量，全联合需要 $2^4-1=15$ 个自由参数；分解后只需要 $1+2+2+4=9$ 个。把规模放大到 $n=20$、平均父节点数 3：全联合表有 $\approx 10^{6}$ 项，而分解形式只需要 $\sim 20\cdot 2^{3}=160$。</p>
+<p><strong>我们其实已经见过两种特例：</strong></p>
+<ul>
+<li><em>朴素贝叶斯</em>：$Y$ 是星形结构的中心，所有 $X_j$ 之间无边；</li>
+<li><em>TAN</em>：在星形之上再加一棵特征间的树。</li>
+</ul>
+<h3 id="42-d-分离">4.2 d-分离</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/fig2_d_separation.png" alt="三种基本结构：链、叉、对撞" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>DAG 中的条件独立性由一个图形化准则<strong>d-分离</strong>完全决定。任何复杂情形都能拆成下面三种基本结构：</p>
+<ul>
+<li><strong>链 $A\to B\to C$。</strong> 不观测 $B$ 时 $A\not\!\perp C$；条件化 $B$ 后路径被阻断，$A\perp C\mid B$。</li>
+<li><strong>叉 $A\leftarrow B\to C$。</strong> 行为同链：共因 $B$ 制造了 $A,C$ 的相关，观测它就消去这个相关。</li>
+<li><strong>对撞 $A\to B\leftarrow C$。</strong> 行为<strong>反向</strong>。不观测 $B$ 时 $A\perp C$；一旦<em>观测</em>了 $B$，原本独立的两个原因被「耦合」起来——这就是著名的 <strong>explaining away（因因相消）</strong>。</li>
+</ul>
+<p>判定规则：路径上若有任意一个 chain/fork 节点被观测，路径就被阻断；反之，路径上若有任何对撞节点既没被观测，其后代也未被观测，这条路径同样阻断。两个集合在给定 $Z$ 时被 d-分离，当且仅当它们之间所有路径都被 $Z$ 阻断。</p>
+<h3 id="43-马尔可夫毯">4.3 马尔可夫毯</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/fig6_markov_blanket.png" alt="马尔可夫毯 = 父亲 &#43; 孩子 &#43; 孩子的另一个父亲" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>马尔可夫毯</strong> $\mathrm{MB}(X)$ 是使得「给定它之后 $X$ 与外界条件独立」的<strong>最小</strong>集合。在贝叶斯网络中，它正好是</p>
+$$
+\mathrm{MB}(X) \;=\; \mathrm{Pa}(X)\;\cup\;\mathrm{Ch}(X)\;\cup\;\bigl\{\,X\text{ 的孩子的另一个父亲}\,\bigr\}.
+$$<p>那些「co-parent（孩子的另一个父亲）」特别容易被忽略，但缺一不可——根据对撞规则，条件化一个孩子会<strong>激活</strong>穿过它通向其它父亲的路径。马尔可夫毯也是 Gibbs 采样里采样 $X$ 时唯一需要看的变量集合，从因果视角看就是「用网络其余部分预测 $X$ 所需的最小充分统计量」。</p>
+<h3 id="44-推断变量消除">4.4 推断：变量消除</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/fig5_variable_elimination.png" alt="链上的变量消除" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>要算诸如 $P(D\mid \text{evidence})$ 之类的后验，暴力求和是 $n$ 的指数。<strong>变量消除</strong> 一次只消去一个变量，并复用中间因子：</p>
+<ol>
+<li>选定消除顺序，例如查询 $D$ 时按 $A,B,C$ 顺序；</li>
+<li>把所有含 $A$ 的因子相乘后对 $A$ 求和，得到新因子 $\tau_1(B)$；</li>
+<li>重复：含 $B$ 的因子相乘并求和得 $\tau_2(C)$，依此类推。</li>
+</ol>
+<p>链结构下复杂度从 $O(S^{n})$ 降到 $O(nS^{2})$；一般图上的复杂度由图的<strong>树宽</strong>控制——也就是消除过程中产生的最大中间因子的大小。这就是为什么稠密图即使做了消除依然难算。</p>
+<h3 id="45-联合树">4.5 联合树</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/10-%E5%8D%8A%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF%E4%B8%8E%E8%B4%9D%E5%8F%B6%E6%96%AF%E7%BD%91%E7%BB%9C/fig7_junction_tree.png" alt="联合树流水线：三角化 → 极大团 → 带 separator 的树" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>联合树</strong>算法把变量消除「全局化」，让所有边缘分布都能通过两次消息传递得到：</p>
+<ol>
+<li><strong>道德化（moralise）：</strong> 在每对 co-parent 之间补无向边，再去掉所有箭头方向；</li>
+<li><strong>三角化（triangulate）：</strong> 添加弦边，使所有长度 $\geq 4$ 的圈都至少有一条弦。这一步控制树宽，最优三角化是 NP-hard，实践中用 <em>minimum fill-in</em> 等启发式；</li>
+<li><strong>抽出极大团；</strong></li>
+<li><strong>构造团树</strong>，相邻团共享一个 separator 集，并满足 <em>running-intersection</em> 性质：任何变量出现的团构成一个连通子树；</li>
+<li><strong>沿树传消息</strong>（先 collect 后 distribute）。两轮之后每个团都持有自己变量上的正确边缘。</li>
+</ol>
+<p>总开销与最大团大小（即树宽 + 1）成指数关系——和变量消除同阶，但所有查询共享一次预计算。</p>
+<h3 id="46-结构学习">4.6 结构学习</h3>
+<p>DAG 本身也可以从数据学。两大流派：</p>
+<ul>
+<li><strong>打分 + 搜索。</strong> 在 DAG 空间上爬山（增/删/反一条边），用「似然 + 罚项」的打分函数评价候选。最经典的是 <strong>BIC</strong>：</li>
+</ul>
+$$
+\mathrm{BIC}(\mathcal{G}) \;=\; \log p(\mathcal{D}\mid\hat{\theta},\mathcal{G}) \;-\; \tfrac{|\theta|}{2}\log N.
+$$<p>第一项奖励拟合，第二项惩罚参数量；BIC 在标准假设下是相合的（$N\to\infty$ 时收敛到真实图）。</p>
+<ul>
+<li><strong>基于约束</strong> （PC、FCI 算法）。先做条件独立性检验得到骨架，再用对撞规则对 v 形结构定向。</li>
+</ul>
+<p>一个硬事实：精确的结构学习是 NP-hard 的（Chickering, Heckerman &amp; Meek 2004）。实践中所有算法都需要限制每个节点的最大父节点数、加随机重启、或者借助先验把某些边的方向钉死。</p>
+<hr>
+<h2 id="5-习题">5. 习题</h2>
+<h3 id="习题-1--spode-参数估计">习题 1 —— SPODE 参数估计</h3>
+<p>100 个样本，类别 $c_1$ 有 60 个；其中 $x^{(p)}{=}1$ 的有 30 个，再其中 $x^{(j)}{=}1$ 的有 18 个。取拉普拉斯平滑 $\alpha=1$，$|x^{(j)}|=3$：</p>
+$$
+\hat{P}\bigl(x^{(j)}{=}1\mid c_1, x^{(p)}{=}1\bigr) \;=\; \frac{18+1}{30+1\cdot 3} \;=\; \frac{19}{33} \;\approx\; 0.576.
+$$<h3 id="习题-2--tan-参数计数">习题 2 —— TAN 参数计数</h3>
+<p>二值特征 + $K$ 类：</p>
+<ul>
+<li>朴素贝叶斯：每个 (类, 特征) 对 1 个参数，共 $K\cdot d$；</li>
+<li>TAN：每个非根特征还要再多一个二值父亲，因此 (类, 特征) 对要存 2 项，共 $2Kd$。</li>
+</ul>
+<p>TAN 把参数预算翻倍，换来对成对依赖的建模能力。若特征是 $S$ 元的，倍数从 2 变为 $S$。</p>
+<h3 id="习题-3--chow-liu-选边">习题 3 —— Chow-Liu 选边</h3>
+<p>设 $I(X_1;X_2\mid Y)=0.8$，$I(X_1;X_3\mid Y)=0.5$。最大生成树先选权重大的，因此 $X_1\!-\!X_2$ 先入树，$X_1\!-\!X_3$ 只有在不构成圈时才会被加进来。</p>
+<h3 id="习题-4--d-分离">习题 4 —— d-分离</h3>
+<p>在 $A\to C\leftarrow B$ 中：</p>
+<ul>
+<li>(a) $A\perp B$？<strong>是。</strong> $C$ 是对撞节点，未观测时阻断路径；</li>
+<li>(b) $A\perp B\mid D$（$D$ 与 ABC 无关）？<strong>是。</strong> $D$ 不是 $C$ 的后代，对撞节点仍处于阻断状态；</li>
+<li>(c) $A\perp B\mid C$？<strong>否。</strong> 条件化对撞节点会激活路径，explaining away 把 $A,B$ 耦合起来。</li>
+</ul>
+<h3 id="习题-5--数据稀少时-aode-还是-tan">习题 5 —— 数据稀少时 AODE 还是 TAN</h3>
+<ul>
+<li>$d$ 大、数据多：TAN 的 $O(d)$ 预测速度优于 AODE 的 $O(d^{2})$；</li>
+<li>$N$ 小：AODE 的平均效应天然有正则，往往比 TAN 鲁棒——TAN 在这种情形下从噪声 CMI 估计里学出的 MST 边可能本身就是过拟合。</li>
+</ul>
+<p>实战默认策略：先上 AODE；当 $N$ 远超 CMI 表所需的格子数时，再切到 TAN。</p>
+<hr>
+<h2 id="qa">Q&amp;A</h2>
+<h3 id="为什么不直接学一个完整的贝叶斯网络">为什么不直接学一个完整的贝叶斯网络？</h3>
+<p>结构学习是 NP-hard 的，DAG 空间是超指数的。TAN、AODE 通过限制结构（树形/平均超父）让学习变得可行，同时仍能抓住最重要的依赖。</p>
+<h3 id="有向边等于因果吗">有向边等于因果吗？</h3>
+<p>不是。同一个条件独立结构可以由多个 DAG 表达（叫<strong>等价类</strong>），它们在统计上无法区分。要做因果推断需要额外的干预性假设——Pearl 的 do-演算、工具变量等。</p>
+<h3 id="tan-怎么处理连续特征">TAN 怎么处理连续特征？</h3>
+<p>三种常见做法：(i) 离散化（等宽/等频/基于熵的离散化）；(ii) 假定条件高斯（条件高斯贝叶斯网络）；(iii) 用核密度估计本地条件分布。</p>
+<h3 id="aode-还是-tan">AODE 还是 TAN？</h3>
+<p>AODE 更简单、小样本更稳、不需要结构学习；TAN 在 $d$ 很大时预测更快、能为不同特征选不同的父亲。文本分类里 AODE 是更常见的默认；稠密数值表上 TAN 通常更胜。</p>
+<h3 id="深度生成模型与之有什么关系">深度生成模型与之有什么关系？</h3>
+<p>现代隐变量模型（VAE、流模型、PixelCNN 之类的自回归模型）本质上就是连续型贝叶斯网络，只是把 CPT 换成神经条件密度。因子分解的思想完全相同，变化的只是 $P(X_i\mid \mathrm{Pa}(X_i))$ 的参数化方式。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>Friedman, N., Geiger, D. &amp; Goldszmidt, M. (1997). <em>Bayesian network classifiers.</em> Machine Learning, 29(2-3), 131-163.</li>
+<li>Webb, G. I., Boughton, J. R. &amp; Wang, Z. (2005). <em>Not so naive Bayes: Aggregating one-dependence estimators.</em> Machine Learning, 58(1), 5-24.</li>
+<li>Chow, C. &amp; Liu, C. (1968). <em>Approximating discrete probability distributions with dependence trees.</em> IEEE Transactions on Information Theory, 14(3), 462-467.</li>
+<li>Chickering, D. M., Heckerman, D. &amp; Meek, C. (2004). <em>Large-sample learning of Bayesian networks is NP-hard.</em> JMLR, 5, 1287-1330.</li>
+<li>Koller, D. &amp; Friedman, N. (2009). <em>Probabilistic Graphical Models: Principles and Techniques.</em> MIT Press.</li>
+<li>Pearl, J. (1988). <em>Probabilistic Reasoning in Intelligent Systems.</em> Morgan Kaufmann.</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>篇</th>
+          <th>主题</th>
+          <th>链接</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>9</td>
+          <td>朴素贝叶斯</td>
+          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b9%9d-%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af/">&lt;&ndash; 上一篇</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>10</strong></td>
+          <td><strong>半朴素贝叶斯与贝叶斯网络</strong></td>
+          <td><em>当前位置</em></td>
+      </tr>
+      <tr>
+          <td>11</td>
+          <td>集成学习</td>
+          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81%e4%b8%80-%e9%9b%86%e6%88%90%e5%ad%a6%e4%b9%a0/">下一篇 &ndash;&gt;</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到">你将学到</a></li>
+    <li><a href="#预备知识">预备知识</a></li>
+    <li><a href="#1-为什么要放松独立性">1. 为什么要放松独立性？</a>
+      <ul>
+        <li><a href="#11-那个方便的谎言">1.1 那个「方便的谎言」</a></li>
+        <li><a href="#12-模型谱">1.2 模型谱</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-单依赖估计ode">2. 单依赖估计（ODE）</a>
+      <ul>
+        <li><a href="#21-spode用一个共享的超父">2.1 SPODE：用一个共享的超父</a></li>
+        <li><a href="#22-aode把所有合格超父都平均掉">2.2 AODE：把所有合格超父都平均掉</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-tan树增广朴素贝叶斯">3. TAN：树增广朴素贝叶斯</a>
+      <ul>
+        <li><a href="#31-每个特征自己挑爸爸">3.1 每个特征自己挑爸爸</a></li>
+        <li><a href="#32-用-chow-liu-学这棵树">3.2 用 Chow-Liu 学这棵树</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-贝叶斯网络">4. 贝叶斯网络</a>
+      <ul>
+        <li><a href="#41-dag-因子分解">4.1 DAG 因子分解</a></li>
+        <li><a href="#42-d-分离">4.2 d-分离</a></li>
+        <li><a href="#43-马尔可夫毯">4.3 马尔可夫毯</a></li>
+        <li><a href="#44-推断变量消除">4.4 推断：变量消除</a></li>
+        <li><a href="#45-联合树">4.5 联合树</a></li>
+        <li><a href="#46-结构学习">4.6 结构学习</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-习题">5. 习题</a>
+      <ul>
+        <li><a href="#习题-1--spode-参数估计">习题 1 —— SPODE 参数估计</a></li>
+        <li><a href="#习题-2--tan-参数计数">习题 2 —— TAN 参数计数</a></li>
+        <li><a href="#习题-3--chow-liu-选边">习题 3 —— Chow-Liu 选边</a></li>
+        <li><a href="#习题-4--d-分离">习题 4 —— d-分离</a></li>
+        <li><a href="#习题-5--数据稀少时-aode-还是-tan">习题 5 —— 数据稀少时 AODE 还是 TAN</a></li>
+      </ul>
+    </li>
+    <li><a href="#qa">Q&amp;A</a>
+      <ul>
+        <li><a href="#为什么不直接学一个完整的贝叶斯网络">为什么不直接学一个完整的贝叶斯网络？</a></li>
+        <li><a href="#有向边等于因果吗">有向边等于因果吗？</a></li>
+        <li><a href="#tan-怎么处理连续特征">TAN 怎么处理连续特征？</a></li>
+        <li><a href="#aode-还是-tan">AODE 还是 TAN？</a></li>
+        <li><a href="#深度生成模型与之有什么关系">深度生成模型与之有什么关系？</a></li>
+      </ul>
+    </li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">机器学习数学推导</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4700</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

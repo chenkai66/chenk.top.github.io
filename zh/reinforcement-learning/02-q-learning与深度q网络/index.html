@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>强化学习（二）：Q-Learning 与深度 Q 网络（DQN） · Chen Kai Blog</title>
+<meta name="description" content="DQN 如何结合神经网络与 Q-Learning 玩转 Atari——经验回放、目标网络、Double DQN、Dueling DQN、优先经验回放与 Rainbow。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/reinforcement-learning/02-q-learning%E4%B8%8E%E6%B7%B1%E5%BA%A6q%E7%BD%91%E7%BB%9C/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/reinforcement-learning/02-q-learning%E4%B8%8E%E6%B7%B1%E5%BA%A6q%E7%BD%91%E7%BB%9C/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="强化学习（二）：Q-Learning 与深度 Q 网络（DQN）">
+<meta property="og:description" content="DQN 如何结合神经网络与 Q-Learning 玩转 Atari——经验回放、目标网络、Double DQN、Dueling DQN、优先经验回放与 Rainbow。">
+<meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/02-q-learning%E4%B8%8E%E6%B7%B1%E5%BA%A6q%E7%BD%91%E7%BB%9C/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">强化学习</a>
+         · Chapter 2
+      </div>
+      <h1>强化学习（二）：Q-Learning 与深度 Q 网络（DQN）</h1>
+      <p class="deck">DQN 如何结合神经网络与 Q-Learning 玩转 Atari——经验回放、目标网络、Double DQN、Dueling DQN、优先经验回放与 Rainbow。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-08-06">August 6, 2025</time> · 14 min read · 6700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" class="tag">#强化学习</a><a href="/zh/tags/q-learning/" class="tag">#Q-Learning</a><a href="/zh/tags/dqn/" class="tag">#DQN</a><a href="/zh/tags/%E7%BB%8F%E9%AA%8C%E5%9B%9E%E6%94%BE/" class="tag">#经验回放</a><a href="/zh/tags/%E7%9B%AE%E6%A0%87%E7%BD%91%E7%BB%9C/" class="tag">#目标网络</a><a href="/zh/tags/rainbow/" class="tag">#Rainbow</a><a href="/zh/tags/%E4%BB%B7%E5%80%BC%E6%96%B9%E6%B3%95/" class="tag">#价值方法</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>2013 年 12 月，DeepMind 一支不大的团队在 arXiv 上挂出了一篇短论文，里面有一个相当扎眼的结论：同一个神经网络，仅仅以原始像素和分数为输入，就学会了七款 Atari 游戏，并在其中六款上刷新了当时的最好成绩。没有针对游戏专门设计的特征，没有手写的启发式规则，Pong、Breakout、Space Invaders 共用同一套架构。这套算法叫<strong>深度 Q 网络（Deep Q-Network, DQN）</strong>，它正式拉开了深度强化学习时代的序幕。</p>
+<p>DQN 并不是凭空造出来的。它就是 Watkins 在 1989 年提出的<strong>表格 Q-Learning</strong>，把查表换成了神经网络，再加上两个让训练不至于崩掉的工程技巧。本文要讲清楚的是：这两个技巧到底解决了哪两个具体的问题，PyTorch 里完整怎么写，以及 DQN 之后那些把它从 Atari 演示推上工业舞台的变体。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>为什么表格型 Q-Learning 在高维状态空间里会彻底失效</li>
+<li><strong>致命三角（Deadly Triad）</strong>——让朴素深度 RL 发散的三个要素</li>
+<li>DQN 的两大创新：<strong>经验回放</strong>与<strong>目标网络</strong>——分别针对三角的哪一条边</li>
+<li>一份可直接运行的 Atari <strong>DQN</strong> PyTorch 实现</li>
+<li>DQN 之后的家族：<strong>Double DQN</strong>、<strong>Dueling DQN</strong>、<strong>优先经验回放</strong>与 <strong>Rainbow</strong></li>
+</ul>
+<p><strong>前置知识</strong>：<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">第 1 部分</a>
+ 中的 MDP、Bellman 方程与时序差分（TD）思想。</p>
+<hr>
+<h2 id="q-learning-基础">Q-Learning 基础</h2>
+<h3 id="重新读一遍-bellman-最优方程">重新读一遍 Bellman 最优方程</h3>
+<p>回顾第 1 部分：对于最优策略 $\pi^*$，动作价值函数满足 Bellman 最优方程：</p>
+$$
+Q^*(s, a) \;=\; \mathbb{E}_{s' \sim P(\cdot|s,a)}\Big[R(s,a,s') + \gamma \max_{a'} Q^*(s', a')\Big]
+$$<p>可以把它当成一份&quot;契约&quot;来读：在状态 $s$ 下采取动作 $a$ 的价值，等于即时奖励，加上折扣后所能取得的最好未来。一旦得到 $Q^*$，最优策略就退化成一次查表：$\pi^*(s) = \arg\max_a Q^*(s, a)$，不需要规划，也不需要搜索。</p>
+<p>于是整个问题被压缩成一句话：<strong>估计 $Q^*$</strong>。Q-Learning 是众多解法之一。</p>
+<h3 id="q-learning-的更新规则">Q-Learning 的更新规则</h3>
+<p>智能体在状态 $S_t$ 下执行动作 $A_t$，观察到奖励 $r_t$ 与下一状态 $S_{t+1}$ 后，Q-Learning（Watkins, 1989）只更新当前访问的那一格：</p>
+$$
+Q(S_t, A_t) \;\leftarrow\; Q(S_t, A_t) + \alpha \underbrace{\Big[r_t + \gamma \max_{a'} Q(S_{t+1}, a') - Q(S_t, A_t)\Big]}_{\text{TD 误差 } \delta_t}
+$$<p>方括号里的量是 <strong>TD 误差</strong>——它衡量的是&quot;一步自举出来的目标&quot;与&quot;当前估值&quot;之间的差距。$\delta_t > 0$ 说明现在低估了，应该向上调；反之则向下调。</p>
+<p>Q-Learning 有两条值得记住的性质：</p>
+<ol>
+<li><strong>离策略（off-policy）</strong>。目标里用的是 $\max_{a'}$，也就是贪心动作，与智能体下一步<em>实际</em>选什么毫无关系。行为策略（通常是 $\varepsilon$-greedy）可以放心探索，目标策略始终保持贪心。这种解耦既是 Q-Learning 的杀手锏，也是它后来不稳定的根源。</li>
+<li><strong>收敛性保证</strong>。Watkins 与 Dayan（1992）证明：如果每个状态-动作对都被访问无穷多次，且学习率满足 Robbins-Monro 条件（$\sum_t \alpha_t = \infty$ 且 $\sum_t \alpha_t^2 < \infty$），那么 $Q(s, a)$ 以概率 1 收敛到 $Q^*(s, a)$。</li>
+</ol>
+<p>训出来的 Q 表本身就是一个相当直观的对象。下图展示了一张 4x4 网格世界的 Q 表，目标格 +1，陷阱 -1，每走一步罚 -0.04。每一格里有四个数字（对应四个动作），箭头指向 $\arg\max_a Q(s, a)$ 给出的贪心选择。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-Q-Learning%E4%B8%8E%E6%B7%B1%E5%BA%A6Q%E7%BD%91%E7%BB%9C/fig1_qtable_gridworld.png" alt="4x4 网格世界上的 Q 表——每格四个 Q 值与一个贪心箭头" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="走一遍-cliff-walking">走一遍 Cliff Walking</h3>
+<p>Sutton 与 Barto 教科书里的 Cliff Walking（悬崖行走）几乎是 Q-Learning 的标配实验。智能体在一张 4x12 的网格上行走，起点和终点之间的整排底格是悬崖：踩进去罚 -100，然后被弹回起点。其它每走一步罚 -1，所以最优路线就是<strong>贴着悬崖上沿走一格</strong>，回报是 -13。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CliffWalkingEnv</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;4x12 网格。起点 (3,0)，终点 (3,11)，悬崖 (3,1)-(3,10)。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">12</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">goal</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">cliff</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">3</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">11</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>   <span class="n">r</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>       <span class="c1"># 上</span>
+</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="n">c</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="n">c</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>      <span class="c1"># 右</span>
+</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> <span class="n">r</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">r</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>       <span class="c1"># 下</span>
+</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">action</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span> <span class="n">c</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">c</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>       <span class="c1"># 左</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">ns</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">ns</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cliff</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="kc">False</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">ns</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">goal</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">ns</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">ns</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">True</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">ns</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">ns</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">False</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">q_learning</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">episodes</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Q</span> <span class="o">=</span> <span class="p">{(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">history</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">episodes</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">state</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">steps</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="n">steps</span> <span class="o">&lt;</span> <span class="mi">1000</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">action</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">epsilon</span>
+</span></span><span class="line"><span class="cl">                      <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">])))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ns</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">total</span> <span class="o">+=</span> <span class="n">reward</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># Q-Learning 更新——目标里使用的是&#34;贪心&#34;动作</span>
+</span></span><span class="line"><span class="cl">            <span class="n">td_target</span> <span class="o">=</span> <span class="n">reward</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">ns</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">action</span><span class="p">]</span> <span class="o">+=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span><span class="n">td_target</span> <span class="o">-</span> <span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">action</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">state</span> <span class="o">=</span> <span class="n">ns</span>
+</span></span><span class="line"><span class="cl">            <span class="n">steps</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">break</span>
+</span></span><span class="line"><span class="cl">        <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">total</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">Q</span><span class="p">,</span> <span class="n">history</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>更有意思的是把 $\varepsilon$ 调成不同值会怎样：太贪心，根本找不到那条贴边的最优路；太爱探索，又会反复掉下悬崖。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-Q-Learning%E4%B8%8E%E6%B7%B1%E5%BA%A6Q%E7%BD%91%E7%BB%9C/fig2_cliff_walking_curves.png" alt="不同探索率下的 Cliff Walking 学习曲线" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>$\varepsilon = 0.10$ 那条曲线收敛得最干净；$\varepsilon = 0.50$ 卡在远低于最优的水平上，因为太多步是随机的（很容易致命）；$\varepsilon = 0.01$ 最终也能到达最优，只不过早期探索太稀疏，收敛慢一截。这种&quot;探索 vs 利用&quot;的权衡在整个 RL 里反复出现。</p>
+<hr>
+<h2 id="为什么表格不够用">为什么表格不够用</h2>
+<p>Cliff Walking 才 48 个状态，一张 Q 表 192 个浮点数就够。换成 Atari 的 Breakout：DQN 论文把屏幕预处理成 84x84 灰度图，再叠最近四帧来给智能体一点&quot;运动感&quot;，状态变成 $\{0, \ldots, 255\}^{84 \times 84 \times 4}$ 中的一个向量，可能取值数量大约是 $256^{28224}$。宇宙里的原子都不够数。</p>
+<p>由此立即得出两个失败：</p>
+<ol>
+<li><strong>存不下</strong>。任何表都装不下&quot;每个状态对应一个 Q 值&quot;。</li>
+<li><strong>访问次数为零</strong>。Q-Learning 收敛性证明要求每个状态-动作对被访问无穷多次。智能体根本不会两次看到<em>完全相同</em>的 84x84x4 数组。</li>
+</ol>
+<p>解决方案是把&quot;表&quot;换成<strong>带参数的函数近似器</strong>：用 $Q(s, a; \theta)$ 这样一个参数化的函数（DQN 中是一个卷积网络）让模型在视觉上相似的状态之间<strong>泛化</strong>——只是噪声不同、砖块颜色不同的两帧屏幕，应该映射到接近的 Q 值。</p>
+<h3 id="致命三角">致命三角</h3>
+<p>泛化是有代价的。Sutton 与 Barto 指出，在价值方法中，下面三个性质如果<strong>同时</strong>出现，算法就有可能发散，他们称之为<strong>致命三角</strong>：</p>
+<ol>
+<li><strong>自举（bootstrapping）</strong>：TD 目标 $r + \gamma \max_{a'} Q(s', a'; \theta)$ 把网络自己当下的估值当成&quot;真值&quot;。</li>
+<li><strong>函数近似</strong>：调整 $\theta$ 去修一个状态的 Q 值时，会同时把其它相邻状态的 Q 值也带偏——你没法像编辑表格一样只改一格。</li>
+<li><strong>离策略数据</strong>：用来更新的轨迹不是来自当前正在评估的策略。</li>
+</ol>
+<p>任意两条单独都不致命：表格 Q-Learning 是&quot;自举 + 离策略&quot;，没有函数近似；线性近似 + 在策略也没问题。但三者凑齐之后，确实可以构造出 Q 值发散到无穷的玩具 MDP。</p>
+<p>DQN 的两个创新分别针对其中&quot;离策略&quot;与&quot;自举&quot;两条边。</p>
+<hr>
+<h2 id="dqn-的两大创新">DQN 的两大创新</h2>
+<h3 id="经验回放打破时间相关性">经验回放：打破时间相关性</h3>
+<p>监督学习里，mini-batch SGD 的前提是 i.i.d. 假设——你把数据洗一下再采样。RL 里相邻的两步 $(s_t, a_t, r_t, s_{t+1})$ 与 $(s_{t+1}, a_{t+1}, r_{t+1}, s_{t+2})$ 高度相关：下一个状态本身就是上一个状态的函数。直接拿这串数据去训，梯度会在相关样本上来回震荡，旧的经验一离开屏幕马上被忘掉，收敛迟迟不发生。</p>
+<p>DQN 的解法是<strong>经验回放缓冲区（replay buffer）</strong>：把每一条转移都放进一个很大的 FIFO 队列（一般 100 万条），每次梯度更新时从中随机抽 mini-batch。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-Q-Learning%E4%B8%8E%E6%B7%B1%E5%BA%A6Q%E7%BD%91%E7%BB%9C/fig4_replay_buffer.png" alt="经验回放缓冲区：流式写入，随机抽取 mini-batch" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>它带来三个好处：</p>
+<ul>
+<li><strong>mini-batch 解相关</strong>。32 条随机样本近似独立同分布，正好满足 SGD 的假设。</li>
+<li><strong>样本利用率高</strong>。每条经验会被反复使用，DeepMind 报告的样本效率提升大约一个数量级。</li>
+<li><strong>平滑分布漂移</strong>。缓冲区里混着许多近期策略产生的数据，即使策略变化很快，训练分布也变得平缓。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">random</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ReplayBuffer</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">capacity</span><span class="o">=</span><span class="mi">100_000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">capacity</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">,</span> <span class="n">done</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">,</span> <span class="n">done</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">batch</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">batch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">r</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">s_next</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="目标网络别再追自己的尾巴">目标网络：别再追自己的尾巴</h3>
+<p>哪怕加了回放，TD 目标 $r + \gamma \max_{a'} Q(s', a'; \theta)$ 依然会随着 $\theta$ 的每次更新而变化——目标本身是优化变量的函数，损失曲面在每一步脚下都在变形。实测下来，这会带来振荡甚至发散。</p>
+<p>DQN 的做法是同时维护<strong>两份</strong>网络：</p>
+<ul>
+<li><strong>在线网络</strong> $Q(\cdot; \theta)$：每一步都用梯度下降更新。</li>
+<li><strong>目标网络</strong> $Q(\cdot; \theta^-)$：在线网络的一份&quot;冻结副本&quot;，每隔一段时间被同步覆盖一次。</li>
+</ul>
+<p>损失针对的是这份冻结副本：</p>
+$$
+\mathcal{L}(\theta) = \mathbb{E}_{(s,a,r,s')\sim \mathcal{D}}\Big[\big(r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta)\big)^2\Big]
+$$<p>每隔 $C$ 步（Nature 论文里是 10 000）执行一次同步：$\theta^- \leftarrow \theta$。在两次同步之间，目标是<em>常量</em>，每个 $C$ 步窗口都接近一个标准的有监督回归问题。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-Q-Learning%E4%B8%8E%E6%B7%B1%E5%BA%A6Q%E7%BD%91%E7%BB%9C/fig5_target_network.png" alt="目标网络：一份滞后的副本，把 TD 目标稳住" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>也有一种连续的变体——<strong>Polyak 软更新</strong> $\theta^- \leftarrow \tau \theta + (1-\tau) \theta^-$，$\tau$ 取 0.005 左右，DDPG 与 SAC 都用它，效果同样好。</p>
+<hr>
+<h2 id="完整的-atari-dqn">完整的 Atari DQN</h2>
+<p>按 2026 年的标准来看，DQN 的架构并不大：3 个卷积层加 2 个全连接层，参数量约 170 万。卷积负责看 84x84 屏幕的局部纹理，全连接把展平后的特征图映射成&quot;每个动作一个 Q 值&quot;。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-Q-Learning%E4%B8%8E%E6%B7%B1%E5%BA%A6Q%E7%BD%91%E7%BB%9C/fig3_dqn_architecture.png" alt="DQN 架构：4 帧叠加输入 → 三层卷积 → FC 512 → 每个动作一个 Q 值" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">random</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DQN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Nature-DQN 架构。输入 (batch, 4, 84, 84)，uint8 像素 / 255。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">conv3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">512</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>   <span class="c1"># -&gt; (B, 32, 20, 20)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>   <span class="c1"># -&gt; (B, 64, 9, 9)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv3</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>   <span class="c1"># -&gt; (B, 64, 7, 7)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">start_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DQNAgent</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">n_actions</span><span class="p">,</span> <span class="n">device</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy_net</span> <span class="o">=</span> <span class="n">DQN</span><span class="p">(</span><span class="n">n_actions</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target_net</span> <span class="o">=</span> <span class="n">DQN</span><span class="p">(</span><span class="n">n_actions</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target_net</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy_net</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target_net</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy_net</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">2.5e-4</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">memory</span> <span class="o">=</span> <span class="n">ReplayBuffer</span><span class="p">(</span><span class="n">capacity</span><span class="o">=</span><span class="mi">100_000</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="mf">0.99</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">32</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon_end</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon_decay</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.995</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target_update_freq</span> <span class="o">=</span> <span class="mi">10_000</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">steps_done</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">select_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">training</span> <span class="ow">and</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">randrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_actions</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy_net</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memory</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span>        <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">s</span><span class="p">,</span>      <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">a</span>        <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">a</span><span class="p">,</span>      <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>    <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">r</span>        <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">r</span><span class="p">,</span>      <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s_next</span>   <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">s_next</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">d</span>        <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">d</span><span class="p">,</span>      <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Q(s, a) 来自在线网络</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy_net</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 自举目标来自冻结的目标网络——这里不让梯度回传</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">q_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_net</span><span class="p">(</span><span class="n">s_next</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+</span></span><span class="line"><span class="cl">            <span class="n">q_target</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">d</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">q_next</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Huber loss 对偶尔出现的大 TD 误差比 MSE 更稳</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">smooth_l1_loss</span><span class="p">(</span><span class="n">q_pred</span><span class="p">,</span> <span class="n">q_target</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy_net</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">max_norm</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">steps_done</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">steps_done</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_update_freq</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">target_net</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy_net</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon_end</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon_decay</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>几条论文里看不到、但实战中很重要的细节：</p>
+<ul>
+<li>用 <strong>Huber loss</strong>（<code>smooth_l1_loss</code>）而不是纯 MSE——配合梯度裁剪，偶尔出现的大 TD 误差不会把优化器搞崩。</li>
+<li><strong>梯度裁剪</strong>到范数 10（或 1）能挡住罕见的大更新带来的连锁震荡。</li>
+<li>Atari 还要在环境侧做 <strong>frame-skip 4 + 后两帧 max-pool</strong>，处理画面闪烁；这是预处理而非智能体的一部分。</li>
+<li>在 Pong 上，单 GPU 跑 200-300 个回合就能基本达到上限（平均回报 $\approx +21$）。</li>
+</ul>
+<hr>
+<h2 id="dqn-变体从-double-到-rainbow">DQN 变体：从 Double 到 Rainbow</h2>
+<p>DQN 最初的两版分别在 2013 年（workshop）和 2015 年（<em>Nature</em>）发表。之后几年，一系列论文每篇都精准修补一个具体的弱点；最后这些改进被整合成一个叫 <strong>Rainbow</strong> 的统一智能体，各组件几乎可加。</p>
+<h3 id="double-dqn消除最大化偏差">Double DQN：消除最大化偏差</h3>
+<p>哪怕目标网络做得再好，$\max_{a'}$ 这个算子本身就引入一个系统性的&quot;高估&quot;。理由很短，也很优雅：假设真实 Q 值是 $Q^*(s, a)$，网络估值是 $Q^*(s, a) + \varepsilon_a$，噪声 $\varepsilon_a$ 期望为零，那么</p>
+$$
+\mathbb{E}\Big[\max_a \big(Q^*(s, a) + \varepsilon_a\big)\Big] \;\geq\; \max_a Q^*(s, a)
+$$<p>max 算子总是优先选中那个<strong>正向噪声</strong>最大的动作。通过自举，这种高估会沿着 TD 链路一路渗到所有状态。实测中，原版 DQN 的预测 Q 值会显著高于真实回报。</p>
+<p>van Hasselt 等人（2016）提出 <strong>Double DQN</strong>：把动作的<em>选择</em>和<em>评估</em>拆给两个网络。在线网络选下一步动作，目标网络评估它的价值。</p>
+$$
+y_t = r_t + \gamma\, Q\big(s_{t+1},\; \arg\max_{a'} Q(s_{t+1}, a'; \theta);\; \theta^-\big)
+$$<p>两个网络的噪声部分独立，系统性偏差被基本抵消。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-Q-Learning%E4%B8%8E%E6%B7%B1%E5%BA%A6Q%E7%BD%91%E7%BB%9C/fig6_double_vs_vanilla.png" alt="Double DQN 紧贴真实 Q 值；原版 DQN 显著高估" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>代码改动只有两行：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 用&#34;在线网络&#34;选下一个动作</span>
+</span></span><span class="line"><span class="cl">    <span class="n">next_actions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy_net</span><span class="p">(</span><span class="n">s_next</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 用&#34;目标网络&#34;评估这个动作的价值</span>
+</span></span><span class="line"><span class="cl">    <span class="n">q_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_net</span><span class="p">(</span><span class="n">s_next</span><span class="p">)</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">next_actions</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">q_target</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">d</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">q_next</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="dueling-dqn把在哪里和做什么拆开">Dueling DQN：把&quot;在哪里&quot;和&quot;做什么&quot;拆开</h3>
+<p>很多 Atari 帧里，做哪个动作其实根本不重要——球还远着呢、敌人还没出现，几帧之内你怎么按都没区别。如果把状态价值和动作优势揉成一个 Q 头，就会浪费很多容量去反复学同一个 $V(s)$。</p>
+<p>Wang 等人（2016）把输出头拆成两支：</p>
+$$
+Q(s, a) \;=\; V(s) + \Big(A(s, a) - \tfrac{1}{|\mathcal{A}|} \sum_{a'} A(s, a')\Big)
+$$<ul>
+<li>$V(s)$ —— &ldquo;处于这个状态有多好？&rdquo; 与动作无关。</li>
+<li>$A(s, a)$ —— &ldquo;在这里选 $a$ 比平均水平好多少？&rdquo; 与动作有关。</li>
+</ul>
+<p>减去均值这一步是为了让分解<strong>可识别</strong>，不然 $V$ 与 $A$ 之间可以互相吸收任意常数。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DuelingDQN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">conv3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">value_fc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">adv_fc</span><span class="p">,</span>   <span class="bp">self</span><span class="o">.</span><span class="n">adv_head</span>   <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">));</span> <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">x</span><span class="p">));</span> <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv3</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">start_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_head</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value_fc</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>      <span class="c1"># (B, 1)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adv_head</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adv_fc</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>          <span class="c1"># (B, |A|)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">v</span> <span class="o">+</span> <span class="n">a</span> <span class="o">-</span> <span class="n">a</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Dueling 与 Double DQN 配合得特别好——两者攻击的是不同的弱点，效果几乎可加。</p>
+<h3 id="优先经验回放per">优先经验回放（PER）</h3>
+<p>均匀采样把每一条转移都当成&quot;同等重要&quot;，但这显然不对：预测已经准的转移基本学不到东西，而 TD 误差大的转移正是信号最强的样本。</p>
+<p>优先经验回放（Schaul 等人，2016）按照 TD 误差绝对值的某个幂次来采样：</p>
+$$
+p_i \;\propto\; \big(|\delta_i| + \varepsilon\big)^\alpha
+$$<p>指数 $\alpha \in [0, 1]$ 控制&quot;优先程度&quot;，$\alpha = 0$ 退化为均匀。非均匀采样会让梯度估计有偏，需要用重要性采样权重纠正：</p>
+$$
+w_i = \Big(\tfrac{1}{N \cdot p_i}\Big)^\beta
+$$<p>$\beta$ 在训练过程中从 0.4 退火到 1.0——前期偏差影响小，后期需要严格修正以保证稳定性。</p>
+<h3 id="多步回报分布式-rlnoisynet">多步回报、分布式 RL、NoisyNet</h3>
+<p>Rainbow 还集齐了三块拼图：</p>
+<ul>
+<li>
+<p><strong>n 步回报</strong>（Rainbow 用 $n=3$）：把单步自举换成局部 Monte-Carlo 目标，以方差换偏差：</p>
+$$
+  y_t = \sum_{k=0}^{n-1} \gamma^k r_{t+k} + \gamma^n \max_{a'} Q(s_{t+n}, a'; \theta^-)
+  $$</li>
+<li>
+<p><strong>分布式 RL（C51）</strong>，Bellemare 等人（2017）：不再只学回报的均值，而学整个回报分布。通过把分布投影到 51 个固定原子上得名 C51。完整分布带有的信息（尤其在随机环境中）远多于一个均值。</p>
+</li>
+<li>
+<p><strong>NoisyNet</strong>：用注入到 FC 权重里的可学习噪声替代 $\varepsilon$-greedy 的探索。探索从此变成&quot;状态相关、可学习&quot;的，而不是手调的衰减表。</p>
+</li>
+</ul>
+<h3 id="rainbow">Rainbow</h3>
+<p>Hessel 等人（2018）把六块（DQN 基础 + Double + Dueling + PER + n 步 + 分布式 + NoisyNet）拼到一起，并做了完整的 ablation。每个组件单独都能带来收益；合起来后的成绩明显高于任何单一变体。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-Q-Learning%E4%B8%8E%E6%B7%B1%E5%BA%A6Q%E7%BD%91%E7%BB%9C/fig7_atari_benchmark.png" alt="Atari-57 基准上的人类标准化中位分" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图把得分按&quot;人类 = 100%、随机智能体 = 0%&ldquo;标准化。原版 DQN 中位分还低于人类；每加一项改进就往上推几十个百分点；Rainbow 在中位游戏上把人类水平翻了一倍多。</p>
+<hr>
+<h2 id="实战要点">实战要点</h2>
+<h3 id="一份起步用的超参数表">一份起步用的超参数表</h3>
+<table>
+  <thead>
+      <tr>
+          <th>超参数</th>
+          <th>常用取值</th>
+          <th>备注</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>回放缓冲区容量</td>
+          <td>100K - 1M 转移</td>
+          <td>越大越好，受限于内存</td>
+      </tr>
+      <tr>
+          <td>mini-batch 大小</td>
+          <td>32 - 128</td>
+          <td>Atari 默认 32</td>
+      </tr>
+      <tr>
+          <td>学习率</td>
+          <td>1e-4 ~ 3e-4</td>
+          <td>Adam，2.5e-4 是稳妥的起点</td>
+      </tr>
+      <tr>
+          <td>折扣 $\gamma$</td>
+          <td>0.99</td>
+          <td>短时距任务可以小一些</td>
+      </tr>
+      <tr>
+          <td>$\varepsilon$ 衰减</td>
+          <td>1.0 → 0.01</td>
+          <td>在 ~1M 帧上线性衰减</td>
+      </tr>
+      <tr>
+          <td>目标网络同步周期 $C$</td>
+          <td>10K 步</td>
+          <td>或软更新 $\tau \approx 0.005$</td>
+      </tr>
+      <tr>
+          <td>Frame skip</td>
+          <td>4</td>
+          <td>Atari 预处理</td>
+      </tr>
+      <tr>
+          <td>梯度裁剪</td>
+          <td>范数 10</td>
+          <td>配合 Huber loss</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="调试清单">调试清单</h3>
+<ol>
+<li><strong>先在 CartPole 上跑通</strong>。一个写对的 DQN，单 CPU 不到 200 个回合就能解决 CartPole。如果你的不行，问题大概率在代码里，不是超参数。</li>
+<li><strong>盯着 Q 值的量级</strong>。它应该上升然后稳定在合理范围（Atari 上一般是个位或两位数）。如果飘到 1000 以上，基本是发散。</li>
+<li><strong>跟踪 TD 误差</strong>。它应该下降并保持有界。一直单调上升说明目标在跑路。</li>
+<li><strong>看动作分布</strong>。如果只输出某一个动作，多半是网络坍缩了——检查 ReLU 是否大面积&quot;死掉&rdquo;、初始化是否出错、学习率是不是过大。</li>
+</ol>
+<h3 id="dqn-还是别的算法">DQN 还是别的算法？</h3>
+<table>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>DQN 家族</th>
+          <th>策略梯度（PPO / SAC 等）</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>动作空间</td>
+          <td>仅离散</td>
+          <td>离散 + 连续</td>
+      </tr>
+      <tr>
+          <td>样本效率</td>
+          <td>高（回放可复用）</td>
+          <td>较低（PPO 是在线策略）</td>
+      </tr>
+      <tr>
+          <td>稳定性</td>
+          <td>需要目标网络等一系列技巧</td>
+          <td>整体更易调</td>
+      </tr>
+      <tr>
+          <td>最适场景</td>
+          <td>Atari、棋类、离散控制</td>
+          <td>机器人、运动控制、连续控制</td>
+      </tr>
+  </tbody>
+</table>
+<p>DQN 一个硬伤是<strong>只能处理离散动作</strong>：在五个按键上做 $\arg\max$ 很轻松，在一个实数关节角度上就成了优化问题。下一篇正是从这里接上。</p>
+<hr>
+<h2 id="小结">小结</h2>
+<p>DQN 的贡献，工程的成分丝毫不少于理论。&ldquo;用神经网络替换 Q 表&quot;是显而易见的一步；真正把它从一个不稳定的算法变成可训练的工程系统的，是经验回放与目标网络这两个工程化想法。它们正好把致命三角中的&quot;离策略&quot;和&quot;自举&quot;两条边各自压住到能用的程度。</p>
+<p>DQN 之后的每个变体也都是&quot;针对某个具体失败提出某个具体修补&rdquo;：Double 抹掉高估偏差，Dueling 拆开状态价值与动作优势，PER 把学习算力聚焦在&quot;出乎意料&quot;的转移上，Rainbow 则证明这些修补可以叠加。这些组件后来一路活到了今天——SAC、离线 RL，乃至许多 LLM-RL 杂交方法里，都还能看到经验回放和目标网络的身影。</p>
+<p><strong>下一篇</strong>：<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e7%ad%96%e7%95%a5%e6%a2%af%e5%ba%a6%e4%b8%8eactor-critic%e6%96%b9%e6%b3%95/">第 3 部分</a>
+ 进入<strong>策略梯度</strong>与 <strong>Actor-Critic</strong> 架构——能处理连续动作的那一大类算法，PPO、SAC 与现代 RL 算法的&quot;策略侧&quot;都从这里展开。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>Mnih, V., et al. (2013). Playing Atari with Deep Reinforcement Learning. <em>NIPS Deep Learning Workshop</em>.</li>
+<li>Mnih, V., et al. (2015). Human-level control through deep reinforcement learning. <em>Nature</em>, 518, 529-533.</li>
+<li>Watkins, C. J., &amp; Dayan, P. (1992). Q-learning. <em>Machine Learning</em>, 8(3-4), 279-292.</li>
+<li>van Hasselt, H., Guez, A., &amp; Silver, D. (2016). Deep RL with Double Q-learning. <em>AAAI</em>.</li>
+<li>Wang, Z., et al. (2016). Dueling Network Architectures for Deep RL. <em>ICML</em>.</li>
+<li>Schaul, T., et al. (2016). Prioritized Experience Replay. <em>ICLR</em>.</li>
+<li>Bellemare, M., Dabney, W., &amp; Munos, R. (2017). A Distributional Perspective on Reinforcement Learning. <em>ICML</em>.</li>
+<li>Fortunato, M., et al. (2018). Noisy Networks for Exploration. <em>ICLR</em>.</li>
+<li>Hessel, M., et al. (2018). Rainbow: Combining Improvements in Deep Reinforcement Learning. <em>AAAI</em>.</li>
+<li>Sutton, R. S., &amp; Barto, A. G. (2018). <em>Reinforcement Learning: An Introduction</em>（第 2 版）. MIT Press. —— 第 11 章讲致命三角。</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">基础与核心概念</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>2</strong></td>
+          <td><strong>Q-Learning 与深度 Q 网络（本文）</strong></td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e7%ad%96%e7%95%a5%e6%a2%af%e5%ba%a6%e4%b8%8eactor-critic%e6%96%b9%e6%b3%95/">Policy Gradient 与 Actor-Critic 方法</a>
+</td>
+      </tr>
+      <tr>
+          <td>4</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e6%8e%a2%e7%b4%a2%e7%ad%96%e7%95%a5%e4%b8%8e%e5%a5%bd%e5%a5%87%e5%bf%83%e9%a9%b1%e5%8a%a8%e5%ad%a6%e4%b9%a0/">探索策略与好奇心驱动学习</a>
+</td>
+      </tr>
+      <tr>
+          <td>5</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%94-model-based%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e4%b8%96%e7%95%8c%e6%a8%a1%e5%9e%8b/">Model-Based 强化学习与世界模型</a>
+</td>
+      </tr>
+      <tr>
+          <td>6</td>
+          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-ppo%e4%b8%8etrpo-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/">PPO 与 TRPO</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#q-learning-基础">Q-Learning 基础</a>
+      <ul>
+        <li><a href="#重新读一遍-bellman-最优方程">重新读一遍 Bellman 最优方程</a></li>
+        <li><a href="#q-learning-的更新规则">Q-Learning 的更新规则</a></li>
+        <li><a href="#走一遍-cliff-walking">走一遍 Cliff Walking</a></li>
+      </ul>
+    </li>
+    <li><a href="#为什么表格不够用">为什么表格不够用</a>
+      <ul>
+        <li><a href="#致命三角">致命三角</a></li>
+      </ul>
+    </li>
+    <li><a href="#dqn-的两大创新">DQN 的两大创新</a>
+      <ul>
+        <li><a href="#经验回放打破时间相关性">经验回放：打破时间相关性</a></li>
+        <li><a href="#目标网络别再追自己的尾巴">目标网络：别再追自己的尾巴</a></li>
+      </ul>
+    </li>
+    <li><a href="#完整的-atari-dqn">完整的 Atari DQN</a></li>
+    <li><a href="#dqn-变体从-double-到-rainbow">DQN 变体：从 Double 到 Rainbow</a>
+      <ul>
+        <li><a href="#double-dqn消除最大化偏差">Double DQN：消除最大化偏差</a></li>
+        <li><a href="#dueling-dqn把在哪里和做什么拆开">Dueling DQN：把&quot;在哪里&quot;和&quot;做什么&quot;拆开</a></li>
+        <li><a href="#优先经验回放per">优先经验回放（PER）</a></li>
+        <li><a href="#多步回报分布式-rlnoisynet">多步回报、分布式 RL、NoisyNet</a></li>
+        <li><a href="#rainbow">Rainbow</a></li>
+      </ul>
+    </li>
+    <li><a href="#实战要点">实战要点</a>
+      <ul>
+        <li><a href="#一份起步用的超参数表">一份起步用的超参数表</a></li>
+        <li><a href="#调试清单">调试清单</a></li>
+        <li><a href="#dqn-还是别的算法">DQN 还是别的算法？</a></li>
+      </ul>
+    </li>
+    <li><a href="#小结">小结</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">强化学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6700</strong></div>
+      <div class="row"><span>Published</span><strong>Aug 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

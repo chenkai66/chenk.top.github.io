@@ -1,0 +1,1921 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>推荐系统（八）—— 知识图谱增强推荐系统 · Chen Kai Blog</title>
+<meta name="description" content="知识图谱增强推荐系统全面解析：知识图谱嵌入（TransE/TransR/DistMult），RippleNet 涟漪传播，KGCN 图卷积，KGAT 注意力网络，CKE 多信号融合，附完整 PyTorch 实现。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="推荐系统（八）—— 知识图谱增强推荐系统">
+<meta property="og:description" content="知识图谱增强推荐系统全面解析：知识图谱嵌入（TransE/TransR/DistMult），RippleNet 涟漪传播，KGCN 图卷积，KGAT 注意力网络，CKE 多信号融合，附完整 PyTorch 实现。">
+<meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">推荐系统</a>
+         · Chapter 8
+      </div>
+      <h1>推荐系统（八）—— 知识图谱增强推荐系统</h1>
+      <p class="deck">知识图谱增强推荐系统全面解析：知识图谱嵌入（TransE/TransR/DistMult），RippleNet 涟漪传播，KGCN 图卷积，KGAT 注意力网络，CKE 多信号融合，附完整 PyTorch 实现。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-12-22">December 22, 2025</time> · 20 min read · 9900 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/" class="tag">#推荐系统</a><a href="/zh/tags/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1/" class="tag">#知识图谱</a><a href="/zh/tags/%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA/" class="tag">#图谱增强</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>当你在视频平台搜索《蝙蝠侠：黑暗骑士》时，系统不仅记下你看了这部电影，它还知道：克里斯蒂安·贝尔饰演蝙蝠侠、克里斯托弗·诺兰执导、属于&quot;诺兰蝙蝠侠三部曲&quot;，并且与其他烧脑动作片在风格上同源。这张丰富的语义网络就是 <strong>知识图谱（Knowledge Graph，KG）</strong>——一张由实体（电影、演员、导演、类型）和<strong>带类型的关系</strong>（<code>acted_in</code>、<code>directed_by</code>、<code>part_of</code>）组成的结构化网络。</p>
+<p>为什么这对推荐重要？因为纯协同过滤有一个致命盲区：它只能推荐<strong>已经有交互历史的物品</strong>。一部刚上线、播放量为零的新电影，对它而言是&quot;隐身&quot;的。但如果这部电影的导演正是你最喜欢的诺兰，知识图谱<strong>当天</strong>就能看到这条联系。知识图谱把推荐从&quot;模式匹配&quot;升级成了 <strong>语义推理</strong>。</p>
+<hr>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>知识图谱是什么、如何用三元组编码现实世界事实</li>
+<li>知识图谱嵌入（TransE / TransR / DistMult）如何把实体和关系表示成向量</li>
+<li>传播类方法：<strong>RippleNet</strong> 让用户偏好像水波一样向外扩散</li>
+<li>图卷积类方法：<strong>KGCN</strong> 与 <strong>KGAT</strong> 通过聚合 KG 邻居学习物品表示</li>
+<li>嵌入融合：<strong>CKE</strong> 同时融合协同信号、结构信号与文本信号</li>
+<li>基于路径的可解释推荐推理</li>
+<li>每种主流方法都配有可运行的 PyTorch 代码</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>基础 Python 与 PyTorch（张量、<code>nn.Module</code>、训练循环）</li>
+<li>熟悉图神经网络（本系列<a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%83-%e5%9b%be%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c%e4%b8%8e%e7%a4%be%e4%ba%a4%e6%8e%a8%e8%8d%90/">第 7 篇</a>
+）</li>
+<li>理解嵌入概念（本系列<a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%94-Embedding%e8%a1%a8%e7%a4%ba%e5%ad%a6%e4%b9%a0/">第 5 篇</a>
+）</li>
+</ul>
+<hr>
+<h2 id="知识图谱基础">知识图谱基础</h2>
+<h3 id="什么是知识图谱">什么是知识图谱</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig1_knowledge_graph.png" alt="电影知识图谱：电影、人物、类型与系列通过带类型的关系相连" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>知识图谱用 <strong>(头实体，关系，尾实体)</strong> 三元组的形式存储事实。每条三元组表达一条原子事实：</p>
+<ul>
+<li>(黑暗骑士，<strong>directed_by</strong>，克里斯托弗·诺兰)</li>
+<li>(黑暗骑士，<strong>starred</strong>，克里斯蒂安·贝尔)</li>
+<li>(黑暗骑士，<strong>has_genre</strong>，动作)</li>
+<li>(克里斯蒂安·贝尔，<strong>acted_in</strong>，致命魔术)</li>
+</ul>
+<p>形式化地，知识图谱是一个集合 $\mathcal{G} = \{(h, r, t)\}$，其中 $h \in \mathcal{E}$ 是<strong>头实体</strong>，$r \in \mathcal{R}$ 是<strong>关系类型</strong>，$t \in \mathcal{E}$ 是<strong>尾实体</strong>。$\mathcal{E}$ 是所有实体的集合，$\mathcal{R}$ 是所有关系类型的集合。</p>
+<p><strong>类比。</strong> 把知识图谱想象成&quot;维基百科级别的事实数据库&quot;，但它不是用文字段落存储，而是用图。每个词条是一个节点，词条之间的每条链接都是一条<strong>带标签的边</strong>——标签告诉你它们<strong>为什么</strong>相连。</p>
+<h3 id="现实世界的知识图谱">现实世界的知识图谱</h3>
+<table>
+  <thead>
+      <tr>
+          <th>知识图谱</th>
+          <th>实体数量</th>
+          <th>事实数量</th>
+          <th>使用方</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Freebase</td>
+          <td>3900 万</td>
+          <td>19 亿</td>
+          <td>Google（已废弃）</td>
+      </tr>
+      <tr>
+          <td>Wikidata</td>
+          <td>1 亿+</td>
+          <td>14 亿+</td>
+          <td>Wikipedia、Google</td>
+      </tr>
+      <tr>
+          <td>DBpedia</td>
+          <td>600 万</td>
+          <td>5.8 亿</td>
+          <td>学术研究</td>
+      </tr>
+      <tr>
+          <td>Amazon Product Graph</td>
+          <td>数十亿</td>
+          <td>数万亿</td>
+          <td>亚马逊推荐</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="推荐系统中的知识图谱结构">推荐系统中的知识图谱结构</h3>
+<p>推荐系统使用的 KG 通常是<strong>异构图</strong>——既有多种实体类型，也有多种关系类型。</p>
+<p><strong>实体类型</strong></p>
+<ul>
+<li>用户：$U = \{u_1, u_2, \ldots, u_m\}$</li>
+<li>物品：$I = \{i_1, i_2, \ldots, i_n\}$</li>
+<li>属性：类型、演员、导演、品牌……</li>
+</ul>
+<p><strong>关系类型</strong></p>
+<ul>
+<li>用户—物品：<code>(用户, 交互, 物品)</code></li>
+<li>物品—属性：<code>(电影, has_genre, 动作)</code>、<code>(电影, directed_by, 诺兰)</code></li>
+<li>属性—属性：<code>(诺兰, 合作过, 贝尔)</code></li>
+</ul>
+<h3 id="知识图谱嵌入">知识图谱嵌入</h3>
+<p>把知识图谱送进推荐模型之前，需要先把实体和关系变成稠密向量。关键问题是：<strong>如何训练这些嵌入，让它们尊重图谱的结构？</strong></p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig2_transe_embedding.png" alt="TransE：头向量加上关系向量约等于尾向量；训练时把正样本拉近、把负样本推到边界之外" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>TransE</strong> 是最简单也最直观的方法：对于任意一条合法的三元组 $(h, r, t)$，都应当满足向量等式 $\mathbf{h} + \mathbf{r} \approx \mathbf{t}$。</p>
+$$\mathcal{L} = \sum_{(h,r,t) \in \mathcal{G}}\; \sum_{(h',r,t') \notin \mathcal{G}} \bigl[\gamma + \|\mathbf{h} + \mathbf{r} - \mathbf{t}\|_2 - \|\mathbf{h}' + \mathbf{r} - \mathbf{t}'\|_2\bigr]_+$$<p><strong>白话翻译。</strong> &ldquo;把合法三元组拉近（让 $\mathbf{h} + \mathbf{r} \approx \mathbf{t}$），把非法三元组推远；间隔 $\gamma$ 控制你想要的最小分离度。&ldquo;上图右侧形象地展示了这一过程：绿色点（合法尾实体）被拉进 margin 圆内，灰色负样本被推到圆外。</p>
+<table>
+  <thead>
+      <tr>
+          <th>方法</th>
+          <th>评分函数</th>
+          <th>适用场景</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>TransE</strong></td>
+          <td>$\|\mathbf{h} + \mathbf{r} - \mathbf{t}\|$</td>
+          <td>简单的 1-to-1 关系</td>
+      </tr>
+      <tr>
+          <td><strong>TransR</strong></td>
+          <td>$\|\mathbf{h} M_r + \mathbf{r} - \mathbf{t} M_r\|$</td>
+          <td>不同关系需要不同向量空间</td>
+      </tr>
+      <tr>
+          <td><strong>DistMult</strong></td>
+          <td>$\mathbf{h}^T \text{diag}(\mathbf{r})\, \mathbf{t}$</td>
+          <td>对称关系</td>
+      </tr>
+      <tr>
+          <td><strong>ComplEx</strong></td>
+          <td>$\text{Re}(\mathbf{h}^T \text{diag}(\mathbf{r})\, \bar{\mathbf{t}})$</td>
+          <td>非对称关系</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>TransE 类比。</strong> 想象地图上的城市。&ldquo;巴黎&rdquo; + &ldquo;向东飞 2000 公里&quot;应当落在&quot;莫斯科&quot;附近；&ldquo;巴黎&rdquo; + &ldquo;向南飞 1500 公里&quot;应当落在&quot;阿尔及尔&quot;附近。<strong>关系向量就像地图上的位移。</strong></p>
+<h3 id="实现构建知识图谱">实现：构建知识图谱</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">KnowledgeGraph</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;用于推荐系统的简易知识图谱。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">entities</span> <span class="o">=</span> <span class="p">{}</span>                   <span class="c1"># entity_name -&gt; entity_id</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">relations</span> <span class="o">=</span> <span class="p">{}</span>                  <span class="c1"># relation_name -&gt; relation_id</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">triples</span> <span class="o">=</span> <span class="p">[]</span>                    <span class="c1"># [(h_id, r_id, t_id), ...]</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">entity_adj</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>  <span class="c1"># entity_id -&gt; [(r_id, t_id), ...]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">add_entity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">add_relation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">relations</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">relations</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">relations</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">relations</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">add_triple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">head</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">relation</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tail</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_entity</span><span class="p">(</span><span class="n">head</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">r_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_relation</span><span class="p">(</span><span class="n">relation</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">t_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_entity</span><span class="p">(</span><span class="n">tail</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">triples</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">h_id</span><span class="p">,</span> <span class="n">r_id</span><span class="p">,</span> <span class="n">t_id</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">entity_adj</span><span class="p">[</span><span class="n">h_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">r_id</span><span class="p">,</span> <span class="n">t_id</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">get_neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_adj</span><span class="p">[</span><span class="n">entity_id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 构建一个小型电影知识图谱</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span> <span class="o">=</span> <span class="n">KnowledgeGraph</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;黑暗骑士&#34;</span><span class="p">,</span> <span class="s2">&#34;directed_by&#34;</span><span class="p">,</span> <span class="s2">&#34;诺兰&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;黑暗骑士&#34;</span><span class="p">,</span> <span class="s2">&#34;starred&#34;</span><span class="p">,</span> <span class="s2">&#34;贝尔&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;黑暗骑士&#34;</span><span class="p">,</span> <span class="s2">&#34;has_genre&#34;</span><span class="p">,</span> <span class="s2">&#34;动作&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;黑暗骑士&#34;</span><span class="p">,</span> <span class="s2">&#34;has_genre&#34;</span><span class="p">,</span> <span class="s2">&#34;犯罪&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;盗梦空间&#34;</span><span class="p">,</span> <span class="s2">&#34;directed_by&#34;</span><span class="p">,</span> <span class="s2">&#34;诺兰&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;盗梦空间&#34;</span><span class="p">,</span> <span class="s2">&#34;starred&#34;</span><span class="p">,</span> <span class="s2">&#34;迪卡普里奥&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;盗梦空间&#34;</span><span class="p">,</span> <span class="s2">&#34;has_genre&#34;</span><span class="p">,</span> <span class="s2">&#34;科幻&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;致命魔术&#34;</span><span class="p">,</span> <span class="s2">&#34;directed_by&#34;</span><span class="p">,</span> <span class="s2">&#34;诺兰&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;致命魔术&#34;</span><span class="p">,</span> <span class="s2">&#34;starred&#34;</span><span class="p">,</span> <span class="s2">&#34;贝尔&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">kg</span><span class="o">.</span><span class="n">add_triple</span><span class="p">(</span><span class="s2">&#34;致命魔术&#34;</span><span class="p">,</span> <span class="s2">&#34;has_genre&#34;</span><span class="p">,</span> <span class="s2">&#34;剧情&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看图谱</span>
+</span></span><span class="line"><span class="cl"><span class="n">dk_id</span> <span class="o">=</span> <span class="n">kg</span><span class="o">.</span><span class="n">entities</span><span class="p">[</span><span class="s2">&#34;黑暗骑士&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;黑暗骑士的邻居: </span><span class="si">{</span><span class="n">kg</span><span class="o">.</span><span class="n">get_neighbors</span><span class="p">(</span><span class="n">dk_id</span><span class="p">)</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># (directed_by, 诺兰), (starred, 贝尔), (has_genre, 动作), (has_genre, 犯罪)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="知识图谱为什么能帮助推荐">知识图谱为什么能帮助推荐</h2>
+<p>知识图谱解决了纯协同过滤难以处理的四个老大难问题。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig5_four_problems.png" alt="协同过滤反复出现的四种失败模式，以及知识图谱如何分别应对" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="1-冷启动">1. 冷启动</h3>
+<p><strong>问题。</strong> 新电影没有任何交互记录，协同过滤完全看不见它。</p>
+<p><strong>KG 解法。</strong> 即使在上线第一天，新电影也已经拥有属性（导演、演员、类型），通过这些属性它已经和图谱里的其他物品连成一片。如果你喜欢诺兰的旧片，KG 完全可以<strong>当天</strong>把他的新片推给你。</p>
+<h3 id="2-数据稀疏">2. 数据稀疏</h3>
+<p><strong>问题。</strong> 大多数用户只与极少量物品交互，交互矩阵 99% 以上都是零。</p>
+<p><strong>KG 解法。</strong> 知识图谱用稠密的语义连接填补了这些空白。即便两个物品没有任何共同用户，它们也可能共享导演、类型或制作公司——这条语义边本身就是有用的信号。</p>
+<h3 id="3-可解释性">3. 可解释性</h3>
+<p><strong>问题。</strong> &ldquo;和你相似的用户也喜欢 X&quot;不是一个让人信服的解释。</p>
+<p><strong>KG 解法。</strong> &ldquo;向你推荐《盗梦空间》，因为它的导演是克里斯托弗·诺兰，他执导的《黑暗骑士》你打了 5 星。&quot;——具体、可读、有据可查的推理路径。</p>
+<h3 id="4-多样性">4. 多样性</h3>
+<p><strong>问题。</strong> 协同过滤天然倾向于制造&quot;信息茧房&rdquo;，反复推荐同质化的内容。</p>
+<p><strong>KG 解法。</strong> 不同的关系路径会引出不同类型的推荐：沿着 <code>same_director</code> 走和沿着 <code>same_genre</code>、<code>same_actor</code> 走得到的结果完全不同，多样性自然就出现了。</p>
+<h3 id="具体例子看完黑暗骑士之后">具体例子：看完《黑暗骑士》之后</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig6_dark_knight_example.png" alt="基于小型知识图谱进行推理：从一次观影到四个候选推荐" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图把&quot;用户的一次观影&quot;到&quot;四部候选电影&quot;之间的显式路径全部画了出来：</p>
+<ul>
+<li><strong>盗梦空间</strong>——<code>黑暗骑士 -&gt; directed_by -&gt; 诺兰 -&gt; directed -&gt; 盗梦空间</code></li>
+<li><strong>致命魔术</strong>——通过诺兰和贝尔两条路径同时支撑（<strong>双重信号</strong>，置信度更高）</li>
+<li><strong>侠影之谜</strong>（Batman Begins）——共享主演 + 共享类型</li>
+<li>系统不仅可以为每个候选物品给出<strong>不同的排序</strong>，还能给出<strong>不同的解释</strong>——这是纯协同过滤做不到的。</li>
+</ul>
+<h3 id="kg-增强方法的分类">KG 增强方法的分类</h3>
+<table>
+  <thead>
+      <tr>
+          <th>类别</th>
+          <th>思路</th>
+          <th>代表方法</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>传播类</strong></td>
+          <td>让用户偏好沿 KG 向外扩散</td>
+          <td>RippleNet</td>
+      </tr>
+      <tr>
+          <td><strong>图卷积类</strong></td>
+          <td>通过聚合 KG 邻居学习物品嵌入</td>
+          <td>KGCN、KGAT</td>
+      </tr>
+      <tr>
+          <td><strong>嵌入类</strong></td>
+          <td>联合学习用户、物品、KG 实体的嵌入</td>
+          <td>CKE</td>
+      </tr>
+      <tr>
+          <td><strong>路径类</strong></td>
+          <td>在多跳路径上推理，提供可解释性</td>
+          <td>KPRN、PathRec</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="ripplenet偏好的涟漪传播">RippleNet：偏好的涟漪传播</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig3_ripplenet_propagation.png" alt="RippleNet：用户偏好从历史物品出发，沿一跳、二跳邻居像涟漪一样向外扩散" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="涟漪类比">涟漪类比</h3>
+<p>往池塘里扔一颗石子，水波会一圈一圈向外扩散。RippleNet（Wang 等，CIKM 2018）对用户偏好做了完全相同的事：当用户与某个物品发生交互后，这份偏好会沿着知识图谱<strong>像涟漪一样</strong>向外扩散，激活越来越远的相关实体。</p>
+<h3 id="工作原理">工作原理</h3>
+<p>设用户 $u$ 的历史物品集合为 $V_u = \{v_1, v_2, \ldots\}$：</p>
+<ol>
+<li><strong>第 0 跳：</strong> 把用户的历史物品作为初始偏好集 $\mathcal{S}_u^0 = V_u$。</li>
+<li><strong>第 1 跳：</strong> 找到通过任意关系与 $\mathcal{S}_u^0$ 相连的所有实体，构成 $\mathcal{S}_u^1$。</li>
+<li><strong>第 2 跳：</strong> 再找到与 $\mathcal{S}_u^1$ 相连的所有实体，构成 $\mathcal{S}_u^2$。</li>
+<li><strong>聚合：</strong> 在每一跳上用注意力为实体加权，得到增强后的用户嵌入。</li>
+</ol>
+<p>在第 $h$ 跳，候选物品 $v$ 与某个尾实体 $t$ 的相关度为：</p>
+$$p_i^h = \text{softmax}(\mathbf{v}^T \mathbf{R}_i\, \mathbf{t})$$<p><strong>白话翻译。</strong> &ldquo;这个 KG 实体和我们要打分的候选物品有多相关？用关系矩阵 $\mathbf{R}$ 来衡量它们的兼容性。&rdquo;</p>
+<p>第 $h$ 跳的偏好向量为：</p>
+$$\mathbf{o}_u^h = \sum_{(h,r,t) \in \mathcal{S}_u^h} p_i^h\, \mathbf{t}$$<p>最终用户嵌入是各跳偏好的加权和：</p>
+$$\mathbf{u} = \sum_{h=0}^{H} \alpha_h\, \mathbf{o}_u^h$$<p><strong>走一遍流程。</strong> 用户看了《黑暗骑士》：</p>
+<ul>
+<li>第 0 跳：{黑暗骑士}</li>
+<li>第 1 跳：{诺兰、贝尔、动作、犯罪}</li>
+<li>第 2 跳：{盗梦空间、致命魔术、侠影之谜、迪卡普里奥、剧情……}</li>
+</ul>
+<p>涟漪发现：用户可能喜欢《盗梦空间》（通过诺兰相连）和《致命魔术》（通过诺兰<strong>和</strong>贝尔同时相连——双重支撑，权重更高）。</p>
+<h3 id="实现ripplenet">实现：RippleNet</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RippleNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;RippleNet：在知识图谱上传播用户偏好。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_users</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">num_entities</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">n_hop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_memory</span><span class="o">=</span><span class="mi">32</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_hop</span> <span class="o">=</span> <span class="n">n_hop</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_memory</span> <span class="o">=</span> <span class="n">n_memory</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">embedding_dim</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_users</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_entities</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_relations</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hop_weights</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_hop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n_hop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">emb</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="n">emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_ids</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">,</span> <span class="n">ripple_sets</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">        Args:
+</span></span></span><span class="line"><span class="cl"><span class="s2">            user_ids: [batch_size]
+</span></span></span><span class="line"><span class="cl"><span class="s2">            item_ids: [batch_size]
+</span></span></span><span class="line"><span class="cl"><span class="s2">            ripple_sets: ripple_sets[i][h] 是用户 i 在第 h 跳的
+</span></span></span><span class="line"><span class="cl"><span class="s2">                         (relation_id, tail_id) 列表。
+</span></span></span><span class="line"><span class="cl"><span class="s2">        &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">user_base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="p">(</span><span class="n">user_ids</span><span class="p">)</span>        <span class="c1"># [B, d]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">item_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span>          <span class="c1"># [B, d]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">user_enhanced</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_propagate</span><span class="p">(</span><span class="n">user_base</span><span class="p">,</span> <span class="n">item_vec</span><span class="p">,</span> <span class="n">ripple_sets</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="p">(</span><span class="n">user_enhanced</span> <span class="o">*</span> <span class="n">item_vec</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">scores</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_propagate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_base</span><span class="p">,</span> <span class="n">item_vec</span><span class="p">,</span> <span class="n">ripple_sets</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">user_base</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">hop_memories</span> <span class="o">=</span> <span class="p">[</span><span class="n">user_base</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">hop</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_hop</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">hop_embs</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">rs</span> <span class="o">=</span> <span class="n">ripple_sets</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">hop</span><span class="p">]</span> <span class="k">if</span> <span class="n">hop</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">ripple_sets</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">else</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="ow">not</span> <span class="n">rs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">hop_embs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="n">rs</span> <span class="o">=</span> <span class="n">rs</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">n_memory</span><span class="p">]</span>                  <span class="c1"># 限制 memory</span>
+</span></span><span class="line"><span class="cl">                <span class="n">rels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">rs</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tails</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">t</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">rs</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="n">rel_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="p">(</span><span class="n">rels</span><span class="p">)</span>          <span class="c1"># [K, d]</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tail_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">(</span><span class="n">tails</span><span class="p">)</span>          <span class="c1"># [K, d]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">                <span class="c1"># 用候选物品对每个 KG 邻居打分</span>
+</span></span><span class="line"><span class="cl">                <span class="n">scores</span> <span class="o">=</span> <span class="p">(</span><span class="n">item_vec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">rel_e</span> <span class="o">*</span> <span class="n">tail_e</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">probs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>         <span class="c1"># [K]</span>
+</span></span><span class="line"><span class="cl">                <span class="n">hop_embs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">probs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">tail_e</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">hop_memories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">hop_embs</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 多跳加权融合</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stacked</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">hop_memories</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>       <span class="c1"># [B, H+1, d]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">weights</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hop_weights</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">stacked</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">build_ripple_sets</span><span class="p">(</span><span class="n">user_items</span><span class="p">,</span> <span class="n">kg_adj</span><span class="p">,</span> <span class="n">max_hops</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;通过 BFS 为单个用户构建 ripple sets。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ripple_sets</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">current</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">user_items</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_hops</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">next_hop</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">entity</span> <span class="ow">in</span> <span class="n">current</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">for</span> <span class="n">r_id</span><span class="p">,</span> <span class="n">t_id</span> <span class="ow">in</span> <span class="n">kg_adj</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">entity</span><span class="p">,</span> <span class="p">[]):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">next_hop</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">r_id</span><span class="p">,</span> <span class="n">t_id</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ripple_sets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">next_hop</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">current</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">next_hop</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">ripple_sets</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="kgcn知识图谱卷积网络">KGCN：知识图谱卷积网络</h2>
+<h3 id="换一个视角">换一个视角</h3>
+<p>RippleNet 是把<strong>用户偏好</strong>沿 KG 向外扩散；KGCN（Wang 等，WWW 2019）反过来做：通过聚合每个物品在 KG 中的邻居，<strong>为物品构建更好的表示</strong>。</p>
+<p><strong>类比。</strong> RippleNet 问的是&quot;从你喜欢的东西出发，KG 上还有什么？&quot;；KGCN 问的是&quot;对于每个候选物品，它在 KG 中的邻域告诉了我们什么？&rdquo;</p>
+<h3 id="kgcn-怎么算">KGCN 怎么算</h3>
+<p>对于物品 $i$，它在 KG 上的邻居集合为 $\mathcal{N}_i$，KGCN 的步骤：</p>
+<ol>
+<li><strong>采样</strong> $K$ 个邻居。</li>
+<li><strong>打分</strong>：用一个考虑关系类型的注意力为每个邻居打权重。</li>
+<li><strong>聚合</strong>：用权重加权求和邻居嵌入。</li>
+<li><strong>融合</strong>：把聚合结果与物品自身的嵌入拼起来。</li>
+</ol>
+<p>在第 $l$ 层：</p>
+$$\mathbf{e}_{\mathcal{N}_i}^{(l)} = \sum_{(r,e) \in \mathcal{N}_i} \pi_r(i, e)\; \mathbf{e}_e^{(l-1)}$$<p>其中 $\pi_r(i, e)$ 是关系感知的注意力权重。物品嵌入按下式更新：</p>
+$$\mathbf{e}_i^{(l)} = \sigma\!\bigl(\mathbf{W}^{(l)}[\mathbf{e}_i^{(l-1)} \,\|\, \mathbf{e}_{\mathcal{N}_i}^{(l)}] + \mathbf{b}^{(l)}\bigr)$$<p><strong>白话翻译。</strong> &ldquo;看看 KG 里这个物品都连着谁（演员、导演、类型）；按关系类型决定每条连接的重要程度；最后把邻域信号和物品自身嵌入混合。&rdquo;</p>
+<h3 id="实现kgcn">实现：KGCN</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">KGCNLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;单层 KGCN，带关系感知聚合。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">embedding_dim</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">rel_transforms</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_relations</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_relations</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">combine</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_embs</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">relation_embs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num_items</span> <span class="o">=</span> <span class="n">item_embs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">aggregated</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_items</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nbrs</span> <span class="o">=</span> <span class="n">neighbors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">[])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="ow">not</span> <span class="n">nbrs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">aggregated</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">nbr_embs</span><span class="p">,</span> <span class="n">scores</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">r_id</span><span class="p">,</span> <span class="n">n_id</span> <span class="ow">in</span> <span class="n">nbrs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">transformed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rel_transforms</span><span class="p">[</span><span class="n">r_id</span><span class="p">](</span><span class="n">item_embs</span><span class="p">[</span><span class="n">n_id</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">nbr_embs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transformed</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">compatibility</span> <span class="o">=</span> <span class="n">item_embs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">relation_embs</span><span class="p">[</span><span class="n">r_id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">[</span><span class="n">r_id</span><span class="p">](</span><span class="n">compatibility</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">nbr_embs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">nbr_embs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">weights</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">aggregated</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nbr_embs</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">aggregated</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">aggregated</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">combined</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">item_embs</span><span class="p">,</span> <span class="n">aggregated</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">combined</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">KGCN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;用于推荐的知识图谱卷积网络。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_users</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">num_entities</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_users</span> <span class="o">=</span> <span class="n">num_users</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_items</span> <span class="o">=</span> <span class="n">num_items</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_users</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_entities</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_relations</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">KGCNLayer</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">emb</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="n">emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_ids</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">,</span> <span class="n">item_neighbors</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">user_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="p">(</span><span class="n">user_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">item_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">num_items</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rel_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="o">.</span><span class="n">weight</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">item_neighbors</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">item_vec</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">item_vec</span><span class="p">,</span> <span class="n">item_neighbors</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">rel_vec</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">item_vec</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">item_vec</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">item_final</span> <span class="o">=</span> <span class="n">item_vec</span><span class="p">[</span><span class="n">item_ids</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">user_vec</span> <span class="o">*</span> <span class="n">item_final</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="kgat知识图谱注意力网络">KGAT：知识图谱注意力网络</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig4_kgat_attention.png" alt="KGAT：注意力权重直观地告诉你&quot;对当前用户而言，物品的哪些 KG 邻居最重要&rdquo;" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="kgat-多了什么">KGAT 多了什么</h3>
+<p>KGAT（Wang 等，KDD 2019）比 KGCN 走得更远：它把用户—物品交互和知识图谱<strong>合并成一张统一的图</strong>，称为 <strong>协同知识图谱（Collaborative Knowledge Graph，CKG）</strong>，再在这张图上做基于注意力的聚合。</p>
+$$\mathcal{G}_\text{CKG} = \underbrace{\{(u, \text{interact}, i)\}}_{\text{用户-物品边}} \;\cup\; \underbrace{\{(h, r, t)\}}_{\text{KG 边}}$$<p><strong>为什么重要？</strong> 在 KGCN 里，用户嵌入和物品嵌入活在两个不同的空间；在 KGAT 里，它们都是同一张图上的节点，于是<strong>协同信号和语义信号能够同时传播</strong>。</p>
+<h3 id="注意力机制">注意力机制</h3>
+<p>对于实体 $e$（可能是用户、物品或属性），KGAT 在它的邻居上计算注意力：</p>
+$$\pi(e, r, e') = \frac{\exp\!\bigl(\text{LeakyReLU}(\mathbf{a}^T [\mathbf{e}_e \,\|\, \mathbf{e}_r \,\|\, \mathbf{e}_{e'}])\bigr)}{\sum_{(r'', e'') \in \mathcal{N}(e)} \exp\!\bigl(\text{LeakyReLU}(\mathbf{a}^T [\mathbf{e}_e \,\|\, \mathbf{e}_{r''} \,\|\, \mathbf{e}_{e''}])\bigr)}$$<p><strong>白话翻译。</strong> &ldquo;对每个邻居，把实体、关系、邻居三个嵌入拼起来，通过一个可学习的打分函数，再用 softmax 归一化——这告诉模型哪些连接最重要。&ldquo;上图清晰地展示了这一点：通向&quot;诺兰&quot;和&quot;迪卡普里奥&quot;的边很粗（高注意力），而通向&quot;2010&rdquo;（上映年份）的边很细。</p>
+<p>实体更新：</p>
+$$\mathbf{e}_e^{(l)} = \sigma\!\bigl(\mathbf{W}^{(l)}[\mathbf{e}_e^{(l-1)} \,\|\, \mathbf{e}_{\mathcal{N}(e)}^{(l-1)}] + \mathbf{b}^{(l)}\bigr)$$<h3 id="多头注意力">多头注意力</h3>
+<p>和 GAT（第 7 篇）一样，KGAT 用多个注意力头来捕捉关系的不同侧面：</p>
+$$\mathbf{e}_{\mathcal{N}(e)} = \big\|_{k=1}^{K}\; \sum_{(r,e') \in \mathcal{N}(e)} \pi^{(k)}(e, r, e')\, \mathbf{e}_{e'}^{(k)}$$<h3 id="实现kgat">实现：KGAT</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">KGATLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;单层 KGAT，带关系感知注意力。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">embedding_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 在 [entity || relation || neighbor] 上打分</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attention</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_v</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_embs</span><span class="p">,</span> <span class="n">relation_embs</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">entity_embs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nbrs</span> <span class="o">=</span> <span class="n">neighbors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">[])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="ow">not</span> <span class="n">nbrs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entity_embs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">r_id</span><span class="p">,</span> <span class="n">n_id</span> <span class="ow">in</span> <span class="n">nbrs</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">combined</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">entity_embs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">relation_embs</span><span class="p">[</span><span class="n">r_id</span><span class="p">],</span> <span class="n">entity_embs</span><span class="p">[</span><span class="n">n_id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attention</span><span class="p">(</span><span class="n">combined</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W_v</span><span class="p">(</span><span class="n">entity_embs</span><span class="p">[</span><span class="n">n_id</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">scores</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># [K, heads]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>                     <span class="c1"># [K, d]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">aggregated</span> <span class="o">=</span> <span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="n">entity_embs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">aggregated</span>
+</span></span><span class="line"><span class="cl">            <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">out</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">KGAT</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;用于推荐的知识图谱注意力网络。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_users</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">num_entities</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_users</span> <span class="o">=</span> <span class="n">num_users</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_entities</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_users</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_relations</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">KGATLayer</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">emb</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="n">emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_ids</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">,</span> <span class="n">ckg_neighbors</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 合并嵌入表：[users | entities]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">all_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">all_embs</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">num_users</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="o">.</span><span class="n">weight</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rel_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="o">.</span><span class="n">weight</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">ckg_neighbors</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">all_embs</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">all_embs</span><span class="p">,</span> <span class="n">rel_embs</span><span class="p">,</span> <span class="n">ckg_neighbors</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">user_final</span> <span class="o">=</span> <span class="n">all_embs</span><span class="p">[</span><span class="n">user_ids</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">item_final</span> <span class="o">=</span> <span class="n">all_embs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_users</span> <span class="o">+</span> <span class="n">item_ids</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">user_final</span> <span class="o">*</span> <span class="n">item_final</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="cke协同知识库嵌入">CKE：协同知识库嵌入</h2>
+<h3 id="多信号融合的思路">多信号融合的思路</h3>
+<p>CKE（Zhang 等，KDD 2016）走了完全不同的路线：不在推理时在图上传播，而是<strong>预先</strong>从三种互补的来源学习嵌入，最后<strong>相加融合</strong>。</p>
+$$\mathbf{i} = \mathbf{i}_\text{CF} + \mathbf{i}_\text{KG} + \mathbf{i}_\text{text}$$<table>
+  <thead>
+      <tr>
+          <th>分量</th>
+          <th>来源</th>
+          <th>学习方法</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>$\mathbf{i}_\text{CF}$</td>
+          <td>用户—物品交互</td>
+          <td>矩阵分解</td>
+      </tr>
+      <tr>
+          <td>$\mathbf{i}_\text{KG}$</td>
+          <td>知识图谱结构</td>
+          <td>TransR</td>
+      </tr>
+      <tr>
+          <td>$\mathbf{i}_\text{text}$</td>
+          <td>物品文本描述</td>
+          <td>文本 CNN</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>为什么要三种信号？</strong> 因为它们各自抓住了别人抓不到的东西：</p>
+<ul>
+<li>CF 知道<strong>谁喜欢什么</strong>，但不知道<strong>为什么</strong>。</li>
+<li>KG 知道<strong>语义关系</strong>，但不知道用户行为。</li>
+<li>文本捕捉的是<strong>结构化三元组难以表达的细腻描述</strong>。</li>
+</ul>
+<h3 id="联合训练">联合训练</h3>
+<p>CKE 用一个综合损失同时训练三个组件：</p>
+$$\mathcal{L} = \mathcal{L}_\text{CF} + \lambda_1 \mathcal{L}_\text{KG} + \lambda_2 \mathcal{L}_\text{text} + \lambda_3 \mathcal{L}_\text{reg}$$<p>CF 损失就是标准的矩阵分解 $\hat{r}_{ui} = \mathbf{u}^T \mathbf{i}$。KG 损失采用 TransR：把合法三元组拉近、把负样本推远。</p>
+<h3 id="实现cke">实现：CKE</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span><span class="lnt">88
+</span><span class="lnt">89
+</span><span class="lnt">90
+</span><span class="lnt">91
+</span><span class="lnt">92
+</span><span class="lnt">93
+</span><span class="lnt">94
+</span><span class="lnt">95
+</span><span class="lnt">96
+</span><span class="lnt">97
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TransR</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;TransR：每个关系自带一套实体投影矩阵。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_entities</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">,</span> <span class="n">entity_dim</span><span class="p">,</span> <span class="n">relation_dim</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_entities</span><span class="p">,</span> <span class="n">entity_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_relations</span><span class="p">,</span> <span class="n">relation_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">proj_matrices</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_relations</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                          <span class="n">entity_dim</span> <span class="o">*</span> <span class="n">relation_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">entity_dim</span> <span class="o">=</span> <span class="n">entity_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">relation_dim</span> <span class="o">=</span> <span class="n">relation_dim</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">emb</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_matrices</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="n">emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">heads</span><span class="p">,</span> <span class="n">relations</span><span class="p">,</span> <span class="n">tails</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">neg_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">neg_tails</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">(</span><span class="n">heads</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="p">(</span><span class="n">relations</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">(</span><span class="n">tails</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_matrices</span><span class="p">(</span><span class="n">relations</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h_proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">proj</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">t_proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">proj</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">pos_score</span> <span class="o">=</span> <span class="p">(</span><span class="n">h_proj</span> <span class="o">+</span> <span class="n">r</span> <span class="o">-</span> <span class="n">t_proj</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">neg_heads</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">neg_tails</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">(</span><span class="n">neg_heads</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">(</span><span class="n">neg_tails</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nh_proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">nh</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">proj</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nt_proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">nt</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">proj</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">neg_score</span> <span class="o">=</span> <span class="p">(</span><span class="n">nh_proj</span> <span class="o">+</span> <span class="n">r</span> <span class="o">-</span> <span class="n">nt_proj</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">pos_score</span> <span class="o">-</span> <span class="n">neg_score</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">pos_score</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CKE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;协同知识库嵌入。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_users</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">num_entities</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">relation_dim</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">kg_lambda</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">reg_lambda</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_entities</span> <span class="o">=</span> <span class="n">num_entities</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">kg_lambda</span> <span class="o">=</span> <span class="n">kg_lambda</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">reg_lambda</span> <span class="o">=</span> <span class="n">reg_lambda</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># CF 分量</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_users</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_cf_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># KG 分量（TransR）</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">transr</span> <span class="o">=</span> <span class="n">TransR</span><span class="p">(</span><span class="n">num_entities</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                             <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">relation_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 把 KG 嵌入投影到 CF 空间</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">kg_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_cf_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_ids</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">user_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="p">(</span><span class="n">user_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">item_cf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_cf_emb</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">item_kg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kg_proj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transr</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">(</span><span class="n">item_ids</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">item_combined</span> <span class="o">=</span> <span class="n">item_cf</span> <span class="o">+</span> <span class="n">item_kg</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">user_vec</span> <span class="o">*</span> <span class="n">item_combined</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">compute_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_ids</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">,</span> <span class="n">ratings</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                     <span class="n">kg_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kg_rels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kg_tails</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># CF 损失</span>
+</span></span><span class="line"><span class="cl">        <span class="n">preds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">user_ids</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cf_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">ratings</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># KG 损失</span>
+</span></span><span class="line"><span class="cl">        <span class="n">kg_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">kg_heads</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">neg_heads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_entities</span><span class="p">,</span> <span class="n">kg_heads</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">neg_tails</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_entities</span><span class="p">,</span> <span class="n">kg_tails</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">kg_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transr</span><span class="p">(</span><span class="n">kg_heads</span><span class="p">,</span> <span class="n">kg_rels</span><span class="p">,</span> <span class="n">kg_tails</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                  <span class="n">neg_heads</span><span class="p">,</span> <span class="n">neg_tails</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 正则</span>
+</span></span><span class="line"><span class="cl">        <span class="n">reg</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span>
+</span></span><span class="line"><span class="cl">               <span class="bp">self</span><span class="o">.</span><span class="n">item_cf_emb</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">cf_loss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">kg_lambda</span> <span class="o">*</span> <span class="n">kg_loss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg_lambda</span> <span class="o">*</span> <span class="n">reg</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="基于路径的可解释推荐">基于路径的可解释推荐</h2>
+<h3 id="为什么路径很重要">为什么路径很重要</h3>
+<p>前面的方法学到的都是<strong>嵌入</strong>——稠密、强大但不透明的向量。基于路径的推理走另一条路：从用户的历史物品出发，到候选物品之间，<strong>找出一条具体的 KG 路径</strong>，把它<strong>同时</strong>当作特征和解释。</p>
+<p><strong>示例路径。</strong> 你给《黑暗骑士》打了高分 -&gt; 黑暗骑士 <code>directed_by</code> 诺兰 -&gt; 诺兰 <code>directed</code> 盗梦空间 -&gt; <strong>推荐《盗梦空间》</strong>。</p>
+<p>这条路径既是模型可以利用的特征，也是用户能直接读懂的解释。</p>
+<h3 id="实现多跳路径推理">实现：多跳路径推理</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PathReasoning</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;寻找并打分知识图谱路径，用于可解释推荐。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_entities</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_entities</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_relations</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">path_scorer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">find_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kg_adj</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">max_hops</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_paths</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;BFS 查找从 start 到 end 的路径。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">queue</span> <span class="o">=</span> <span class="n">deque</span><span class="p">([(</span><span class="n">start</span><span class="p">,</span> <span class="p">[],</span> <span class="p">[])])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">visited</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="n">queue</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_paths</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">current</span><span class="p">,</span> <span class="n">rel_path</span><span class="p">,</span> <span class="n">ent_path</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">current</span> <span class="o">==</span> <span class="n">end</span> <span class="ow">and</span> <span class="n">rel_path</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">rel_path</span><span class="p">,</span> <span class="n">ent_path</span> <span class="o">+</span> <span class="p">[</span><span class="n">end</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">                <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rel_path</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">max_hops</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">r_id</span><span class="p">,</span> <span class="n">t_id</span> <span class="ow">in</span> <span class="n">kg_adj</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="p">[]):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">r_id</span><span class="p">,</span> <span class="n">t_id</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">visited</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">visited</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">current</span><span class="p">,</span> <span class="n">r_id</span><span class="p">,</span> <span class="n">t_id</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">queue</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">t_id</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                  <span class="n">rel_path</span> <span class="o">+</span> <span class="p">[</span><span class="n">r_id</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                                  <span class="n">ent_path</span> <span class="o">+</span> <span class="p">[</span><span class="n">current</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">paths</span><span class="p">[:</span><span class="n">max_paths</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">score_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;用嵌入对单条路径打分。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rel_ids</span><span class="p">,</span> <span class="n">ent_ids</span> <span class="o">=</span> <span class="n">path</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">rel_ids</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">ent_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]]))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relation_emb</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">rel_ids</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_emb</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">ent_ids</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">combined</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">start</span><span class="p">,</span> <span class="n">rels</span><span class="p">,</span> <span class="n">end</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">path_scorer</span><span class="p">(</span><span class="n">combined</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recommend_with_explanations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_items</span><span class="p">,</span> <span class="n">kg_adj</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                    <span class="n">candidates</span><span class="p">,</span> <span class="n">max_hops</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;返回 [(item_id, score, best_path)]，按分数倒序。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">item_id</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">best_score</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;-inf&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">best_path</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">src_item</span> <span class="ow">in</span> <span class="n">user_items</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_paths</span><span class="p">(</span><span class="n">kg_adj</span><span class="p">,</span> <span class="n">src_item</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                            <span class="n">max_hops</span><span class="o">=</span><span class="n">max_hops</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">if</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="n">best_score</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">best_score</span> <span class="o">=</span> <span class="n">score</span>
+</span></span><span class="line"><span class="cl">                        <span class="n">best_path</span> <span class="o">=</span> <span class="n">path</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">best_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item_id</span><span class="p">,</span> <span class="n">best_score</span><span class="p">,</span> <span class="n">best_path</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">results</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">results</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="加-kg-与不加-kg最终对比">加 KG 与不加 KG：最终对比</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/08-%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E5%A2%9E%E5%BC%BA%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig7_with_vs_without_kg.png" alt="MovieLens-1M 上的定量提升，以及推荐列表的定性对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>左图显示 KGAT 在所有标准指标上都比纯 BPR 基线获得了<strong>两位数的相对提升</strong>——而在<strong>冷启动 Recall@20</strong> 上提升幅度尤其大，正是协同过滤最薄弱的场景。</p>
+<p>右图把&quot;差距&quot;具体化：不加 KG 时，模型只能依赖热度，推荐出来的全是不相关的票房大片；那部刚上线的诺兰新片完全消失（没人看过）。加上 KG 后，模型推荐的电影<strong>与你的口味在主题上有具体关联</strong>——而且因为图谱已经知道&quot;它的导演是诺兰&rdquo;，新片在上线<strong>当天</strong>就能进入推荐列表。</p>
+<hr>
+<h2 id="工程实践要点">工程实践要点</h2>
+<h3 id="知识图谱的来源">知识图谱的来源</h3>
+<table>
+  <thead>
+      <tr>
+          <th>来源</th>
+          <th>类型</th>
+          <th>示例</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Wikidata / DBpedia</strong></td>
+          <td>公开结构化 KG</td>
+          <td>电影元数据、公司信息</td>
+      </tr>
+      <tr>
+          <td><strong>产品目录</strong></td>
+          <td>内部数据库</td>
+          <td>品牌、类目、规格</td>
+      </tr>
+      <tr>
+          <td><strong>NER + 关系抽取</strong></td>
+          <td>非结构化文本</td>
+          <td>评论、描述</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="实体对齐">实体对齐</h3>
+<p>推荐系统里的物品需要和 KG 里的实体对齐起来。常见做法：</p>
+<ol>
+<li><strong>精确字符串匹配</strong>——快但脆。</li>
+<li><strong>模糊匹配</strong>——能容忍拼写错误和缩写。</li>
+<li><strong>嵌入相似度</strong>——双方都学嵌入，做近邻匹配。</li>
+<li><strong>人工标注</strong>——质量最高，但成本也最高。</li>
+</ol>
+<h3 id="训练策略">训练策略</h3>
+<table>
+  <thead>
+      <tr>
+          <th>策略</th>
+          <th>何时使用</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>联合训练</strong></td>
+          <td>数据足够多，可以同时优化 KG 和推荐目标</td>
+      </tr>
+      <tr>
+          <td><strong>预训练 + 微调</strong></td>
+          <td>KG 数据远大于交互数据</td>
+      </tr>
+      <tr>
+          <td><strong>多任务学习</strong></td>
+          <td>希望多个任务共享表示</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="跳数的选择">跳数的选择</h3>
+<ul>
+<li><strong>1 跳：</strong> 只用直接属性，快但浅。</li>
+<li><strong>2 跳：</strong> <strong>大多数任务的甜区</strong>。能捕捉到&quot;同导演&rdquo;、&ldquo;同演员&quot;这类模式。</li>
+<li><strong>3 跳：</strong> 路径更丰富，但噪声也变大。需要靠注意力筛选。</li>
+<li><strong>4 跳及以上：</strong> 收益基本消失，信噪比急剧下降。</li>
+</ul>
+<hr>
+<h2 id="完整训练流水线">完整训练流水线</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">DataLoader</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">KGRecDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;KG 增强推荐的数据集。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_ids</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">,</span> <span class="n">ratings</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">user_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">ratings</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s1">&#39;user_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_ids</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="s1">&#39;item_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_ids</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="s1">&#39;rating&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_cke</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span> <span class="n">kg_triples</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">              <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;训练 CKE 模型，可选地加入 KG 损失。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">best_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">train_loss</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">compute_loss</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;item_id&#39;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;rating&#39;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                <span class="o">*</span><span class="n">kg_triples</span> <span class="k">if</span> <span class="n">kg_triples</span> <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">train_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">val_loss</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">val_loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;item_id&#39;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="n">val_loss</span> <span class="o">+=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;rating&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float</span><span class="p">())</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">train_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">val_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">num_epochs</span><span class="si">}</span><span class="s2"> | &#34;</span>
+</span></span><span class="line"><span class="cl">              <span class="sa">f</span><span class="s2">&#34;Train: </span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> | Val: </span><span class="si">{</span><span class="n">val_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">val_loss</span> <span class="o">&lt;</span> <span class="n">best_val</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">best_val</span> <span class="o">=</span> <span class="n">val_loss</span>
+</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="s1">&#39;best_kg_model.pt&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&#34;__main__&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_users</span><span class="p">,</span> <span class="n">num_items</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">500</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_entities</span><span class="p">,</span> <span class="n">num_relations</span> <span class="o">=</span> <span class="mi">2000</span><span class="p">,</span> <span class="mi">10</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">train_data</span> <span class="o">=</span> <span class="n">KGRecDataset</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_users</span><span class="p">,</span> <span class="mi">8000</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="mi">8000</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8000</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">val_data</span> <span class="o">=</span> <span class="n">KGRecDataset</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_users</span><span class="p">,</span> <span class="mi">2000</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="mi">2000</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2000</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">CKE</span><span class="p">(</span><span class="n">num_users</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">num_entities</span><span class="p">,</span> <span class="n">num_relations</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">train_cke</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">DataLoader</span><span class="p">(</span><span class="n">val_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="常见问题-qa">常见问题 Q&amp;A</h2>
+<h3 id="知识图谱怎么帮助解决冷启动">知识图谱怎么帮助解决冷启动？</h3>
+<p>新物品即便没有任何交互，它在 KG 里依然有属性（类型、导演、演员）。这些属性把它和那些<strong>有</strong>交互历史的物品连了起来。如果你喜欢诺兰的旧片，KG 完全可以在他的新片<strong>上线当天</strong>就把它推给你，根本不需要任何交互数据。</p>
+<h3 id="ripplenet-与-kgcn-有什么区别">RippleNet 与 KGCN 有什么区别？</h3>
+<p><strong>RippleNet</strong> 是<strong>用户中心</strong>的：从用户历史出发沿 KG 向外扩散。
+<strong>KGCN</strong> 是<strong>物品中心</strong>的：通过聚合物品 KG 邻居来构建增强的物品表示。
+工程上 KGCN 通常更可扩展，因为物品的邻域比用户偏好&quot;涟漪&quot;更稳定。</p>
+<h3 id="什么时候应该用-kgat-而不是-kgcn">什么时候应该用 KGAT 而不是 KGCN？</h3>
+<p>当你想让协同信号和语义信号<strong>在同一张图里相互作用</strong>时，就用 KGAT。它的协同知识图谱（CKG）把用户—物品边和 KG 边合并，注意力可以在两类边上学习；KGCN 则把它们分开处理。</p>
+<h3 id="cke-和图卷积类方法相比怎么样">CKE 和图卷积类方法相比怎么样？</h3>
+<p>CKE 更简单、更快——预先学好 KG 嵌入，然后<strong>相加融合</strong>即可。图卷积类（KGCN、KGAT）更强大，因为推理时还会在图上传播信息，但代价也更高。<strong>先用 CKE 跑个 baseline，再升到 KGAT</strong>是常见的工程节奏。</p>
+<h3 id="知识图谱能改善推荐多样性吗">知识图谱能改善推荐多样性吗？</h3>
+<p>可以。不同关系类型自然会引出不同类型的连接：沿 <code>same_director</code> 走和沿 <code>same_genre</code>、<code>same_actor</code> 走得到的结果完全不同。<strong>通过探索不同的关系路径，系统天然地避开了信息茧房</strong>。</p>
+<h3 id="kg-噪声多不完整怎么办">KG 噪声多、不完整怎么办？</h3>
+<ol>
+<li><strong>注意力机制</strong>（KGAT）天然会降权那些&quot;不靠谱&quot;的连接。</li>
+<li><strong>TransR 嵌入</strong>在训练时会&quot;学着忽略&quot;前后矛盾的三元组。</li>
+<li><strong>数据增强</strong>：用关系推理预测缺失边。</li>
+<li><strong>多任务学习</strong>通过共享信息让模型对缺失数据更鲁棒。</li>
+</ol>
+<h3 id="计算瓶颈在哪">计算瓶颈在哪？</h3>
+<p>最大的瓶颈是大规模 KG（百万级实体）上的邻居聚合。常见手段：</p>
+<ul>
+<li><strong>邻居采样</strong>（每个节点最多取 $K$ 个邻居）。</li>
+<li><strong>分层聚合</strong>（先聚合属性，再聚合物品）。</li>
+<li><strong>小批量训练</strong> + 子图采样。</li>
+<li><strong>预计算 KG 嵌入</strong>（CKE 的做法）。</li>
+</ul>
+<h3 id="知识图谱真的能给可解释推荐吗">知识图谱真的能给可解释推荐吗？</h3>
+<p>这是 KG 最大的优势之一。基于路径的方法可以直接生成解释：<strong>&ldquo;向你推荐电影 X，因为它和你打高分的电影 Z 是同一位导演 Y 的作品。&rdquo;</strong> 这样的解释具体、可读、有事实依据，远胜过&quot;和你相似的用户也喜欢这个&rdquo;。</p>
+<h3 id="kg-增强推荐的最新趋势是什么">KG 增强推荐的最新趋势是什么？</h3>
+<p>最近的研究方向包括：</p>
+<ol>
+<li><strong>时序 KG</strong>：建模偏好和事实如何随时间演化。</li>
+<li><strong>多模态 KG</strong>：在结构化知识之外结合图像和文本。</li>
+<li><strong>基于 Transformer 的 KG 方法</strong>：用自注意力替代 GCN 的聚合。</li>
+<li><strong>大规模预训练的 KG 嵌入</strong>：从基础模型获得 KG 表示。</li>
+<li><strong>LLM + KG 混合方法</strong>：用大语言模型从文本中抽取 KG，并在 KG 上推理。</li>
+</ol>
+<hr>
+<h2 id="关键要点">关键要点</h2>
+<ul>
+<li><strong>知识图谱给推荐系统加上了语义理解</strong>，让它不止依赖协同信号。</li>
+<li><strong>冷启动是 KG 最杀手级的应用场景</strong>：让零交互的新物品也能被推荐。</li>
+<li><strong>RippleNet 把用户偏好像涟漪一样</strong>沿 KG 向外扩散。</li>
+<li><strong>KGCN 与 KGAT 通过聚合 KG 邻居</strong>为物品构建更丰富的表示。</li>
+<li><strong>CKE 把三种信号</strong>（协同、结构、文本）融合成一个统一的物品嵌入。</li>
+<li><strong>基于路径的推理给出可解释性</strong>——具体、可读、有据可查的推荐理由。</li>
+<li><strong>2 跳是甜区</strong>；跳数再多收益边际递减、噪声指数增加。</li>
+</ul>
+<hr>
+<blockquote>
+<p><strong>系列导航</strong></p>
+<p>本文是推荐系统系列的<strong>第 8 篇</strong>，共 16 篇。</p>
+<ul>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%80-%e5%85%a5%e9%97%a8%e4%b8%8e%e5%9f%ba%e7%a1%80%e6%a6%82%e5%bf%b5/">第 1 篇：入门与基础概念</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%8c-%e5%8d%8f%e5%90%8c%e8%bf%87%e6%bb%a4%e4%b8%8e%e7%9f%a9%e9%98%b5%e5%88%86%e8%a7%a3/">第 2 篇：协同过滤与矩阵分解</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%89-%e6%b7%b1%e5%ba%a6%e5%ad%a6%e4%b9%a0%e5%9f%ba%e7%a1%80%e6%a8%a1%e5%9e%8b/">第 3 篇：深度学习基础模型</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%9b%9b-CTR%e9%a2%84%e4%bc%b0%e4%b8%8e%e7%82%b9%e5%87%bb%e7%8e%87%e5%bb%ba%e6%a8%a1/">第 4 篇：CTR预估与点击率建模</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%94-Embedding%e8%a1%a8%e7%a4%ba%e5%ad%a6%e4%b9%a0/">第 5 篇：Embedding表示学习</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%85%ad-%e5%ba%8f%e5%88%97%e6%8e%a8%e8%8d%90%e4%b8%8e%e4%bc%9a%e8%af%9d%e5%bb%ba%e6%a8%a1/">第 6 篇：序列推荐与会话建模</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%83-%e5%9b%be%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c%e4%b8%8e%e7%a4%be%e4%ba%a4%e6%8e%a8%e8%8d%90/">第 7 篇：图神经网络与社交推荐</a>
+</li>
+<li><strong>第 8 篇：知识图谱增强推荐系统</strong>（当前）</li>
+<li>第 9 篇：多任务学习（即将发布）</li>
+<li>第 10 篇：深度兴趣网络（即将发布）</li>
+<li>第 11 篇：对比学习（即将发布）</li>
+<li>第 12 篇：大语言模型推荐（即将发布）</li>
+<li>第 13 篇：公平性与可解释性（即将发布）</li>
+<li>第 14 篇：跨域推荐与冷启动（即将发布）</li>
+<li>第 15 篇：实时推荐与在线学习（即将发布）</li>
+<li>第 16 篇：工业实践（即将发布）</li>
+</ul>
+</blockquote>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#知识图谱基础">知识图谱基础</a>
+      <ul>
+        <li><a href="#什么是知识图谱">什么是知识图谱</a></li>
+        <li><a href="#现实世界的知识图谱">现实世界的知识图谱</a></li>
+        <li><a href="#推荐系统中的知识图谱结构">推荐系统中的知识图谱结构</a></li>
+        <li><a href="#知识图谱嵌入">知识图谱嵌入</a></li>
+        <li><a href="#实现构建知识图谱">实现：构建知识图谱</a></li>
+      </ul>
+    </li>
+    <li><a href="#知识图谱为什么能帮助推荐">知识图谱为什么能帮助推荐</a>
+      <ul>
+        <li><a href="#1-冷启动">1. 冷启动</a></li>
+        <li><a href="#2-数据稀疏">2. 数据稀疏</a></li>
+        <li><a href="#3-可解释性">3. 可解释性</a></li>
+        <li><a href="#4-多样性">4. 多样性</a></li>
+        <li><a href="#具体例子看完黑暗骑士之后">具体例子：看完《黑暗骑士》之后</a></li>
+        <li><a href="#kg-增强方法的分类">KG 增强方法的分类</a></li>
+      </ul>
+    </li>
+    <li><a href="#ripplenet偏好的涟漪传播">RippleNet：偏好的涟漪传播</a>
+      <ul>
+        <li><a href="#涟漪类比">涟漪类比</a></li>
+        <li><a href="#工作原理">工作原理</a></li>
+        <li><a href="#实现ripplenet">实现：RippleNet</a></li>
+      </ul>
+    </li>
+    <li><a href="#kgcn知识图谱卷积网络">KGCN：知识图谱卷积网络</a>
+      <ul>
+        <li><a href="#换一个视角">换一个视角</a></li>
+        <li><a href="#kgcn-怎么算">KGCN 怎么算</a></li>
+        <li><a href="#实现kgcn">实现：KGCN</a></li>
+      </ul>
+    </li>
+    <li><a href="#kgat知识图谱注意力网络">KGAT：知识图谱注意力网络</a>
+      <ul>
+        <li><a href="#kgat-多了什么">KGAT 多了什么</a></li>
+        <li><a href="#注意力机制">注意力机制</a></li>
+        <li><a href="#多头注意力">多头注意力</a></li>
+        <li><a href="#实现kgat">实现：KGAT</a></li>
+      </ul>
+    </li>
+    <li><a href="#cke协同知识库嵌入">CKE：协同知识库嵌入</a>
+      <ul>
+        <li><a href="#多信号融合的思路">多信号融合的思路</a></li>
+        <li><a href="#联合训练">联合训练</a></li>
+        <li><a href="#实现cke">实现：CKE</a></li>
+      </ul>
+    </li>
+    <li><a href="#基于路径的可解释推荐">基于路径的可解释推荐</a>
+      <ul>
+        <li><a href="#为什么路径很重要">为什么路径很重要</a></li>
+        <li><a href="#实现多跳路径推理">实现：多跳路径推理</a></li>
+      </ul>
+    </li>
+    <li><a href="#加-kg-与不加-kg最终对比">加 KG 与不加 KG：最终对比</a></li>
+    <li><a href="#工程实践要点">工程实践要点</a>
+      <ul>
+        <li><a href="#知识图谱的来源">知识图谱的来源</a></li>
+        <li><a href="#实体对齐">实体对齐</a></li>
+        <li><a href="#训练策略">训练策略</a></li>
+        <li><a href="#跳数的选择">跳数的选择</a></li>
+      </ul>
+    </li>
+    <li><a href="#完整训练流水线">完整训练流水线</a></li>
+    <li><a href="#常见问题-qa">常见问题 Q&amp;A</a>
+      <ul>
+        <li><a href="#知识图谱怎么帮助解决冷启动">知识图谱怎么帮助解决冷启动？</a></li>
+        <li><a href="#ripplenet-与-kgcn-有什么区别">RippleNet 与 KGCN 有什么区别？</a></li>
+        <li><a href="#什么时候应该用-kgat-而不是-kgcn">什么时候应该用 KGAT 而不是 KGCN？</a></li>
+        <li><a href="#cke-和图卷积类方法相比怎么样">CKE 和图卷积类方法相比怎么样？</a></li>
+        <li><a href="#知识图谱能改善推荐多样性吗">知识图谱能改善推荐多样性吗？</a></li>
+        <li><a href="#kg-噪声多不完整怎么办">KG 噪声多、不完整怎么办？</a></li>
+        <li><a href="#计算瓶颈在哪">计算瓶颈在哪？</a></li>
+        <li><a href="#知识图谱真的能给可解释推荐吗">知识图谱真的能给可解释推荐吗？</a></li>
+        <li><a href="#kg-增强推荐的最新趋势是什么">KG 增强推荐的最新趋势是什么？</a></li>
+      </ul>
+    </li>
+    <li><a href="#关键要点">关键要点</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">推荐系统</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>20 min</strong></div>
+      <div class="row"><span>Word count</span><strong>9900</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/aliyun-bailian/02-qwen-llm-api/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Aliyun Bailian (2): The Qwen LLM API in Production · Chen Kai Blog</title>
+<meta name="description" content="Picking a Qwen variant by latency and cost, function calling done right, JSON mode without tears, and the enable_thinking &#43; streaming requirement that the docs gloss over.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Aliyun Bailian (2): The Qwen LLM API in Production">
+<meta property="og:description" content="Picking a Qwen variant by latency and cost, function calling done right, JSON mode without tears, and the enable_thinking &#43; streaming requirement that the docs gloss over.">
+<meta property="og:url" content="https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Aliyun Bailian</a>
+         · Chapter 2
+      </div>
+      <h1>Aliyun Bailian (2): The Qwen LLM API in Production</h1>
+      <p class="deck">Picking a Qwen variant by latency and cost, function calling done right, JSON mode without tears, and the enable_thinking &#43; streaming requirement that the docs gloss over.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-02-26">February 26, 2026</time> · 6 min read · 1200 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/aliyun-bailian/" class="tag">#Aliyun Bailian</a><a href="/en/tags/qwen/" class="tag">#Qwen</a><a href="/en/tags/llm/" class="tag">#LLM</a><a href="/en/tags/function-calling/" class="tag">#Function Calling</a><a href="/en/tags/streaming/" class="tag">#Streaming</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/aliyun-bailian/02-qwen-llm-api/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>This is the article in the series where most of the production wins live. The other models are interesting; the LLMs are what every product I have shipped on Bailian has called every minute of every day. The official Qwen API reference is dense and complete; this article is the readable companion that picks one path through it.</p>
+<h2 id="pick-the-right-qwen-variant-for-the-workload">Pick the right Qwen variant for the workload</h2>
+<p>The Qwen family is large. Most teams overspend by defaulting to <code>qwen-max</code> everywhere. Most teams underspend on quality by defaulting to <code>qwen-turbo</code>. The right answer is &ldquo;match variant to job&rdquo;:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/fig1_qwen_family.png" alt="Qwen model family" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>My production rules of thumb:</p>
+<ul>
+<li><strong><code>qwen-turbo</code></strong> — classification, intent detection, short summarization, anything you call &gt;10× per user request. It&rsquo;s the cheapest sane Qwen and surprisingly good at extraction.</li>
+<li><strong><code>qwen-plus</code></strong> — daily driver for chat, RAG synthesis, multi-step reasoning. The cost-vs-quality knee.</li>
+<li><strong><code>qwen-max</code> / <code>qwen3-max</code></strong> — code review, complex reasoning, anything where being wrong costs more than being slow.</li>
+<li><strong><code>qwen3-coder-plus</code></strong> — every code task. It is meaningfully better at code than general <code>qwen-plus</code> even at the same parameter scale.</li>
+<li><strong><code>qwen3-vl-plus</code> / <code>qwen3-omni-flash</code></strong> — image / video / audio in. Article 3 is dedicated to this.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> A common mistake is using <code>qwen-max</code> for embedding-style classification. Don&rsquo;t. Use <code>qwen-turbo</code> with a tight system prompt and you&rsquo;ll cut cost 10× with no quality loss on tasks where you only need a label.</p>
+</blockquote>
+<h2 id="what-actually-goes-over-the-wire">What actually goes over the wire</h2>
+<p>Independent of whether you use the OpenAI compat layer or DashScope native, the substance of a chat-completion request is the same: a model id, a messages array, and a parameter block.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/fig2_request_flow.png" alt="Chat completion request flow" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The fields you&rsquo;ll touch most often:</p>
+<ul>
+<li><strong><code>messages</code></strong> — an array of <code>{role, content}</code>. Role is <code>system</code> / <code>user</code> / <code>assistant</code> / <code>tool</code>. The official docs note that for multimodal models <code>content</code> can be an array of typed parts (text, image_url, input_audio, video_url) — see article 3.</li>
+<li><strong><code>temperature</code></strong> — 0.0-2.0. I use 0.0 for extraction / classification, 0.2-0.4 for default chat, 0.7+ only for creative writing. The official docs default is around 0.7, which is too high for most agentic uses.</li>
+<li><strong><code>top_p</code></strong> — leave it at default unless you know exactly why you want to change it. Tweaking both <code>temperature</code> and <code>top_p</code> at once is a recipe for confusion.</li>
+<li><strong><code>max_tokens</code></strong> (compat) / <strong><code>parameters.max_tokens</code></strong> (native) — this is the <em>output</em> token cap, not total. Set it. Otherwise a runaway can cost you.</li>
+<li><strong><code>stream</code></strong> — toggle SSE streaming. See below.</li>
+<li><strong><code>response_format={&quot;type&quot;: &quot;json_object&quot;}</code></strong> — JSON mode. Strongly recommended over &ldquo;please return JSON&rdquo; prompting.</li>
+<li><strong><code>tools</code></strong> / <strong><code>tool_choice</code></strong> — function calling.</li>
+</ul>
+<h2 id="function-calling-the-round-trip">Function calling: the round trip</h2>
+<p>The Qwen function-calling protocol is the OpenAI tool-calls protocol. Two LLM calls plus your code in the middle:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/fig3_function_calling.png" alt="Function calling round-trip" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A complete worked example — a tiny agent that can look up the weather:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;DASHSCOPE_API_KEY&#39;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="s2">&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">tools</span> <span class="o">=</span> <span class="p">[{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;function&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;function&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;get_weather&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;description&#34;</span><span class="p">:</span> <span class="s2">&#34;Get the current weather for a city&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;parameters&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;object&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;city&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;string&#34;</span><span class="p">}},</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;required&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;city&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">}]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">call_weather</span><span class="p">(</span><span class="n">city</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Real impl: call your API. Stub here.</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;city&#34;</span><span class="p">:</span> <span class="n">city</span><span class="p">,</span> <span class="s2">&#34;temp_c&#34;</span><span class="p">:</span> <span class="mi">22</span><span class="p">,</span> <span class="s2">&#34;conditions&#34;</span><span class="p">:</span> <span class="s2">&#34;sunny&#34;</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">messages</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;Should I bring an umbrella to Shanghai?&#34;</span><span class="p">}]</span>
+</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen-plus&#34;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">msg</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">call</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">args</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">result</span> <span class="o">=</span> <span class="n">call_weather</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;tool&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;tool_call_id&#34;</span><span class="p">:</span> <span class="n">call</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">})</span>
+</span></span><span class="line"><span class="cl">    <span class="n">final</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen-plus&#34;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">final</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Three things that bite:</p>
+<ul>
+<li><strong><code>messages.append(msg)</code> is required</strong> between the first response and the tool result. The model needs to see its own tool_call message in the history, otherwise the second call returns a 400 about an &ldquo;orphan tool result&rdquo;.</li>
+<li><strong><code>tool_choice=&quot;auto&quot;</code></strong> is the default. Force a specific tool with <code>tool_choice={&quot;type&quot;: &quot;function&quot;, &quot;function&quot;: {&quot;name&quot;: &quot;...&quot;}}</code> when you must — useful for the first call in a workflow.</li>
+<li><strong><code>parallel_tool_calls=True</code></strong> is supported. Use it when you have independent tools — the model will return multiple <code>tool_calls</code> in one shot.</li>
+</ul>
+<h2 id="json-mode">JSON mode</h2>
+<p>For structured output, do not rely on prompting. Use:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen-plus&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;system&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;Return JSON: {</span><span class="se">\&#34;</span><span class="s2">sentiment</span><span class="se">\&#34;</span><span class="s2">: </span><span class="se">\&#34;</span><span class="s2">positive|negative|neutral</span><span class="se">\&#34;</span><span class="s2">}&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;I love this product.&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">response_format</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;json_object&#34;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Two caveats from production:</p>
+<ul>
+<li>The model will sometimes wrap JSON in <code>```json</code> fences anyway. Defensive parsing with <code>json.loads</code> after stripping fences is wise.</li>
+<li>For <em>structured</em> JSON (Pydantic schema) use the function-calling pattern instead. It&rsquo;s stricter and the failure modes are easier to debug.</li>
+</ul>
+<h2 id="enable_thinking-and-the-streaming-trap">enable_thinking and the streaming trap</h2>
+<p>Qwen3 series models support <strong><code>enable_thinking=True</code></strong> — it asks the model to produce a reasoning chain before the final answer. Quality goes up, especially on reasoning-heavy tasks. <strong>But you must use streaming.</strong> Non-stream returns a 400.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/fig4_thinking_streaming.png" alt="enable_thinking &#43; streaming" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Practical pattern — collect the reasoning into a side log and stream the answer to your UI:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3-max&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;If a clock loses 5 minutes a day, by how much will it be off after 10 days?&#34;</span><span class="p">}],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">extra_body</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;enable_thinking&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">reasoning</span><span class="p">,</span> <span class="n">answer</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">delta</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Qwen3 streams the reasoning chain in delta.reasoning_content</span>
+</span></span><span class="line"><span class="cl">    <span class="n">rc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="s2">&#34;reasoning_content&#34;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">rc</span><span class="p">:</span>  <span class="n">reasoning</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">delta</span><span class="o">.</span><span class="n">content</span><span class="p">:</span> <span class="n">answer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;ANSWER:&#34;</span><span class="p">,</span> <span class="s2">&#34;&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">answer</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;(reasoning hidden,&#34;</span><span class="p">,</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reasoning</span><span class="p">),</span> <span class="s2">&#34;chars)&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>I forward <code>reasoning</code> to my logging system and never to the user. Three reasons: (1) it leaks chain-of-thought IP if customers ever see it, (2) it confuses non-technical readers, (3) it doubles your visible response length.</p>
+<h2 id="async-chat-rare-but-useful">Async chat (rare but useful)</h2>
+<p>If you have a very long-running chat (e.g. a 30k-token RAG synthesis), you can submit it async with <code>X-DashScope-Async: enable</code> and poll, same pattern as Wanxiang. The Qwen API reference documents this under &ldquo;Asynchronous calling&rdquo;. I use it for cron-batch summarization jobs that don&rsquo;t need an immediate user-facing response.</p>
+<h2 id="cost-controls-that-actually-work">Cost controls that actually work</h2>
+<ul>
+<li><strong>Always set <code>max_tokens</code>.</strong> Default cap of &ldquo;model max&rdquo; means a runaway loop costs you a fortune.</li>
+<li><strong>Use a workspace key per environment.</strong> Set a hard daily budget on the prod key in the console under the workspace.</li>
+<li><strong>Log token counts.</strong> <code>usage.prompt_tokens</code> and <code>usage.completion_tokens</code> are in every response. Aggregate them weekly and you&rsquo;ll spot the prompt that bloated by 3x without anyone noticing.</li>
+<li><strong>Cache identical prompts at your edge.</strong> DashScope does not currently expose prompt caching the way Anthropic does — so cache yourself for high-volume identical-prefix patterns.</li>
+</ul>
+<h2 id="whats-next">What&rsquo;s next</h2>
+<p>Article 3 is <strong>Qwen-Omni</strong> — the multimodal sibling. The big differences are: streaming is <em>required</em> (not optional), the content array gets typed parts for image / audio / video, and you have to think about pixel budgets and frame rates. It&rsquo;s the highest-leverage capability in Bailian if your product touches non-text content.</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/aliyun-bailian/01-platform-overview/"><span class="title">Aliyun Bailian (1): Platform Overview and First Request</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/"><span class="title">Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#pick-the-right-qwen-variant-for-the-workload">Pick the right Qwen variant for the workload</a></li>
+    <li><a href="#what-actually-goes-over-the-wire">What actually goes over the wire</a></li>
+    <li><a href="#function-calling-the-round-trip">Function calling: the round trip</a></li>
+    <li><a href="#json-mode">JSON mode</a></li>
+    <li><a href="#enable_thinking-and-the-streaming-trap">enable_thinking and the streaming trap</a></li>
+    <li><a href="#async-chat-rare-but-useful">Async chat (rare but useful)</a></li>
+    <li><a href="#cost-controls-that-actually-work">Cost controls that actually work</a></li>
+    <li><a href="#whats-next">What&rsquo;s next</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Aliyun Bailian</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>6 min</strong></div>
+      <div class="row"><span>Word count</span><strong>1200</strong></div>
+      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

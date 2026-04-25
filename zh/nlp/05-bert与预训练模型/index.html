@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>自然语言处理（五）：BERT与预训练模型 · Chen Kai Blog</title>
+<meta name="description" content="BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="自然语言处理（五）：BERT与预训练模型">
+<meta property="og:description" content="BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。">
+<meta property="og:url" content="https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">自然语言处理</a>
+         · Chapter 5
+      </div>
+      <h1>自然语言处理（五）：BERT与预训练模型</h1>
+      <p class="deck">BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-10-21">October 21, 2025</time> · 14 min read · 6600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/nlp/" class="tag">#NLP</a><a href="/zh/tags/bert/" class="tag">#BERT</a><a href="/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a><a href="/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/" class="tag">#迁移学习</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>2018 年 10 月，Google 发布 BERT，一口气在 11 个 NLP 基准上刷新了纪录。配方却出奇地简单：拿一个 Transformer 编码器，让它根据左右两侧的上下文去预测被随机遮盖的词；预训练完成之后，再把同一个模型针对各种下游任务做一次轻量的微调。在 BERT 之前，每个任务都要从头训练一个模型；在 BERT 之后，&ldquo;先预训练，再微调&quot;成了整个领域的默认思路。</p>
+<p>如果你在过去几年用过情感分析 API、能理解意图的搜索引擎、或是稍微靠谱一点的客服机器人，背后大概率就是 BERT 或它的某个后代在干活。</p>
+<h2 id="这一篇你会学到">这一篇你会学到</h2>
+<ul>
+<li>预训练范式的演进：Word2Vec → ELMo → GPT-1 → BERT</li>
+<li>BERT 的架构：以 WordPiece 输入的双向 Transformer 编码器</li>
+<li>掩码语言建模（MLM）与下一句预测（NSP），以及为什么是 80/10/10 这个比例</li>
+<li>把 BERT 微调到分类、NER、问答、句对任务上的具体做法</li>
+<li>BERT 家族：RoBERTa、ALBERT、ELECTRA 各自的取舍</li>
+<li>真实可用的微调配方（学习率、warmup、梯度累积）</li>
+<li>一份可以直接 copy-paste 的完整 HuggingFace 流水线</li>
+</ul>
+<p><strong>前置知识</strong>：第 4 部分（Transformer 架构）以及基本的 PyTorch 使用经验。</p>
+<hr>
+<h2 id="预训练-微调范式是怎么火起来的">预训练-微调范式是怎么火起来的</h2>
+<p>在 BERT 之前，每个 NLP 任务都从一个随机初始化的模型开始，用自己那点标注数据从头训练。这件事昂贵（算力）、浪费（任务之间不共享知识），而且很脆（数据少模型就抖）。整个领域是怎么从这个泥潭里爬出来的，可以串起 4 个里程碑式的工作。</p>
+<h3 id="一段简短的演进史">一段简短的演进史</h3>
+<p><strong>Word2Vec（2013）</strong>：从无标注文本里学静态词向量。问题在于，&ldquo;bank&quot;在 <em>river bank</em> 和 <em>bank account</em> 里得到的向量完全一样——上下文没法改变一个词的含义。</p>
+<p><strong>ELMo（2018 年初）</strong>：用双向 LSTM 产生上下文相关的向量，最后把每一层的隐藏状态加权求和：</p>
+$$
+\text{ELMo}_k = \gamma \sum_{j=0}^{L} s_j \, h_{k,j}
+$$<p>其中 $h_{k,j}$ 是第 $j$ 层在位置 $k$ 的隐藏状态，$s_j$ 是可学习的 softmax 权重。ELMo 用结果证明了&quot;上下文相关的预训练表示&quot;对几乎所有下游任务都有显著提升——但它仍然是 RNN，训练慢、难以并行。</p>
+<p><strong>GPT-1（2018 年 6 月）</strong>：第一次把 Transformer 用于规模化预训练，目标函数是从左到右的标准语言模型：</p>
+$$
+P(w_1, \ldots, w_n) = \prod_{i=1}^{n} P(w_i \mid w_1, \ldots, w_{i-1})
+$$<p>GPT-1 已经很强，但它是单向的：读到 &ldquo;the bank is closed&rdquo; 时，模型在 &ldquo;bank&rdquo; 这个位置上还没看到 &ldquo;closed&rdquo;，就没法用 &ldquo;closed&rdquo; 来消除&quot;银行 / 河岸&quot;的歧义。</p>
+<p><strong>BERT（2018 年 10 月）</strong>：突破点是把预训练目标改造成允许每个位置同时看到双向上下文。这一个改动直接带来了横扫所有任务的提升。</p>
+<h3 id="为什么这个范式重要">为什么这个范式重要</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig4_finetune_pipeline.png" alt="预训练一次，微调到各种任务" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>整个流水线分两步：</p>
+<ol>
+<li><strong>预训练</strong>：在海量无标注文本（书、维基百科、整个互联网）上用自监督任务训练。这一步贵，但只做一次。</li>
+<li><strong>微调</strong>：在每个下游任务上加一个小小的&quot;任务头&rdquo;，用很小的学习率端到端微调几轮。</li>
+</ol>
+<p>收益是看得见的：</p>
+<ul>
+<li><strong>数据效率高</strong>：底座已经&quot;懂&quot;语法和不少常识，每个任务只需几百到几千条标注就能跑出像样的结果。</li>
+<li><strong>通用</strong>：同一个底座既能做分类，也能做标注、抽取、句对任务。</li>
+<li><strong>基线极强</strong>：朴素的 BERT 微调常常就能超过过去一整套定制化架构。</li>
+</ul>
+<hr>
+<h2 id="bert-的架构">BERT 的架构</h2>
+<p>BERT 就是原始 Transformer 的<strong>编码器</strong>那一半，堆 12 或 24 层。没有解码器、没有 causal mask、不做自回归生成——它就是一摞双向自注意力层，把 token 序列变成一串&quot;懂上下文&quot;的向量。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig1_bert_architecture.png" alt="BERT 双向编码器与输入嵌入" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="输入表示三个嵌入相加">输入表示：三个嵌入相加</h3>
+<p>每个 token 的输入向量，是三个学到的同维度嵌入相加：</p>
+$$
+\text{Input}_i = E^{\text{tok}}_{w_i} + E^{\text{seg}}_{s_i} + E^{\text{pos}}_{i}
+$$<ul>
+<li><strong>Token 嵌入</strong>：WordPiece 子词的 id，词表大小 30K。</li>
+<li><strong>Segment 嵌入</strong>：第一句用 $E_A$，第二句用 $E_B$。这让 BERT 不改架构就能处理 NLI、QA 这类句对任务。</li>
+<li><strong>Position 嵌入</strong>：从 0 到 511 每个绝对位置一个<strong>可学习</strong>向量。（与原始 Transformer 的正余弦位置不同，BERT 自己学。）</li>
+</ul>
+<p>两个特殊 token 是整套协议的关键：</p>
+<ul>
+<li><code>[CLS]</code> 放在每个输入开头。所有层走完之后，它的隐藏状态被当作整段序列的&quot;池化摘要&rdquo;，喂给分类头。</li>
+<li><code>[SEP]</code> 用来分隔句子 A 和 B，也用来标记输入结束。</li>
+</ul>
+<h3 id="双向自注意力">双向自注意力</h3>
+<p>每一层编码器内部，多头自注意力让每个 token 都能看到所有其他 token：</p>
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V
+$$<p>关键在于：$Q$、$K$、$V$ 都来自同一段输入（自注意力），并且<strong>没有 causal mask</strong>（双向）。所以位置 3 上的 &ldquo;bank&rdquo;，在一次前向中就能同时整合左边的 &ldquo;river&rdquo; 和右边的 &ldquo;is closed&rdquo;。</p>
+<h3 id="两种规格">两种规格</h3>
+<p>原文给了两个一直沿用至今的配置：</p>
+<table>
+  <thead>
+      <tr>
+          <th></th>
+          <th>BERT-Base</th>
+          <th>BERT-Large</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>层数</td>
+          <td>12</td>
+          <td>24</td>
+      </tr>
+      <tr>
+          <td>隐藏维度</td>
+          <td>768</td>
+          <td>1024</td>
+      </tr>
+      <tr>
+          <td>注意力头数</td>
+          <td>12</td>
+          <td>16</td>
+      </tr>
+      <tr>
+          <td>参数量</td>
+          <td>1.1 亿</td>
+          <td>3.4 亿</td>
+      </tr>
+  </tbody>
+</table>
+<p>BERT-Base 在一张消费级 GPU 上就能推理。BERT-Large 是 2018 年那一批 SOTA 纪录的主力。</p>
+<hr>
+<h2 id="预训练目标">预训练目标</h2>
+<p>BERT 的预训练把两个自监督任务叠在一起。第一个出名，第二个后来被证明可有可无。</p>
+<h3 id="掩码语言建模mlm">掩码语言建模（MLM）</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig2_mlm_corruption.png" alt="MLM 的 80/10/10 损坏规则" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>对每条输入序列，随机选 15% 的位置。被选中的位置，按下面的概率分别处理：</p>
+<ul>
+<li><strong>80%</strong> 的概率换成 <code>[MASK]</code>；</li>
+<li><strong>10%</strong> 的概率换成词表里<strong>随机</strong>的一个 token；</li>
+<li><strong>10%</strong> 的概率<strong>保持原样</strong>。</li>
+</ul>
+<p>模型要做的事，是在每个被选中的位置上把<strong>原来的</strong>词预测回来：</p>
+$$
+\mathcal{L}_{\text{MLM}} = -\sum_{i \in \mathcal{M}} \log P(w_i \mid \tilde{x})
+$$<p>其中 $\mathcal{M}$ 是被选中的位置集合，$\tilde{x}$ 是被损坏后的输入。</p>
+<p><strong>为什么是 80/10/10？</strong> 这个比例不是随便定的，它专门用来避开两个失败模式：</p>
+<ul>
+<li>如果只用 <code>[MASK]</code>，模型在微调时永远见不到 <code>[MASK]</code>（下游真实输入不会有），训练-推理就出现了分布失配。</li>
+<li>如果只用随机 token，模型会变得不敢相信任何输入，反而过度依赖远处信息。</li>
+<li>留 10% 不变，是逼模型即使看到一个&quot;看上去没问题&quot;的词，也不要偷懒直接把它复制出去——必须真的用上下文判断。</li>
+</ul>
+<p>MLM 是让 BERT&quot;干净地&quot;做到双向的关键：要从左右两侧预测被遮的词，编码器就必须在每个位置都融合整段上下文。</p>
+<h3 id="下一句预测nsp">下一句预测（NSP）</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig3_nsp.png" alt="NSP：正例 vs 负例" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>加 NSP 的初衷，是让 BERT 学到句间关系，方便迁移到 NLI、QA。每条训练样本把两个句子打包成 <code>[CLS] A [SEP] B [SEP]</code>，标签靠抛硬币决定：</p>
+<ul>
+<li>50% 的样本里，B 真的是语料中紧跟 A 的下一句（标签 <code>IsNext</code>）；</li>
+<li>50% 的样本里，B 是从其他文档随机抽来的句子（标签 <code>NotNext</code>）。</li>
+</ul>
+<p>最后一层的 <code>[CLS]</code> 向量过一个 Linear+softmax 头，预测这个标签：</p>
+$$
+P(\text{IsNext}) = \text{softmax}(W \, h_{\text{[CLS]}} + b)
+$$<p>预训练总损失就是 MLM 损失加 NSP 损失。</p>
+<blockquote>
+<p>这里有一段后来被打脸的历史：RoBERTa、ALBERT 等后续工作发现 NSP 帮助微乎其微，去掉甚至替换掉它反而<strong>更好</strong>。后面变体那一节会再聊。</p>
+</blockquote>
+<h3 id="预训练语料">预训练语料</h3>
+<p>BERT 的训练数据是 <strong>BooksCorpus</strong>（约 8 亿词）+ <strong>英文维基百科</strong>（约 25 亿词），合计约 33 亿词。从 2026 年的视角看这点量可以忽略不计——现代 LLM 动辄上万亿 token——但在当年已经足够把基线拉到一个新高度。</p>
+<hr>
+<h2 id="wordpiece-分词">WordPiece 分词</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig6_wordpiece.png" alt="WordPiece 子词分词" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>BERT 不直接处理整词，用的是 <strong>WordPiece</strong> 子词方案。这是在两个极端之间找到的折中：</p>
+<ul>
+<li>整词词表想覆盖真实语料就得几百万词，而且推理时永远会碰到 OOV；</li>
+<li>纯字符词表很小，但模型每次都得从字符重新拼出&quot;词义&quot;，效率太低。</li>
+</ul>
+<p>WordPiece 的做法，是贪心地合并那些&quot;合并后能最大化训练语料似然&quot;的字符对，最终留下大约 30K 个 token 作为词表。分词时，把每个词切成词表里能匹配上的最长片段；位于词内部的片段统一加 <code>##</code> 前缀作为&quot;延续&quot;标记：</p>
+<pre tabindex="0"><code>playing       -&gt; play  ##ing
+unbelievable  -&gt; un    ##bel  ##iev  ##able
+transformer   -&gt; transform  ##er
+Tokyo2024     -&gt; tokyo  ##20  ##24
+</code></pre><p>这样既保证不会出现 OOV（任何东西都能拆到已知子词，最坏退化到单字符），又保留了常用词作为单 token 的效率。</p>
+<hr>
+<h2 id="把-bert-微调到下游任务">把 BERT 微调到下游任务</h2>
+<p>微调的核心思想是：<strong>底座几乎不变，换个头就能换任务</strong>。</p>
+<h3 id="文本分类">文本分类</h3>
+<p>整句级标签（情感、垃圾邮件、意图识别）的做法是：把输入过一遍 BERT，取最终的 <code>[CLS]</code> 向量，再过一个线性层。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">BertTokenizer</span><span class="p">,</span> <span class="n">BertForSequenceClassification</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">BertTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">BertForSequenceClassification</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">,</span> <span class="n">num_labels</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">text</span> <span class="o">=</span> <span class="s2">&#34;I love this movie!&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">inputs</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s1">&#39;pt&#39;</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">truncation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;预测: </span><span class="si">{</span><span class="n">prediction</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>  <span class="c1"># 0 或 1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>底层发生的事：</p>
+<ol>
+<li>分词，前后加上 <code>[CLS]</code> 和 <code>[SEP]</code>；</li>
+<li>过 12 层 Transformer 编码器；</li>
+<li>取 <code>[CLS]</code> 的隐藏状态（BERT-Base 是 768 维）；</li>
+<li>过一个 768 → num_labels 的线性层。</li>
+</ol>
+<h3 id="命名实体识别ner">命名实体识别（NER）</h3>
+<p>token 级任务用每个位置的向量，而不是 <code>[CLS]</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">BertTokenizer</span><span class="p">,</span> <span class="n">BertForTokenClassification</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">BertTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">BertForTokenClassification</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">,</span> <span class="n">num_labels</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>  <span class="c1"># 例如 PER/ORG/LOC/MISC 的 BIO 标签 + O</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">text</span> <span class="o">=</span> <span class="s2">&#34;Barack Obama was born in Hawaii&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">inputs</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s1">&#39;pt&#39;</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">truncation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">predictions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">tokens</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">convert_ids_to_tokens</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;input_ids&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">token</span><span class="p">,</span> <span class="n">pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">predictions</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">: 标签 </span><span class="si">{</span><span class="n">pred</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一个细节：WordPiece 会把词切碎（&ldquo;Hawaii&rdquo; 也许整词不切，&ldquo;Tokyo2024&rdquo; 会被切成 3 个片段）。在把预测还原成&quot;词级实体&quot;时，惯用的做法是<strong>只取每个词第一个子词的预测</strong>，忽略后面的 <code>##</code> 续接片段。</p>
+<h3 id="抽取式问答">抽取式问答</h3>
+<p>SQuAD 风格的 QA 是从上下文中预测答案 span 的起止位置：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">BertTokenizer</span><span class="p">,</span> <span class="n">BertForQuestionAnswering</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">BertTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">BertForQuestionAnswering</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">question</span> <span class="o">=</span> <span class="s2">&#34;Where was Barack Obama born?&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">context</span> <span class="o">=</span> <span class="s2">&#34;Barack Obama was born in Hawaii in 1961.&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">inputs</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s1">&#39;pt&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                   <span class="n">padding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">truncation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">start_logits</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">end</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">end_logits</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">answer</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;input_ids&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="n">start</span><span class="p">:</span><span class="n">end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;答案: </span><span class="si">{</span><span class="n">answer</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两个头都是建在每个 token 向量上的线性层，分别输出每个位置的 start logit 和 end logit。预测的 span 就是在 start ≤ end 的约束下，使 start + end logits 之和最大的那段连续区间。</p>
+<h3 id="句对分类nli释义判定">句对分类（NLI、释义判定）</h3>
+<p>把两个句子用 <code>[SEP]</code> 拼起来，再用 <code>[CLS]</code> 头：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">BertTokenizer</span><span class="p">,</span> <span class="n">BertForSequenceClassification</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">BertTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">BertForSequenceClassification</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">,</span> <span class="n">num_labels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>  <span class="c1"># 蕴含 / 中立 / 矛盾</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">premise</span> <span class="o">=</span> <span class="s2">&#34;A man is playing guitar&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">hypothesis</span> <span class="o">=</span> <span class="s2">&#34;Someone is making music&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">inputs</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">premise</span><span class="p">,</span> <span class="n">hypothesis</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s1">&#39;pt&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                   <span class="n">padding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">truncation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>注意架构上几乎没变：同一个 <code>BertForSequenceClassification</code> 类，单句和句对分类只靠分词方式的区别就能切换。</p>
+<hr>
+<h2 id="真正能跑通的微调配方">真正能跑通的微调配方</h2>
+<p>用几千条标注微调一个 1.1 亿参数的模型，跟从头训练根本是两回事。从头训 ResNet 那一套默认值放到这里，会把预训练权重直接冲烂。</p>
+<h3 id="学习率小一点配上权重衰减">学习率小一点，配上权重衰减</h3>
+<p>预训练权重已经落在一个不错的盆地里，你要做的是轻轻挪动，而不是推土机式地碾过去。常见做法是 AdamW + 分组参数：bias 和 LayerNorm 不做权重衰减，其他参数衰减 0.01：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">AdamW</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">no_decay</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;bias&#34;</span><span class="p">,</span> <span class="s2">&#34;LayerNorm.weight&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">optimizer_grouped_parameters</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;params&#34;</span><span class="p">:</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                   <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">nd</span> <span class="ow">in</span> <span class="n">n</span> <span class="k">for</span> <span class="n">nd</span> <span class="ow">in</span> <span class="n">no_decay</span><span class="p">)],</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;weight_decay&#34;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;params&#34;</span><span class="p">:</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                   <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">nd</span> <span class="ow">in</span> <span class="n">n</span> <span class="k">for</span> <span class="n">nd</span> <span class="ow">in</span> <span class="n">no_decay</span><span class="p">)],</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;weight_decay&#34;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">optimizer</span> <span class="o">=</span> <span class="n">AdamW</span><span class="p">(</span><span class="n">optimizer_grouped_parameters</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">2e-5</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="先-warmup-再线性衰减">先 warmup 再线性衰减</h3>
+<p>即使学习率已经很小，第一步直接打到一个刚刚加上的随机初始化的头上仍然太猛。Warmup 是把 LR 在前 ~10% 步内线性升上去，之后再线性降回 0：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">get_linear_schedule_with_warmup</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">total_steps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataloader</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_epochs</span>
+</span></span><span class="line"><span class="cl"><span class="n">scheduler</span> <span class="o">=</span> <span class="n">get_linear_schedule_with_warmup</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">optimizer</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_warmup_steps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="n">total_steps</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_training_steps</span><span class="o">=</span><span class="n">total_steps</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="显存不够就梯度累积">显存不够就梯度累积</h3>
+<p>GPU 装不下 batch size 32，就把它拆成多个小 batch，把梯度累积起来再统一更新：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">accumulation_steps</span> <span class="o">=</span> <span class="mi">4</span>
+</span></span><span class="line"><span class="cl"><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dataloader</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">loss</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">loss</span> <span class="o">/</span> <span class="n">accumulation_steps</span>
+</span></span><span class="line"><span class="cl">    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="默认配方">默认配方</h3>
+<p>懒得想就先按下面这套来，大多数论文也是这么干的：</p>
+<table>
+  <thead>
+      <tr>
+          <th>设置</th>
+          <th>推荐值</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>学习率</td>
+          <td>2e-5 ~ 5e-5</td>
+      </tr>
+      <tr>
+          <td>Batch size</td>
+          <td>16-32（显存不够就梯度累积）</td>
+      </tr>
+      <tr>
+          <td>训练轮数</td>
+          <td>2-4（BERT 微调收敛很快，更多轮反而容易过拟合）</td>
+      </tr>
+      <tr>
+          <td>Warmup</td>
+          <td>总步数的 10%</td>
+      </tr>
+      <tr>
+          <td>最大序列长度</td>
+          <td>128-512（越短越快，挑刚好能装下输入的最小值）</td>
+      </tr>
+      <tr>
+          <td>优化器</td>
+          <td>AdamW，权重衰减 0.01；bias 与 LayerNorm 设为 0</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="一份完整的-huggingface-流水线">一份完整的 HuggingFace 流水线</h2>
+<p>把上面这些拼到一起，下面是一份在 IMDB 情感数据集上端到端微调的代码：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BertTokenizer</span><span class="p">,</span> <span class="n">BertForSequenceClassification</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Trainer</span><span class="p">,</span> <span class="n">TrainingArguments</span><span class="p">,</span> <span class="n">DataCollatorWithPadding</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. 加载数据和模型</span>
+</span></span><span class="line"><span class="cl"><span class="n">dataset</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="s2">&#34;imdb&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">BertTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">BertForSequenceClassification</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s1">&#39;bert-base-uncased&#39;</span><span class="p">,</span> <span class="n">num_labels</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 分词</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">preprocess</span><span class="p">(</span><span class="n">examples</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">examples</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">],</span> <span class="n">truncation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                     <span class="n">padding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">512</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">tokenized</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">preprocess</span><span class="p">,</span> <span class="n">batched</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 训练配置</span>
+</span></span><span class="line"><span class="cl"><span class="n">training_args</span> <span class="o">=</span> <span class="n">TrainingArguments</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">output_dir</span><span class="o">=</span><span class="s1">&#39;./results&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">num_train_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">per_device_train_batch_size</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">per_device_eval_batch_size</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">weight_decay</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">logging_steps</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">evaluation_strategy</span><span class="o">=</span><span class="s2">&#34;epoch&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">save_strategy</span><span class="o">=</span><span class="s2">&#34;epoch&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">load_best_model_at_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 训练</span>
+</span></span><span class="line"><span class="cl"><span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">args</span><span class="o">=</span><span class="n">training_args</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">train_dataset</span><span class="o">=</span><span class="n">tokenized</span><span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">eval_dataset</span><span class="o">=</span><span class="n">tokenized</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="n">data_collator</span><span class="o">=</span><span class="n">DataCollatorWithPadding</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 5. 评估</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">trainer</span><span class="o">.</span><span class="n">evaluate</span><span class="p">())</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在一张现代 GPU 上跑几个小时，就能把 IMDB 准确率拉到 92-94% 左右——而在 BERT 之前，这个数字是要靠多年特征工程才能逼近的。</p>
+<hr>
+<h2 id="当年这个跨度有多大看一眼-glue">当年这个跨度有多大？看一眼 GLUE</h2>
+<p>要感受 BERT 当时的冲击，看一下原文里 8 个 GLUE 任务的成绩：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig7_glue_benchmark.png" alt="BERT 与之前 SOTA 在 GLUE 上的对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>灰色是 BERT 之前的最佳模型，蓝色是 BERT-Base，紫色是 BERT-Large。在 CoLA（语言学可接受性）和 RTE（小数据量的文本蕴含）这种结构上比较难的任务上，<strong>绝对提升达到了两位数</strong>。一个预训练模型，加几个 epoch 的微调和一个微小的头，同时干翻了过去多年针对每个任务专门设计的架构。</p>
+<hr>
+<h2 id="bert-家族robertaalbertelectra">BERT 家族：RoBERTa、ALBERT、ELECTRA</h2>
+<p>BERT 是起点，不是终点。两年内涌现出一批从不同角度改进 BERT 的变体。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig5_variants_comparison.png" alt="BERT vs RoBERTa vs ALBERT vs ELECTRA" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="robertafacebook2019把训练流程做对就行">RoBERTa（Facebook，2019）：把训练流程做对就行</h3>
+<p>Liu 等人发现 BERT 其实是被<strong>严重训练不足</strong>的。RoBERTa 一行架构都没改，只调了配方：</p>
+<ul>
+<li><strong>去掉 NSP</strong>：没用，甚至还可能有害。</li>
+<li><strong>动态掩码</strong>：每个 epoch 重新生成掩码，而不是预处理时一次性固定下来。</li>
+<li><strong>更大的 batch</strong>：从 256 提到 8K。</li>
+<li><strong>多得多的数据</strong>：在 BooksCorpus + Wikipedia 之外加上 CC-News、OpenWebText、Stories（约 1600 亿 token，对比 BERT 的 33 亿）。</li>
+</ul>
+<p>仅这些就让 GLUE 涨了 2-3 分，而架构跟 BERT-Large 一模一样。</p>
+<h3 id="albertgoogle2019把参数压一压">ALBERT（Google，2019）：把参数压一压</h3>
+<p>ALBERT 用更少的<strong>独立</strong>参数达到接近的效果：</p>
+<ul>
+<li><strong>嵌入分解</strong>：把 $V \times H$ 的嵌入矩阵拆成 $V \times E$ 和 $E \times H$，其中 $E \ll H$。token 嵌入活在低维空间里，再投到隐藏维度。</li>
+<li><strong>跨层参数共享</strong>：所有 Transformer 层共享同一套权重，深度不再随参数量线性放大。</li>
+<li><strong>句子顺序预测（SOP）</strong> 取代 NSP：给两句<strong>相邻</strong>的句子，判断它们的顺序是否被颠倒过。这比&quot;是否随机配对&quot;难得多，信号也更有用。</li>
+</ul>
+<p>ALBERT-xxlarge 大约 2.35 亿独立参数（对比 BERT-Large 的 3.4 亿），但在 GLUE 上能持平甚至超过。</p>
+<h3 id="electragoogle2020每个-token-都参与训练">ELECTRA（Google，2020）：每个 token 都参与训练</h3>
+<p>MLM 只在 15% 的位置上有损失，剩下 85% 的位置纯属&quot;路过&quot;，浪费。ELECTRA 把 MLM 替换成<strong>替换 token 检测（RTD）</strong>：</p>
+<ol>
+<li>一个小型的生成器（一个迷你 MLM）把一些 token 换成&quot;看起来像但不是原版&quot;的词；</li>
+<li>一个更大的判别器逐 token 地判断：这个 token 是原文的，还是被换过的？</li>
+<li>训练完之后，只保留判别器。</li>
+</ol>
+<p>因为判别器在<strong>每个</strong>位置上都有损失，ELECTRA 用更少的算力就能达到 BERT 级别——ELECTRA-Small 只用四分之一的训练时间就赶上了 BERT-Base。</p>
+<h3 id="对比表">对比表</h3>
+<table>
+  <thead>
+      <tr>
+          <th>模型</th>
+          <th>关键创新</th>
+          <th>参数量</th>
+          <th>GLUE 相对提升</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>BERT</td>
+          <td>双向 MLM + NSP</td>
+          <td>1.1 亿 / 3.4 亿</td>
+          <td>基线</td>
+      </tr>
+      <tr>
+          <td>RoBERTa</td>
+          <td>去 NSP、动态掩码、海量数据</td>
+          <td>1.1 亿 / 3.55 亿</td>
+          <td>+2 ~ +3</td>
+      </tr>
+      <tr>
+          <td>ALBERT</td>
+          <td>嵌入分解 + 跨层参数共享</td>
+          <td>0.12 亿 ~ 2.35 亿</td>
+          <td>+1 ~ +2</td>
+      </tr>
+      <tr>
+          <td>ELECTRA</td>
+          <td>RTD（100% token 都参与训练）</td>
+          <td>0.14 亿 ~ 3.35 亿</td>
+          <td>+2 ~ +3</td>
+      </tr>
+  </tbody>
+</table>
+<p>挑选其实是在选<strong>配方</strong>而不是选<strong>架构</strong>：四个模型都是编码器-only Transformer，骨架几乎一致。</p>
+<hr>
+<h2 id="bert-做不到的事">BERT 做不到的事</h2>
+<p>知道它的边界跟知道它的能力一样重要。</p>
+<ul>
+<li><strong>成本</strong>：1.1 亿到 3.4 亿参数 + 二次方注意力，让实时推理变得不太舒服，需要靠蒸馏（DistilBERT、TinyBERT）或量化来压缩。</li>
+<li><strong>不能生成</strong>：BERT 是双向 encoder-only，没法做合理的自回归解码。要生成文本就得用 GPT 系列的 decoder 模型——下一篇会讲。</li>
+<li><strong>512 token 上限</strong>：位置嵌入只学到 0-511。处理长文档要靠滑窗、层级聚合，或者直接换架构（Longformer、BigBird）。</li>
+<li><strong>以英语为中心</strong>：原始 BERT 只在英文上训练。多语言 BERT（mBERT）覆盖了 100+ 语言，但在每一个具体语言上都打不过那门语言的专用模型（BERT-Chinese、CamemBERT 等）。</li>
+</ul>
+<hr>
+<h2 id="常见问题">常见问题</h2>
+<h3 id="为什么用-cls-做分类">为什么用 <code>[CLS]</code> 做分类？</h3>
+<p>它放在每条输入的位置 0，注意力天然会让它在最后一层聚合整段序列的信息。预训练时的 NSP 目标也在显式训练 <code>[CLS]</code> 充当&quot;序列摘要&quot;。</p>
+<h3 id="选-bert-还是-roberta">选 BERT 还是 RoBERTa？</h3>
+<p>想要更高的分数、又有几个小时多余的 GPU 时间，就选 RoBERTa；想要最大的生态、最多的教程和最丰富的 checkpoint，BERT 仍然是最稳的基线。</p>
+<h3 id="变体怎么选">变体怎么选？</h3>
+<p>通用基线选 BERT，要冲分用 RoBERTa，参数量受限（移动端、嵌入式）选 ALBERT，训练算力是瓶颈就用 ELECTRA。</p>
+<h3 id="中文怎么办">中文怎么办？</h3>
+<p>中文有比 mBERT 更专业的选择：BERT-wwm-ext、MacBERT 是常用基线。直接拿 <code>bert-base-chinese</code> 起步通常也够用，关键看任务对中文细粒度（字 vs 词）有多敏感。</p>
+<h3 id="能拿来做句向量吗">能拿来做句向量吗？</h3>
+<p>直接对 BERT token 向量做平均得到的句向量效果一般。要做相似度检索，请用 Sentence-BERT（在 BERT 上加一层 Siamese 对比训练得到的变体）。</p>
+<hr>
+<h2 id="核心要点">核心要点</h2>
+<ul>
+<li>BERT 用<strong>双向预训练</strong>（通过 MLM）让每个 token 在一次前向中就能看到完整上下文。</li>
+<li>80/10/10 的掩码比例是为了避免训练-推理分布失配，并强迫模型即使输入&quot;看起来正常&quot;也要利用上下文。</li>
+<li><strong>预训练-微调</strong>范式让一次昂贵的预训练能摊销到无数下游任务上；微调只需要一个很小的头、一个很小的学习率和几个 epoch。</li>
+<li><strong>RoBERTa、ALBERT、ELECTRA</strong> 共同说明了：配方（数据、掩码方式、参数共享、训练目标）和架构同样重要。</li>
+<li>BERT 擅长<strong>理解</strong>任务，但不会<strong>生成</strong>——生成任务要看下一篇 GPT。</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+          <th>链接</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>3</td>
+          <td>RNN 与序列建模</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%b8%89-RNN%e4%b8%8e%e5%ba%8f%e5%88%97%e5%bb%ba%e6%a8%a1/">阅读</a>
+</td>
+      </tr>
+      <tr>
+          <td>4</td>
+          <td>注意力机制与 Transformer</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%9b%9b-%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e4%b8%8eTransformer/">上一篇</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>5</strong></td>
+          <td><strong>BERT 与预训练模型（本文）</strong></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td>6</td>
+          <td>GPT 与生成式语言模型</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%85%ad-GPT%e4%b8%8e%e7%94%9f%e6%88%90%e5%bc%8f%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b/">下一篇</a>
+</td>
+      </tr>
+      <tr>
+          <td>7</td>
+          <td>提示工程与 In-Context Learning</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%b8%83-%e6%8f%90%e7%a4%ba%e5%b7%a5%e7%a8%8b%e4%b8%8eIn-Context-Learning/">阅读</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#这一篇你会学到">这一篇你会学到</a></li>
+    <li><a href="#预训练-微调范式是怎么火起来的">预训练-微调范式是怎么火起来的</a>
+      <ul>
+        <li><a href="#一段简短的演进史">一段简短的演进史</a></li>
+        <li><a href="#为什么这个范式重要">为什么这个范式重要</a></li>
+      </ul>
+    </li>
+    <li><a href="#bert-的架构">BERT 的架构</a>
+      <ul>
+        <li><a href="#输入表示三个嵌入相加">输入表示：三个嵌入相加</a></li>
+        <li><a href="#双向自注意力">双向自注意力</a></li>
+        <li><a href="#两种规格">两种规格</a></li>
+      </ul>
+    </li>
+    <li><a href="#预训练目标">预训练目标</a>
+      <ul>
+        <li><a href="#掩码语言建模mlm">掩码语言建模（MLM）</a></li>
+        <li><a href="#下一句预测nsp">下一句预测（NSP）</a></li>
+        <li><a href="#预训练语料">预训练语料</a></li>
+      </ul>
+    </li>
+    <li><a href="#wordpiece-分词">WordPiece 分词</a></li>
+    <li><a href="#把-bert-微调到下游任务">把 BERT 微调到下游任务</a>
+      <ul>
+        <li><a href="#文本分类">文本分类</a></li>
+        <li><a href="#命名实体识别ner">命名实体识别（NER）</a></li>
+        <li><a href="#抽取式问答">抽取式问答</a></li>
+        <li><a href="#句对分类nli释义判定">句对分类（NLI、释义判定）</a></li>
+      </ul>
+    </li>
+    <li><a href="#真正能跑通的微调配方">真正能跑通的微调配方</a>
+      <ul>
+        <li><a href="#学习率小一点配上权重衰减">学习率小一点，配上权重衰减</a></li>
+        <li><a href="#先-warmup-再线性衰减">先 warmup 再线性衰减</a></li>
+        <li><a href="#显存不够就梯度累积">显存不够就梯度累积</a></li>
+        <li><a href="#默认配方">默认配方</a></li>
+      </ul>
+    </li>
+    <li><a href="#一份完整的-huggingface-流水线">一份完整的 HuggingFace 流水线</a></li>
+    <li><a href="#当年这个跨度有多大看一眼-glue">当年这个跨度有多大？看一眼 GLUE</a></li>
+    <li><a href="#bert-家族robertaalbertelectra">BERT 家族：RoBERTa、ALBERT、ELECTRA</a>
+      <ul>
+        <li><a href="#robertafacebook2019把训练流程做对就行">RoBERTa（Facebook，2019）：把训练流程做对就行</a></li>
+        <li><a href="#albertgoogle2019把参数压一压">ALBERT（Google，2019）：把参数压一压</a></li>
+        <li><a href="#electragoogle2020每个-token-都参与训练">ELECTRA（Google，2020）：每个 token 都参与训练</a></li>
+        <li><a href="#对比表">对比表</a></li>
+      </ul>
+    </li>
+    <li><a href="#bert-做不到的事">BERT 做不到的事</a></li>
+    <li><a href="#常见问题">常见问题</a>
+      <ul>
+        <li><a href="#为什么用-cls-做分类">为什么用 <code>[CLS]</code> 做分类？</a></li>
+        <li><a href="#选-bert-还是-roberta">选 BERT 还是 RoBERTa？</a></li>
+        <li><a href="#变体怎么选">变体怎么选？</a></li>
+        <li><a href="#中文怎么办">中文怎么办？</a></li>
+        <li><a href="#能拿来做句向量吗">能拿来做句向量吗？</a></li>
+      </ul>
+    </li>
+    <li><a href="#核心要点">核心要点</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">自然语言处理</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6600</strong></div>
+      <div class="row"><span>Published</span><strong>Oct 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

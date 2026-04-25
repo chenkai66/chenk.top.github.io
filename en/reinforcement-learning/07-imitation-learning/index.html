@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Reinforcement Learning (7): Imitation Learning and Inverse RL · Chen Kai Blog</title>
+<meta name="description" content="A practical, theory-grounded tour of imitation learning: behavioral cloning and its quadratic compounding error, DAgger and the no-regret reduction, MaxEnt inverse RL for recovering reward functions, and adversarial methods (GAIL, AIRL). Includes runnable PyTorch code, a method-selection ladder, and seven publication-quality figures.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/reinforcement-learning/07-imitation-learning/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/reinforcement-learning/07-imitation-learning/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Reinforcement Learning (7): Imitation Learning and Inverse RL">
+<meta property="og:description" content="A practical, theory-grounded tour of imitation learning: behavioral cloning and its quadratic compounding error, DAgger and the no-regret reduction, MaxEnt inverse RL for recovering reward functions, and adversarial methods (GAIL, AIRL). Includes runnable PyTorch code, a method-selection ladder, and seven publication-quality figures.">
+<meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/07-imitation-learning/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Reinforcement Learning</a>
+         · Chapter 7
+      </div>
+      <h1>Reinforcement Learning (7): Imitation Learning and Inverse RL</h1>
+      <p class="deck">A practical, theory-grounded tour of imitation learning: behavioral cloning and its quadratic compounding error, DAgger and the no-regret reduction, MaxEnt inverse RL for recovering reward functions, and adversarial methods (GAIL, AIRL). Includes runnable PyTorch code, a method-selection ladder, and seven publication-quality figures.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-08-31">August 31, 2025</time> · 15 min read · 3100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/reinforcement-learning/" class="tag">#Reinforcement Learning</a><a href="/en/tags/imitation-learning/" class="tag">#Imitation Learning</a><a href="/en/tags/behavioral-cloning/" class="tag">#Behavioral Cloning</a><a href="/en/tags/inverse-rl/" class="tag">#Inverse RL</a><a href="/en/tags/gail/" class="tag">#GAIL</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Every algorithm in the previous chapters assumed access to a reward function. In practice, <em>designing</em> that reward is often the hardest part of an RL project. Try writing one paragraph that captures &ldquo;drive like a careful human&rdquo;, &ldquo;fold a shirt the way a tailor would&rdquo;, or &ldquo;summarise this document the way an expert editor would&rdquo;. You can <em>show</em> those behaviours far more easily than you can <em>specify</em> them.</p>
+<p>Imitation learning takes that intuition seriously: instead of optimising a hand-engineered scalar, it learns from expert demonstrations $\mathcal{D} = \{(s_t, a_t)\}$. This chapter walks the four canonical methods &ndash; behavioral cloning, DAgger, maximum-entropy IRL, and GAIL/AIRL &ndash; not as isolated tricks but as a single ladder where each rung relaxes one assumption and pays for it with new structure.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li><strong>Behavioral cloning (BC)</strong>: imitation as supervised learning, why it works on short tasks, and the precise reason it breaks on long ones.</li>
+<li><strong>DAgger</strong>: how interactive relabelling turns BC&rsquo;s quadratic error into a linear one, with the no-regret theorem behind it.</li>
+<li><strong>Maximum-entropy IRL</strong>: recovering an interpretable reward whose optimum reproduces the demonstrations.</li>
+<li><strong>GAIL and AIRL</strong>: matching expert <em>occupancy measures</em> end-to-end through adversarial training.</li>
+<li><strong>A selection rubric</strong>: which method to reach for given expert availability, environment access, and need for transfer.</li>
+</ul>
+<p><strong>Prerequisites</strong>: policy gradients (<a href="/en/reinforcement-learning-5-policy-gradients/">Part 5</a>
+) and PPO (<a href="/en/reinforcement-learning-6-advanced-policy-optimization/">Part 6</a>
+). PyTorch fundamentals are assumed for the code snippets.</p>
+<hr>
+<h2 id="1-problem-setting">1. Problem setting</h2>
+<p>Given expert demonstrations</p>
+$$
+\mathcal{D} = \{(s_1, a_1), (s_2, a_2), \ldots, (s_N, a_N)\},
+$$<p>the goal is to learn a policy $\pi_\theta$ whose behaviour is close to that of an unknown expert policy $\pi^*$. We never observe $\pi^*$ directly &ndash; only its samples &ndash; and there is no reward signal. Sometimes we can also <em>query</em> the expert on new states (DAgger); often we cannot.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Aspect</th>
+          <th>Reinforcement learning</th>
+          <th>Imitation learning</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Signal</td>
+          <td>Reward $r(s, a)$</td>
+          <td>Expert dataset $\mathcal{D}$</td>
+      </tr>
+      <tr>
+          <td>Interaction</td>
+          <td>Required (must explore)</td>
+          <td>Sometimes optional (offline BC)</td>
+      </tr>
+      <tr>
+          <td>Objective</td>
+          <td>Maximise $\mathbb{E}[\sum \gamma^t r_t]$</td>
+          <td>Match expert behaviour distribution</td>
+      </tr>
+      <tr>
+          <td>Failure mode</td>
+          <td>Reward hacking, exploration</td>
+          <td>Distribution shift, mode collapse</td>
+      </tr>
+      <tr>
+          <td>Typical use</td>
+          <td>Game-playing, robotics, RLHF</td>
+          <td>Driving, surgery, language style</td>
+      </tr>
+  </tbody>
+</table>
+<p>The methods we cover trade these axes against each other. The five-rung ladder is summarised below; the rest of the chapter unpacks each rung.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig6_method_hierarchy.png" alt="Imitation learning method hierarchy" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<hr>
+<h2 id="2-behavioral-cloning">2. Behavioral cloning</h2>
+<p>The simplest imitation algorithm is also the most-deployed one: treat $\mathcal{D}$ as a supervised dataset and minimise</p>
+$$
+\mathcal{L}(\theta) \;=\; \mathbb{E}_{(s,a)\sim \mathcal{D}}\big[ \ell\big(\pi_\theta(s),\, a\big) \big],
+$$<p>where $\ell$ is cross-entropy for discrete actions or MSE / negative log-likelihood for continuous ones. The historical first instance is <strong>ALVINN</strong> (Pomerleau, 1989), which trained a fully connected network to steer a van from camera images.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">TensorDataset</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BehavioralCloning</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Supervised imitation: minimise loss between policy and expert actions.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden_dims</span><span class="o">=</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">continuous</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span> <span class="o">=</span> <span class="n">continuous</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">state_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hidden_dims</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">continuous</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">()]</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state_mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_std</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">val_frac</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Standardise states; large input scales destabilise BC.</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state_mean</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state_std</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span>
+</span></span><span class="line"><span class="cl">        <span class="n">S</span> <span class="o">=</span> <span class="p">(</span><span class="n">states</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_std</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">n_val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">S</span><span class="p">)</span> <span class="o">*</span> <span class="n">val_frac</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">S</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">S_tr</span><span class="p">,</span> <span class="n">S_val</span> <span class="o">=</span> <span class="n">S</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">n_val</span><span class="p">:]],</span> <span class="n">S</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="n">n_val</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">A_tr</span><span class="p">,</span> <span class="n">A_val</span> <span class="o">=</span> <span class="n">actions</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">n_val</span><span class="p">:]],</span> <span class="n">actions</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="n">n_val</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">S_tr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">S_tr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">S_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">S_val</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">A_tr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">A_tr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">A_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">A_val</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">A_tr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">A_tr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">A_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">A_val</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">S_tr</span><span class="p">,</span> <span class="n">A_tr</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">best</span><span class="p">,</span> <span class="n">best_state</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">),</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">();</span> <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">();</span> <span class="bp">self</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">S_val</span><span class="p">),</span> <span class="n">A_val</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="n">best</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">best</span><span class="p">,</span> <span class="n">best_state</span> <span class="o">=</span> <span class="n">v</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span>
+</span></span><span class="line"><span class="cl">                                       <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">best_state</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">act</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="p">(</span><span class="n">state</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_std</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span> <span class="k">else</span> <span class="n">out</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Three implementation details matter much more than they look:</p>
+<ol>
+<li><strong>Standardise inputs.</strong> BC is a small supervised model &ndash; unscaled features dominate the loss surface and produce overconfident actions in rare states.</li>
+<li><strong>Early-stopping on a held-out validation set.</strong> Long training overfits the expert&rsquo;s noise, which makes the next problem worse, not better.</li>
+<li><strong>Action representation.</strong> For continuous control, predicting Gaussian parameters with a NLL loss outperforms MSE on Tanh outputs whenever the expert is multimodal.</li>
+</ol>
+<h3 id="21-why-bc-fails-on-long-horizons">2.1 Why BC fails on long horizons</h3>
+<p>BC is trained under the expert&rsquo;s state distribution $d_{\pi^*}$ but, at deployment, it visits states drawn from its <em>own</em> distribution $d_{\pi_\theta}$. Because the policy is imperfect, those distributions diverge with every step.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig1_bc_vs_dagger.png" alt="BC vs DAgger state distributions" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The classical bound formalises the cascade. If $\pi_\theta$ has expected per-step error $\varepsilon$ on the expert distribution, then over a $T$-step rollout the worst-case total error is</p>
+$$
+J(\pi^*) - J(\pi_\theta) \;\le\; \mathcal{O}\!\left( \varepsilon \, T^2 \right),
+$$<p>quadratic in horizon (Ross &amp; Bagnell, 2010). Even a 99% accurate policy fails on a 200-step task, because the 1% probability of a mistake compounds and the policy lands in states the expert never visited &ndash; where it has no useful training signal.</p>
+<p>You can see the cascade clearly when you roll the trained policy forward:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig2_expert_trajectory_comparison.png" alt="Expert vs learner trajectories" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Early in the episode the BC learner stays on the expert corridor. Around the midpoint a small error appears, the policy enters off-distribution states, and from there it drifts steadily into the hazard zone. The same compounding effect appears in the per-step error curve below.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig5_compounding_error.png" alt="Compounding error in BC" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<hr>
+<h2 id="3-dagger-dataset-aggregation">3. DAgger: dataset aggregation</h2>
+<p>DAgger (Ross, Gordon &amp; Bagnell, 2011) breaks the cascade by collecting expert labels <em>on the states the learner actually visits</em>. Each iteration adds a new slice of $(s, a^*)$ pairs sampled from $d_{\pi_\theta}$ and retrains on the aggregated dataset.</p>
+<p><strong>Algorithm.</strong></p>
+<ol>
+<li>Train $\pi_1$ on initial expert demonstrations.</li>
+<li>For $i = 1, \ldots, N$:
+<ul>
+<li>Mix $\pi_i$ with the expert under a schedule $\beta_i \to 0$ to roll out states.</li>
+<li>Query the expert for the correct action $a^*$ at every visited state.</li>
+<li>Aggregate: $\mathcal{D} \leftarrow \mathcal{D} \cup \{(s, a^*)\}$.</li>
+<li>Retrain $\pi_{i+1}$ on all of $\mathcal{D}$.</li>
+</ul>
+</li>
+</ol>
+<p><strong>No-regret guarantee.</strong> Treat the sequence of policies as a no-regret online learner against the loss family induced by the visited distributions. Then</p>
+$$
+J(\pi^*) - J(\pi_{\hat{i}}) \;\le\; \mathcal{O}\!\left( \varepsilon \, T \right) + \mathcal{O}\!\left( \tfrac{T \sqrt{\log N}}{\sqrt{N}} \right),
+$$<p>i.e. <em>linear</em> in horizon. The right way to read this is: every additional iteration buys back the recovery information that BC discarded.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DAgger</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;DAgger = BC + iterative relabelling on learner-visited states.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="o">**</span><span class="n">bc_kwargs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">=</span> <span class="n">BehavioralCloning</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="o">**</span><span class="n">bc_kwargs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">expert</span><span class="p">,</span> <span class="n">n_iters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">              <span class="n">n_init</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">n_per_iter</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Iteration 0: pure expert rollouts (warm start)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s0</span><span class="p">,</span> <span class="n">a0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collect</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">expert</span><span class="p">,</span> <span class="n">n_init</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">+=</span> <span class="n">s0</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">+=</span> <span class="n">a0</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_iters</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">beta</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">i</span> <span class="o">/</span> <span class="n">n_iters</span><span class="p">)</span>   <span class="c1"># fade expert from 1 -&gt; 0</span>
+</span></span><span class="line"><span class="cl">            <span class="n">s</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collect</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">expert</span><span class="p">,</span> <span class="n">n_per_iter</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">+=</span> <span class="n">s</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">+=</span> <span class="n">a</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_collect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">expert</span><span class="p">,</span> <span class="n">n_episodes</span><span class="p">,</span> <span class="n">beta</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">states</span><span class="p">,</span> <span class="n">actions</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_episodes</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">s</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">(),</span> <span class="kc">False</span>
+</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Mixed action choice; expert label is always recorded.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">a_play</span> <span class="o">=</span> <span class="n">expert</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">beta</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="o">.</span><span class="n">act</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">a_label</span> <span class="o">=</span> <span class="n">expert</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">);</span> <span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a_label</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">a_play</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">states</span><span class="p">,</span> <span class="n">actions</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>When DAgger applies.</strong> DAgger needs an expert that can be queried <em>at run-time</em>. That is realistic when:</p>
+<ul>
+<li>the expert is an algorithmic planner (e.g. an MPC controller, a search-based oracle);</li>
+<li>the expert is a more capable model you want to distil (e.g. teacher-student RL, model-based oracle, language-model self-distillation);</li>
+<li>a human is in the loop and willing to label batches.</li>
+</ul>
+<p>It does <em>not</em> apply when the only demonstrations are a static log &ndash; e.g. a recorded driving dataset. For that regime, jump to GAIL.</p>
+<hr>
+<h2 id="4-inverse-reinforcement-learning">4. Inverse reinforcement learning</h2>
+<p>BC and DAgger both <em>imitate the action</em>. IRL asks a deeper question: <strong>why</strong> is that action good? It posits that the expert is (approximately) optimising some unknown reward $r^*$, recovers a candidate $\hat r$ from the demonstrations, and then runs standard RL under $\hat r$.</p>
+<p>Why bother going through reward? Two reasons:</p>
+<ul>
+<li><strong>Interpretability.</strong> $\hat r$ tells you <em>what the expert cares about</em>, which is auditable and editable.</li>
+<li><strong>Transfer.</strong> A reward function survives changes to dynamics, embodiment, and start-state distribution that would break a behaviour-level model.</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig3_irl_recovery.png" alt="Inverse RL recovers reward from behaviour" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="41-maximum-entropy-irl">4.1 Maximum-entropy IRL</h3>
+<p>A purely &ldquo;match the expert&rsquo;s value&rdquo; objective is ill-posed &ndash; many rewards explain the same behaviour. <strong>Maximum-entropy IRL</strong> (Ziebart et al., 2008) breaks the tie by requiring the recovered policy to maximise $r$ subject to maximum entropy. Concretely, the expert&rsquo;s distribution over trajectories $\tau$ takes the Boltzmann form</p>
+$$
+p_\theta(\tau) \;\propto\; \exp\!\left( \sum_t r_\theta(s_t, a_t) \right).
+$$<p>Maximising the log-likelihood of the demonstrations gives the elegant gradient</p>
+$$
+\nabla_\theta \mathcal{L}(\theta) \;=\; \mathbb{E}_{\tau \sim \pi^*}\!\left[\nabla_\theta r_\theta(\tau)\right] \;-\; \mathbb{E}_{\tau \sim \pi_\theta}\!\left[\nabla_\theta r_\theta(\tau)\right].
+$$<p>Read this as a contrastive update: <em>push reward up where the expert goes, push it down where the current policy goes</em>. At convergence, the two expectations match and the policy reproduces the expert occupancy.</p>
+<p>The cost is the second expectation. Computing $\mathbb{E}_{\pi_\theta}$ requires solving an RL problem (or doing trajectory sampling) at every reward update &ndash; a nested loop that limited classical IRL to small grid worlds. <strong>Guided cost learning</strong> (Finn, Levine &amp; Abbeel, 2016) replaces the inner RL solve with sampled importance-weighted trajectories, scaling MaxEnt IRL to continuous control.</p>
+<h3 id="42-reward-ambiguity">4.2 Reward ambiguity</h3>
+<p>Even with the max-entropy regulariser, $\hat r$ is recovered up to <strong>shaping invariances</strong>: adding a potential function $\Phi(s') - \Phi(s)$ leaves the optimal policy unchanged but changes $r$. The recovered reward is therefore a useful <em>ranking</em> over states, not an absolute scale. Adversarial inverse RL (§5.2) explicitly disentangles the shaping component.</p>
+<hr>
+<h2 id="5-adversarial-imitation-gail-and-airl">5. Adversarial imitation: GAIL and AIRL</h2>
+<p>The IRL inner loop is expensive. <strong>GAIL</strong> (Ho &amp; Ermon, 2016) noticed that for imitation we don&rsquo;t actually need $r$ &ndash; we only need the policy whose state-action <em>occupancy</em> matches the expert&rsquo;s. So GAIL replaces &ldquo;recover reward, then re-solve RL&rdquo; with a single adversarial game.</p>
+<p>A discriminator $D_\phi(s, a)$ tries to tell expert pairs from policy pairs; the policy tries to fool it. The minimax objective is</p>
+<p>$$
+\min_\theta \max_\phi ;;
+\mathbb{E}<em>{(s,a)\sim \pi^*}!\left[\log D</em>\phi(s, a)\right]</p>
+<ul>
+<li>\mathbb{E}<em>{(s,a)\sim \pi</em>\theta}!\left[\log\big(1 - D_\phi(s, a)\big)\right]</li>
+</ul>
+<ul>
+<li>\lambda H(\pi_\theta).
+$$</li>
+</ul>
+<p>The entropy term $\lambda H(\pi_\theta)$ stabilises the generator and discourages mode collapse. At the saddle point, $\pi_\theta$&rsquo;s occupancy measure equals $\pi^*$&rsquo;s &ndash; which is exactly what BC was trying to do but without the supervision-vs-rollout mismatch.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig4_gail_architecture.png" alt="GAIL discriminator-generator architecture" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>In practice, the discriminator&rsquo;s score doubles as the per-step reward fed to a PPO update of the policy:</p>
+$$
+\hat r(s, a) \;=\; -\log\!\big(1 - D_\phi(s, a)\big) \quad\text{or}\quad \hat r(s, a) \;=\; -\log D_\phi(s, a).
+$$<p>Both forms appear in the literature; the first is the reward used in the original GAIL paper, the second has lower variance early in training.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GAIL</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Adversarial imitation via a learned discriminator reward.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">continuous</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span> <span class="o">=</span> <span class="n">continuous</span>
+</span></span><span class="line"><span class="cl">        <span class="n">in_dim</span> <span class="o">=</span> <span class="n">state_dim</span> <span class="o">+</span> <span class="n">action_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">disc_optim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                                           <span class="n">lr</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Policy / value networks: any standard PPO setup works (omitted).</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_sa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">reward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Per-step imitation reward used by the policy learner.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sa</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">r</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">d</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>   <span class="c1"># original GAIL reward</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update_discriminator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expert_sa</span><span class="p">,</span> <span class="n">policy_sa</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Binary cross entropy with labels: expert=0, policy=1.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">e_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">expert_sa</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">p_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">policy_sa</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">bce</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">bce</span><span class="p">(</span><span class="n">e_logits</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">e_logits</span><span class="p">))</span> <span class="o">+</span> \
+</span></span><span class="line"><span class="cl">               <span class="n">bce</span><span class="p">(</span><span class="n">p_logits</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">p_logits</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">disc_optim</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">();</span> <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">();</span> <span class="bp">self</span><span class="o">.</span><span class="n">disc_optim</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Tuning notes.</strong> Three failure modes dominate GAIL in practice:</p>
+<ul>
+<li><em>Discriminator wins too quickly.</em> Gradient through the policy reward vanishes. Mitigations: clip discriminator logits, use spectral normalisation, or enforce a Lipschitz constraint (WGAIL).</li>
+<li><em>Reward signal collapses.</em> As $D \to 0$ on policy samples, the reward drifts to zero. Reward normalisation per batch (running mean / std) restores learning.</li>
+<li><em>Policy mode-collapses.</em> Increase the entropy bonus $\lambda$ or use a maximum-entropy actor (SAC-style) as the generator.</li>
+</ul>
+<h3 id="51-what-does-matching-occupancy-actually-mean">5.1 What does &ldquo;matching occupancy&rdquo; actually mean?</h3>
+<p>GAIL is not minimising an action-prediction loss; it is minimising the Jensen-Shannon divergence between the expert occupancy $\rho_{\pi^*}(s, a)$ and the learner occupancy $\rho_{\pi_\theta}(s, a)$. That is a much stronger objective than BC &ndash; it is <em>aware</em> of the rollout distribution. The price: it requires environment interaction during training (to sample $\rho_{\pi_\theta}$), so it does not work in fully offline settings without modification.</p>
+<h3 id="52-airl-disentangling-reward-from-shaping">5.2 AIRL: disentangling reward from shaping</h3>
+<p>The discriminator GAIL learns is great for imitation but is <em>not</em> a reusable reward. <strong>AIRL</strong> (Fu, Luo &amp; Levine, 2018) restructures the discriminator as</p>
+$$
+D_\phi(s, a, s') \;=\; \frac{\exp\big(f_\phi(s, a, s')\big)}{\exp\big(f_\phi(s, a, s')\big) + \pi_\theta(a \mid s)},
+\qquad
+f_\phi(s, a, s') \;=\; r_\psi(s) + \gamma \Phi_\xi(s') - \Phi_\xi(s),
+$$<p>so that $r_\psi$ is the <em>state-only</em> reward and $\Phi_\xi$ absorbs the shaping. Training with this parameterisation yields a recovered reward $\hat r = r_\psi$ that transfers across dynamics changes &ndash; the empirical headline result of the AIRL paper.</p>
+<hr>
+<h2 id="6-sample-efficiency-imitation-vs-rl">6. Sample efficiency: imitation vs RL</h2>
+<p>The strongest practical argument for imitation is sample efficiency. A few thousand expert demonstrations can substitute for tens of millions of environment interactions, especially in high-dimensional control.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/07-imitation-learning/fig7_sample_efficiency.png" alt="Sample efficiency: imitation vs RL" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The pattern in the left panel is robust across robotics benchmarks: BC saturates below the expert (it cannot exceed its training data), DAgger climbs once it sees recovery states, GAIL eventually matches the expert, and pure RL takes much longer to reach the same level. The right panel makes the trade-off concrete: methods that consume more expert data tend to need fewer environment steps, and vice versa.</p>
+<p>This is also why <strong>imitation pre-training + RL fine-tuning</strong> is the dominant recipe in modern systems &ndash; AlphaStar, robotic manipulation, and InstructGPT all start with imitation and then improve with RL.</p>
+<hr>
+<h2 id="7-method-selection">7. Method selection</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Method</th>
+          <th>Needs interactive expert?</th>
+          <th>Needs env interaction?</th>
+          <th>Sample efficiency</th>
+          <th>Interpretable reward?</th>
+          <th>Typical regime</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>BC</td>
+          <td>no</td>
+          <td>no</td>
+          <td>high (offline)</td>
+          <td>no</td>
+          <td>short tasks, abundant logs</td>
+      </tr>
+      <tr>
+          <td>DAgger</td>
+          <td><strong>yes</strong></td>
+          <td>yes</td>
+          <td>medium-high</td>
+          <td>no</td>
+          <td>algorithmic / model expert available</td>
+      </tr>
+      <tr>
+          <td>MaxEnt IRL</td>
+          <td>no</td>
+          <td>yes (inner loop)</td>
+          <td>low</td>
+          <td><strong>yes</strong></td>
+          <td>small state spaces, need transfer</td>
+      </tr>
+      <tr>
+          <td>GAIL</td>
+          <td>no</td>
+          <td>yes</td>
+          <td>medium</td>
+          <td>no</td>
+          <td>high-dim continuous control</td>
+      </tr>
+      <tr>
+          <td>AIRL</td>
+          <td>no</td>
+          <td>yes</td>
+          <td>medium</td>
+          <td>yes (state reward)</td>
+          <td>want to transfer reward across tasks</td>
+      </tr>
+  </tbody>
+</table>
+<p>A short decision rule:</p>
+<ul>
+<li><strong>Static log of demonstrations, short horizon</strong> → start with <strong>BC</strong>. Add early stopping and standardisation; consider an ensemble for uncertainty.</li>
+<li><strong>You can <em>query</em> the expert at training time</strong> → <strong>DAgger</strong>. The linear-error guarantee is the cheapest improvement you will ever buy.</li>
+<li><strong>You need to <em>understand</em> what the expert wants, or to transfer it to a different environment</strong> → <strong>MaxEnt IRL</strong> for small problems, <strong>AIRL</strong> for continuous control.</li>
+<li><strong>High-dimensional continuous control with a static dataset and an environment you can interact with</strong> → <strong>GAIL</strong>. Budget for adversarial-training instability.</li>
+</ul>
+<hr>
+<h2 id="8-frequently-asked-questions">8. Frequently asked questions</h2>
+<p><strong>Can imitation learning exceed the expert?</strong>
+Pure imitation cannot, by construction &ndash; the optimal imitator matches the expert. The standard fix is <em>imitation as initialisation</em>: start from the BC/GAIL policy and fine-tune with RL on whatever reward you <em>can</em> specify (or with RLHF). Most large-scale systems use exactly this two-stage recipe.</p>
+<p><strong>How do I handle noisy or suboptimal expert demonstrations?</strong>
+Three lines of defence: (i) weight samples by an estimated quality score (e.g. return, human preference); (ii) replace cross-entropy with a robust loss (Huber, log-cosh) to discount outliers; (iii) use offline RL on the demonstrations &ndash; methods such as IQL or CQL handle suboptimal trajectories gracefully.</p>
+<p><strong>The expert is multimodal &ndash; different actions in the same state. What now?</strong>
+Standard MSE-BC averages the modes and produces dangerous in-between actions (the classic &ldquo;drive into the obstacle because half the demos go left and half go right&rdquo; failure). Use a Mixture Density Network, a discrete-action quantised policy, a conditional VAE, or a diffusion policy. Diffusion policies (Chi et al., 2023) currently dominate on multimodal manipulation tasks.</p>
+<p><strong>Can BC handle distribution shift if I just collect more data?</strong>
+Up to a point. More data shrinks $\varepsilon$ but does not change the $T^2$ exponent. Once your horizon is long enough that the policy ever leaves the support of $\mathcal{D}$, you need either DAgger-style relabelling, GAIL-style occupancy matching, or <em>conservative</em> offline RL (CQL, IQL) that explicitly penalises out-of-support actions.</p>
+<p><strong>Is RLHF a kind of imitation learning?</strong>
+Partly. The supervised fine-tuning stage of RLHF is BC on human-written demonstrations. The preference-modelling stage is closer to an IRL variant &ndash; you learn a reward model from comparisons, then optimise it with PPO. We unpack the full pipeline in <a href="/en/reinforcement-learning-12-rlhf-and-llm-applications/">Part 12</a>
+.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Pomerleau, D. (1989). <em>ALVINN: An Autonomous Land Vehicle in a Neural Network</em>. NIPS.</li>
+<li>Ross, S., Gordon, G., &amp; Bagnell, J. A. (2011). <em>A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning</em>. AISTATS. arXiv:1011.0686.</li>
+<li>Ziebart, B., Maas, A., Bagnell, J. A., &amp; Dey, A. (2008). <em>Maximum Entropy Inverse Reinforcement Learning</em>. AAAI.</li>
+<li>Finn, C., Levine, S., &amp; Abbeel, P. (2016). <em>Guided Cost Learning</em>. ICML. arXiv:1603.00448.</li>
+<li>Ho, J., &amp; Ermon, S. (2016). <em>Generative Adversarial Imitation Learning</em>. NeurIPS. arXiv:1606.03476.</li>
+<li>Fu, J., Luo, K., &amp; Levine, S. (2018). <em>Learning Robust Rewards with Adversarial Inverse Reinforcement Learning</em>. ICLR. arXiv:1710.11248.</li>
+<li>Chi, C. et al. (2023). <em>Diffusion Policy: Visuomotor Policy Learning via Action Diffusion</em>. RSS. arXiv:2303.04137.</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series navigation</h2>
+<ul>
+<li><strong>Previous</strong>: <a href="/en/reinforcement-learning-6-advanced-policy-optimization/">Part 6 &ndash; Advanced Policy Optimization</a>
+</li>
+<li><strong>Next</strong>: <a href="/en/reinforcement-learning-8-alphago-and-mcts/">Part 8 &ndash; AlphaGo and Monte Carlo Tree Search</a>
+</li>
+<li><a href="/tags/Reinforcement-Learning/">View all 12 parts in the RL series</a>
+</li>
+</ul>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">Previous</div>
+      <span class="title" style="color: var(--ink-faint)">—</span>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/reinforcement-learning/08-alphago-and-mcts/"><span class="title">Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#1-problem-setting">1. Problem setting</a></li>
+    <li><a href="#2-behavioral-cloning">2. Behavioral cloning</a>
+      <ul>
+        <li><a href="#21-why-bc-fails-on-long-horizons">2.1 Why BC fails on long horizons</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-dagger-dataset-aggregation">3. DAgger: dataset aggregation</a></li>
+    <li><a href="#4-inverse-reinforcement-learning">4. Inverse reinforcement learning</a>
+      <ul>
+        <li><a href="#41-maximum-entropy-irl">4.1 Maximum-entropy IRL</a></li>
+        <li><a href="#42-reward-ambiguity">4.2 Reward ambiguity</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-adversarial-imitation-gail-and-airl">5. Adversarial imitation: GAIL and AIRL</a>
+      <ul>
+        <li><a href="#51-what-does-matching-occupancy-actually-mean">5.1 What does &ldquo;matching occupancy&rdquo; actually mean?</a></li>
+        <li><a href="#52-airl-disentangling-reward-from-shaping">5.2 AIRL: disentangling reward from shaping</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-sample-efficiency-imitation-vs-rl">6. Sample efficiency: imitation vs RL</a></li>
+    <li><a href="#7-method-selection">7. Method selection</a></li>
+    <li><a href="#8-frequently-asked-questions">8. Frequently asked questions</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Reinforcement Learning</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3100</strong></div>
+      <div class="row"><span>Published</span><strong>Aug 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

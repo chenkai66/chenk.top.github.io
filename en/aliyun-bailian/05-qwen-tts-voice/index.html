@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/aliyun-bailian/05-qwen-tts-voice/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Aliyun Bailian (5): Qwen-TTS for Multilingual Voice · Chen Kai Blog</title>
+<meta name="description" content="Qwen-TTS-Flash for production: native-only API, the 40&#43; voice catalog (including Cantonese and Sichuanese), streaming synthesis, and the SSML quirks that the docs gloss over.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/aliyun-bailian/05-qwen-tts-voice/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-bailian/05-qwen-tts-voice/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-bailian/05-qwen-tts-voice/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/aliyun-bailian/05-qwen-tts-voice/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Aliyun Bailian (5): Qwen-TTS for Multilingual Voice">
+<meta property="og:description" content="Qwen-TTS-Flash for production: native-only API, the 40&#43; voice catalog (including Cantonese and Sichuanese), streaming synthesis, and the SSML quirks that the docs gloss over.">
+<meta property="og:url" content="https://www.chenk.top/en/aliyun-bailian/05-qwen-tts-voice/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Aliyun Bailian</a>
+         · Chapter 5
+      </div>
+      <h1>Aliyun Bailian (5): Qwen-TTS for Multilingual Voice</h1>
+      <p class="deck">Qwen-TTS-Flash for production: native-only API, the 40&#43; voice catalog (including Cantonese and Sichuanese), streaming synthesis, and the SSML quirks that the docs gloss over.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-03-01">March 1, 2026</time> · 2 min read · 1000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/aliyun-bailian/" class="tag">#Aliyun Bailian</a><a href="/en/tags/qwen-tts/" class="tag">#Qwen-TTS</a><a href="/en/tags/tts/" class="tag">#TTS</a><a href="/en/tags/voice/" class="tag">#Voice</a><a href="/en/tags/audio/" class="tag">#Audio</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/aliyun-bailian/05-qwen-tts-voice/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>The reason every Chinese-language product I&rsquo;ve worked on ends up calling Qwen-TTS-Flash isn&rsquo;t price — there are cheaper TTS APIs. It&rsquo;s that Qwen-TTS is the only one that handles <strong>mainland Chinese dialects</strong> (Cantonese, Sichuanese, Wu) and English in the same SDK, with voices that don&rsquo;t sound like a 2019 customs announcement. After about six months of using it for a marketing-video voice-over pipeline, this is what I wish someone had told me on day one.</p>
+<h2 id="voice-catalog">Voice catalog</h2>
+<p>Per the model card, Qwen-TTS-Flash exposes 40+ voices. The ones I use most:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/fig1_tts_voice_map.png" alt="Qwen-TTS voice catalogue" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>For Mandarin product narration my default is <code>Cherry</code> (warm, 30-something female) for marketing content and <code>Ethan</code> (steady, 40-something male) for tutorial / explainer content. For Cantonese ad spots <code>Sunny</code> is the safe choice. The voice names are stable but new voices are added regularly — fetch the canonical list from the model card before you pin one in production code.</p>
+<h2 id="native-api-only">Native API only</h2>
+<p>Qwen-TTS does not go through the OpenAI compat layer. You call it via the DashScope native SDK:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/fig2_tts_request_flow.png" alt="Qwen-TTS native call structure" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A minimal request:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">dashscope</span><span class="o">,</span> <span class="nn">requests</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dashscope.audio.qwen_tts</span> <span class="kn">import</span> <span class="n">SpeechSynthesizer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">dashscope</span><span class="o">.</span><span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;DASHSCOPE_API_KEY&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">SpeechSynthesizer</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3-tts-flash&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">text</span><span class="o">=</span><span class="s2">&#34;欢迎来到杭州，全城最安静的咖啡馆就在西湖边上。&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">voice</span><span class="o">=</span><span class="s2">&#34;Cherry&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">format</span><span class="o">=</span><span class="s2">&#34;mp3&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">audio_url</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">audio</span><span class="p">[</span><span class="s2">&#34;url&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&#34;/tmp/out.mp3&#34;</span><span class="p">,</span> <span class="s2">&#34;wb&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">audio_url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Two things to underline:</p>
+<ul>
+<li>The output is a <em>URL</em> by default, not bytes. Same as Wanxiang, <strong>download it within 24 hours</strong> (I do it immediately and re-upload to my own OSS bucket).</li>
+<li><code>format</code> defaults to <code>mp3</code>. WAV is also available; for downstream concatenation work I prefer WAV because there&rsquo;s no MP3 header overhead per chunk.</li>
+</ul>
+<h2 id="streaming-tts--when-latency-matters">Streaming TTS — when latency matters</h2>
+<p>For voice-bot use cases (real-time conversational UIs) you want streaming. The deltas are audio bytes you can write straight to a player or a file:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/05-qwen-tts-voice/fig3_tts_streaming.png" alt="Streaming TTS" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dashscope.audio.qwen_tts</span> <span class="kn">import</span> <span class="n">SpeechSynthesizer</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&#34;/tmp/streamed.mp3&#34;</span><span class="p">,</span> <span class="s2">&#34;wb&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">resp</span> <span class="ow">in</span> <span class="n">SpeechSynthesizer</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3-tts-flash&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">text</span><span class="o">=</span><span class="s2">&#34;这段语音是从模型那边一段一段流式返回的。&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">voice</span><span class="o">=</span><span class="s2">&#34;Cherry&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">output</span> <span class="ow">and</span> <span class="n">resp</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">audio</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">audio</span><span class="p">[</span><span class="s2">&#34;data&#34;</span><span class="p">])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Time-to-first-byte on streaming is typically under 400ms in Shanghai region, which is fast enough that a user perceives it as immediate. Non-streaming for a 30-second utterance is closer to 4-6 seconds wall clock — fine for batch narration, sluggish for chat.</p>
+<h2 id="multi-language-and-dialect-specifics">Multi-language and dialect specifics</h2>
+<p>Qwen-TTS does language <em>detection</em> from the text, but if you mix scripts you should set <code>language</code> explicitly. My production rules:</p>
+<ul>
+<li>Pure Mandarin text → <code>language=&quot;zh&quot;</code> (default).</li>
+<li>Pure English text → <code>language=&quot;en&quot;</code>. Voices like <code>Eric</code> shine here.</li>
+<li>Cantonese text in Traditional Chinese → <code>language=&quot;zh-yue&quot;</code>, voice <code>Sunny</code> or <code>Lily</code>.</li>
+<li>Mixed CJK + English (the common case for tech narration) → leave language unset, the model handles code-switch surprisingly well.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> For dialect work, <strong>always</strong> A/B against native speakers before launch. Qwen-TTS Cantonese is good but not perfect on tones — a one-syllable tone error in Cantonese can change the meaning entirely.</p>
+</blockquote>
+<h2 id="ssml--what-works-what-doesnt">SSML — what works, what doesn&rsquo;t</h2>
+<p>The docs list SSML support but are quiet about which tags actually behave. From experience:</p>
+<ul>
+<li><code>&lt;break time=&quot;500ms&quot;/&gt;</code> — works. Use for pauses between sentences in marketing copy.</li>
+<li><code>&lt;emphasis level=&quot;strong&quot;&gt;</code> — works.</li>
+<li><code>&lt;prosody rate=&quot;slow&quot;&gt;</code> — works. <code>slow</code>, <code>medium</code>, <code>fast</code>, or numeric percentage.</li>
+<li><code>&lt;prosody pitch=&quot;...&quot;&gt;</code> — works for relative changes (e.g. <code>+10%</code>).</li>
+<li><code>&lt;say-as interpret-as=&quot;digits&quot;&gt;</code> — works for phone numbers, codes, dates.</li>
+<li><code>&lt;phoneme&gt;</code> — partial. Tone-marked pinyin is more reliable than IPA on Chinese.</li>
+<li><code>&lt;voice&gt;</code> — does NOT work. You cannot mid-utterance switch voice. Use separate calls and concatenate.</li>
+</ul>
+<h2 id="concatenating-clips-for-narration">Concatenating clips for narration</h2>
+<p>Marketing scripts are long. The pattern for a 60-second voiceover:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">synthesize_long</span><span class="p">(</span><span class="n">script</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">voice</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;Cherry&#34;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sentences</span> <span class="o">=</span> <span class="n">split_sentences</span><span class="p">(</span><span class="n">script</span><span class="p">)</span>  <span class="c1"># your splitter; basic regex is fine</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sentences</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">resp</span> <span class="o">=</span> <span class="n">SpeechSynthesizer</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3-tts-flash&#34;</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">s</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                       <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&#34;wav&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">download</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">audio</span><span class="p">[</span><span class="s2">&#34;url&#34;</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># ffmpeg concat is the simplest reliable concat for WAV</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">concat_wavs</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s2">&#34;/tmp/full.wav&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Why split? Two reasons: (1) per-call latency is much lower for short utterances, so synthesizing in parallel is faster; (2) you can patch a single bad sentence by re-rolling just that one without redoing the whole take. We use this for ad spots — the <code>&lt;break&gt;</code> tags handle the inter-sentence pauses, and the parallel synth means a 60-second clip is ready in ~4 seconds.</p>
+<h2 id="cost">Cost</h2>
+<p>Per-second-of-output-audio billing. Streaming and non-streaming bill identically. A 60-second ad spot is in the few-RMB range — much cheaper than the cost of a voice actor&rsquo;s hourly rate, and fast enough for the marketing team to iterate dozens of variations in an afternoon.</p>
+<h2 id="closing-the-series">Closing the series</h2>
+<p>That&rsquo;s the five. To recap:</p>
+<ul>
+<li><strong>Article 1</strong> — Bailian / DashScope orientation.</li>
+<li><strong>Article 2</strong> — the Qwen LLM family and the fiddly bits (function calling, JSON mode, <code>enable_thinking</code>).</li>
+<li><strong>Article 3</strong> — Qwen-Omni for multimodal understanding.</li>
+<li><strong>Article 4</strong> — Wanxiang for video generation.</li>
+<li><strong>Article 5</strong> — Qwen-TTS for voice (this article).</li>
+</ul>
+<p>The companion <strong>Aliyun PAI</strong> series covers DSW / DLC / EAS — the <em>self-managed</em> GPU layer where you train and serve your own models. Most teams I work with end up using both: Bailian when they want someone else&rsquo;s pre-trained model, PAI when they need control of the weights. Pick by what you actually need to control, not by what looks more impressive on a resume.</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/"><span class="title">Aliyun Bailian (4): Wanxiang Video Generation End-to-End</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next</div>
+      <span class="title" style="color: var(--ink-faint)">—</span>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#voice-catalog">Voice catalog</a></li>
+    <li><a href="#native-api-only">Native API only</a></li>
+    <li><a href="#streaming-tts--when-latency-matters">Streaming TTS — when latency matters</a></li>
+    <li><a href="#multi-language-and-dialect-specifics">Multi-language and dialect specifics</a></li>
+    <li><a href="#ssml--what-works-what-doesnt">SSML — what works, what doesn&rsquo;t</a></li>
+    <li><a href="#concatenating-clips-for-narration">Concatenating clips for narration</a></li>
+    <li><a href="#cost">Cost</a></li>
+    <li><a href="#closing-the-series">Closing the series</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Aliyun Bailian</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>2 min</strong></div>
+      <div class="row"><span>Word count</span><strong>1000</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

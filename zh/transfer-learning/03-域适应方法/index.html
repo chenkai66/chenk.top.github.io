@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>迁移学习（三）：域适应 · Chen Kai Blog</title>
+<meta name="description" content="域适应实战指南：协变量偏移、标签偏移、DANN 梯度反转、MMD 对齐、CORAL、自训练、AdaBN，以及一份可运行的 DANN 完整实现。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="迁移学习（三）：域适应">
+<meta property="og:description" content="域适应实战指南：协变量偏移、标签偏移、DANN 梯度反转、MMD 对齐、CORAL、自训练、AdaBN，以及一份可运行的 DANN 完整实现。">
+<meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">迁移学习</a>
+         · Chapter 3
+      </div>
+      <h1>迁移学习（三）：域适应</h1>
+      <p class="deck">域适应实战指南：协变量偏移、标签偏移、DANN 梯度反转、MMD 对齐、CORAL、自训练、AdaBN，以及一份可运行的 DANN 完整实现。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-05-13">May 13, 2025</time> · 13 min read · 6500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a><a href="/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/" class="tag">#迁移学习</a><a href="/zh/tags/%E5%9F%9F%E9%80%82%E5%BA%94/" class="tag">#域适应</a><a href="/zh/tags/mmd/" class="tag">#MMD</a><a href="/zh/tags/dann/" class="tag">#DANN</a><a href="/zh/tags/%E5%88%86%E5%B8%83%E5%81%8F%E7%A7%BB/" class="tag">#分布偏移</a><a href="/zh/tags/%E5%AF%B9%E6%8A%97%E5%AD%A6%E4%B9%A0/" class="tag">#对抗学习</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>你的自动驾驶模型在加州的晴天里跑得无懈可击。然后一进西雅图就开始下雨，Top-1 准确率从 95% 跌到 70%。模型本身没有变差——是<strong>数据分布</strong>变了，而你的训练集从未告诉它&quot;傍晚的湿沥青&quot;长什么样子。</p>
+<p>这就是**域适应（domain adaptation）**要解决的日常问题：源域有大量标注数据，目标域只有未标注数据，但模型必须在目标域上跑出业务可接受的性能。本文从理论第一原理一路推到一份可运行的 DANN 实现。</p>
+<h2 id="你将学到">你将学到</h2>
+<ul>
+<li>三种分布偏移——协变量偏移、标签偏移、概念偏移——以及各自的标准修正方法</li>
+<li>Ben-David 上界：为什么域适应有理论可能性，以及它确切告诉我们要去最小化哪个量</li>
+<li>DANN：用梯度反转层在一次反向传播里完成对抗对齐</li>
+<li>MMD 与 CORAL：两种非对抗的、显式的分布对齐损失</li>
+<li>自训练、AdaBN、CycleGAN、ADDA——现代工具箱里的其他常用件</li>
+<li>一份完整的 PyTorch DANN 实现</li>
+<li>一棵方法选择决策树，以及 Office-31 / DomainNet 上的对比数字</li>
+</ul>
+<p>**前置：**本系列第 1、2 章；对 GAN 式对抗训练有基本了解。</p>
+<hr>
+<h2 id="1-分布偏移的三种面孔">1. 分布偏移的三种面孔</h2>
+<p>**域（domain）**由特征空间 $\mathcal{X}$ 和边缘分布 $P(X)$ 构成；**任务（task）**由标签空间 $\mathcal{Y}$ 和条件分布 $P(Y \mid X)$ 构成。域适应研究的就是源域和目标域在其中某一项上不一致时该怎么办。</p>
+<table>
+  <thead>
+      <tr>
+          <th>设定</th>
+          <th>源域 $\mathcal{D}_S$</th>
+          <th>目标域 $\mathcal{D}_T$</th>
+          <th>目标</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>数据</td>
+          <td>大量带标注 $(x_i, y_i)$</td>
+          <td>大多无标注 $x_j$</td>
+          <td>学到 $f: \mathcal{X} \to \mathcal{Y}$，在 $\mathcal{D}_T$ 上工作</td>
+      </tr>
+  </tbody>
+</table>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/fig1_distribution_shift.png" alt="源域与目标域的特征对齐" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>整张图就是问题的全部：适应之前，源域学到的判别边界穿过了目标域几乎没有数据的空白区；适应之后，两个域共享同一个特征流形，同一条边界对两边都成立。</p>
+<h3 id="11-协变量偏移输入分布变了">1.1 协变量偏移——输入分布变了</h3>
+$$P_S(X) \neq P_T(X), \qquad P_S(Y \mid X) = P_T(Y \mid X)$$<p><strong>标注规则</strong>没变，只是观测到的东西不一样了：</p>
+<ul>
+<li>用 2020 年邮件训练的垃圾邮件分类器在 2026 年部署：主题在变，但&quot;什么是垃圾邮件&quot;的判断标准没变。</li>
+<li>西门子 CT 上训练的模型在 GE CT 上推断：成像特性不一样，但放射科医生看片子的诊断标准是一样的。</li>
+</ul>
+<p><strong>标准做法——重要性加权。<strong>给每个源样本乘上密度比 $w(x) = P_T(x) / P_S(x)$，加权后的源域 ERM 就在估计</strong>目标域</strong>风险：</p>
+$$\mathbb{E}_{P_T}[\ell(f(X), Y)] = \mathbb{E}_{P_S}\!\left[\frac{P_T(X)}{P_S(X)}\,\ell(f(X), Y)\right].$$<p>高维下直接估密度无望，所以工程上直接估<strong>比值</strong>——KLIEP、uLSIF，或者训练一个分类器区分源/目标，贝叶斯最优分类器的 logit 等价于这个比值。</p>
+<h3 id="12-标签偏移类别先验变了">1.2 标签偏移——类别先验变了</h3>
+$$P_S(Y) \neq P_T(Y), \qquad P_S(X \mid Y) = P_T(X \mid Y)$$<p>类别条件下的样本长得没变，只是类别比例变了：</p>
+<ul>
+<li>ICU 病人数据训练的模型部署到门诊，疾病流行率天差地别。</li>
+<li>在年轻用户里做 A/B 测出来的推荐模型，铺到全年龄段用户。</li>
+</ul>
+<p>**标准做法。**用 EM（BBSE / RLLS）在无标注目标数据上估 $P_T(Y)$，然后把源域模型的输出概率按 $P_T(y) / P_S(y)$ 重新加权再归一化。</p>
+<h3 id="13-概念偏移规则本身变了">1.3 概念偏移——规则本身变了</h3>
+$$P_S(Y \mid X) \neq P_T(Y \mid X)$$<p>最难的一种。&ldquo;sick&rdquo; 在音乐评论里是褒义（&ldquo;这段 beat 太 sick 了&rdquo;），在产品评论里是贬义——同一个词，不同的标签。如果<strong>完全没有目标域标签</strong>，没人能解开这个绳结，必须至少有少量目标域标注（半监督 DA）。</p>
+<hr>
+<h2 id="2-理论ben-david-上界">2. 理论：Ben-David 上界</h2>
+<p>为什么&quot;对齐分布&quot;这件事在理论上行得通？经典答案是 Ben-David 等人 (2010) 的上界。对任意假设 $h \in \mathcal{H}$：</p>
+$$
+\epsilon_T(h) \;\leq\; \epsilon_S(h) \;+\; \tfrac{1}{2}\, d_{\mathcal{H}\Delta\mathcal{H}}(\mathcal{D}_S, \mathcal{D}_T) \;+\; \lambda^{*}.
+$$<table>
+  <thead>
+      <tr>
+          <th>项</th>
+          <th>含义</th>
+          <th>你能做什么</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>$\epsilon_S(h)$</td>
+          <td>源域风险</td>
+          <td>把源域训得更好</td>
+      </tr>
+      <tr>
+          <td>$d_{\mathcal{H}\Delta\mathcal{H}}$</td>
+          <td>两个域的对称差散度</td>
+          <td><strong>这一项就是域适应在压缩的东西</strong></td>
+      </tr>
+      <tr>
+          <td>$\lambda^{*}$</td>
+          <td>联合最优预测器的误差</td>
+          <td>不可压缩——它若大，无解</td>
+      </tr>
+  </tbody>
+</table>
+<p>两条结论：</p>
+<ol>
+<li>**域适应被一个 oracle 上界卡死。**如果源域和目标域的任务在本质上不一样（$\lambda^*$ 大），任何方法都救不了你——你需要的是新标注，不是更花的损失函数。</li>
+<li>**域散度有一个能跑的代理。**训练一个二分类器区分源域和目标域特征，如果它的准确率接近 50%，说明你的特征已经域不变了。<strong>这正是 DANN 自动化的机制。</strong></li>
+</ol>
+<hr>
+<h2 id="3-dann一次反向传播完成的对抗对齐">3. DANN：一次反向传播完成的对抗对齐</h2>
+<p><strong>域对抗神经网络</strong>（Ganin 等，2016）是最有影响力的对抗式方法，也是对&quot;压缩域散度代理&quot;这一思想最干净的实现。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/fig2_dann_architecture.png" alt="DANN 架构与梯度反转层" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="31-三个子网共享一个主干">3.1 三个子网共享一个主干</h3>
+<table>
+  <thead>
+      <tr>
+          <th>子网</th>
+          <th>角色</th>
+          <th>训练数据</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>特征提取器</strong> $G_f$</td>
+          <td>$x \mapsto f = G_f(x)$</td>
+          <td>源 + 目标</td>
+      </tr>
+      <tr>
+          <td><strong>标签预测器</strong> $G_y$</td>
+          <td>$f \mapsto \hat{y}$</td>
+          <td>源域标签</td>
+      </tr>
+      <tr>
+          <td><strong>域判别器</strong> $G_d$</td>
+          <td>$f \mapsto$ 源/目标</td>
+          <td>源 + 目标</td>
+      </tr>
+  </tbody>
+</table>
+<p>目标函数是一个 minimax：</p>
+$$
+\min_{G_f,\, G_y}\; \max_{G_d}\quad \mathcal{L}_y(G_y \circ G_f) \;-\; \lambda\, \mathcal{L}_d(G_d \circ G_f).
+$$<p>$G_d$ 想把两个域分开，$G_f$ 想糊弄 $G_d$ 同时让 $G_y$ 把源域分类做好。</p>
+<h3 id="32-梯度反转层grl">3.2 梯度反转层（GRL）</h3>
+<p>朴素地解 minimax 需要交替优化，又脆弱又难调（早期 GAN 的痛）。DANN 的关键贡献是用<strong>梯度反转层</strong>把整套系统拆成<strong>一次</strong>反向传播：</p>
+$$
+\text{前向：}\; \text{GRL}(x) = x, \qquad
+\text{反向：}\; \frac{\partial\,\text{GRL}}{\partial x} = -\lambda\, I.
+$$<p>GRL 装在&quot;特征 → 域判别器&quot;这条路径上。反传时，判别器的梯度在到达 $G_f$ 之前先翻号，所以同一次 <code>loss.backward()</code> 就能：</p>
+<ul>
+<li>用正常梯度更新 $G_y$（分类做得更好）；</li>
+<li>用正常梯度更新 $G_d$（判别做得更准）；</li>
+<li>用<strong>反向后</strong>的梯度更新 $G_f$（让 $G_d$ 越来越分不清域），同时仍接收 $G_y$ 传回的正常梯度。</li>
+</ul>
+<p>不需要交替训练、不需要两个优化器、不需要手动冻结。</p>
+<h3 id="33-对抗权重的退火表">3.3 对抗权重的退火表</h3>
+<p>DANN 不会一上来就把 $\lambda$ 拉满——那样会摧毁早期学习。它走一条 sigmoid 曲线：</p>
+$$\lambda_p = \frac{2}{1 + \exp(-\gamma p)} - 1, \qquad \gamma \approx 10,$$<p>其中 $p \in [0, 1]$ 是训练进度。早期 $\lambda \approx 0$，模型先专心学到好的源域特征；后期 $\lambda \to 1$，域对齐才真正发力。<strong>省掉这个退火</strong>，是 &ldquo;DANN 跑了但反而比 source-only 还差&quot;的最常见原因，没有之一。</p>
+<hr>
+<h2 id="4-mmd在-rkhs-里对齐均值">4. MMD：在 RKHS 里对齐均值</h2>
+<p>对抗式很强，但训练不稳定。非对抗替代方案是：<strong>显式定义一个分布距离，然后直接最小化它</strong>。<strong>最大均值差异</strong>（Gretton 等，2012）是该方向的标准选择。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/fig3_mmd_kernel.png" alt="最大均值差异：核均值嵌入" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="41-想法">4.1 想法</h3>
+<p>核函数 $k(x, y) = \langle \phi(x), \phi(y) \rangle_{\mathcal{H}}$ 隐式地把样本映到一个（可能无限维的）再生核希尔伯特空间 $\mathcal{H}$。分布 $P$ 的<strong>核均值嵌入</strong>是其特征均值</p>
+$$\mu_P = \mathbb{E}_{X \sim P}[\phi(X)] \;\in\; \mathcal{H}.$$<p>对于<strong>特征核</strong>（高斯 RBF 是经典代表），映射 $P \mapsto \mu_P$ 是单射的——两个分布相等 当且仅当 它们的核均值相等。所以分布距离就是核均值在 RKHS 里的距离：</p>
+$$\text{MMD}^2(P_S, P_T) = \|\mu_{P_S} - \mu_{P_T}\|_{\mathcal{H}}^2.$$<p>图示给出了直观感受：哪怕原始直方图有点重叠，核均值嵌入会把&quot;差距&quot;显式画出来，阴影面积正是 $\text{MMD}^2$。</p>
+<h3 id="42-真正能算的估计量">4.2 真正能算的估计量</h3>
+<p>嵌入是隐式的，把平方范数展开后内积就变成核值评估：</p>
+$$
+\widehat{\text{MMD}}^2 = \frac{1}{n_s^2}\sum_{i,j} k(x_i^s, x_j^s) + \frac{1}{n_t^2}\sum_{i,j} k(x_i^t, x_j^t) - \frac{2}{n_s n_t}\sum_{i,j} k(x_i^s, x_j^t).
+$$<p>它对特征可微，可以直接当一项额外损失加进深度网络：</p>
+$$\mathcal{L} = \mathcal{L}_{\text{task}} + \lambda \cdot \widehat{\text{MMD}}^2\!\big(G_f(X_S),\, G_f(X_T)\big).$$<p>这就是 <strong>DAN / DDC</strong>（Long 等，2015；Tzeng 等，2014）。</p>
+<h3 id="43-工程提示">4.3 工程提示</h3>
+<ul>
+<li>**用多核 MMD。**多个不同带宽的高斯核线性组合 $k = \sum_u \beta_u k_{\sigma_u}$，对带宽误设鲁棒。</li>
+<li>**带宽选择用 median heuristic。**取一个 batch 内成对距离的中位数——便宜、鲁棒，绝大多数情况够用。</li>
+<li>**对靠后的层做 MMD。**底层带域特异性纹理；要对齐的是顶部的抽象表示。</li>
+</ul>
+<h3 id="44-mmd-与-dann-一图对比">4.4 MMD 与 DANN 一图对比</h3>
+<table>
+  <thead>
+      <tr>
+          <th></th>
+          <th>MMD</th>
+          <th>DANN</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>距离</td>
+          <td>核 RKHS 范数</td>
+          <td>Jensen–Shannon（通过判别器）</td>
+      </tr>
+      <tr>
+          <td>优化</td>
+          <td>直接最小化</td>
+          <td>对抗 minimax（GRL）</td>
+      </tr>
+      <tr>
+          <td>稳定性</td>
+          <td>非常稳定</td>
+          <td>偶尔震荡</td>
+      </tr>
+      <tr>
+          <td>表达力</td>
+          <td>受核选择限制</td>
+          <td>更灵活</td>
+      </tr>
+      <tr>
+          <td>适合场景</td>
+          <td>中小差距、数据少</td>
+          <td>差距大、数据足</td>
+      </tr>
+  </tbody>
+</table>
+<p>合理的默认工作流：先 MMD 试一把；不够再上 DANN。</p>
+<hr>
+<h2 id="5-coral对齐二阶统计量">5. CORAL：对齐二阶统计量</h2>
+<p>如果对齐均值是好事，那么同时对齐<strong>均值和协方差</strong>通常更好。<strong>CORAL</strong>（Sun &amp; Saenko，2016）就这么做。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/fig4_coral_covariance.png" alt="CORAL 协方差对齐" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>设源、目标特征的协方差矩阵分别为 $C_S$、$C_T$，CORAL 损失为</p>
+$$\mathcal{L}_{\text{CORAL}} = \frac{1}{4 d^2} \|C_S - C_T\|_F^2.$$<p>**直觉——白化 + 重新着色。**给源特征左乘 $C_S^{-1/2} C_T^{1/2}$，先把源协方差&quot;擦掉&rdquo;，再&quot;涂上&quot;目标协方差。Deep CORAL 把上面这个损失加到深度网络里，让梯度隐式完成同样的事。</p>
+<p>CORAL 极其便宜（每个 batch 一次矩阵和一次 Frobenius 范数）、完全确定性，在轻度偏移下出奇地能打。在掏出 MMD/DANN 之前，它是非常值得一试的基线。</p>
+<hr>
+<h2 id="6-adabn永远第一个尝试的免费午餐">6. AdaBN：永远第一个尝试的免费午餐</h2>
+<p>最简单的一招：<strong>在目标数据上重新统计 Batch Norm 的均值和方差</strong>。</p>
+<p>标准 BN 在测试时用的是训练期间累计的 running mean/variance。如果目标分布不一样，这些统计量就是错的，而它们坐在每一个卷积层和下一个非线性之间。AdaBN（Li 等，2017）：</p>
+<ol>
+<li>正常在源域上训练。</li>
+<li>冻结权重，把无标注目标数据正向跑一遍，重新算每一层 BN 的 $\mu_T, \sigma_T^2$。</li>
+<li>部署时用目标域的统计量替换源域的。</li>
+</ol>
+<p>成本：几分钟。代码改动：几个 <code>BatchNorm</code> 的 running stats。效果：在协变量偏移下常能拿回 2–10 个点的准确率。<strong>任何更花的方法之前先做这一步。</strong></p>
+<hr>
+<h2 id="7-gan-式与像素级适应">7. GAN 式与像素级适应</h2>
+<p>有时候差距是视觉性的——合成 vs. 真实、白天 vs. 黑夜——光对齐<strong>特征</strong>已经太晚了，你需要直接翻译<strong>输入</strong>。</p>
+<ul>
+<li><strong>CycleGAN</strong> 同时学两个生成器 $G: \mathcal{X}_S \to \mathcal{X}_T$ 和 $F: \mathcal{X}_T \to \mathcal{X}_S$，加上循环一致性 $F(G(x)) \approx x$。把源图像翻译到目标风格，再用原来的源标签训练分类器。注意：循环一致性<strong>不</strong>保证语义不变，配合感知损失或身份损失更安全。</li>
+<li><strong>ADDA</strong> 把源、目标两个编码器解耦。第 1 阶段：正常训练源编码器 + 分类器；第 2 阶段：从源编码器初始化一个<strong>目标</strong>编码器，对抗一个域判别器适应它，分类器冻结；第 3 阶段：测试时目标输入走目标编码器 + 源分类器。这种不对称给了 ADDA 比 DANN 更大的容量，代价是多一个训练阶段。</li>
+</ul>
+<hr>
+<h2 id="8-自训练在目标上自举出标签">8. 自训练：在目标上自举出标签</h2>
+<p>对抗式和统计式对齐都把目标当成一团没差别的云。<strong>自训练</strong>（也叫伪标注）更进一步：用当前模型给目标打标签，然后训练它自己。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/fig6_self_training.png" alt="自训练 / 伪标注" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>循环很简单：</p>
+<ol>
+<li>在源域上训练 $f$。</li>
+<li>对每个目标样本预测，只保留 $\max_y f(x)_y > \tau$ 的那些（高置信度阈值）。</li>
+<li>把保留下来的 (输入, 预测) 对当成新标注数据，重训。</li>
+<li>反复迭代。</li>
+</ol>
+<p>自训练强大但被低估，最臭名昭著的失败模式叫<strong>确认偏差</strong>：错但自信的预测被反复喂回训练，越来越固化。标准缓解措施：</p>
+<ul>
+<li>把阈值 $\tau$ 调高（通常 0.9 以上）；</li>
+<li>类别平衡选择（每类伪标签数量设上限）；</li>
+<li>增广下的一致性正则（FixMatch 风格）；</li>
+<li>每轮重新从源模型出发，而不是从上一轮的自训练模型出发。</li>
+</ul>
+<hr>
+<h2 id="9-决策树什么时候用什么方法">9. 决策树：什么时候用什么方法</h2>
+<pre tabindex="0"><code>1. 你有没有任何目标域标注？
+   ├─ 有 → 半监督 DA：fine-tune + 重要性加权
+   └─ 没有 → 第 2 步
+
+2. 偏移在哪？
+   ├─ 只 P(X) 不同         → 第 3 步
+   ├─ 只 P(Y) 不同         → 标签偏移修正（BBSE / EM）
+   └─ P(Y|X) 不同（概念）   → 必须有少量目标标注
+
+3. 视觉/特征差距多大？
+   ├─ 极小   → AdaBN（永远先试）
+   ├─ 小     → AdaBN + Deep CORAL
+   ├─ 中     → MMD（DAN）或 DANN
+   ├─ 大     → DANN / CDAN，或像素级（CycleGAN、ADDA）
+   └─ 巨大（仿真→真实）→ CycleGAN + ADDA + 自训练
+</code></pre><p>实战中，强 pipeline 经常<strong>组合多种方法</strong>：AdaBN 拿走容易的几个点，MMD/DANN 做特征对齐，最后跑一轮自训练拿走最后那几个点。</p>
+<hr>
+<h2 id="10-benchmark到底有多大用">10. Benchmark：到底有多大用？</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/fig7_office31_benchmark.png" alt="Office-31 / DomainNet 基准" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>数字是 ResNet-50 主干下的代表性文献平均。两点值得注意：</p>
+<ul>
+<li>**从&quot;什么都不做&quot;到&quot;做点什么&quot;，跨度最大。**哪怕只用 AdaBN，差距也能补回相当一截。<strong>做点什么远比挑到完美的方法重要。</strong></li>
+<li>**DomainNet 比 Office-31 困难得多。**DomainNet 上 40% 的准确率对应的方法相当强——这数据集有 345 类，跨 6 种风格迥异的视觉风格。读 DA 准确率永远要相对于 source-only 基线读，不要只看绝对值。</li>
+</ul>
+<hr>
+<h2 id="11-域适应在哪里真正值钱">11. 域适应在哪里真正值钱</h2>
+<ul>
+<li><strong>医学影像</strong>——西门子 vs. GE、1.5T vs. 3T MRI、A 医院 vs. B 医院。</li>
+<li><strong>自动驾驶</strong>——晴 → 雨、城市 A → 城市 B、仿真 → 真实。</li>
+<li><strong>推荐系统</strong>——国与国、年与年、网页 → 移动。</li>
+<li><strong>NLP</strong>——电影评论 → 商品评论、新闻 → 社交、正式 → 口语。</li>
+<li><strong>Sim-to-real</strong>——机器人和自动驾驶里把合成数据迁到真实传感器。</li>
+</ul>
+<p>共同模式：<strong>源域标注便宜、目标域标注昂贵或不可能、模型还非得发版</strong>。</p>
+<hr>
+<h2 id="12-把效果画出来t-sne-前后对比">12. 把效果画出来——t-SNE 前后对比</h2>
+<p>训完一个 DA 模型后的标准检查：把源、目标特征都过一遍 t-SNE。适应之前样本按<strong>域</strong>聚成簇；适应之后按<strong>类别</strong>聚成簇。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/03-%E5%9F%9F%E9%80%82%E5%BA%94%E6%96%B9%E6%B3%95/fig5_tsne_before_after.png" alt="t-SNE 域适应前后" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>如果&quot;之后&quot;图里仍然能看到两个域块，说明对齐失败了；如果只有一个块、按类别分开，说明对齐成功了。这一张图比任何单一数字都更能诊断问题。</p>
+<hr>
+<h2 id="13-完整实现dann">13. 完整实现：DANN</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span><span class="lnt">144
+</span><span class="lnt">145
+</span><span class="lnt">146
+</span><span class="lnt">147
+</span><span class="lnt">148
+</span><span class="lnt">149
+</span><span class="lnt">150
+</span><span class="lnt">151
+</span><span class="lnt">152
+</span><span class="lnt">153
+</span><span class="lnt">154
+</span><span class="lnt">155
+</span><span class="lnt">156
+</span><span class="lnt">157
+</span><span class="lnt">158
+</span><span class="lnt">159
+</span><span class="lnt">160
+</span><span class="lnt">161
+</span><span class="lnt">162
+</span><span class="lnt">163
+</span><span class="lnt">164
+</span><span class="lnt">165
+</span><span class="lnt">166
+</span><span class="lnt">167
+</span><span class="lnt">168
+</span><span class="lnt">169
+</span><span class="lnt">170
+</span><span class="lnt">171
+</span><span class="lnt">172
+</span><span class="lnt">173
+</span><span class="lnt">174
+</span><span class="lnt">175
+</span><span class="lnt">176
+</span><span class="lnt">177
+</span><span class="lnt">178
+</span><span class="lnt">179
+</span><span class="lnt">180
+</span><span class="lnt">181
+</span><span class="lnt">182
+</span><span class="lnt">183
+</span><span class="lnt">184
+</span><span class="lnt">185
+</span><span class="lnt">186
+</span><span class="lnt">187
+</span><span class="lnt">188
+</span><span class="lnt">189
+</span><span class="lnt">190
+</span><span class="lnt">191
+</span><span class="lnt">192
+</span><span class="lnt">193
+</span><span class="lnt">194
+</span><span class="lnt">195
+</span><span class="lnt">196
+</span><span class="lnt">197
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">TensorDataset</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="kn">import</span> <span class="n">Function</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">accuracy_score</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GradientReversalFunction</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;前向恒等，反向把梯度取反。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lambda_</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ctx</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="n">lambda_</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">grad_output</span><span class="o">.</span><span class="n">neg</span><span class="p">()</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">lambda_</span><span class="p">,</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GradientReversalLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">set_lambda</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="n">val</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">GradientReversalFunction</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FeatureExtractor</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="mi">28</span> <span class="o">*</span> <span class="mi">28</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LabelPredictor</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">feature_dim</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DomainDiscriminator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">feature_dim</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DANN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;域对抗神经网络。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="mi">28</span> <span class="o">*</span> <span class="mi">28</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">feature_extractor</span> <span class="o">=</span> <span class="n">FeatureExtractor</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">label_predictor</span> <span class="o">=</span> <span class="n">LabelPredictor</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">domain_discriminator</span> <span class="o">=</span> <span class="n">DomainDiscriminator</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">grl</span> <span class="o">=</span> <span class="n">GradientReversalLayer</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_extractor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">class_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_predictor</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">grl</span><span class="o">.</span><span class="n">set_lambda</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">domain_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_discriminator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grl</span><span class="p">(</span><span class="n">features</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">class_logits</span><span class="p">,</span> <span class="n">domain_logits</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DANNTrainer</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">source_loader</span><span class="p">,</span> <span class="n">target_loader</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">num_epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cpu&#34;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">10.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">source_loader</span> <span class="o">=</span> <span class="n">source_loader</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span> <span class="o">=</span> <span class="n">target_loader</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">test_loader</span> <span class="o">=</span> <span class="n">test_loader</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_epochs</span> <span class="o">=</span> <span class="n">num_epochs</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">class_criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">domain_criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCELoss</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_adaptive_lambda</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># sigmoid 退火：训练越后期，对抗权重越接近 1</span>
+</span></span><span class="line"><span class="cl">        <span class="n">p</span> <span class="o">=</span> <span class="n">epoch</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_epochs</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">p</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">source_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">target_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n_batches</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_loader</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">lambda_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adaptive_lambda</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_batches</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">src_x</span><span class="p">,</span> <span class="n">src_y</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">source_iter</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">source_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">src_x</span><span class="p">,</span> <span class="n">src_y</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">source_iter</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tgt_x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">target_iter</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">target_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tgt_x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">target_iter</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">src_x</span> <span class="o">=</span> <span class="n">src_x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">src_y</span> <span class="o">=</span> <span class="n">src_y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">tgt_x</span> <span class="o">=</span> <span class="n">tgt_x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># 前向：两个头、两个域</span>
+</span></span><span class="line"><span class="cl">            <span class="n">src_class_logits</span><span class="p">,</span> <span class="n">src_dom_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">src_x</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">_</span><span class="p">,</span> <span class="n">tgt_dom_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">tgt_x</span><span class="p">,</span> <span class="n">lambda_p</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># 源域分类损失</span>
+</span></span><span class="line"><span class="cl">            <span class="n">class_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_criterion</span><span class="p">(</span><span class="n">src_class_logits</span><span class="p">,</span> <span class="n">src_y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># 域判别损失（源 = 1，目标 = 0）</span>
+</span></span><span class="line"><span class="cl">            <span class="n">d_loss_s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_criterion</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">src_dom_logits</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">src_dom_logits</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">d_loss_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_criterion</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tgt_dom_logits</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tgt_dom_logits</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">domain_loss</span> <span class="o">=</span> <span class="n">d_loss_s</span> <span class="o">+</span> <span class="n">d_loss_t</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">class_loss</span> <span class="o">+</span> <span class="n">domain_loss</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">total_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">total_loss</span> <span class="o">/</span> <span class="n">n_batches</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">preds</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">preds</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="n">labels</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">accuracy_score</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">preds</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">best</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_epochs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">acc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">lam</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adaptive_lambda</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">  loss=</span><span class="si">{</span><span class="n">loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  &#34;</span>
+</span></span><span class="line"><span class="cl">                      <span class="sa">f</span><span class="s2">&#34;target_acc=</span><span class="si">{</span><span class="n">acc</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  lambda=</span><span class="si">{</span><span class="n">lam</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">acc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;best target accuracy: </span><span class="si">{</span><span class="n">best</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="n">N</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">28</span> <span class="o">*</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">10</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 模拟源、目标分布偏移</span>
+</span></span><span class="line"><span class="cl">    <span class="n">src_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">src_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="p">(</span><span class="n">N</span><span class="p">,))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tgt_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>     <span class="c1"># 偏移</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tgt_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="p">(</span><span class="n">N</span><span class="p">,))</span>           <span class="c1"># 训练时不用</span>
+</span></span><span class="line"><span class="cl">    <span class="n">test_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>
+</span></span><span class="line"><span class="cl">    <span class="n">test_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="p">(</span><span class="mi">2000</span><span class="p">,))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">BS</span> <span class="o">=</span> <span class="mi">128</span>
+</span></span><span class="line"><span class="cl">    <span class="n">src_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">src_x</span><span class="p">,</span> <span class="n">src_y</span><span class="p">),</span> <span class="n">BS</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">tgt_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">tgt_x</span><span class="p">,</span> <span class="n">tgt_y</span><span class="p">),</span> <span class="n">BS</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">test_x</span><span class="p">,</span> <span class="n">test_y</span><span class="p">),</span> <span class="n">BS</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">DANN</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">trainer</span> <span class="o">=</span> <span class="n">DANNTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">src_loader</span><span class="p">,</span> <span class="n">tgt_loader</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                          <span class="n">num_epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&#34;__main__&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">main</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="这段代码到底在做什么">这段代码到底在做什么</h3>
+<table>
+  <thead>
+      <tr>
+          <th>组件</th>
+          <th>作用</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>GradientReversalLayer</code></td>
+          <td>前向恒等、反向取反——把 minimax 折叠成一次反向传播。</td>
+      </tr>
+      <tr>
+          <td><code>_adaptive_lambda</code></td>
+          <td>sigmoid 退火 $\frac{2}{1+e^{-\gamma p}} - 1$：先学特征，再加对抗。</td>
+      </tr>
+      <tr>
+          <td><code>class_loss</code></td>
+          <td>标准交叉熵，<strong>只</strong>用源域标签（目标域无标注）。</td>
+      </tr>
+      <tr>
+          <td><code>domain_loss</code></td>
+          <td>BCE，源 = 1、目标 = 0，训练域判别器。</td>
+      </tr>
+      <tr>
+          <td>GRL + 域分支</td>
+          <td>反向传播时梯度翻号回到 $G_f$，让特征&quot;藏起&quot;域信息。</td>
+      </tr>
+      <tr>
+          <td><code>evaluate(alpha=0)</code></td>
+          <td>测试时把 $\lambda$ 设 0，GRL 失活，只用分类头。</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="总结">总结</h2>
+<p>域适应面对的是迁移学习里最实战的问题：训练数据和上线数据来自不同分布。工具箱按&quot;动手成本递增&quot;大致排序：</p>
+<ul>
+<li><strong>AdaBN</strong>——在目标域上重算 BN 统计量；零成本、零重训、永远先试。</li>
+<li><strong>CORAL</strong>——对齐源和目标的<strong>协方差</strong>矩阵；便宜、确定性。</li>
+<li><strong>MMD（DAN）</strong>——对齐核均值嵌入；稳定、有理论支撑、默认用多核。</li>
+<li><strong>DANN</strong>——通过梯度反转层做对抗对齐；一次反向传播搞定。</li>
+<li><strong>CDAN / ADDA</strong>——更灵活的变种，应对更大差距。</li>
+<li><strong>CycleGAN</strong>——特征对齐不够时，去做像素级翻译。</li>
+<li><strong>自训练</strong>——置信度阈值守门的伪标签；榨出最后那几个点。</li>
+</ul>
+<p>Ben-David 上界告诉你哪些事可能：把源域误差和域散度压小，目标误差就会跟着压小——<strong>前提是</strong>联合最优误差本身就小。如果它本身就大，再多对齐也救不了你；那时你需要的是新标注。</p>
+<p>下一章 <a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/">第 4 篇——Few-Shot Learning</a>
+，我们把&quot;源域数据充足&quot;这个假设也丢掉，研究每类只有 1–5 个样本时该怎么学。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ol>
+<li>Ganin et al. (2016). Domain-Adversarial Training of Neural Networks. JMLR. <a href="https://arxiv.org/abs/1505.07818" target="_blank" rel="noopener noreferrer">arXiv:1505.07818 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Long et al. (2015). Learning Transferable Features with Deep Adaptation Networks. ICML. <a href="https://arxiv.org/abs/1502.02791" target="_blank" rel="noopener noreferrer">arXiv:1502.02791 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Sun &amp; Saenko (2016). Deep CORAL: Correlation Alignment for Deep Domain Adaptation. ECCV. <a href="https://arxiv.org/abs/1607.01719" target="_blank" rel="noopener noreferrer">arXiv:1607.01719 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Zhu et al. (2017). Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks (CycleGAN). ICCV. <a href="https://arxiv.org/abs/1703.10593" target="_blank" rel="noopener noreferrer">arXiv:1703.10593 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Tzeng et al. (2017). Adversarial Discriminative Domain Adaptation (ADDA). CVPR. <a href="https://arxiv.org/abs/1702.05464" target="_blank" rel="noopener noreferrer">arXiv:1702.05464 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Long et al. (2018). Conditional Adversarial Domain Adaptation (CDAN). NeurIPS. <a href="https://arxiv.org/abs/1705.10667" target="_blank" rel="noopener noreferrer">arXiv:1705.10667 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Ben-David et al. (2010). A Theory of Learning from Different Domains. <em>Machine Learning</em>.</li>
+<li>Li et al. (2017). Revisiting Batch Normalization for Practical Domain Adaptation (AdaBN). <a href="https://arxiv.org/abs/1603.04779" target="_blank" rel="noopener noreferrer">arXiv:1603.04779 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Gretton et al. (2012). A Kernel Two-Sample Test (MMD). JMLR. <a href="https://jmlr.org/papers/v13/gretton12a.html" target="_blank" rel="noopener noreferrer">paper <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Lipton et al. (2018). Detecting and Correcting for Label Shift with Black Box Predictors. ICML. <a href="https://arxiv.org/abs/1802.03916" target="_blank" rel="noopener noreferrer">arXiv:1802.03916 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Sohn et al. (2020). FixMatch: Simplifying Semi-Supervised Learning with Consistency and Confidence. NeurIPS. <a href="https://arxiv.org/abs/2001.07685" target="_blank" rel="noopener noreferrer">arXiv:2001.07685 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ol>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">1</a>
+</td>
+          <td>基础与核心概念</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/">2</a>
+</td>
+          <td>预训练与微调</td>
+      </tr>
+      <tr>
+          <td><strong>3</strong></td>
+          <td><strong>域适应（本文）</strong></td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/">4</a>
+</td>
+          <td>小样本学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e7%9f%a5%e8%af%86%e8%92%b8%e9%a6%8f/">5</a>
+</td>
+          <td>知识蒸馏</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0/">6</a>
+</td>
+          <td>多任务学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e9%9b%b6%e6%a0%b7%e6%9c%ac%e5%ad%a6%e4%b9%a0/">7</a>
+</td>
+          <td>零样本学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%a4%9a%e6%a8%a1%e6%80%81%e8%bf%81%e7%a7%bb/">8</a>
+</td>
+          <td>多模态迁移</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b9%9d-%e5%8f%82%e6%95%b0%e9%ab%98%e6%95%88%e5%be%ae%e8%b0%83/">9</a>
+</td>
+          <td>参数高效微调</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e6%8c%81%e7%bb%ad%e5%ad%a6%e4%b9%a0/">10</a>
+</td>
+          <td>持续学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%b8%80-%e8%b7%a8%e8%af%ad%e8%a8%80%e8%bf%81%e7%a7%bb/">11</a>
+</td>
+          <td>跨语言迁移</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-%e5%b7%a5%e4%b8%9a%e5%ba%94%e7%94%a8%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/">12</a>
+</td>
+          <td>工业应用与最佳实践</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到">你将学到</a></li>
+    <li><a href="#1-分布偏移的三种面孔">1. 分布偏移的三种面孔</a>
+      <ul>
+        <li><a href="#11-协变量偏移输入分布变了">1.1 协变量偏移——输入分布变了</a></li>
+        <li><a href="#12-标签偏移类别先验变了">1.2 标签偏移——类别先验变了</a></li>
+        <li><a href="#13-概念偏移规则本身变了">1.3 概念偏移——规则本身变了</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-理论ben-david-上界">2. 理论：Ben-David 上界</a></li>
+    <li><a href="#3-dann一次反向传播完成的对抗对齐">3. DANN：一次反向传播完成的对抗对齐</a>
+      <ul>
+        <li><a href="#31-三个子网共享一个主干">3.1 三个子网共享一个主干</a></li>
+        <li><a href="#32-梯度反转层grl">3.2 梯度反转层（GRL）</a></li>
+        <li><a href="#33-对抗权重的退火表">3.3 对抗权重的退火表</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-mmd在-rkhs-里对齐均值">4. MMD：在 RKHS 里对齐均值</a>
+      <ul>
+        <li><a href="#41-想法">4.1 想法</a></li>
+        <li><a href="#42-真正能算的估计量">4.2 真正能算的估计量</a></li>
+        <li><a href="#43-工程提示">4.3 工程提示</a></li>
+        <li><a href="#44-mmd-与-dann-一图对比">4.4 MMD 与 DANN 一图对比</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-coral对齐二阶统计量">5. CORAL：对齐二阶统计量</a></li>
+    <li><a href="#6-adabn永远第一个尝试的免费午餐">6. AdaBN：永远第一个尝试的免费午餐</a></li>
+    <li><a href="#7-gan-式与像素级适应">7. GAN 式与像素级适应</a></li>
+    <li><a href="#8-自训练在目标上自举出标签">8. 自训练：在目标上自举出标签</a></li>
+    <li><a href="#9-决策树什么时候用什么方法">9. 决策树：什么时候用什么方法</a></li>
+    <li><a href="#10-benchmark到底有多大用">10. Benchmark：到底有多大用？</a></li>
+    <li><a href="#11-域适应在哪里真正值钱">11. 域适应在哪里真正值钱</a></li>
+    <li><a href="#12-把效果画出来t-sne-前后对比">12. 把效果画出来——t-SNE 前后对比</a></li>
+    <li><a href="#13-完整实现dann">13. 完整实现：DANN</a>
+      <ul>
+        <li><a href="#这段代码到底在做什么">这段代码到底在做什么</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">迁移学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6500</strong></div>
+      <div class="row"><span>Published</span><strong>May 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

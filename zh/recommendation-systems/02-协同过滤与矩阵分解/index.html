@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>推荐系统（二）—— 协同过滤与矩阵分解 · Chen Kai Blog</title>
+<meta name="description" content="深入讲解协同过滤与矩阵分解：User-CF、Item-CF、相似度度量、潜因子模型、SVD&#43;&#43;、ALS、BPR、因子分解机，附直觉解释、推导和可运行 Python。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="推荐系统（二）—— 协同过滤与矩阵分解">
+<meta property="og:description" content="深入讲解协同过滤与矩阵分解：User-CF、Item-CF、相似度度量、潜因子模型、SVD&#43;&#43;、ALS、BPR、因子分解机，附直觉解释、推导和可运行 Python。">
+<meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">推荐系统</a>
+         · Chapter 2
+      </div>
+      <h1>推荐系统（二）—— 协同过滤与矩阵分解</h1>
+      <p class="deck">深入讲解协同过滤与矩阵分解：User-CF、Item-CF、相似度度量、潜因子模型、SVD&#43;&#43;、ALS、BPR、因子分解机，附直觉解释、推导和可运行 Python。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-12-04">December 4, 2025</time> · 12 min read · 5900 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/" class="tag">#推荐系统</a><a href="/zh/tags/%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4/" class="tag">#协同过滤</a><a href="/zh/tags/%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/" class="tag">#矩阵分解</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>刚看完《肖申克的救赎》，想再找一部&quot;那种感觉&quot;的电影。按类型筛选会把你淹死在一堆烂片监狱题材里。协同过滤换了个思路：它根本不看电影本身，只问一个问题——<strong>和你看过相似东西的人，还都喜欢什么？</strong></p>
+<p>这一个想法，撑起了 Amazon、YouTube、Spotify 和你今天刷到的每一条 Feed。本文要讲清楚背后的算法谱系：从 1990 年代的邻域方法，一路到拿下 Netflix Prize 的矩阵分解。</p>
+<blockquote>
+<p><strong>你将学到：</strong></p>
+<ul>
+<li>邻域协同过滤的两条路线（User-CF 与 Item-CF）以及各自的适用场景</li>
+<li>余弦、皮尔逊、调整余弦——三种相似度度量的差别究竟在哪</li>
+<li>为什么稀疏数据下矩阵分解比邻域方法更稳</li>
+<li>SGD 与 ALS：同一个模型，截然不同的训练故事</li>
+<li>BPR 解决排序、FM 处理边信息、加权 MF 处理隐式反馈</li>
+<li>每个算法都有可跑的 Python 实现，文末附实战常见坑</li>
+</ul>
+</blockquote>
+<hr>
+<h2 id="1--协同过滤的核心思想">1 · 协同过滤的核心思想</h2>
+<p>协同过滤（Collaborative Filtering，CF）只依赖一个假设：</p>
+<blockquote>
+<p><strong>历史相似的用户想要相似的东西；被同一群人喜欢的物品彼此相似。</strong></p>
+</blockquote>
+<p>够了。CF 不需要类型标签、演员表，也不需要用户画像，只需要&quot;谁和什么发生过交互&quot;。从这一假设直接长出两个流派：</p>
+<ul>
+<li><strong>User-CF</strong>：找到和你历史相似的用户，把他们喜欢的物品推给你。</li>
+<li><strong>Item-CF</strong>：找到和你已经喜欢的物品历史相似的物品，推给你。</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/fig1_user_user_vs_item_item.png" alt="两种视角下的协同过滤：User-CF 连接品味相似的用户，Item-CF 连接受众重合的物品" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="一个玩具评分矩阵">一个玩具评分矩阵</h3>
+<p>5 个用户 × 5 部电影，1–5 分，缺失记为 <code>?</code>：</p>
+<table>
+  <thead>
+      <tr>
+          <th>用户</th>
+          <th style="text-align: center">肖申克</th>
+          <th style="text-align: center">阿甘</th>
+          <th style="text-align: center">当幸福</th>
+          <th style="text-align: center">泰坦尼克</th>
+          <th style="text-align: center">教父</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Alice</td>
+          <td style="text-align: center">5</td>
+          <td style="text-align: center">5</td>
+          <td style="text-align: center">?</td>
+          <td style="text-align: center">3</td>
+          <td style="text-align: center">4</td>
+      </tr>
+      <tr>
+          <td>Bob</td>
+          <td style="text-align: center">5</td>
+          <td style="text-align: center">5</td>
+          <td style="text-align: center">4</td>
+          <td style="text-align: center">2</td>
+          <td style="text-align: center">?</td>
+      </tr>
+      <tr>
+          <td>Carol</td>
+          <td style="text-align: center">4</td>
+          <td style="text-align: center">4</td>
+          <td style="text-align: center">3</td>
+          <td style="text-align: center">5</td>
+          <td style="text-align: center">5</td>
+      </tr>
+      <tr>
+          <td>David</td>
+          <td style="text-align: center">2</td>
+          <td style="text-align: center">1</td>
+          <td style="text-align: center">?</td>
+          <td style="text-align: center">4</td>
+          <td style="text-align: center">3</td>
+      </tr>
+      <tr>
+          <td>Eve</td>
+          <td style="text-align: center">?</td>
+          <td style="text-align: center">?</td>
+          <td style="text-align: center">2</td>
+          <td style="text-align: center">3</td>
+          <td style="text-align: center">4</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>User-CF 视角</strong>：Alice 和 Bob 在《肖申克》《阿甘》上完全一致，品味接近。Bob 给《当幸福》打了 4 分，于是把它推给 Alice。</p>
+<p><strong>Item-CF 视角</strong>：《肖申克》和《阿甘》在所有用户中拿到的分布几乎一样，说明这两部相似——你喜欢一部，多半也喜欢另一部。</p>
+<h3 id="优势与代价">优势与代价</h3>
+<p>CF 的卖点是<strong>简单</strong>（不用做特征工程）和<strong>惊喜感</strong>（能挖到非显然的关联，经典的&quot;啤酒与尿布&quot;就是这种），还能跨品类推荐——一个看小说的用户也能被推荐播客。</p>
+<p>代价同样经典：</p>
+<ul>
+<li><strong>冷启动</strong>：全新用户、全新物品没有历史。</li>
+<li><strong>稀疏性</strong>：真实评分矩阵 99% 以上都是缺失。</li>
+<li><strong>流行度偏差</strong>：热门挤压长尾。</li>
+</ul>
+<p>后面要讲的矩阵分解，正面解决了第二个痛点。</p>
+<hr>
+<h2 id="2--基于用户的协同过滤user-cf">2 · 基于用户的协同过滤（User-CF）</h2>
+<h3 id="算法骨架">算法骨架</h3>
+<ol>
+<li>选定一种相似度度量，对每对用户算一遍。</li>
+<li>对每个待预测点，取目标用户最相似的 $k$ 个邻居。</li>
+<li>把邻居的评分按相似度加权平均，得到预测值。</li>
+<li>排序、取 Top-N、推出去。</li>
+</ol>
+<h3 id="怎么衡量品味相似">怎么衡量&quot;品味相似&quot;</h3>
+<p>设用户 $u$ 和 $v$ 都评过的物品集合为 $I_{uv}$。三种度量最常见。</p>
+<p><strong>余弦相似度</strong>把每个用户看成向量，量两个向量的夹角：</p>
+$$
+\text{sim}(u, v) = \frac{\sum_{i \in I_{uv}} r_{ui}\, r_{vi}}{\sqrt{\sum_{i \in I_{uv}} r_{ui}^2}\;\sqrt{\sum_{i \in I_{uv}} r_{vi}^2}}
+$$<p>它只看<strong>方向</strong>。如果用户 A 习惯打 4–5 分，用户 B 习惯打 1–2 分，但形状完全一样，余弦依然会判定他们高度相似。</p>
+<p><strong>皮尔逊相关系数</strong>先把每个用户的均值减掉，再算余弦。这样&quot;我老是打高分&quot;就不会假装出一致：</p>
+$$
+\text{sim}(u, v) = \frac{\sum_{i \in I_{uv}} (r_{ui} - \bar{r}_u)(r_{vi} - \bar{r}_v)}{\sqrt{\sum_{i \in I_{uv}} (r_{ui} - \bar{r}_u)^2}\;\sqrt{\sum_{i \in I_{uv}} (r_{vi} - \bar{r}_v)^2}}
+$$<p><strong>调整余弦</strong>走的是同样的去均值套路；当对齐到同一物品集时，与皮尔逊在数学上等价。</p>
+<p>下面这张图能让两者的差异一眼看穿。用户 A 是慷慨的打分者，用户 B 出手严厉，但他们的喜好曲线完全同形——</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/fig3_cosine_vs_pearson.png" alt="同形不同水位的两位用户：余弦给 0.99，皮尔逊给 1.00；余弦把&quot;打分尺度&quot;误认成了&quot;品味&quot;" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>余弦给出约 0.99，因为两个向量几乎指向同方向；皮尔逊给出整整 1.00——去均值之后两条曲线完全重合。在打分习惯参差不齐的真实系统里，皮尔逊是更安全的默认选择。</p>
+<p>把皮尔逊算到玩具矩阵上，得到下面这张热力图。Alice 与 Bob 紧密正相关，David 是逆向的那一个。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/fig2_user_similarity_heatmap.png" alt="玩具评分矩阵中两两用户之间的皮尔逊相关系数" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="评分预测">评分预测</h3>
+<p>拿到目标用户 $u$ 的 $k$ 个最近邻 $N_k(u)$ 之后：</p>
+$$
+\hat{r}_{ui} = \bar{r}_u + \frac{\sum_{v \in N_k(u)} \text{sim}(u, v) \cdot (r_{vi} - \bar{r}_v)}{\sum_{v \in N_k(u)} |\text{sim}(u, v)|}
+$$<p>可以这样读：<em>&ldquo;先站在我自己的平均分上，再根据邻居们对这部电影的反应往上下调，越像我的邻居权重越大。&rdquo;</em> $r_{vi} - \bar{r}_v$ 表示邻居<strong>相对于他自己基准</strong>的反应——和皮尔逊的去均值思路一脉相承。</p>
+<h3 id="一份能跑的实现">一份能跑的实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">pearsonr</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">UserBasedCF</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;支持皮尔逊 / 余弦 / 欧氏距离的邻域协同过滤。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="n">similarity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;pearson&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">k</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">=</span> <span class="n">similarity</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ratings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="s2">&#34;UserBasedCF&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span> <span class="o">=</span> <span class="n">ratings</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span> <span class="o">=</span> <span class="p">{</span><span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ratings</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">users</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ratings</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">u</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pair_sim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">users</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_pair_sim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">common</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="p">[</span><span class="n">u</span><span class="p">])</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">common</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ru</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="p">[</span><span class="n">u</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">common</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">common</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">==</span> <span class="s2">&#34;pearson&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">r</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">ru</span><span class="p">,</span> <span class="n">rv</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">==</span> <span class="s2">&#34;cosine&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">ru</span> <span class="o">@</span> <span class="n">rv</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ru</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">rv</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 欧氏距离 → 落在 (0, 1] 的相似度</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ru</span> <span class="o">-</span> <span class="n">rv</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">user</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">3.0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_idx</span><span class="p">[</span><span class="n">user</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">neighbours</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">            <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_idx</span><span class="p">[</span><span class="n">v</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="n">item</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">user</span> <span class="ow">and</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_idx</span><span class="p">[</span><span class="n">v</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">neighbours</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span><span class="p">[</span><span class="n">user</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">neighbours</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">neighbours</span> <span class="o">=</span> <span class="n">neighbours</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span><span class="p">[</span><span class="n">v</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">neighbours</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">den</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">neighbours</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span><span class="p">[</span><span class="n">user</span><span class="p">]</span> <span class="o">+</span> <span class="n">num</span> <span class="o">/</span> <span class="n">den</span> <span class="k">if</span> <span class="n">den</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span><span class="p">[</span><span class="n">user</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recommend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="p">{}))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">candidates</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="p">}</span> <span class="o">-</span> <span class="n">seen</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scored</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scored</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">scored</span><span class="p">[:</span><span class="n">n</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&#34;__main__&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ratings</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Alice&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;肖申克&#34;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&#34;阿甘&#34;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&#34;泰坦尼克&#34;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&#34;教父&#34;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Bob&#34;</span><span class="p">:</span>   <span class="p">{</span><span class="s2">&#34;肖申克&#34;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&#34;阿甘&#34;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&#34;当幸福&#34;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&#34;泰坦尼克&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Carol&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;肖申克&#34;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&#34;阿甘&#34;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&#34;当幸福&#34;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&#34;泰坦尼克&#34;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&#34;教父&#34;</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;David&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;肖申克&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&#34;阿甘&#34;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&#34;泰坦尼克&#34;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&#34;教父&#34;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Eve&#34;</span><span class="p">:</span>   <span class="p">{</span><span class="s2">&#34;当幸福&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&#34;泰坦尼克&#34;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&#34;教父&#34;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">UserBasedCF</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">ratings</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Alice 对《当幸福》的预测分：</span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="s1">&#39;Alice&#39;</span><span class="p">,</span> <span class="s1">&#39;当幸福&#39;</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">recommend</span><span class="p">(</span><span class="s2">&#34;Alice&#34;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;  </span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="user-cf-的天花板">User-CF 的天花板</h3>
+<p>User-CF 直观、易解释，但离线相似度计算是 $O(m^2 \cdot n)$——用户数平方级；稀疏数据下两个用户共评物品太少，相似度算不准；用户冷启动是最致命的一刀。下一节把问题翻过来。</p>
+<hr>
+<h2 id="3--基于物品的协同过滤item-cf">3 · 基于物品的协同过滤（Item-CF）</h2>
+<h3 id="为什么工业界默认-item-cf">为什么工业界默认 Item-CF</h3>
+<p>Amazon 2003 年那篇论文奠定了 Item-CF 的工业地位，原因朴素但决定性：</p>
+<ul>
+<li><strong>物品数往往少于用户数</strong>，相似度矩阵更小、更便宜。</li>
+<li><strong>物品相似度稳定</strong>。一部电影的受众画像不会一夜变化；用户的心情会。可以提前算好物品相似度，长期缓存。</li>
+<li><strong>可解释性更强</strong>。&ldquo;因为你看了 A，所以推 B&rdquo;，这句话用户真的看得懂。</li>
+</ul>
+<h3 id="调整余弦首选度量">调整余弦：首选度量</h3>
+<p>对被同一批用户 $U_{ij}$ 共同评分的物品 $i$ 和 $j$：</p>
+$$
+\text{sim}(i, j) = \frac{\sum_{u \in U_{ij}} (r_{ui} - \bar{r}_u)(r_{uj} - \bar{r}_u)}{\sqrt{\sum_{u \in U_{ij}} (r_{ui} - \bar{r}_u)^2}\;\sqrt{\sum_{u \in U_{ij}} (r_{uj} - \bar{r}_u)^2}}
+$$<p>一个关键细节：减去的是<strong>用户均值</strong>，不是物品均值。这一步消掉了&quot;谁爱打高分&quot;的噪音，留下的就是&quot;两件物品在同一个人身上是否激起一致的反应&quot;。</p>
+<h3 id="预测公式">预测公式</h3>
+$$
+\hat{r}_{ui} = \bar{r}_u + \frac{\sum_{j \in N_k(i)} \text{sim}(i, j) \cdot (r_{uj} - \bar{r}_u)}{\sum_{j \in N_k(i)} |\text{sim}(i, j)|}
+$$<p>这次是<strong>物品</strong> $i$ 的 $k$ 个邻居在投票。</p>
+<h3 id="实现">实现</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ItemBasedCF</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;基于物品的 CF，使用调整余弦相似度。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">k</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ratings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="s2">&#34;ItemBasedCF&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span> <span class="o">=</span> <span class="n">ratings</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span> <span class="o">=</span> <span class="p">{</span><span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ratings</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_users</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">ratings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">items</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">item_users</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_users</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjusted_cosine</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">items</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">items</span><span class="p">[</span><span class="n">a</span><span class="p">]][</span><span class="n">items</span><span class="p">[</span><span class="n">b</span><span class="p">]]</span> <span class="o">=</span> <span class="n">s</span>
+</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">items</span><span class="p">[</span><span class="n">b</span><span class="p">]][</span><span class="n">items</span><span class="p">[</span><span class="n">a</span><span class="p">]]</span> <span class="o">=</span> <span class="n">s</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_adjusted_cosine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">common</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_users</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_users</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">common</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num</span> <span class="o">=</span> <span class="n">den_i</span> <span class="o">=</span> <span class="n">den_j</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">common</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">di</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_users</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">u</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span><span class="p">[</span><span class="n">u</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">dj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_users</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">u</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span><span class="p">[</span><span class="n">u</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">num</span> <span class="o">+=</span> <span class="n">di</span> <span class="o">*</span> <span class="n">dj</span>
+</span></span><span class="line"><span class="cl">            <span class="n">den_i</span> <span class="o">+=</span> <span class="n">di</span> <span class="o">*</span> <span class="n">di</span>
+</span></span><span class="line"><span class="cl">            <span class="n">den_j</span> <span class="o">+=</span> <span class="n">dj</span> <span class="o">*</span> <span class="n">dj</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">num</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">den_i</span> <span class="o">*</span> <span class="n">den_j</span><span class="p">)</span> <span class="k">if</span> <span class="n">den_i</span> <span class="ow">and</span> <span class="n">den_j</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">user</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span> <span class="ow">or</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ratings</span><span class="p">[</span><span class="n">user</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rated_neighbours</span> <span class="o">=</span> <span class="p">[(</span><span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="p">[</span><span class="n">item</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">rated_neighbours</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span><span class="p">[</span><span class="n">user</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rated_neighbours</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rated_neighbours</span> <span class="o">=</span> <span class="n">rated_neighbours</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mean</span><span class="p">[</span><span class="n">user</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">num</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">seen</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">rated_neighbours</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">den</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">rated_neighbours</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">num</span> <span class="o">/</span> <span class="n">den</span> <span class="k">if</span> <span class="n">den</span> <span class="k">else</span> <span class="n">mean</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Item-CF 是骨干，但在百万级物品库下，预算的相似度矩阵也会变成内存怪物。这就引出了一种根本不同的思路：<strong>不再两两比较，而是把矩阵压缩</strong>。</p>
+<hr>
+<h2 id="4--矩阵分解">4 · 矩阵分解</h2>
+<h3 id="从邻域到潜因子">从邻域到潜因子</h3>
+<p>评分矩阵 $R \in \mathbb{R}^{m \times n}$ 又大又空。但其中的<strong>信号是低秩的</strong>：少数几个潜在的&quot;品味维度&quot;就能解释绝大部分方差。矩阵分解把这个直觉显式写出来：</p>
+$$
+R \approx P \cdot Q^{\!T}
+$$<p>其中 $P \in \mathbb{R}^{m \times k}$ 一行一个用户，$Q \in \mathbb{R}^{n \times k}$ 一行一个物品。维度 $k$（通常 20–200）就是潜因子的数量。预测评分就是简单的内积：</p>
+$$
+\hat{r}_{ui} = \mathbf{p}_u \cdot \mathbf{q}_i = \sum_{f=1}^{k} p_{uf}\, q_{if}
+$$<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/fig4_matrix_factorization.png" alt="一张稀疏评分矩阵 R 被两个&quot;瘦矩阵&quot;P 与 Qᵀ 的乘积近似；问号是我们想填进去的缺失值" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="比邻域法好在哪">比邻域法好在哪</h3>
+<p>两点：</p>
+<ol>
+<li><strong>存储从 $O(mn)$ 降到 $O((m+n)k)$。</strong> 100 万用户 × 100 万物品 × 8 字节 = 8 TB 稠密矩阵；分解到 $k=50$ 后大约只剩 0.8 GB。</li>
+<li><strong>缺失值变成一等公民。</strong> 邻域方法必须依赖共同评分才能算相似度；分解模型可以从学到的因子里直接预测任意一格。</li>
+</ol>
+<h3 id="几何解读">几何解读</h3>
+<p>把 $k$ 个轴想成被模型自动发现的&quot;品味维度&quot;——<em>硬核剧情 vs. 轻喜剧</em>、<em>现代爆米花 vs. 文艺经典</em>……没有人手工标注，模型从数据中自己学出来。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/fig6_latent_space.png" alt="用户（●）和物品（▲）被嵌入到二维潜空间；Alice 和《肖申克》落在同一象限，所以内积大、推荐成立" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>用户向量 $\mathbf{p}_u$ 记录&quot;你在每个轴上有多在意&quot;，物品向量 $\mathbf{q}_i$ 记录&quot;它在每个轴上有多少含量&quot;，二者内积就是匹配分。</p>
+<h3 id="目标函数">目标函数</h3>
+<p>我们让 $P$ 和 $Q$ 在已观测评分上最小化平方误差，再加一项 L2 正则压住因子的范数：</p>
+$$
+\mathcal{L} = \sum_{(u,i) \in \mathcal{R}} (r_{ui} - \mathbf{p}_u \cdot \mathbf{q}_i)^2 + \lambda \big(\|\mathbf{p}_u\|^2 + \|\mathbf{q}_i\|^2\big)
+$$<p>主流的优化方法有两条：SGD 和 ALS。</p>
+<h3 id="优化方法一随机梯度下降sgd">优化方法一：随机梯度下降（SGD）</h3>
+<p>对每条已观测的评分 $(u, i)$，定义误差 $e_{ui} = r_{ui} - \hat{r}_{ui}$，然后沿负梯度方向小步走：</p>
+$$
+\mathbf{p}_u \leftarrow \mathbf{p}_u + \alpha\, (e_{ui}\, \mathbf{q}_i - \lambda\, \mathbf{p}_u)
+$$$$
+\mathbf{q}_i \leftarrow \mathbf{q}_i + \alpha\, (e_{ui}\, \mathbf{p}_u - \lambda\, \mathbf{q}_i)
+$$<p>SGD 极简单、易于在线化、内存极小。代价是每步只更新一格，收敛慢。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">random</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MatrixFactorization</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;SGD 训练的基础矩阵分解。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">=</span> <span class="n">k</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">epochs</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ratings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">users</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ratings</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">({</span><span class="n">i</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ratings</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">u_idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">u</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">users</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">i_idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">j</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">items</span> <span class="o">=</span> <span class="n">items</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">P</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">users</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">samples</span> <span class="o">=</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">u_idx</span><span class="p">[</span><span class="n">u</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">i_idx</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">r</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                   <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ratings</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">sse</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">err</span> <span class="o">=</span> <span class="n">r</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">[</span><span class="n">u</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">*</span> <span class="p">(</span><span class="n">err</span> <span class="o">*</span> <span class="n">q</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg</span> <span class="o">*</span> <span class="n">p</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">*</span> <span class="p">(</span><span class="n">err</span> <span class="o">*</span> <span class="n">p</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg</span> <span class="o">*</span> <span class="n">q</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">sse</span> <span class="o">+=</span> <span class="n">err</span> <span class="o">*</span> <span class="n">err</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">epoch</span> <span class="o">%</span> <span class="mi">5</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">: RMSE=</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sse</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">))</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">user</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_idx</span> <span class="ow">or</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">i_idx</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">u_idx</span><span class="p">[</span><span class="n">user</span><span class="p">]]</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">i_idx</span><span class="p">[</span><span class="n">item</span><span class="p">]])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="优化方法二交替最小二乘als">优化方法二：交替最小二乘（ALS）</h3>
+<p>ALS 利用了一个漂亮的事实：<strong>固定 $P$ 或 $Q$ 中的任一个，损失就退化成带正则的线性回归，有解析解。</strong> 那就交替来。</p>
+<p>固定 $Q$，最优用户向量是</p>
+$$
+\mathbf{p}_u = (Q_u^{\!T} Q_u + \lambda I)^{-1} Q_u^{\!T} \mathbf{r}_u
+$$<p>其中 $Q_u$ 把用户 $u$ 评过的所有物品向量堆成矩阵。对称地，固定 $P$：</p>
+$$
+\mathbf{q}_i = (P_i^{\!T} P_i + \lambda I)^{-1} P_i^{\!T} \mathbf{r}_i
+$$<p>每个半步都是一次小型线性求解，更妙的是<strong>不同用户之间彼此独立</strong>——天生适合 Spark MLlib 这种分布式引擎。</p>
+<h3 id="sgd-与-als-实战对比">SGD 与 ALS 实战对比</h3>
+<p>下图是同一个 80×60 合成评分矩阵上两种优化器的训练曲线。ALS 头几步就插到地板，因为每步是闭式解；SGD 要慢慢蹭到差不多的位置。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/02-%E5%8D%8F%E5%90%8C%E8%BF%87%E6%BB%A4%E4%B8%8E%E7%9F%A9%E9%98%B5%E5%88%86%E8%A7%A3/fig5_sgd_vs_als_convergence.png" alt="40 个 epoch 的训练 RMSE：ALS 几个迭代就收敛，SGD 慢一些但最终位置接近" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>但&quot;ALS 更快&quot;这句话需要加注脚。ALS 内存开销更大——每次更新都要装一个 $k \times k$ 的 Gram 矩阵；SGD 一条样本一条样本地走，内存友好。粗略经验：</p>
+<ul>
+<li><strong>小数据、需要在线更新</strong>：选 SGD。</li>
+<li><strong>大批量、有分布式集群</strong>：选 ALS。</li>
+<li><strong>两者通吃</strong>：先用 ALS 离线初始化，再用 SGD 在线增量更新。</li>
+</ul>
+<hr>
+<h2 id="5--偏置项--性价比最高的一招">5 · 偏置项 —— 性价比最高的一招</h2>
+<p>朴素分解假设评分完全来自用户–物品的潜在交互。但现实噪音很多：</p>
+<ul>
+<li>有人逢片必给 4–5 分（慷慨），有人天生只打 1–2（严苛）。</li>
+<li>有些物品被普世追捧，另一些被普世吐槽。</li>
+<li>整个平台还有一个全局水位（1–5 分制下通常约 3.5）。</li>
+</ul>
+<p>加偏置项几乎不花什么力气，却经常把 RMSE 直接砍掉 10–20%：</p>
+$$
+\hat{r}_{ui} = \mu + b_u + b_i + \mathbf{p}_u \cdot \mathbf{q}_i
+$$<p>$\mu$ 是全局均值，$b_u$ 是用户偏置，$b_i$ 是物品偏置。剩下的因子向量就被解放出来，只去拟合<strong>真正属于品味的交互成分</strong>。</p>
+<p>偏置可以从数据初始化，再和因子一起学：</p>
+$$
+b_u^{(0)} = \frac{1}{|I_u|}\sum_{i \in I_u}(r_{ui} - \mu), \qquad
+b_i^{(0)} = \frac{1}{|U_i|}\sum_{u \in U_i}(r_{ui} - \mu - b_u^{(0)})
+$$<p>SGD 更新只多两行：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="bp">self</span><span class="o">.</span><span class="n">b_u</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">*</span> <span class="p">(</span><span class="n">err</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_u</span><span class="p">[</span><span class="n">u</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="bp">self</span><span class="o">.</span><span class="n">b_i</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">*</span> <span class="p">(</span><span class="n">err</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_i</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Netflix Prize 时代说的&quot;SVD&quot;其实就是它——不是教科书里的奇异值分解，而是<strong>带偏置的矩阵分解</strong>借了一个熟脸名字。</p>
+<hr>
+<h2 id="6--svd--把隐式反馈也用起来">6 · SVD++ —— 把隐式反馈也用起来</h2>
+<p>用户的大部分行为是<strong>隐式</strong>的：点击、滚动、停留时长、买了但不评分。SVD++ 把这些&quot;沉默的信号&quot;也吸进用户向量里。</p>
+<p>设 $I_u$ 是用户 $u$ <strong>以任何方式接触过</strong>的物品集合（评分或仅交互）。给每个这样的物品再学一组向量 $\mathbf{y}_j$。用户表示变为：</p>
+$$
+\hat{r}_{ui} = \mu + b_u + b_i + \mathbf{q}_i^{\!T} \left(\mathbf{p}_u + |I_u|^{-1/2}\sum_{j \in I_u} \mathbf{y}_j\right)
+$$<p>括号里读起来就是：<em>&ldquo;先从你的显式因子出发，再加上你交互过的所有物品的隐式嵌入的平均。&rdquo;</em> $|I_u|^{-1/2}$ 防止重度用户淹没模型。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SVDpp</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;带隐式反馈的 SVD++。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">=</span> <span class="n">k</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">reg</span><span class="p">,</span> <span class="n">epochs</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ratings</span><span class="p">,</span> <span class="n">implicit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 索引用户/物品；初始化 P, Q, Y, 偏置, mu</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 每一步：</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">#   N = implicit_items[u]</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">#   y_sum = Y[N].sum(0) / sqrt(len(N))</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">#   pred  = mu + b_u + b_i + (P[u] + y_sum) @ Q[i]</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">#   梯度回传到 P[u], Q[i], Y[N], b_u, b_i</span>
+</span></span><span class="line"><span class="cl">        <span class="o">...</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在 Netflix Prize 上，从带偏置 MF 升级到 SVD++ 大约再砍 ~2% 的 RMSE。绝对值不大，在排行榜上就是决定性的差距。</p>
+<hr>
+<h2 id="7--bpr--当排序比评分更重要">7 · BPR —— 当排序比评分更重要</h2>
+<p>如果你真正在意的指标是&quot;用户点了置顶那条吗&quot;，那么平方误差是个错误的损失函数。RMSE 把&quot;4.6 预测真值 5&quot;罚得和&quot;把《当幸福》排到《肖申克》前面&quot;一样狠——后者才是真的伤。</p>
+<p>贝叶斯个性化排序（BPR）换了一个目标：构造三元组 $(u, i, j)$，其中用户 $u$ 与物品 $i$ 有交互、与 $j$ 没有，然后最大化&quot;模型给 $i$ 的分高于 $j$&ldquo;的概率：</p>
+$$
+\mathcal{L} = \sum_{(u, i, j) \in D_S} \ln \sigma(\hat{r}_{ui} - \hat{r}_{uj}) - \lambda \|\Theta\|^2
+$$<p>$\sigma$ 是 sigmoid。BPR 只看 pair 的<strong>先后顺序</strong>，因此对&quot;没有显式负样本&quot;这件事天然免疫——这恰好就是隐式反馈数据的常态。</p>
+<p>SGD 更新由梯度直接给出。对一个三元组 $(u, i, j)$，记 $x_{uij} = \sigma(\hat{r}_{uj} - \hat{r}_{ui})$：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">P</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">+=</span> <span class="n">lr</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_uij</span> <span class="o">*</span> <span class="p">(</span><span class="n">Q</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">Q</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">-</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">u</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="n">Q</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">lr</span> <span class="o">*</span> <span class="p">(</span> <span class="n">x_uij</span> <span class="o">*</span>  <span class="n">P</span><span class="p">[</span><span class="n">u</span><span class="p">]</span>        <span class="o">-</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">Q</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl"><span class="n">Q</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="n">lr</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">x_uij</span> <span class="o">*</span>  <span class="n">P</span><span class="p">[</span><span class="n">u</span><span class="p">]</span>        <span class="o">-</span> <span class="n">reg</span> <span class="o">*</span> <span class="n">Q</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>经验上，BPR 在隐式数据上的 AUC 比朴素 MF 高出 5–10%。手里只有点击不是评分时，它就是默认选择。</p>
+<hr>
+<h2 id="8--因子分解机fm-把边特征也吃进去">8 · 因子分解机（FM）—— 把边特征也吃进去</h2>
+<p>纯 MF 只认识用户 ID 和物品 ID。但你手里通常远不止这些：用户年龄、物品类目、当前时段……Steffen Rendle 在 2010 年提出的因子分解机把 MF 推广到任意稀疏特征向量 $\mathbf{x}$：</p>
+$$
+\hat{y}(\mathbf{x}) = w_0 + \sum_{i=1}^{n} w_i x_i + \sum_{i=1}^{n}\sum_{j=i+1}^{n} \langle \mathbf{v}_i, \mathbf{v}_j \rangle\, x_i\, x_j
+$$<p>每个特征都有一组潜向量 $\mathbf{v}_i$，两两交互通过内积打分。最妙的一处是：表面上 $O(n^2)$ 的交互项可以化简为 $O(kn)$：</p>
+$$
+\sum_{i<j} \langle \mathbf{v}_i, \mathbf{v}_j \rangle x_i x_j = \tfrac{1}{2}\sum_{f=1}^{k}\!\left[\Big(\sum_i v_{i,f} x_i\Big)^2 - \sum_i v_{i,f}^2 x_i^2\right]
+$$<p>特征数和因子数都是线性级，FM 因此能扛起百万维 one-hot 的工业级 CTR 数据。</p>
+<p>如果把 $\mathbf{x}$ 设成 <code>[用户 one-hot ; 物品 one-hot]</code>，FM 正好退化为矩阵分解——MF 是 FM &ldquo;只用 ID 特征&rdquo; 的特例。</p>
+<hr>
+<h2 id="9--隐式反馈的几种处理思路">9 · 隐式反馈的几种处理思路</h2>
+<p>真实平台很少有评分，更多的是<strong>行为</strong>：浏览、点击、收听、购买。三种主流套路：</p>
+<ul>
+<li><strong>加权矩阵分解</strong>：把每条已观测交互看成&quot;目标值 1，置信度 $c_{ui} = 1 + \alpha \log(1 + \text{count})$&quot;，把缺失看成&quot;目标值 0，置信度低&rdquo;。损失变成 $\sum c_{ui} (1 - \hat{r}_{ui})^2 + \lambda \dots$</li>
+<li><strong>负采样</strong>：每条正样本配若干个未交互物品作为负样本，按 0 训练。</li>
+<li><strong>BPR</strong>：如上节所述，用排序对绕开&quot;什么是负样本&quot;这件事。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">confidence</span><span class="p">(</span><span class="n">count</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Hu/Koren/Volinsky 的隐式反馈置信度公式。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="10--实战-qa">10 · 实战 Q&amp;A</h2>
+<p><strong>User-CF 还是 Item-CF？</strong> 默认 Item-CF。物品通常更少更稳定，相似度矩阵更小、寿命更长。只有在用户少而活跃的场景下才考虑 User-CF。</p>
+<p><strong>潜因子维度 $k$ 怎么选？</strong> 10 万级用户起步可以 20–50；百万级 50–100；千万级以上 100–200。然后用交叉验证扫一遍——验证集 RMSE 不再下降的最小 $k$ 就是甜点。</p>
+<p><strong>冷启动怎么办？</strong> 新用户：用注册信息（年龄、地域）初始化向量，或者直接退到热门兜底。新物品：用内容特征（类别、标签）初始化向量，或者基于内容做 Item-CF。混合策略的常见配方是&quot;内容先顶上，攒到 10–20 条交互后再切到 CF&quot;。</p>
+<p><strong>SGD 还是 ALS？</strong> SGD 内存友好、可在线；ALS 收敛快、可分布式。许多团队晚上 ALS 离线初始化，白天 SGD 增量微调。</p>
+<p><strong>为什么 BPR 在隐式数据上比 RMSE 训练的 MF 好？</strong> 因为 RMSE 优化的根本是错误目标。下游指标（CTR、NDCG）是排名的函数，不是评分的函数；BPR 直接优化排名。</p>
+<p><strong>对付稀疏性的招数。</strong> 矩阵分解本身、加正则、引入隐式反馈、用 FM 引入边特征——没有银弹，是一套组合拳。</p>
+<p><strong>偏置项凭什么这么有效？</strong> 它把&quot;结构性效应&quot;（这位用户慷慨、这部片子普世受捧）和<strong>真正的交互信号</strong>剥离开来，让潜因子专心建模品味。一接入，RMSE 通常就下降 10–20%。</p>
+<p><strong>初始化。</strong> 因子用 $\mathcal{N}(0, 0.1)$，偏置用 0（数据会在第一轮把它们推到合理位置）。千万别用全零因子——梯度会卡住。</p>
+<p><strong>预测越界怎么办？</strong> 直接 clip 到 $[r_{\min}, r_{\max}]$。Sigmoid 缩放在数学上更优雅，但在离线评估里很少能赢过 clip。</p>
+<p><strong>怎么做实时推荐？</strong> 把每个用户的向量缓存住；对头部用户预算 Top-N；只在长尾用户上实时计算。需要持续学习时，用 SGD 在流上更新，并对嵌入表做版本管理。</p>
+<p><strong>怎么防过拟合？</strong> L2 正则取 $\lambda \in [0.01, 0.1]$，验证集早停，再不行就先把 $k$ 砍小，最后才考虑更花哨的招。</p>
+<hr>
+<h2 id="总结">总结</h2>
+<p>协同过滤是现代推荐系统的地基，整条线索其实很短：</p>
+<ul>
+<li><strong>邻域方法</strong>把&quot;和你像的人也喜欢……&ldquo;翻译成相似度加权平均。Item-CF 是工业默认。</li>
+<li><strong>矩阵分解</strong>把稀疏评分矩阵压成低秩用户/物品嵌入，用内积预测评分。</li>
+<li><strong>偏置项</strong>剥离结构性噪音；<strong>SVD++</strong> 把隐式反馈也吸进来。</li>
+<li><strong>ALS</strong> 与 <strong>SGD</strong> 是两条优化路线——闭式解 vs. 流式更新，并行 vs. 在线。</li>
+<li><strong>BPR</strong> 把损失从 RMSE 换成排序；<strong>FM</strong> 把 MF 推广到任意稀疏特征。</li>
+</ul>
+<p>这些思想会一直跟着你走。DeepFM 的嵌入层就是分解；双塔召回是带神经编码器的矩阵分解；序列模型也仍然依赖 SVD++ 那一套学出来的物品嵌入。把这一篇吃透，后面整个系列你会觉得都是同一首曲子的变奏。</p>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>Koren, Y., Bell, R., &amp; Volinsky, C. (2009). Matrix factorization techniques for recommender systems. <em>Computer</em>, 42(8), 30–37. <a href="https://ieeexplore.ieee.org/document/5197422" target="_blank" rel="noopener noreferrer">IEEE <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Rendle, S., Freudenthaler, C., Gantner, Z., &amp; Schmidt-Thieme, L. (2009). BPR: Bayesian personalized ranking from implicit feedback. <em>UAI</em>. <a href="https://arxiv.org/abs/1205.2618" target="_blank" rel="noopener noreferrer">arXiv:1205.2618 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Rendle, S. (2010). Factorization machines. <em>ICDM</em>. <a href="https://doi.org/10.1109/ICDM.2010.127" target="_blank" rel="noopener noreferrer">DOI <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Koren, Y. (2008). Factorization meets the neighborhood: a multifaceted collaborative filtering model. <em>KDD</em>. <a href="https://doi.org/10.1145/1401890.1401944" target="_blank" rel="noopener noreferrer">DOI <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Hu, Y., Koren, Y., &amp; Volinsky, C. (2008). Collaborative filtering for implicit feedback datasets. <em>ICDM</em>. <a href="https://doi.org/10.1109/ICDM.2008.22" target="_blank" rel="noopener noreferrer">DOI <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ul>
+<hr>
+<blockquote>
+<p><strong>系列导航</strong></p>
+<p>本文是推荐系统系列的<strong>第 2 篇</strong>，共 16 篇。</p>
+<ul>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%80-%e5%85%a5%e9%97%a8%e4%b8%8e%e5%9f%ba%e7%a1%80%e6%a6%82%e5%bf%b5/">第 1 篇：入门与基础概念</a>
+</li>
+<li><strong>第 2 篇：协同过滤与矩阵分解</strong>（当前）</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%89-%e6%b7%b1%e5%ba%a6%e5%ad%a6%e4%b9%a0%e5%9f%ba%e7%a1%80%e6%a8%a1%e5%9e%8b/">第 3 篇：深度学习基础模型</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%9b%9b-CTR%e9%a2%84%e4%bc%b0%e4%b8%8e%e7%82%b9%e5%87%bb%e7%8e%87%e5%bb%ba%e6%a8%a1/">第 4 篇：CTR预估与点击率建模</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%94-Embedding%e8%a1%a8%e7%a4%ba%e5%ad%a6%e4%b9%a0/">第 5 篇：Embedding表示学习</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%85%ad-%e5%ba%8f%e5%88%97%e6%8e%a8%e8%8d%90%e4%b8%8e%e4%bc%9a%e8%af%9d%e5%bb%ba%e6%a8%a1/">第 6 篇：序列推荐与会话建模</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%83-%e5%9b%be%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c%e4%b8%8e%e7%a4%be%e4%ba%a4%e6%8e%a8%e8%8d%90/">第 7 篇：图神经网络与社交推荐</a>
+</li>
+<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%85%ab-%e7%9f%a5%e8%af%86%e5%9b%be%e8%b0%b1%e5%a2%9e%e5%bc%ba%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">第 8 篇：知识图谱增强推荐系统</a>
+</li>
+<li>第 9 篇：多任务学习（即将发布）</li>
+<li>第 10 篇：深度兴趣网络（即将发布）</li>
+<li>第 11 篇：对比学习（即将发布）</li>
+<li>第 12 篇：大语言模型推荐（即将发布）</li>
+<li>第 13 篇：公平性与可解释性（即将发布）</li>
+<li>第 14 篇：跨域推荐与冷启动（即将发布）</li>
+<li>第 15 篇：实时推荐与在线学习（即将发布）</li>
+<li>第 16 篇：工业实践（即将发布）</li>
+</ul>
+</blockquote>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1--协同过滤的核心思想">1 · 协同过滤的核心思想</a>
+      <ul>
+        <li><a href="#一个玩具评分矩阵">一个玩具评分矩阵</a></li>
+        <li><a href="#优势与代价">优势与代价</a></li>
+      </ul>
+    </li>
+    <li><a href="#2--基于用户的协同过滤user-cf">2 · 基于用户的协同过滤（User-CF）</a>
+      <ul>
+        <li><a href="#算法骨架">算法骨架</a></li>
+        <li><a href="#怎么衡量品味相似">怎么衡量&quot;品味相似&quot;</a></li>
+        <li><a href="#评分预测">评分预测</a></li>
+        <li><a href="#一份能跑的实现">一份能跑的实现</a></li>
+        <li><a href="#user-cf-的天花板">User-CF 的天花板</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--基于物品的协同过滤item-cf">3 · 基于物品的协同过滤（Item-CF）</a>
+      <ul>
+        <li><a href="#为什么工业界默认-item-cf">为什么工业界默认 Item-CF</a></li>
+        <li><a href="#调整余弦首选度量">调整余弦：首选度量</a></li>
+        <li><a href="#预测公式">预测公式</a></li>
+        <li><a href="#实现">实现</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--矩阵分解">4 · 矩阵分解</a>
+      <ul>
+        <li><a href="#从邻域到潜因子">从邻域到潜因子</a></li>
+        <li><a href="#比邻域法好在哪">比邻域法好在哪</a></li>
+        <li><a href="#几何解读">几何解读</a></li>
+        <li><a href="#目标函数">目标函数</a></li>
+        <li><a href="#优化方法一随机梯度下降sgd">优化方法一：随机梯度下降（SGD）</a></li>
+        <li><a href="#优化方法二交替最小二乘als">优化方法二：交替最小二乘（ALS）</a></li>
+        <li><a href="#sgd-与-als-实战对比">SGD 与 ALS 实战对比</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--偏置项--性价比最高的一招">5 · 偏置项 —— 性价比最高的一招</a></li>
+    <li><a href="#6--svd--把隐式反馈也用起来">6 · SVD++ —— 把隐式反馈也用起来</a></li>
+    <li><a href="#7--bpr--当排序比评分更重要">7 · BPR —— 当排序比评分更重要</a></li>
+    <li><a href="#8--因子分解机fm-把边特征也吃进去">8 · 因子分解机（FM）—— 把边特征也吃进去</a></li>
+    <li><a href="#9--隐式反馈的几种处理思路">9 · 隐式反馈的几种处理思路</a></li>
+    <li><a href="#10--实战-qa">10 · 实战 Q&amp;A</a></li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">推荐系统</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5900</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

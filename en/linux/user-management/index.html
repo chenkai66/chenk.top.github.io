@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux User Management: Users, Groups, sudo, and Security · Chen Kai Blog</title>
+<meta name="description" content="A working mental model for Linux accounts: how /etc/passwd and /etc/shadow fit together, when to use a primary group versus a supplementary one, how sudo actually decides, and the full lifecycle of useradd / usermod / passwd / chage / userdel — including the PAM stack underneath.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/linux/user-management/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/linux/user-management/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux User Management: Users, Groups, sudo, and Security">
+<meta property="og:description" content="A working mental model for Linux accounts: how /etc/passwd and /etc/shadow fit together, when to use a primary group versus a supplementary one, how sudo actually decides, and the full lifecycle of useradd / usermod / passwd / chage / userdel — including the PAM stack underneath.">
+<meta property="og:url" content="https://www.chenk.top/en/linux/user-management/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Linux</a>
+         · Chapter 5
+      </div>
+      <h1>Linux User Management: Users, Groups, sudo, and Security</h1>
+      <p class="deck">A working mental model for Linux accounts: how /etc/passwd and /etc/shadow fit together, when to use a primary group versus a supplementary one, how sudo actually decides, and the full lifecycle of useradd / usermod / passwd / chage / userdel — including the PAM stack underneath.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-02-22">February 22, 2022</time> · 15 min read · 3100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/linux/" class="tag">#Linux</a><a href="/en/tags/cloud/" class="tag">#Cloud</a><a href="/en/tags/system-administration/" class="tag">#System Administration</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>If you only ever ran <code>useradd</code> and <code>passwd</code> on a single laptop, you can probably get away without thinking about any of this. The moment more than one human (or more than one service) shares a host, &ldquo;user management&rdquo; stops being paperwork and starts being the security model: it decides who can log in, which UID owns the files a process writes, which commands <code>sudo</code> will lift to root, and how long a stolen password remains useful.</p>
+<p>This article walks the model end to end. We start with the raw shape of <code>/etc/passwd</code> and <code>/etc/shadow</code> — because every command in this space is just a wrapper around editing those files. Then we cover the user/group relationship (the bit people most often get backwards), the full lifecycle commands (<code>useradd</code>, <code>usermod</code>, <code>passwd</code>, <code>chage</code>, <code>userdel</code>), <code>sudo</code> and <code>visudo</code> done right, and finally the PAM stack that ties authentication, account policy, password rules and session setup together.</p>
+<h1 id="the-mental-model-accounts-are-rows-in-three-text-files">The mental model: accounts are rows in three text files</h1>
+<p>Before any command, the data model. Linux accounts live in three flat text files, one row per entity, fields separated by colons:</p>
+<ul>
+<li><code>/etc/passwd</code> — public: one row per account (humans <strong>and</strong> services). World-readable, root-writable.</li>
+<li><code>/etc/shadow</code> — secret: one row per account holding the password hash and the aging policy. Root-only.</li>
+<li><code>/etc/group</code> — one row per group, with a comma-separated member list at the end.</li>
+</ul>
+<p>There is also <code>/etc/gshadow</code> (group passwords and group admins, rarely used in practice) and <code>/etc/skel</code> (the template directory copied into every new home).</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/user-management/fig1_passwd_anatomy.png" alt="Anatomy of an /etc/passwd entry and its link to /etc/shadow" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The seven <code>/etc/passwd</code> fields, left to right:</p>
+<ol>
+<li><strong>username</strong> — the login name. Unique per host.</li>
+<li><strong>password placeholder</strong> — almost always <code>x</code>, meaning &ldquo;the real hash is in <code>/etc/shadow</code>&rdquo;. A literal <code>*</code> or empty field means no usable password (different from &ldquo;locked&rdquo;).</li>
+<li><strong>UID</strong> — the numeric user id. The kernel only ever sees this number; the name is a convenience for humans. <code>0</code> is root, <code>1–999</code> are reserved for services, <code>1000+</code> are humans on modern distros (CentOS 6 and earlier started humans at <code>500</code>).</li>
+<li><strong>GID</strong> — the <em>primary</em> group id. New files this user creates are owned by this group by default.</li>
+<li><strong>GECOS</strong> — historically the General Electric Comprehensive Operating System full-name field. Today: free-form comment. <code>chfn</code> edits it.</li>
+<li><strong>home directory</strong> — <code>$HOME</code> after login. Created from <code>/etc/skel</code> if you pass <code>-m</code> to <code>useradd</code>.</li>
+<li><strong>login shell</strong> — what <code>exec</code>s after authentication. <code>/sbin/nologin</code> or <code>/usr/sbin/nologin</code> makes the account non-interactive (the right setting for service accounts).</li>
+</ol>
+<p>The corresponding <code>/etc/shadow</code> line carries: the hash (prefix tells you the algorithm — <code>$6$</code> is SHA‑512, <code>$y$</code> is yescrypt on newer Debian/Ubuntu, <code>$1$</code> is MD5 and you should never see it on a modern host), the day-count of the last password change (days since 1970-01-01), and five aging fields: <code>min</code>, <code>max</code>, <code>warn</code>, <code>inactive</code>, <code>expire</code>. A leading <code>!</code> or <code>*</code> on the hash means &ldquo;locked&rdquo; — the account exists but no password will ever match.</p>
+<blockquote>
+<p>Never edit these files in a normal editor. Use <code>vipw</code> and <code>vigr</code>, which take the right locks (<code>/etc/passwd.lock</code>, <code>/etc/shadow.lock</code>) so you can&rsquo;t corrupt the file by saving while <code>useradd</code> is also running. Better yet, use the wrapper commands.</p>
+</blockquote>
+<h1 id="users-primary-group-supplementary-groups">Users, primary group, supplementary groups</h1>
+<p>This is the part most tutorials get muddled. Every account has exactly <strong>one primary group</strong> (the GID in <code>/etc/passwd</code>) and <strong>zero or more supplementary groups</strong> (rows of <code>/etc/group</code> whose member list contains this user).</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/user-management/fig2_user_group_relationship.png" alt="Users belong to one primary group and many supplementary groups" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Why two kinds?</p>
+<ul>
+<li>The <strong>primary group</strong> decides default ownership: when <code>alice</code> runs <code>touch foo</code>, the file is owned <code>alice:alice</code> (or whatever her primary group is). It also decides what the kernel sets as the process&rsquo;s <code>egid</code> at login.</li>
+<li><strong>Supplementary groups</strong> grant <em>extra</em> access. Adding <code>alice</code> to <code>docker</code> lets her talk to the docker socket; adding her to <code>sudo</code> (Debian) or <code>wheel</code> (RHEL) lets her escalate. None of this changes the default ownership of files she creates.</li>
+</ul>
+<p>A common confusion: if <code>alice</code>&rsquo;s primary group is <code>alice</code>, you will <strong>not</strong> see her name in the <code>/etc/group</code> row for <code>alice</code> — primary membership lives in <code>/etc/passwd</code>, not <code>/etc/group</code>. The member list in <code>/etc/group</code> only enumerates the <em>supplementary</em> members. To see the union, ask the kernel:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">id alice
+</span></span><span class="line"><span class="cl"><span class="c1"># uid=1001(alice) gid=1001(alice) groups=1001(alice),998(docker),27(sudo)</span>
+</span></span><span class="line"><span class="cl">groups alice
+</span></span><span class="line"><span class="cl"><span class="c1"># alice : alice docker sudo</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="the-lifecycle-commands">The lifecycle commands</h1>
+<p>Every account passes through the same five stages. Each command edits a specific subset of the files above; once you know which, recovery and auditing become trivial.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/user-management/fig4_user_lifecycle_commands.png" alt="The lifecycle of a Linux account: useradd, usermod, passwd, lock, userdel" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="useradd--create"><code>useradd</code> — create</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo useradd -m -s /bin/bash -c <span class="s2">&#34;Alice Wang&#34;</span> alice
+</span></span><span class="line"><span class="cl">sudo passwd alice
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The flags worth memorising:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Flag</th>
+          <th>Effect</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>-m</code></td>
+          <td>Create the home directory (and copy <code>/etc/skel</code> into it). Without <code>-m</code> you get an account with <code>$HOME</code> set to a path that doesn&rsquo;t exist.</td>
+      </tr>
+      <tr>
+          <td><code>-s SHELL</code></td>
+          <td>Login shell. <code>/bin/bash</code>, <code>/bin/zsh</code>, or <code>/sbin/nologin</code> for service accounts.</td>
+      </tr>
+      <tr>
+          <td><code>-g GROUP</code></td>
+          <td>Primary group. Default is to create a same-name group with the same GID (this is &ldquo;user private groups&rdquo; — the standard layout on every modern distro).</td>
+      </tr>
+      <tr>
+          <td><code>-G g1,g2</code></td>
+          <td>Supplementary groups, comma-separated. Don&rsquo;t forget the <code>,</code> between them.</td>
+      </tr>
+      <tr>
+          <td><code>-u UID</code></td>
+          <td>Pin a UID. Useful for keeping NFS-shared filesystems consistent across hosts.</td>
+      </tr>
+      <tr>
+          <td><code>-r</code></td>
+          <td>Make a <em>system</em> user (UID below the normal range, no aging, no <code>/home</code>).</td>
+      </tr>
+      <tr>
+          <td><code>-c &quot;...&quot;</code></td>
+          <td>The GECOS / comment field.</td>
+      </tr>
+  </tbody>
+</table>
+<p>Two common shapes:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># A human, in the developers group, with docker socket access:</span>
+</span></span><span class="line"><span class="cl">sudo useradd -m -s /bin/bash -G developers,docker bob
+</span></span><span class="line"><span class="cl">sudo passwd bob
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># A service account that nginx will run under:</span>
+</span></span><span class="line"><span class="cl">sudo useradd -r -s /sbin/nologin -d /var/lib/nginx -M nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>-M</code> says &ldquo;do not create the home directory&rdquo; — many service accounts don&rsquo;t need one because their state lives somewhere else (<code>/var/lib/&lt;service&gt;</code>).</p>
+<h2 id="usermod--modify-in-place"><code>usermod</code> — modify in place</h2>
+<p>The trap with <code>-G</code> is that it <strong>replaces</strong> the existing supplementary list. Use <code>-aG</code> to <em>append</em>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Right: add alice to the sudo group, keep her other groups.</span>
+</span></span><span class="line"><span class="cl">sudo usermod -aG sudo alice
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Wrong: this REPLACES alice&#39;s supplementary groups with just {sudo}.</span>
+</span></span><span class="line"><span class="cl">sudo usermod -G sudo alice
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Other useful invocations:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo usermod -s /bin/zsh alice                  <span class="c1"># change login shell</span>
+</span></span><span class="line"><span class="cl">sudo usermod -d /data/alice -m alice            <span class="c1"># move home dir, migrating contents</span>
+</span></span><span class="line"><span class="cl">sudo usermod -l awang -d /home/awang -m alice   <span class="c1"># rename account</span>
+</span></span><span class="line"><span class="cl">sudo usermod -L alice                           <span class="c1"># lock (prepends &#39;!&#39; to the hash)</span>
+</span></span><span class="line"><span class="cl">sudo usermod -U alice                           <span class="c1"># unlock</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A locked account still exists, still owns its files, and can still be the target of <code>su - alice</code> from root. It just can&rsquo;t be authenticated against by password. This is exactly what you want when an employee leaves but their files might still be needed for a few weeks.</p>
+<h2 id="passwd-and-chage--secrets-and-their-expiry"><code>passwd</code> and <code>chage</code> — secrets and their expiry</h2>
+<p><code>passwd</code> sets passwords; <code>chage</code> sets the policy that decides when a password must change.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">passwd                      <span class="c1"># change your own password</span>
+</span></span><span class="line"><span class="cl">sudo passwd alice           <span class="c1"># change alice&#39;s password</span>
+</span></span><span class="line"><span class="cl">sudo passwd -l alice        <span class="c1"># lock (same effect as `usermod -L`)</span>
+</span></span><span class="line"><span class="cl">sudo passwd -u alice        <span class="c1"># unlock</span>
+</span></span><span class="line"><span class="cl">sudo passwd -e alice        <span class="c1"># expire now: alice must reset on next login</span>
+</span></span><span class="line"><span class="cl">sudo passwd -d alice        <span class="c1"># delete password (passwordless login — almost never what you want)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>chage -l</code> shows the current policy; <code>chage</code> sets it:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo chage -l alice
+</span></span><span class="line"><span class="cl"><span class="c1"># Last password change         : Apr 21, 2026</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Password expires             : Jul 20, 2026</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Password inactive            : Aug 19, 2026</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Account expires              : never</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Minimum number of days...    : 1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Maximum number of days...    : 90</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Number of days of warning... : 7</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># A reasonable policy: rotate every 90 days, warn 7 days ahead,</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># disable the account if 30 days pass after the password expires.</span>
+</span></span><span class="line"><span class="cl">sudo chage -m <span class="m">1</span> -M <span class="m">90</span> -W <span class="m">7</span> -I <span class="m">30</span> alice
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Hard expiry on a specific date (e.g. a contractor):</span>
+</span></span><span class="line"><span class="cl">sudo chage -E 2026-12-31 alice
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Note that &ldquo;max age&rdquo; alone is not the security control most people think it is — modern guidance (NIST SP 800-63B) actually argues against forced periodic rotation for <em>human</em> passwords because it pushes people to predictable patterns. Use it for <em>service</em> accounts and for compliance regimes that demand it; rely on MFA, length and breach detection for humans.</p>
+<h2 id="userdel--and-why-you-should-lock-first"><code>userdel</code> — and why you should lock first</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo userdel alice          <span class="c1"># remove the account, leave $HOME alone</span>
+</span></span><span class="line"><span class="cl">sudo userdel -r alice       <span class="c1"># remove the account AND $HOME AND mail spool</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The hazard: any file <code>alice</code> owned that lived outside <code>$HOME</code> becomes an orphan owned by a bare UID. The next account that gets that UID <strong>silently inherits those files</strong>. The fix is procedural, not technical:</p>
+<ol>
+<li><code>usermod -L alice</code> (or <code>passwd -l alice</code>) — lock immediately, no more logins.</li>
+<li>Wait. Cron jobs need to drain, open shells need to close, file ownership audits need to run.</li>
+<li><code>find / -uid $(id -u alice) -print</code> to see what she owned outside <code>$HOME</code>. Reassign with <code>chown</code> or archive.</li>
+<li>Only then <code>userdel -r alice</code>.</li>
+</ol>
+<h1 id="group-management">Group management</h1>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo groupadd developers              <span class="c1"># create</span>
+</span></span><span class="line"><span class="cl">sudo groupadd -g <span class="m">2000</span> developers      <span class="c1"># create with a fixed GID</span>
+</span></span><span class="line"><span class="cl">sudo groupmod -n devs developers      <span class="c1"># rename</span>
+</span></span><span class="line"><span class="cl">sudo groupmod -g <span class="m">3000</span> developers      <span class="c1"># change GID (does NOT chown existing files!)</span>
+</span></span><span class="line"><span class="cl">sudo groupdel developers              <span class="c1"># delete (refuses if it&#39;s anyone&#39;s primary group)</span>
+</span></span><span class="line"><span class="cl">sudo gpasswd -a alice developers      <span class="c1"># add alice to developers</span>
+</span></span><span class="line"><span class="cl">sudo gpasswd -d alice developers      <span class="c1"># remove alice from developers</span>
+</span></span><span class="line"><span class="cl">sudo gpasswd -A alice developers      <span class="c1"># make alice a group administrator</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>gpasswd</code> is the dedicated wrapper for <code>/etc/group</code> and <code>/etc/gshadow</code>; it is generally safer than poking those files via <code>usermod -G</code>, and it lets you delegate group membership management to a non-root user via the &ldquo;group administrator&rdquo; role.</p>
+<h1 id="sudo-how-a-single-command-becomes-root"><code>sudo</code>: how a single command becomes root</h1>
+<p>Logging in directly as root is wrong for two reasons. First, <code>rm -rf /</code> deserves friction. Second, the audit log just shows &ldquo;root did things&rdquo; — completely useless when more than one person has the password. <code>sudo</code> fixes both: each call is logged with the <em>real</em> user, and the policy file lets you grant exactly the privilege needed and no more.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/user-management/fig3_sudo_policy_hierarchy.png" alt="How sudo decides whether to run your command" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A <code>sudoers</code> rule has to match on <strong>five</strong> dimensions before the command runs:</p>
+<pre tabindex="0"><code>user_or_%group  host=(runas_user:runas_group)  TAG=  command_list
+</code></pre><p>Read out loud: &ldquo;<em>who</em>, on <em>which host</em>, may run as <em>whom</em>, with <em>what tags</em>, <em>which commands</em>.&rdquo;</p>
+<h2 id="edit-with-visudo-never-your-editor">Edit with <code>visudo</code>, never your editor</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo visudo                       <span class="c1"># /etc/sudoers</span>
+</span></span><span class="line"><span class="cl">sudo visudo -f /etc/sudoers.d/ops <span class="c1"># a drop-in file</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>visudo</code> takes the lock, runs <code>sudoers</code> syntax validation on save, and refuses to install a broken file. Editing <code>/etc/sudoers</code> directly with <code>vim</code> is one of the few mistakes that can lock you out of a server with no way back short of single-user mode — because if <code>sudo</code> itself can&rsquo;t parse its config, <em>nothing</em> will let you fix it.</p>
+<p>Prefer drop-ins under <code>/etc/sudoers.d/</code> (they&rsquo;re loaded by an <code>@includedir</code> line in the main file). They version, package, and review more cleanly than a single monolithic file.</p>
+<h2 id="the-shapes-you-actually-need">The shapes you actually need</h2>
+<pre tabindex="0"><code class="language-sudoers" data-lang="sudoers"># Full root, password required.
+alice   ALL=(ALL:ALL) ALL
+
+# Group-based: members of `wheel` (RHEL) or `sudo` (Debian) get root.
+%wheel  ALL=(ALL:ALL) ALL
+
+# Narrow: bob can ONLY restart nginx, no password prompt.
+bob     ALL=(root) NOPASSWD: /usr/bin/systemctl restart nginx, \
+                              /usr/bin/systemctl status nginx
+
+# Aliases keep large policies readable.
+Cmnd_Alias NGINX_CTL = /usr/bin/systemctl restart nginx, \
+                        /usr/bin/systemctl reload nginx, \
+                        /usr/bin/systemctl status nginx
+User_Alias  ONCALL    = alice, bob, carol
+ONCALL    ALL=(root) NOPASSWD: NGINX_CTL
+</code></pre><p>A few non-obvious rules:</p>
+<ul>
+<li>The command list must be <strong>absolute paths</strong>. <code>bob ... NOPASSWD: nginx</code> does nothing useful and may even open a hole, because users could arrange <code>nginx</code> to mean something else on <code>$PATH</code>.</li>
+<li>Commands are matched as prefixes unless you pin arguments. <code>/usr/bin/systemctl restart nginx</code> allows exactly that; <code>/usr/bin/systemctl</code> allows anything systemctl can do (including <code>poweroff</code>).</li>
+<li><code>NOPASSWD:</code> is convenient and dangerous. Reserve it for non-interactive automation; for humans, ask for the password.</li>
+<li><code>Defaults requiretty</code> (sometimes shipped on RHEL) breaks <code>sudo</code> over non-tty channels. Disable it for automation accounts with a per-user <code>Defaults:bot !requiretty</code>.</li>
+</ul>
+<h2 id="what-sudo-reads-on-disk">What <code>sudo</code> reads on disk</h2>
+<p>In order: <code>/etc/sudoers</code>, then everything under <code>/etc/sudoers.d/</code> in lexical order, then group memberships are resolved, then <code>Defaults</code> are applied. Use <code>sudo -ll</code> to dump the full effective policy for the calling user — far more reliable than re-reading the files by hand.</p>
+<h2 id="su-versus-sudo"><code>su</code> versus <code>sudo</code></h2>
+<p><code>su -</code> opens a shell as another user (default: root) given <strong>that user&rsquo;s</strong> password. <code>sudo</code> runs a command as another user given <strong>your</strong> password. Almost always prefer <code>sudo</code>: the audit trail is better, and you never have to share root&rsquo;s password.</p>
+<h1 id="pam-the-layer-underneath-everything">PAM: the layer underneath everything</h1>
+<p><code>sudo</code>, <code>sshd</code>, <code>login</code>, <code>gdm</code>, <code>cron</code>, <code>su</code>, <code>passwd</code>, <code>crond</code> — none of them implement password checking themselves. They all delegate to PAM (Pluggable Authentication Modules), a stack of <code>.so</code> libraries configured per service in <code>/etc/pam.d/</code>. Understanding PAM is what turns &ldquo;I don&rsquo;t know why this account can&rsquo;t log in&rdquo; into a five-second debugging exercise.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/user-management/fig5_pam_auth_flow.png" alt="How PAM evaluates a login: auth, account, password, session" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A PAM service file has up to four stacks:</p>
+<ul>
+<li><strong>auth</strong> — prove identity. <code>pam_unix.so</code> checks <code>/etc/shadow</code>; <code>pam_sss.so</code> talks to SSSD/LDAP/AD; <code>pam_google_authenticator.so</code> adds TOTP.</li>
+<li><strong>account</strong> — even if the password is right, is this account allowed to log in <em>now</em>? Aging policy, <code>nologin</code> flag, time-of-day, source host.</li>
+<li><strong>password</strong> — only consulted on <code>passwd</code>. Strength rules (<code>pam_pwquality.so</code>), reuse rules (<code>pam_pwhistory.so</code>), then write the new hash (<code>pam_unix.so</code>).</li>
+<li><strong>session</strong> — set up the working environment after a successful login: rlimits (<code>pam_limits.so</code>), systemd user slice (<code>pam_systemd.so</code>), create the home dir on first login (<code>pam_mkhomedir.so</code>), record <code>lastlog</code>.</li>
+</ul>
+<p>Each line carries a <strong>control flag</strong> that decides how its result combines with the rest of the stack:</p>
+<ul>
+<li><code>required</code> — must succeed; if it fails the whole stack fails, but PAM keeps running the rest so the user can&rsquo;t tell <em>which</em> line failed (that&rsquo;s intentional — telling them leaks information).</li>
+<li><code>requisite</code> — must succeed; on failure the stack aborts immediately.</li>
+<li><code>sufficient</code> — if it succeeds and no earlier <code>required</code> failed, the stack passes right away.</li>
+<li><code>optional</code> — result is ignored unless it&rsquo;s the only module in the stack.</li>
+</ul>
+<p>A practical example — turning on a strong password policy on Debian. Edit <code>/etc/pam.d/common-password</code>:</p>
+<pre tabindex="0"><code class="language-pam" data-lang="pam">password requisite pam_pwquality.so retry=3 minlen=12 \
+                   dcredit=-1 ucredit=-1 ocredit=-1 lcredit=-1 \
+                   difok=4 enforce_for_root
+password required  pam_pwhistory.so remember=5 use_authtok
+password [success=1 default=ignore] pam_unix.so obscure use_authtok yescrypt
+</code></pre><p>What this says: at least 12 characters, requiring at least one digit / upper / symbol / lower (<code>-1</code> means &ldquo;credit at most one of these&rdquo;); reject anything that shares 4+ characters with the old password; remember the last 5 hashes and refuse reuse; finally write with the modern <code>yescrypt</code> hash. Test with <code>passwd &lt;yourself&gt;</code> <em>as a non-root account</em> before logging out.</p>
+<p>The single most useful debugging tool here is the journal:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo journalctl -u sshd -e            <span class="c1"># what sshd saw</span>
+</span></span><span class="line"><span class="cl">sudo journalctl <span class="nv">_COMM</span><span class="o">=</span>sudo --since <span class="s2">&#34;1h ago&#34;</span>
+</span></span><span class="line"><span class="cl">sudo grep <span class="s2">&#34;alice&#34;</span> /var/log/auth.log   <span class="c1"># Debian</span>
+</span></span><span class="line"><span class="cl">sudo grep <span class="s2">&#34;alice&#34;</span> /var/log/secure     <span class="c1"># RHEL</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If a login fails with the password definitely correct, it&rsquo;s almost always one of: account locked (<code>!</code> in <code>/etc/shadow</code>), shell set to <code>/sbin/nologin</code>, <code>pam_nologin</code> blocking everyone because <code>/etc/nologin</code> exists, <code>AllowUsers</code>/<code>DenyUsers</code> in <code>sshd_config</code>, or password aged past <code>inactive</code>.</p>
+<h1 id="patterns-from-the-field">Patterns from the field</h1>
+<h2 id="a-shared-project-directory">A shared project directory</h2>
+<p>Goal: <code>/srv/project</code> is read/write for everyone in <code>developers</code>, invisible to anyone else, and any new file inside it stays group-owned by <code>developers</code> so coworkers don&rsquo;t accidentally lock each other out.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo groupadd -r developers
+</span></span><span class="line"><span class="cl">sudo usermod -aG developers alice
+</span></span><span class="line"><span class="cl">sudo usermod -aG developers bob
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo mkdir -p /srv/project
+</span></span><span class="line"><span class="cl">sudo chown root:developers /srv/project
+</span></span><span class="line"><span class="cl">sudo chmod <span class="m">2770</span> /srv/project   <span class="c1"># 2 = SGID; 770 = rwx for owner+group, nothing for others</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The <code>2</code> in <code>2770</code> is the <strong>SGID bit on a directory</strong>: new files inherit the directory&rsquo;s group instead of the creator&rsquo;s primary group. Without it, when <code>alice</code> (primary group <code>alice</code>) creates a file, it lands as <code>alice:alice</code>, and <code>bob</code> can&rsquo;t edit it.</p>
+<p>For finer control — say, &ldquo;developers can write but <code>carol</code> is read-only&rdquo; — reach for POSIX ACLs:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo setfacl -m g:developers:rwx /srv/project
+</span></span><span class="line"><span class="cl">sudo setfacl -m u:carol:r-x /srv/project
+</span></span><span class="line"><span class="cl">sudo setfacl -d -m g:developers:rwx /srv/project   <span class="c1"># default ACL: applies to new files</span>
+</span></span><span class="line"><span class="cl">getfacl /srv/project
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="a-service-account-done-right">A service account, done right</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo useradd --system <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --home-dir /var/lib/myapp <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --shell /usr/sbin/nologin <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --no-create-home <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --user-group <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             myapp
+</span></span><span class="line"><span class="cl">sudo install -d -o myapp -g myapp -m <span class="m">0750</span> /var/lib/myapp /var/log/myapp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>--system</code> gets a UID below the human range and skips aging. <code>--user-group</code> makes the same-name group. <code>--no-create-home</code> because the state directory is created explicitly, with the right mode. The systemd unit then runs as <code>User=myapp Group=myapp</code>, which is the <em>only</em> identity that should ever own the app&rsquo;s data on disk.</p>
+<h2 id="tiered-sudo">Tiered <code>sudo</code></h2>
+<pre tabindex="0"><code class="language-sudoers" data-lang="sudoers">Cmnd_Alias READ_LOGS = /usr/bin/journalctl, /usr/bin/tail, /usr/bin/less
+Cmnd_Alias NGINX_CTL = /usr/bin/systemctl restart nginx, \
+                        /usr/bin/systemctl reload nginx, \
+                        /usr/bin/systemctl status nginx
+
+# Full admin
+alice    ALL=(ALL:ALL) ALL
+# On-call: only nginx, no password (paged at 3am, can&#39;t fumble auth)
+bob      ALL=(root) NOPASSWD: NGINX_CTL
+# Support: read logs, with password
+carol    ALL=(root)          READ_LOGS
+</code></pre><h2 id="bulk-creation-from-a-csv">Bulk creation from a CSV</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/usr/bin/env bash
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="nb">set</span> -euo pipefail
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="nv">IFS</span><span class="o">=</span>, <span class="nb">read</span> -r username fullname groups<span class="p">;</span> <span class="k">do</span>
+</span></span><span class="line"><span class="cl">  id <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">&#34;</span> <span class="p">&amp;</span>&gt;/dev/null <span class="o">&amp;&amp;</span> <span class="o">{</span> <span class="nb">echo</span> <span class="s2">&#34;skip </span><span class="nv">$username</span><span class="s2"> (exists)&#34;</span><span class="p">;</span> <span class="k">continue</span><span class="p">;</span> <span class="o">}</span>
+</span></span><span class="line"><span class="cl">  sudo useradd -m -s /bin/bash -c <span class="s2">&#34;</span><span class="nv">$fullname</span><span class="s2">&#34;</span> -G <span class="s2">&#34;</span><span class="nv">$groups</span><span class="s2">&#34;</span> <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1"># Generate a one-time random password and force change on first login.</span>
+</span></span><span class="line"><span class="cl">  <span class="nv">pw</span><span class="o">=</span><span class="k">$(</span>openssl rand -base64 16<span class="k">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nb">echo</span> <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">:</span><span class="nv">$pw</span><span class="s2">&#34;</span> <span class="p">|</span> sudo chpasswd
+</span></span><span class="line"><span class="cl">  sudo chage -d <span class="m">0</span> <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">&#34;</span>     <span class="c1"># &#39;last change = epoch&#39; -&gt; must reset on first login</span>
+</span></span><span class="line"><span class="cl">  <span class="nb">echo</span> <span class="s2">&#34;</span><span class="nv">$username</span><span class="s2">,</span><span class="nv">$pw</span><span class="s2">&#34;</span> &gt;&gt; /root/initial-passwords.csv
+</span></span><span class="line"><span class="cl"><span class="k">done</span> &lt; users.csv
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>chpasswd</code> reads <code>user:password</code> lines and is the right tool for batch updates; <code>passwd --stdin</code> is RHEL-only. <code>chage -d 0</code> is the trick that forces a reset on first login without giving the user a non-expiring random secret.</p>
+<h1 id="where-to-go-next">Where to go next</h1>
+<p>This article gave you the operational model: the file shapes, the lifecycle commands, the <code>sudo</code> policy language and the PAM stack. The next two pieces in the series build on it directly:</p>
+<ul>
+<li><a href="../file-permissions/">Linux File Permissions</a>
+ — <code>rwx</code>, the SUID/SGID bits we used for the shared directory above, and POSIX ACLs.</li>
+<li><a href="../service-management/">Linux System Service Management</a>
+ — how the <code>User=</code> / <code>Group=</code> / <code>DynamicUser=</code> directives in systemd units make service accounts mostly redundant.</li>
+</ul>
+<p>Worth reading on the side: <code>man 5 sudoers</code>, <code>man 8 pam.d</code>, <code>man 5 shadow</code>, and the FreeIPA / SSSD documentation if you ever need centralised identity for more than a handful of hosts.</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/linux/package-management/"><span class="title">Linux Package Management: apt, dnf, pacman, and Building from Source</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/linux/service-management/"><span class="title">Linux Service Management: systemd, systemctl, and journald</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#useradd--create"><code>useradd</code> — create</a></li>
+    <li><a href="#usermod--modify-in-place"><code>usermod</code> — modify in place</a></li>
+    <li><a href="#passwd-and-chage--secrets-and-their-expiry"><code>passwd</code> and <code>chage</code> — secrets and their expiry</a></li>
+    <li><a href="#userdel--and-why-you-should-lock-first"><code>userdel</code> — and why you should lock first</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#edit-with-visudo-never-your-editor">Edit with <code>visudo</code>, never your editor</a></li>
+    <li><a href="#the-shapes-you-actually-need">The shapes you actually need</a></li>
+    <li><a href="#what-sudo-reads-on-disk">What <code>sudo</code> reads on disk</a></li>
+    <li><a href="#su-versus-sudo"><code>su</code> versus <code>sudo</code></a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#a-shared-project-directory">A shared project directory</a></li>
+    <li><a href="#a-service-account-done-right">A service account, done right</a></li>
+    <li><a href="#tiered-sudo">Tiered <code>sudo</code></a></li>
+    <li><a href="#bulk-creation-from-a-csv">Bulk creation from a CSV</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Linux</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3100</strong></div>
+      <div class="row"><span>Published</span><strong>Feb 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

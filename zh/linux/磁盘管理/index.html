@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux 磁盘管理 · Chen Kai Blog</title>
+<meta name="description" content="Linux 磁盘从识别到上线的完整链路：用 lsblk 看清块设备、用 GPT 分区、用 ext4 / xfs 格式化、用 /etc/fstab 持久化挂载，用 LVM 在线扩容，并讲清 df 与 du 不一致、删了文件空间不回收等典型故障的真正成因。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/linux/%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linux/%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux 磁盘管理">
+<meta property="og:description" content="Linux 磁盘从识别到上线的完整链路：用 lsblk 看清块设备、用 GPT 分区、用 ext4 / xfs 格式化、用 /etc/fstab 持久化挂载，用 LVM 在线扩容，并讲清 df 与 du 不一致、删了文件空间不回收等典型故障的真正成因。">
+<meta property="og:url" content="https://www.chenk.top/zh/linux/%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Linux</a>
+         · Chapter 3
+      </div>
+      <h1>Linux 磁盘管理</h1>
+      <p class="deck">Linux 磁盘从识别到上线的完整链路：用 lsblk 看清块设备、用 GPT 分区、用 ext4 / xfs 格式化、用 /etc/fstab 持久化挂载，用 LVM 在线扩容，并讲清 df 与 du 不一致、删了文件空间不回收等典型故障的真正成因。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-01-27">January 27, 2022</time> · 15 min read · 7400 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/" class="tag">#云计算</a><a href="/zh/tags/linux/" class="tag">#Linux</a><a href="/zh/tags/%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86/" class="tag">#系统管理</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>线上的磁盘问题，几乎从来都不是“敲一两条命令”就能搞定的。你面对的是一摞分层的栈：底下是<strong>块设备</strong>（一块物理盘或一块云盘），上面是<strong>分区表</strong>（MBR 或 GPT），可选地夹一层 <strong>LVM</strong> 把文件系统从具体磁盘解耦出来，然后是<strong>文件系统驱动</strong>（ext4、xfs、btrfs）赋予原始字节“文件”的语义，最后是<strong>挂载点</strong>——应用真正打开文件的那个目录路径。我见过的大多数线上故障，只要你能说出“现在卡在哪一层”，就已经赢了一半。</p>
+<p>本文沿着一条端到端的工作流走：识别一块新盘 → 分区 → 格式化 → 持久化挂载 → 用 LVM 在线扩容 → 排查典型故障。每一步都会讲清底层机制，目的是让你之后能“推理”系统在做什么，而不是死记一堆命令。</p>
+<h2 id="文件系统层级东西到底放在哪里">文件系统层级：东西到底放在哪里</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/disk-management/fig1_filesystem_hierarchy.png" alt="Linux 文件系统层级" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Linux 遵循 <strong>Filesystem Hierarchy Standard（FHS）</strong>。<code>/</code> 下每一个一级目录都有明确的职责，理解了这套约定，“哪些目录该独立成一块卷”这种决策就会变得很自然。</p>
+<table>
+  <thead>
+      <tr>
+          <th>目录</th>
+          <th>用途</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>/</code></td>
+          <td>整棵目录树的根；操作系统本身。</td>
+      </tr>
+      <tr>
+          <td><code>/bin</code>、<code>/sbin</code></td>
+          <td>系统启动所必需的可执行文件。</td>
+      </tr>
+      <tr>
+          <td><code>/etc</code></td>
+          <td>系统级配置文件（纯文本）。</td>
+      </tr>
+      <tr>
+          <td><code>/home</code></td>
+          <td>各用户的家目录。</td>
+      </tr>
+      <tr>
+          <td><code>/usr</code></td>
+          <td>安装的软件和库（<code>/usr/bin</code>、<code>/usr/lib</code>）。</td>
+      </tr>
+      <tr>
+          <td><code>/var</code></td>
+          <td>经常变化的数据：日志、邮件队列、包缓存、部分数据库。</td>
+      </tr>
+      <tr>
+          <td><code>/tmp</code></td>
+          <td>临时文件；多数发行版上是 RAM 中的 <code>tmpfs</code>。</td>
+      </tr>
+      <tr>
+          <td><code>/dev</code></td>
+          <td>设备节点（<code>/dev/sda</code>、<code>/dev/null</code> 等）。</td>
+      </tr>
+      <tr>
+          <td><code>/proc</code>、<code>/sys</code></td>
+          <td>内核暴露出来的虚拟文件系统。</td>
+      </tr>
+      <tr>
+          <td><code>/mnt</code>、<code>/media</code></td>
+          <td>习惯性的挂载点，用来挂可移动盘或额外存储。</td>
+      </tr>
+  </tbody>
+</table>
+<p>生产环境里非常常见的布局是把 <code>/</code>、<code>/var</code>、<code>/home</code>、<code>/data</code> 放在<strong>不同的块设备</strong>上。这么做的理由完全是运维上的考虑：日志失控写满 <code>/var</code> 时，根分区还有空间登录和救援；<code>/data</code> 需要扩容时可以只动那一块卷，不影响系统盘。</p>
+<h2 id="块设备与命名磁盘在-linux-里长什么样">块设备与命名：磁盘在 Linux 里长什么样</h2>
+<p>每一块挂到内核上的磁盘都会变成 <code>/dev</code> 下的一个<strong>块设备</strong>节点。命名规则编码了它走的是什么总线：</p>
+<table>
+  <thead>
+      <tr>
+          <th>路径</th>
+          <th>含义</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>/dev/sda</code>、<code>/dev/sdb</code></td>
+          <td>SATA / SAS / USB 盘（走 SCSI 子系统）</td>
+      </tr>
+      <tr>
+          <td><code>/dev/nvme0n1</code></td>
+          <td>NVMe 固态盘，namespace 1</td>
+      </tr>
+      <tr>
+          <td><code>/dev/vda</code></td>
+          <td>virtio 盘（KVM / 云主机）</td>
+      </tr>
+      <tr>
+          <td><code>/dev/xvda</code></td>
+          <td>Xen 虚拟盘（早期 AWS 实例）</td>
+      </tr>
+      <tr>
+          <td><code>/dev/sr0</code></td>
+          <td>光驱</td>
+      </tr>
+  </tbody>
+</table>
+<p>分区在后面接数字；NVMe 还会多一个 <code>p</code> 隔开：<code>/dev/sda1</code>、<code>/dev/nvme0n1p1</code>。</p>
+<p>动手做任何破坏性操作之前，先跑这三条命令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsblk -f                    <span class="c1"># 块设备树，含文件系统类型和 UUID</span>
+</span></span><span class="line"><span class="cl">sudo fdisk -l               <span class="c1"># 详细的分区表</span>
+</span></span><span class="line"><span class="cl">sudo blkid                  <span class="c1"># 每个已格式化分区的 UUID</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>lsblk -f</code> 是这篇文章里最有用的一条命令——它一次列出块设备树、每个分区上的文件系统、当前挂载点和 UUID。如果别的都忘了，就记住它。</p>
+<h3 id="命名陷阱devsdb-为什么会变">命名陷阱：<code>/dev/sdb</code> 为什么会“变”</h3>
+<p>设备名是内核启动时按枚举顺序分配的。多插一块盘、HBA 探测顺序不同、或者云主机做了一次实时迁移，原来的 <code>/dev/sdb</code> 就可能突然变成了 <code>/dev/sdc</code>。<strong>永远不要把 <code>/dev/sdX</code> 写进 <code>/etc/fstab</code>。</strong> 用稳定的标识符挂载：</p>
+<ul>
+<li><strong>UUID</strong>——格式化时分配，跟随文件系统的整个生命周期不变（<code>UUID=8f1c-...</code>）。</li>
+<li><code>/dev/disk/by-id/...</code>——厂商 + 序列号；当你需要知道“这是哪块物理盘”时很有用。</li>
+<li><code>/dev/disk/by-label/...</code>——格式化时设置的人类可读标签。</li>
+</ul>
+<h2 id="分区表mbr-vs-gpt">分区表：MBR vs GPT</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/disk-management/fig2_partition_layout.png" alt="MBR 与 GPT 分区布局对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>分区表写在磁盘开头，告诉操作系统这块盘是怎么切分的。Linux 支持两种格式。</p>
+<p><strong>MBR（Master Boot Record）</strong> 是从 IBM PC 时代继承下来的老格式。整张分区表就塞在磁盘最开头那一个 512 字节扇区里。它的所有限制都是从这个事实直接推导出来的：</p>
+<ul>
+<li>32 位 LBA 寻址，最大可寻址容量 <strong>2 TiB</strong>。</li>
+<li>最多 <strong>4 个主分区</strong>。再多就要建一个“扩展分区”，里面再开“逻辑分区”——一种历来都嫌别扭的折中方案。</li>
+<li>整张表只有一份。第一个扇区一旦损坏，分区信息就没了。</li>
+</ul>
+<p><strong>GPT（GUID Partition Table）</strong> 是 UEFI 规范定义的现代替代方案，完整解决了 MBR 的所有痛点：</p>
+<ul>
+<li>64 位 LBA——容量上限基本没有边界（ZB 量级）。</li>
+<li>默认最多 128 个分区，每个分区都用 GUID 命名。</li>
+<li>在磁盘<strong>开头放一份主表头，结尾放一份备份表头</strong>；两者都有 CRC32 校验和——损坏可被检测，也能恢复。</li>
+<li>第一个扇区放一个“保护性 MBR”，让那些不认 GPT 的老工具看到的是“一整块未知分区”，不会以为是空闲空间被覆盖。</li>
+</ul>
+<p><strong>默认就用 GPT</strong>，除非有非常具体的理由（很老的 BIOS 只能从 MBR 引导，或者要双系统装一个 32 位的 Windows）。所有现代发行版和云上系统都默认用 GPT。</p>
+<h3 id="工具fdiskgdiskparted">工具：fdisk、gdisk、parted</h3>
+<ul>
+<li><code>fdisk</code>——历史上只支持 MBR；现代版本也能处理 GPT。</li>
+<li><code>gdisk</code>——专门面向 GPT，操作上更明确。</li>
+<li><code>parted</code>——MBR / GPT 都支持，还有非交互的批处理模式，方便写脚本。</li>
+</ul>
+<p><code>fdisk</code> 的典型交互流程：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo fdisk /dev/sdb
+</span></span><span class="line"><span class="cl"><span class="c1"># p   打印当前分区表</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># g   建一张全新的空 GPT 表</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># n   新建分区（一路回车用整盘默认值即可）</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># w   把分区表写盘并退出</span>
+</span></span><span class="line"><span class="cl">sudo partprobe /dev/sdb     <span class="c1"># 让内核重新读取分区表</span>
+</span></span><span class="line"><span class="cl">lsblk -f /dev/sdb           <span class="c1"># 确认新分区已经出现</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>用 <code>parted</code> 写成非交互的等价脚本：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo parted -s /dev/sdb mklabel gpt
+</span></span><span class="line"><span class="cl">sudo parted -s /dev/sdb mkpart primary ext4 1MiB 100%
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里的起点 <code>1MiB</code> 不是为了好看——它保证分区<strong>对齐到 1 MiB 边界</strong>，与现代盘的 4 KiB 物理扇区匹配。分区不对齐时，文件系统的一次 4 KiB 逻辑写入会变成两次物理读 + 两次物理写，是一种沉默而恼人的性能杀手。现代工具默认就这么做，但你应该知道这条规则的存在。</p>
+<h2 id="文件系统把分区变成能用的东西">文件系统：把分区变成“能用的东西”</h2>
+<p>分区只是磁盘上一段连续的字节区间。要在里面存有名字的文件，得先<strong>格式化</strong>——往里写入文件系统的盘上数据结构（superblock、inode 表、空闲块位图、日志等等），让内核里的文件系统驱动能解释这些字节。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/disk-management/fig5_filesystem_comparison.png" alt="ext4 / xfs / btrfs 对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>在 Linux 服务器上你真正会遇到的就这三种文件系统：</p>
+<ul>
+<li><strong>ext4</strong>——Debian / Ubuntu 的默认，也是通用工作负载的稳妥之选。工具链成熟（<code>fsck</code>、<code>tune2fs</code>、<code>e2label</code>），失败模式经过充分研究，性能可预测。</li>
+<li><strong>xfs</strong>——RHEL 7+ 及衍生发行版的默认。为大文件、高并行、超大文件系统设计。<strong>不能缩小</strong>——只能扩或者迁。</li>
+<li><strong>btrfs</strong>——写时复制（CoW），原生支持快照、对数据<em>和</em>元数据都做校验和、内置 RAID 0/1/10。openSUSE 和 Fedora Workstation 默认。复杂度更高，某些配置历史上口碑一般；生产里用它，多半是冲着快照能力去的。</li>
+</ul>
+<h3 id="格式化">格式化</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkfs.ext4 -L data /dev/sdb1     <span class="c1"># ext4，标签为 &#34;data&#34;</span>
+</span></span><span class="line"><span class="cl">sudo mkfs.xfs  -L data /dev/sdb1     <span class="c1"># xfs 等价命令</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>格式化完，<code>lsblk -f</code> 就会显示文件系统类型、标签和 UUID。把 UUID 记下来——后面写 <code>/etc/fstab</code> 要用。</p>
+<h3 id="临时挂一下">临时挂一下</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir -p /mnt/data
+</span></span><span class="line"><span class="cl">sudo mount /dev/sdb1 /mnt/data
+</span></span><span class="line"><span class="cl">df -h /mnt/data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>挂载是纯运行时操作。它不会改盘上任何东西，只是告诉内核：“从现在起，<code>/mnt/data</code> 下的路径请由 <code>/dev/sdb1</code> 上的文件系统提供服务。”重启之后，挂载就没了。</p>
+<h3 id="持久化etcfstab">持久化：<code>/etc/fstab</code></h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/disk-management/fig4_mount_table.png" alt="挂载点与挂载表" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>/etc/fstab</code> 是持久化的挂载表——开机时 systemd（或者 init 脚本里的 <code>mount -a</code>）会把里面列出的全部挂上。</p>
+<p>挂载<strong>永远用 UUID</strong>，绝不要用 <code>/dev/sdX</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo blkid /dev/sdb1
+</span></span><span class="line"><span class="cl"><span class="c1"># /dev/sdb1: LABEL=&#34;data&#34; UUID=&#34;8f1c-...-3a&#34; TYPE=&#34;ext4&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>往 <code>/etc/fstab</code> 加一行：</p>
+<pre tabindex="0"><code># &lt;device&gt;             &lt;mount&gt;   &lt;fs&gt;   &lt;options&gt;           &lt;dump&gt; &lt;pass&gt;
+UUID=8f1c-...-3a       /mnt/data ext4   defaults,noatime    0      2
+</code></pre><p>这六列分别是：</p>
+<ol>
+<li><strong>来源</strong>——UUID、label，或设备路径。</li>
+<li><strong>挂载点</strong>——必须是已经存在的空目录。</li>
+<li><strong>文件系统类型</strong>——<code>ext4</code>、<code>xfs</code>、<code>tmpfs</code>、<code>nfs</code> 等。</li>
+<li><strong>挂载选项</strong>——<code>defaults</code>，再叠上像 <code>noatime</code>（不更新访问时间，对读多场景收益很大）、<code>ro</code>、<code>nosuid</code>、<code>nodev</code>、<code>discard</code>、<code>_netdev</code> 之类。</li>
+<li><strong>dump</strong>——固定写 <code>0</code>（老的 <code>dump</code> 备份工具早就退场了）。</li>
+<li><strong>fsck pass</strong>——<code>/</code> 写 <code>1</code>，其他文件系统写 <code>2</code>，跳过检查写 <code>0</code>。</li>
+</ol>
+<p><strong>改完一定要先验证再重启。</strong> <code>/etc/fstab</code> 写错会让系统启动到救援模式起不来。安全的做法是：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mount -a       <span class="c1"># 立刻按 fstab 全部挂一遍</span>
+</span></span><span class="line"><span class="cl">mount <span class="p">|</span> grep data   <span class="c1"># 确认新挂载已经生效</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>mount -a</code> 报错就先修好，再去重启。</p>
+<h3 id="卸载与-target-is-busy">卸载与 “target is busy”</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo umount /mnt/data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>最常见的失败是 <code>umount: target is busy</code>：还有某个进程持有挂载点下的文件描述符，或者把工作目录设在了挂载点下。定位这个进程：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lsof +D /mnt/data       <span class="c1"># 挂载点下被打开的文件</span>
+</span></span><span class="line"><span class="cl">sudo fuser -vm /mnt/data     <span class="c1"># 占用挂载点的进程及 PID</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>把对应进程 kill 掉或者重启。实在没办法时，<code>umount -l /mnt/data</code> 做“懒卸载”——挂载点立刻从命名空间消失，等到最后一个文件描述符关闭才真正释放。慎用，它会掩盖真正的问题。</p>
+<h2 id="lvm把文件系统从物理盘解耦出来">LVM：把文件系统从物理盘解耦出来</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/disk-management/fig3_lvm_stack.png" alt="LVM 三层栈：PV → VG → LV" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>不用 LVM 时，文件系统直接坐在分区之上，扩文件系统就要扩分区，扩分区又要求<strong>紧挨着分区后面</strong>有连续的空闲空间。在生产环境里这条件几乎不成立。</p>
+<p><strong>LVM（Logical Volume Manager）</strong> 在物理盘和文件系统之间塞了一层间接层。它有三个核心概念：</p>
+<ul>
+<li><strong>PV — Physical Volume（物理卷）</strong>：被 LVM “认领”的整盘或某个分区。（<code>pvcreate</code>）</li>
+<li><strong>VG — Volume Group（卷组）</strong>：由一个或多个 PV 组成的容量池。VG 内部按固定大小的**物理扩展（PE）**切片管理（默认 4 MiB）。（<code>vgcreate</code>、<code>vgextend</code>）</li>
+<li><strong>LV — Logical Volume（逻辑卷）</strong>：从 VG 里切出来的虚拟块设备。在内核眼里，LV 长得就跟一个分区一样，你在它上面建文件系统。（<code>lvcreate</code>）</li>
+</ul>
+<p>关键洞见：<strong>LV 在底层 PV 上不必连续。</strong> 给 LV 扩容，本质就是从 VG 池子里多分配一些 PE，这些 PE 可以来自任何 PV——所以<strong>不需要重新分区也能扩容</strong>。</p>
+<h3 id="搭起这套栈">搭起这套栈</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo pvcreate /dev/sdb /dev/sdc                    <span class="c1"># 把两块盘交给 LVM</span>
+</span></span><span class="line"><span class="cl">sudo vgcreate vg_data /dev/sdb /dev/sdc            <span class="c1"># 合成一个卷组</span>
+</span></span><span class="line"><span class="cl">sudo lvcreate -n lv_app -L 100G vg_data            <span class="c1"># 切一个 100G 的 LV</span>
+</span></span><span class="line"><span class="cl">sudo mkfs.ext4 /dev/vg_data/lv_app
+</span></span><span class="line"><span class="cl">sudo mount /dev/vg_data/lv_app /data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>任何时候都能查看当前栈的状态：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo pvs        <span class="c1"># 物理卷一览</span>
+</span></span><span class="line"><span class="cl">sudo vgs        <span class="c1"># 卷组一览</span>
+</span></span><span class="line"><span class="cl">sudo lvs        <span class="c1"># 逻辑卷一览</span>
+</span></span><span class="line"><span class="cl">sudo pvdisplay  <span class="c1"># 详细信息，排查问题时用</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="在线扩容最小停机的标准动作">在线扩容：最小停机的标准动作</h3>
+<p><code>/data</code> 用到 80%，告警越来越频繁。LVM 把扩容做成了在线操作，整个过程只要几秒：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 挂一块新盘上来，把它注册成 PV。</span>
+</span></span><span class="line"><span class="cl">sudo pvcreate /dev/sdd
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. 加进已有的 VG。</span>
+</span></span><span class="line"><span class="cl">sudo vgextend vg_data /dev/sdd
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. 扩 LV。+SIZE 是绝对增量；</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#    +100%FREE 表示把 VG 剩下的空间全吃掉。</span>
+</span></span><span class="line"><span class="cl">sudo lvextend -L +200G /dev/vg_data/lv_app
+</span></span><span class="line"><span class="cl"><span class="c1"># 或：sudo lvextend -l +100%FREE /dev/vg_data/lv_app</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. 把上面的文件系统也撑起来。</span>
+</span></span><span class="line"><span class="cl">sudo resize2fs /dev/vg_data/lv_app   <span class="c1"># ext4，在线</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 或：sudo xfs_growfs /data          # xfs，必须在挂载状态下</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>整个过程<strong>没有重启服务，也没有数据搬迁</strong>。文件系统只是看到下面忽然多了块。</p>
+<h3 id="缩容是另一回事难得多">缩容是另一回事，难得多</h3>
+<ul>
+<li>ext4 <strong>可以</strong>缩，但必须<strong>离线</strong>：先 <code>umount</code>，跑 <code>e2fsck -f</code>，再 <code>resize2fs &lt;新尺寸&gt;</code>，最后 <code>lvreduce</code>。顺序错了文件系统就被截断了。</li>
+<li>xfs <strong>完全不能缩容</strong>。官方推荐的做法是“建一个更小的 LV，用 <code>rsync -aHAX</code> 把数据拷过去，然后切挂载点”。</li>
+</ul>
+<p>经验法则：<strong>计划着扩，别计划着缩。</strong> 起手量给小一点，按需扩展。</p>
+<h3 id="快照snapshot">快照（Snapshot）</h3>
+<p>LVM 可以给一个 LV 建写时复制的快照。快照本身也是一个 LV，最初和原 LV 共享所有 PE；原 LV 上的某个块发生变化时，<strong>变化前的内容</strong>会被复制到快照预留的空间里。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lvcreate -L 10G -s -n lv_app_snap /dev/vg_data/lv_app
+</span></span><span class="line"><span class="cl"><span class="c1"># 然后做点高风险的事，比如版本升级</span>
+</span></span><span class="line"><span class="cl">sudo lvremove /dev/vg_data/lv_app_snap   <span class="c1"># 不要了就删</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>快照适合做短时间一致性点（在快照上跑备份，让线上文件系统继续写入），也适合做快速回滚的窗口。但它<strong>不是备份</strong>——快照预留空间满了，快照就失效；底层 VG 整个挂了，原卷和快照一起没。</p>
+<h2 id="看用量df-vs-du以及它们为什么对不上">看用量：df vs du，以及它们为什么对不上</h2>
+<p>按理说应该给出同一个答案的两条命令，经常对不上号。</p>
+<p><code>df</code> 问<strong>文件系统</strong>：“你现在占了多少？”</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">df -h          <span class="c1"># 每个挂载点的容量，人类可读</span>
+</span></span><span class="line"><span class="cl">df -i          <span class="c1"># inode 用量（不是看字节，而是看 inode）</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>du</code> 是去<strong>遍历目录</strong>，把每个文件的大小相加：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo du -h -d <span class="m">1</span> /var <span class="p">|</span> sort -h    <span class="c1"># /var 下一层的汇总，按大小排序</span>
+</span></span><span class="line"><span class="cl">sudo du -sh /var/log              <span class="c1"># 单个路径的总大小</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>df</code> 报“满了”但 <code>du</code> 找不到罪魁祸首，常见原因有三个。</p>
+<h3 id="1-进程还持有已删除文件的句柄">1. 进程还持有已删除文件的句柄</h3>
+<p>某进程把 <code>/var/log/app.log</code> 打开后写了好几周，有人把这个文件 <code>rm</code> 掉了。目录项消失——<code>du</code> 看不见、<code>ls</code> 看不见——但<strong>只要还有任何文件描述符引用这个 inode，inode 和数据块就不会被释放</strong>。进程继续写。磁盘继续满。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lsof <span class="p">|</span> grep <span class="s1">&#39;(deleted)&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>修复方法是让那个进程关闭这个文件：重启服务、给它发 <code>SIGHUP</code>（如果它支持重新打开日志）、或者用 <code>logrotate</code> 的 <code>copytruncate</code> 模式（适用于不支持自我重开日志的进程）。</p>
+<h3 id="2-挂载错了位置">2. 挂载错了位置</h3>
+<p>你以为自己在看数据卷，实际上根本没挂上去，你正在把根分区写满。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">findmnt /data       <span class="c1"># 显示来源设备和文件系统类型</span>
+</span></span><span class="line"><span class="cl">mount <span class="p">|</span> grep data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>findmnt</code> 什么都没返回，说明 <code>/data</code> 只是 <code>/</code> 上的一个普通目录。</p>
+<h3 id="3-ext4-的保留块">3. ext4 的保留块</h3>
+<p>ext4 默认会给 <code>root</code> 留 <strong>5%</strong> 空间。设计意图是磁盘被普通用户写满时关键服务还能写。但在大数据卷上 5% 就是不小的一块，会让 <code>df</code> 在普通用户还能写之前就显示“满”。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo tune2fs -l /dev/sdb1 <span class="p">|</span> grep -i <span class="s1">&#39;reserved&#39;</span>
+</span></span><span class="line"><span class="cl">sudo tune2fs -m <span class="m">1</span> /dev/sdb1     <span class="c1"># 把保留比例降到 1%（谨慎）</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>只在不承载操作系统本身的卷上这么做。</p>
+<h3 id="inode-耗尽">inode 耗尽</h3>
+<p>如果工作负载狂建小文件（缓存、邮件队列、构建产物），文件系统的字节是空的、inode 却用满了。<code>df -i</code> 会显示 <code>IUse%</code> 100%，而 <code>df -h</code> 显示一堆空闲。唯一的修复方法是删文件，或者用更高的 inode 密度重新格式化（<code>mkfs.ext4 -N &lt;数量&gt;</code>）。xfs 的 inode 是动态分配的，基本不会撞这个问题。</p>
+<h2 id="inode硬链接软链接理解文件系统行为的钥匙">inode、硬链接、软链接：理解文件系统行为的钥匙</h2>
+<p>每个 Unix 文件系统底下都有一个核心数据结构——<strong>inode</strong>。inode 存一个文件的全部元数据：类型、属主、权限、大小、时间戳、链接计数、指向数据块的指针。它<strong>不存文件名</strong>。文件名住在目录里，目录本身也是文件，内容是一张 <code>(名字 → inode 号)</code> 的映射表。</p>
+<p>这个解耦能解释很多看上去奇怪的行为：</p>
+<ul>
+<li><strong>硬链接</strong>——指向同一个 inode 的另一个目录项（<code>ln src dst</code>）。两个名字地位完全平等——没有“原文件”和“复制文件”的区别。删一个，inode 的链接计数减一；只有当计数归零时，数据才被回收。硬链接不能跨文件系统，按惯例也不能给目录建。</li>
+<li><strong>软链接（符号链接）</strong>——一个内容是<strong>路径字符串</strong>的小文件（<code>ln -s src dst</code>）。有自己的 inode，能跨文件系统。目标被删后会变成“悬空链接”。</li>
+<li><strong>同一文件系统内的重命名</strong>只是改写一个目录项，inode 和数据块完全不动——这就是它为什么是原子的、瞬间完成的。</li>
+<li><strong>“我把文件删了，盘却没释放空间”</strong>——目录项那边链接计数降到零了，但还有进程持着这个 inode 的文件描述符（这也算一份引用）。数据要等到那个描述符关闭才被释放。这跟前面 <code>df</code>/<code>du</code> 对不上是同一个机制。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">stat /etc/passwd       <span class="c1"># inode 号、链接数、各种大小和时间戳</span>
+</span></span><span class="line"><span class="cl">ls -li                 <span class="c1"># 第一列就是 inode 号</span>
+</span></span><span class="line"><span class="cl">df -i                  <span class="c1"># 每个文件系统的 inode 用量</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="dev-下的特殊文件"><code>/dev</code> 下的特殊文件</h2>
+<p>不是每个 <code>/dev</code> 下的节点都对应硬件。有几个是纯内核抽象，但你会反复用到：</p>
+<ul>
+<li><code>/dev/null</code>——丢弃一切写入它的内容；读它直接返回 EOF。常用于静默输出：<code>command &gt; /dev/null 2&gt;&amp;1</code>。</li>
+<li><code>/dev/zero</code>——无限输出零字节流。常用于预分配文件或写零擦除：<code>dd if=/dev/zero of=test.bin bs=1M count=1024</code>。</li>
+<li><code>/dev/random</code>、<code>/dev/urandom</code>——熵源。<strong>几乎所有场景都该用 <code>urandom</code></strong>；老 <code>/dev/random</code> 那种“熵不够会阻塞”的行为是早期内核的历史包袱，现代 Linux 上做密码学并不需要它。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 一次粗略的 1 GiB 写入基准（忽略缓存，但够用）</span>
+</span></span><span class="line"><span class="cl">dd <span class="k">if</span><span class="o">=</span>/dev/zero <span class="nv">of</span><span class="o">=</span>/data/test.bin <span class="nv">bs</span><span class="o">=</span>1M <span class="nv">count</span><span class="o">=</span><span class="m">1024</span> <span class="nv">oflag</span><span class="o">=</span>direct
+</span></span><span class="line"><span class="cl">rm /data/test.bin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="端到端清单从一块新盘到可用空间">端到端清单：从一块新盘到可用空间</h2>
+<p>把一块刚挂上的盘变成可用空间的标准路径：</p>
+<ol>
+<li><strong>识别</strong>新设备。<code>lsblk -f</code> 应该看到一块空的 <code>/dev/sdb</code>（或 <code>/dev/nvme1n1</code>），下面没分区，也没文件系统。</li>
+<li><strong>决定要不要走 LVM。</strong> 这块卷未来会扩容，就一开始就把它放到 LVM 下面。事后再加 LVM 要停机。</li>
+<li><strong>分区</strong>——用 GPT（<code>fdisk</code> 或 <code>parted</code>）。如果要走 LVM，可以<strong>完全跳过分区步骤</strong>，直接对整盘 <code>pvcreate</code>，更简洁，少一层。</li>
+<li><strong>格式化</strong>——通用场景用 ext4，大文件 / 高并行用 xfs。</li>
+<li><strong>挂载验证</strong>：<code>mount /dev/sdb1 /mnt/data &amp;&amp; df -h /mnt/data</code>。</li>
+<li><strong>持久化</strong>——往 <code>/etc/fstab</code> 写一条以 UUID 为来源的记录，跑 <code>sudo mount -a</code> 测一遍。</li>
+<li><strong>重启验证一次</strong>——选个维护窗口，在你真正依赖这块卷之前，跑一次完整的重启流程。</li>
+</ol>
+<p>把这套清单跑顺了，多数磁盘故障就从“惊慌”变成了“按部就班”——下面的排障章节也就成了一份参考手册，而不是抢救脚本。</p>
+<h2 id="排障手册">排障手册</h2>
+<h3 id="盘满了但我刚删了好几个-g-的日志">“盘满了”但我刚删了好几个 G 的日志</h3>
+<p>几乎一定是某个进程持有已删除文件的句柄。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lsof <span class="p">|</span> grep <span class="s1">&#39;(deleted)&#39;</span> <span class="p">|</span> sort -k7 -h
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>把那个进程重启，或者给它发信号让它重新打开日志文件。</p>
+<h3 id="重启之后挂载失败">“重启之后挂载失败”</h3>
+<p>按出现频率排：</p>
+<ol>
+<li><code>/etc/fstab</code> 里的 UUID 写错了。用 <code>blkid</code> 核对。</li>
+<li>initramfs 里缺文件系统驱动（少见，但 btrfs / zfs / xfs 在最小化安装上偶尔会撞到）。</li>
+<li>启动顺序问题：你尝试在 LVM / RAID / 网络起来之前挂一个依赖它们的路径。网络文件系统加 <code>_netdev</code> 选项；LVM 和软 RAID 一般 initramfs 会自动处理。</li>
+</ol>
+<p><code>sudo mount -a</code> 能复现开机时的挂载序列，<code>journalctl -b | grep -i mount</code> 看的是真正失败的细节。</p>
+<h3 id="性能突然变差">“性能突然变差”</h3>
+<p>按层往下查，不要往上猜：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">iostat -x <span class="m">1</span>        <span class="c1"># 磁盘级利用率、await、IOPS</span>
+</span></span><span class="line"><span class="cl">vmstat <span class="m">1</span>           <span class="c1"># %wa 列就是 CPU 等 I/O 的时间占比</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> tail -50   <span class="c1"># 内核级 I/O 错误、SMART 警告</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>await</code> 高、<code>%util</code> 低，通常是底层存储慢（云盘、网络存储拥塞）。<code>%util</code> 高、队列深度低，常常是单线程 fsync 类的负载。<code>vmstat</code> 里 <code>%wa</code> 高、磁盘看起来又没问题，多半是在 swap——查 <code>free -h</code> 和 <code>swapon --show</code>。</p>
+<h3 id="文件系统忽然变成只读">文件系统忽然变成只读</h3>
+<p>内核检测到无法安全写入的损坏时，会把文件系统重新挂为只读。先看内核日志：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dmesg <span class="p">|</span> tail -200
+</span></span><span class="line"><span class="cl">journalctl -k --since <span class="s2">&#34;1 hour ago&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果底盘在挂（<code>smartctl -a /dev/sda</code> 显示有重映射扇区或介质错误），换盘。如果是文件系统本身坏了，先 <code>umount</code>，再跑离线修复——ext4 用 <code>e2fsck -fy /dev/sdb1</code>，xfs 用 <code>xfs_repair /dev/sdb1</code>。<strong>数据重要的话，先做快照或 <code>dd</code> 镜像。</strong></p>
+<h2 id="命令速查">命令速查</h2>
+<p>事故现场可以直接抄的一份速查。</p>
+<h3 id="探查与查看">探查与查看</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsblk -f                   <span class="c1"># 块设备 + 文件系统 + 挂载点 + UUID 一棵树</span>
+</span></span><span class="line"><span class="cl">findmnt                    <span class="c1"># 系统里每一个挂载点的树</span>
+</span></span><span class="line"><span class="cl">mount <span class="p">|</span> column -t          <span class="c1"># 当前所有活动挂载</span>
+</span></span><span class="line"><span class="cl">df -h                      <span class="c1"># 文件系统用量（按字节）</span>
+</span></span><span class="line"><span class="cl">df -i                      <span class="c1"># 文件系统用量（按 inode）</span>
+</span></span><span class="line"><span class="cl">sudo blkid                 <span class="c1"># 每个已格式化分区的 UUID 与 TYPE</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="分区">分区</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo fdisk -l              <span class="c1"># 列出所有盘的分区表</span>
+</span></span><span class="line"><span class="cl">sudo fdisk /dev/sdb        <span class="c1"># 交互式编辑（也能处理 GPT）</span>
+</span></span><span class="line"><span class="cl">sudo parted -s /dev/sdb mklabel gpt
+</span></span><span class="line"><span class="cl">sudo parted -s /dev/sdb mkpart primary ext4 1MiB 100%
+</span></span><span class="line"><span class="cl">sudo partprobe /dev/sdb    <span class="c1"># 让内核重新读分区表</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="格式化与查看文件系统">格式化与查看文件系统</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkfs.ext4 -L data /dev/sdb1
+</span></span><span class="line"><span class="cl">sudo mkfs.xfs  -L data /dev/sdb1
+</span></span><span class="line"><span class="cl">sudo tune2fs -l /dev/sdb1  <span class="p">|</span> head        <span class="c1"># ext4 的 superblock 信息</span>
+</span></span><span class="line"><span class="cl">sudo xfs_info /data                      <span class="c1"># xfs 的几何与挂载选项</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="挂载与持久化">挂载与持久化</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mount /dev/sdb1 /mnt/data
+</span></span><span class="line"><span class="cl">sudo mount -o remount,noatime /mnt/data  <span class="c1"># 在线改挂载选项</span>
+</span></span><span class="line"><span class="cl">sudo umount /mnt/data
+</span></span><span class="line"><span class="cl">sudo mount -a                            <span class="c1"># 立即按 /etc/fstab 全部挂一遍</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="lvm">LVM</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo pvs <span class="p">;</span> sudo vgs <span class="p">;</span> sudo lvs           <span class="c1"># 三层一行式概览</span>
+</span></span><span class="line"><span class="cl">sudo pvcreate /dev/sdb
+</span></span><span class="line"><span class="cl">sudo vgcreate vg_data /dev/sdb
+</span></span><span class="line"><span class="cl">sudo vgextend vg_data /dev/sdc           <span class="c1"># 往池子里再加一块盘</span>
+</span></span><span class="line"><span class="cl">sudo lvcreate -L 100G -n lv_app vg_data
+</span></span><span class="line"><span class="cl">sudo lvextend -L +50G /dev/vg_data/lv_app
+</span></span><span class="line"><span class="cl">sudo resize2fs /dev/vg_data/lv_app       <span class="c1"># ext4 扩容</span>
+</span></span><span class="line"><span class="cl">sudo xfs_growfs /data                    <span class="c1"># xfs 扩容（注意是路径，不是设备）</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="排障">排障</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lsof <span class="p">|</span> grep <span class="s1">&#39;(deleted)&#39;</span>             <span class="c1"># 删掉但仍被进程持有的文件</span>
+</span></span><span class="line"><span class="cl">sudo fuser -vm /mnt/data                 <span class="c1"># 谁在占用挂载点</span>
+</span></span><span class="line"><span class="cl">iostat -x <span class="m">1</span>                              <span class="c1"># 单盘 I/O 指标</span>
+</span></span><span class="line"><span class="cl">vmstat <span class="m">1</span>                                 <span class="c1"># I/O wait、swap、上下文切换</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> tail -200                        <span class="c1"># 最近的内核消息</span>
+</span></span><span class="line"><span class="cl">sudo smartctl -a /dev/sda                <span class="c1"># 磁盘健康（SMART）</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="两条凌晨三点会救你命的提醒">两条凌晨三点会救你命的提醒</h3>
+<ul>
+<li><strong>任何破坏性命令之前，先跑一遍 <code>lsblk -f</code> 确认目标。</strong> 一秒钟的事，能避免“我格式化错了盘”这种灾难。</li>
+<li><strong>每改完一层，就先确认上一层能看到这层的变化，再往下走。</strong> 块 → 分区 → LVM → 文件系统 → 挂载。某一层“消失”了就停下来查清楚，不要硬冲过去。</li>
+</ul>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">Previous</div>
+      <span class="title" style="color: var(--ink-faint)">—</span>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/zh/linux/%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/"><span class="title">Linux 软件包管理</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#文件系统层级东西到底放在哪里">文件系统层级：东西到底放在哪里</a></li>
+    <li><a href="#块设备与命名磁盘在-linux-里长什么样">块设备与命名：磁盘在 Linux 里长什么样</a>
+      <ul>
+        <li><a href="#命名陷阱devsdb-为什么会变">命名陷阱：<code>/dev/sdb</code> 为什么会“变”</a></li>
+      </ul>
+    </li>
+    <li><a href="#分区表mbr-vs-gpt">分区表：MBR vs GPT</a>
+      <ul>
+        <li><a href="#工具fdiskgdiskparted">工具：fdisk、gdisk、parted</a></li>
+      </ul>
+    </li>
+    <li><a href="#文件系统把分区变成能用的东西">文件系统：把分区变成“能用的东西”</a>
+      <ul>
+        <li><a href="#格式化">格式化</a></li>
+        <li><a href="#临时挂一下">临时挂一下</a></li>
+        <li><a href="#持久化etcfstab">持久化：<code>/etc/fstab</code></a></li>
+        <li><a href="#卸载与-target-is-busy">卸载与 “target is busy”</a></li>
+      </ul>
+    </li>
+    <li><a href="#lvm把文件系统从物理盘解耦出来">LVM：把文件系统从物理盘解耦出来</a>
+      <ul>
+        <li><a href="#搭起这套栈">搭起这套栈</a></li>
+        <li><a href="#在线扩容最小停机的标准动作">在线扩容：最小停机的标准动作</a></li>
+        <li><a href="#缩容是另一回事难得多">缩容是另一回事，难得多</a></li>
+        <li><a href="#快照snapshot">快照（Snapshot）</a></li>
+      </ul>
+    </li>
+    <li><a href="#看用量df-vs-du以及它们为什么对不上">看用量：df vs du，以及它们为什么对不上</a>
+      <ul>
+        <li><a href="#1-进程还持有已删除文件的句柄">1. 进程还持有已删除文件的句柄</a></li>
+        <li><a href="#2-挂载错了位置">2. 挂载错了位置</a></li>
+        <li><a href="#3-ext4-的保留块">3. ext4 的保留块</a></li>
+        <li><a href="#inode-耗尽">inode 耗尽</a></li>
+      </ul>
+    </li>
+    <li><a href="#inode硬链接软链接理解文件系统行为的钥匙">inode、硬链接、软链接：理解文件系统行为的钥匙</a></li>
+    <li><a href="#dev-下的特殊文件"><code>/dev</code> 下的特殊文件</a></li>
+    <li><a href="#端到端清单从一块新盘到可用空间">端到端清单：从一块新盘到可用空间</a></li>
+    <li><a href="#排障手册">排障手册</a>
+      <ul>
+        <li><a href="#盘满了但我刚删了好几个-g-的日志">“盘满了”但我刚删了好几个 G 的日志</a></li>
+        <li><a href="#重启之后挂载失败">“重启之后挂载失败”</a></li>
+        <li><a href="#性能突然变差">“性能突然变差”</a></li>
+        <li><a href="#文件系统忽然变成只读">文件系统忽然变成只读</a></li>
+      </ul>
+    </li>
+    <li><a href="#命令速查">命令速查</a>
+      <ul>
+        <li><a href="#探查与查看">探查与查看</a></li>
+        <li><a href="#分区">分区</a></li>
+        <li><a href="#格式化与查看文件系统">格式化与查看文件系统</a></li>
+        <li><a href="#挂载与持久化">挂载与持久化</a></li>
+        <li><a href="#lvm">LVM</a></li>
+        <li><a href="#排障">排障</a></li>
+        <li><a href="#两条凌晨三点会救你命的提醒">两条凌晨三点会救你命的提醒</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Linux</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
+      <div class="row"><span>Word count</span><strong>7400</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

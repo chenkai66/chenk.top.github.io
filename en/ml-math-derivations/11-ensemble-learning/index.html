@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Machine Learning Mathematical Derivations (11): Ensemble Learning · Chen Kai Blog</title>
+<meta name="description" content="Derive why combining weak learners produces strong ones. Covers bias-variance decomposition, Bagging/Random Forest variance reduction, AdaBoost exponential loss, and GBDT gradient optimization in function space.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/ml-math-derivations/11-ensemble-learning/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/ml-math-derivations/11-ensemble-learning/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Machine Learning Mathematical Derivations (11): Ensemble Learning">
+<meta property="og:description" content="Derive why combining weak learners produces strong ones. Covers bias-variance decomposition, Bagging/Random Forest variance reduction, AdaBoost exponential loss, and GBDT gradient optimization in function space.">
+<meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/11-ensemble-learning/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Ml mathematical derivations</a>
+         · Chapter 11
+      </div>
+      <h1>Machine Learning Mathematical Derivations (11): Ensemble Learning</h1>
+      <p class="deck">Derive why combining weak learners produces strong ones. Covers bias-variance decomposition, Bagging/Random Forest variance reduction, AdaBoost exponential loss, and GBDT gradient optimization in function space.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-01-30">January 30, 2026</time> · 19 min read · 3900 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/ensemble-learning/" class="tag">#Ensemble Learning</a><a href="/en/tags/boosting/" class="tag">#Boosting</a><a href="/en/tags/bagging/" class="tag">#Bagging</a><a href="/en/tags/random-forest/" class="tag">#Random Forest</a><a href="/en/tags/adaboost/" class="tag">#AdaBoost</a><a href="/en/tags/gbdt/" class="tag">#GBDT</a><a href="/en/tags/mathematical-derivation/" class="tag">#Mathematical Derivation</a><a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Why does a committee of mediocre classifiers outperform a single brilliant one? The answer is unromantic but precise: averaging cuts variance, sequential reweighting cuts bias, and a little randomisation breaks the correlation that would otherwise destroy both effects. This post derives the mathematics behind that picture &mdash; bias&ndash;variance decomposition, bootstrap aggregating, AdaBoost as forward stagewise minimisation of exponential loss, and gradient boosting as gradient descent in function space.</p>
+<p>By the end you should be able to look at any ensemble method and say <em>what it is reducing, why it works, and when it will fail.</em></p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>Why averaging $T$ uncorrelated models cuts variance by a factor of $T$, and what happens when they are correlated.</li>
+<li>How Bagging and Random Forest exploit randomisation to make trees nearly uncorrelated.</li>
+<li>The derivation that links AdaBoost to forward stagewise additive modelling under exponential loss.</li>
+<li>How GBDT performs gradient descent on the loss surface in <em>function space</em>.</li>
+<li>When to choose Bagging vs Boosting vs Stacking for a given problem.</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Bias&ndash;variance tradeoff (Parts 1&ndash;2 of this series).</li>
+<li>Decision tree basics (splits, impurity).</li>
+<li>Gradient descent.</li>
+<li>Probability: expectation and variance of sums of random variables.</li>
+</ul>
+<hr>
+<h2 id="1-why-ensembles-work">1. Why ensembles work</h2>
+<h3 id="11-the-variance-reduction-identity">1.1 The variance reduction identity</h3>
+<p>Pick any regression problem and any base learner that produces $h_t(\mathbf{x})$ on training set $\mathcal{D}_t$. The simplest ensemble is a flat average:</p>
+$$
+H(\mathbf{x}) = \frac{1}{T}\sum_{t=1}^T h_t(\mathbf{x}).
+$$<p>Treat each $h_t(\mathbf{x})$ as a random variable (random because the training set is random). Suppose every $h_t$ has the same mean $\mu$ and the same variance $\sigma^2$, and that distinct learners have pairwise correlation $\rho$. Then a textbook calculation gives</p>
+$$
+\mathbb{E}[H(\mathbf{x})] = \mu, \qquad
+\operatorname{Var}[H(\mathbf{x})] = \rho\,\sigma^2 + \frac{1-\rho}{T}\,\sigma^2.
+$$<p>This single equation is the entire reason ensembles exist. Read it carefully:</p>
+<ul>
+<li><strong>Bias is preserved.</strong> $\mathbb{E}[H] = \mu$, so averaging cannot fix systematic error of the base learner. If every tree underfits, the ensemble underfits too.</li>
+<li><strong>Variance has two pieces.</strong> A floor of $\rho\sigma^2$ that we cannot remove by adding more learners, plus a $\sigma^2/T$ term that vanishes as $T \to \infty$ &mdash; but only when learners are <em>uncorrelated</em> ($\rho = 0$).</li>
+<li><strong>Correlation is the enemy.</strong> Even with $T = \infty$ trees, variance bottoms out at $\rho\sigma^2$. This is exactly why Random Forest randomises <em>features</em>, not just samples: feature randomisation is a direct attack on $\rho$.</li>
+</ul>
+<p>So every ensemble method is, at heart, an answer to two questions: <em>how do I generate diverse learners (small $\rho$) without making them too weak (large bias)?</em></p>
+<h3 id="12-bias--variance-decomposition">1.2 Bias&ndash;variance decomposition</h3>
+<p>For squared loss the generalisation error of any predictor decomposes as</p>
+<p>$$
+\mathbb{E}[(y - \hat f(\mathbf{x}))^2]
+= \underbrace{(\mathbb{E}[\hat f] - f)^2}_{\text{bias}^2}</p>
+<ul>
+<li>\underbrace{\mathbb{E}[(\hat f - \mathbb{E}[\hat f])^2]}_{\text{variance}}</li>
+<li>\underbrace{\sigma_\epsilon^2}_{\text{irreducible noise}}.
+$$</li>
+</ul>
+<p>Complex models (deep trees, large neural nets) have low bias but huge variance. Simple models (depth-1 stumps, linear regression) have low variance but biting bias. The two ensemble families attack opposite ends:</p>
+<ul>
+<li><strong>Bagging / Random Forest</strong> keeps a low-bias high-variance learner and <em>averages away</em> the variance.</li>
+<li><strong>Boosting</strong> starts from a high-bias low-variance learner and <em>adds capacity</em> to drive down the bias.</li>
+</ul>
+<p>That is the entire taxonomy in two sentences.</p>
+<h3 id="13-why-a-committee-of-mediocre-voters-works">1.3 Why a committee of mediocre voters works</h3>
+<p>For binary classification with $T$ independent classifiers, each with error rate $\epsilon < 1/2$, the majority vote is wrong only when more than half the voters are wrong. The exact probability is binomial:</p>
+$$
+P_{\text{ensemble}} = \sum_{k > T/2} \binom{T}{k}\,\epsilon^k(1-\epsilon)^{T-k}.
+$$<p>With $T = 21$ and $\epsilon = 0.30$ this evaluates to about $0.026$. A 30 % error rate is mediocre; a 2.6 % ensemble error rate is excellent. The catch is the word <em>independent</em> &mdash; which, again, points back to the decorrelation problem.</p>
+<hr>
+<h2 id="2-bagging-and-random-forest">2. Bagging and Random Forest</h2>
+<h3 id="21-bagging-the-parallel-recipe">2.1 Bagging: the parallel recipe</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig1_bagging_diagram.png" alt="Bagging architecture: parallel weak learners on bootstrap samples, then averaged" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Bagging (Breiman, 1996) is the cleanest way to apply the variance identity from §1.1.</p>
+<p><strong>Algorithm.</strong></p>
+<ol>
+<li><strong>Bootstrap.</strong> From training set $\mathcal{D}$ of size $N$, draw $T$ samples <em>with replacement</em>, each of size $N$. Call them $\mathcal{D}_1,\dots,\mathcal{D}_T$.</li>
+<li><strong>Train.</strong> Fit base learner $h_t$ on $\mathcal{D}_t$ independently. Trees are usually grown deep (low bias, high variance &mdash; exactly what we want to average down).</li>
+<li><strong>Aggregate.</strong> Regression: $H(\mathbf{x}) = \tfrac{1}{T}\sum_t h_t(\mathbf{x})$. Classification: majority vote.</li>
+</ol>
+<p><strong>Bootstrap leaves about 36.8 % of the data out.</strong> The probability that a given sample is <em>not</em> picked in $N$ draws with replacement is</p>
+$$
+\left(1 - \tfrac{1}{N}\right)^N \xrightarrow{N \to \infty} e^{-1} \approx 0.368.
+$$<p>These leftover points are the <strong>out-of-bag (OOB) samples</strong> for tree $t$.</p>
+<p><strong>OOB error is a free validation set.</strong> For each training point $(\mathbf{x}_i, y_i)$, predict using only the trees that did <em>not</em> see it during training:</p>
+$$
+\widehat{\text{Err}}_{\text{OOB}}
+= \frac{1}{N}\sum_{i=1}^N L\!\left(y_i,\; \frac{1}{|\mathcal{S}_i|}\sum_{t \in \mathcal{S}_i} h_t(\mathbf{x}_i)\right),\qquad
+\mathcal{S}_i = \{t : (\mathbf{x}_i, y_i) \notin \mathcal{D}_t\}.
+$$<p>This is an (almost) unbiased estimate of generalisation error, computed for free as a side effect of training. No held-out set, no cross-validation loop.</p>
+<h3 id="22-random-forest-decorrelating-the-trees">2.2 Random Forest: decorrelating the trees</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig3_rf_decision_boundary.png" alt="Random Forest smooths the boundary by averaging decorrelated trees" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Bagging alone leaves a problem: bootstrap samples overlap heavily, so the trees end up making the same splits on the same dominant features. Their predictions are correlated, $\rho$ stays large, and the variance reduction in §1.1 stalls.</p>
+<p>Random Forest (Breiman, 2001) adds a second source of randomness. <strong>At every node split, sample a random subset of $m$ features out of $d$ and only consider splits on those.</strong> Typical defaults:</p>
+<ul>
+<li>Classification: $m = \lfloor\sqrt{d}\rfloor$.</li>
+<li>Regression: $m = \lfloor d/3 \rfloor$.</li>
+</ul>
+<p>Forcing each tree to use different features at each split breaks the dominant-feature trap and pushes $\rho$ down. The figure above makes the effect visible: a single deep tree carves the input space into rectangular blocks and overfits the noise; a Random Forest with $m=1$ averages 80 such blocky surfaces and produces a smooth, generalising boundary.</p>
+<p><strong>Generalisation bound (Breiman, 2001).</strong> Define $s$ as the average margin of the trees and $\bar\rho$ as the average pairwise correlation. Then</p>
+$$
+\text{Generalisation error} \;\le\; \frac{\bar\rho\,(1 - s^2)}{s^2}.
+$$<p>This is the variance-reduction identity dressed up. To improve a forest you have exactly two knobs:</p>
+<ol>
+<li>Strengthen each tree (raise $s$): grow deeper, use more features per split, use more samples.</li>
+<li>Decorrelate the trees (lower $\bar\rho$): reduce $m$, vary depths, add more trees.</li>
+</ol>
+<p>The two knobs trade off, which is why $m$ is a tuning parameter, not a constant.</p>
+<h3 id="23-feature-importance">2.3 Feature importance</h3>
+<p>Two ways to score features:</p>
+<ul>
+<li><strong>Mean decrease in impurity.</strong> Sum the impurity drop $\Delta\text{Gini}$ at every node that splits on feature $j$, averaged across trees. Cheap, but biased toward high-cardinality features.</li>
+<li><strong>Permutation importance.</strong> Take an OOB sample, shuffle column $j$, and measure how much the OOB accuracy drops. Slower but unbiased, and it correctly handles correlated features.</li>
+</ul>
+<p>When two features carry similar signal, mean-decrease-in-impurity <em>splits</em> the importance between them; permutation importance <em>attributes the same drop to each</em>, which is usually what you want for interpretability.</p>
+<hr>
+<h2 id="3-bagging-vs-boosting-----the-bias--variance-picture">3. Bagging vs Boosting &mdash; the bias&ndash;variance picture</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig4_bias_variance.png" alt="Bagging shrinks the variance band while preserving the mean (bias)" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure above runs the same fitting procedure on 120 freshly drawn datasets and plots the predictions. Look at the spread:</p>
+<ul>
+<li><strong>Single tree (left).</strong> The mean prediction is close to the truth (low bias), but each individual fit wiggles wildly (high variance). The shaded $\pm 1$ standard-deviation band is wide.</li>
+<li><strong>Bagging of 25 trees (right).</strong> Same mean, dramatically narrower band. The variance number drops by roughly a factor of $T$, exactly as §1.1 predicts.</li>
+</ul>
+<p>Bagging cannot do anything about systematic bias &mdash; if the base learner is fundamentally too weak, all the averaging in the world will not help. That is the job of boosting.</p>
+<hr>
+<h2 id="4-boosting-sequential-bias-reduction">4. Boosting: sequential bias reduction</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig2_boosting_diagram.png" alt="Boosting: sequential weighted learners" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Boosting flips the picture. Instead of training $T$ learners in parallel and averaging, boosting trains them <strong>sequentially</strong>, each one focused on the mistakes of its predecessor. Each learner is intentionally weak (e.g. a depth-1 stump), which makes it <em>high bias, low variance</em>. The sequence then drives the bias down.</p>
+<h3 id="41-adaboost-the-algorithm">4.1 AdaBoost: the algorithm</h3>
+<p>For binary labels $y_i \in \{-1, +1\}$, initialise weights $w_1(i) = 1/N$. For $t = 1,\dots,T$:</p>
+<ol>
+<li>Train weak learner $h_t$ on the weighted data.</li>
+<li>Compute weighted error $\epsilon_t = \sum_i w_t(i)\,\mathbf{1}[h_t(\mathbf{x}_i) \neq y_i]$.</li>
+<li>Compute learner weight $\alpha_t = \tfrac{1}{2}\ln\tfrac{1-\epsilon_t}{\epsilon_t}$.</li>
+<li>Update sample weights $w_{t+1}(i) = w_t(i)\exp(-\alpha_t y_i h_t(\mathbf{x}_i)) / Z_t$, where $Z_t$ normalises.</li>
+</ol>
+<p>Output $H(\mathbf{x}) = \operatorname{sign}\bigl(\sum_t \alpha_t h_t(\mathbf{x})\bigr)$.</p>
+<p>Three things to notice in the formulas:</p>
+<ul>
+<li><strong>$\alpha_t$ is a log-odds.</strong> A learner with $\epsilon_t = 0.1$ gets $\alpha_t \approx 1.10$; one with $\epsilon_t = 0.49$ gets $\alpha_t \approx 0.02$. Better learners get larger votes.</li>
+<li><strong>$\alpha_t > 0 \iff \epsilon_t < 1/2$.</strong> A learner worse than random gets a <em>negative</em> weight &mdash; AdaBoost flips its predictions and keeps it. Nothing is wasted.</li>
+<li><strong>Weight update is multiplicative.</strong> Correctly classified samples ($y_i h_t = +1$) shrink by $e^{-\alpha_t}$; misclassified ones grow by $e^{+\alpha_t}$. The next round literally <em>cannot ignore</em> the hard cases.</li>
+</ul>
+<h3 id="42-the-exponential-training-error-bound">4.2 The exponential training-error bound</h3>
+<p>A short calculation shows the training error is bounded by the product of normalisers:</p>
+$$
+\frac{1}{N}\sum_{i=1}^N \mathbf{1}[H(\mathbf{x}_i) \neq y_i]
+\;\le\; \prod_{t=1}^T Z_t.
+$$<p>If each round satisfies the <strong>weak learning condition</strong> $\epsilon_t \le \tfrac{1}{2} - \gamma_t$ (i.e. each learner beats random by at least $\gamma_t$), then $Z_t \le \sqrt{1 - 4\gamma_t^2}$, so</p>
+$$
+\text{train err}(H) \;\le\; \prod_{t=1}^T \sqrt{1 - 4\gamma_t^2}
+\;\le\; \exp\!\left(-2\sum_{t=1}^T \gamma_t^2\right).
+$$<p>Training error decays <em>exponentially</em> in $T$. The figure below shows this on a synthetic problem with a handful of intentionally hard borderline points:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig5_adaboost_weights.png" alt="AdaBoost shifts focus toward hard samples; training error vanishes" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The left heatmap traces every sample&rsquo;s weight across iterations: most points fade to near zero while the borderline cases light up brightly &mdash; the algorithm is literally diverting all its attention to the points the previous learners cannot solve. The right panel tracks the cumulative classifier&rsquo;s training error against the theoretical $\exp(-2\sum_t \gamma_t^2)$ bound; the bound is loose but always above the truth.</p>
+<p>This is also AdaBoost&rsquo;s failure mode: with genuinely <em>mislabelled</em> points the same dynamic dumps all of the model&rsquo;s capacity on the noise. GBDT with a robust loss (e.g. Huber) handles that case much more gracefully.</p>
+<h3 id="43-why-exponential-weights-the-forward-stagewise-view">4.3 Why exponential weights? The forward stagewise view</h3>
+<p>AdaBoost looks like a clever heuristic until you realise it is exactly <strong>forward stagewise additive modelling under exponential loss</strong>. The model is</p>
+$$
+F(\mathbf{x}) = \sum_{t=1}^T \alpha_t\, h_t(\mathbf{x}),
+$$<p>and the loss is $\mathcal{L}(F) = \sum_i \exp(-y_i F(\mathbf{x}_i))$. We refuse to optimise all $T$ terms jointly &mdash; instead, at round $t$ we hold $F_{t-1}$ fixed and solve</p>
+$$
+(\alpha_t, h_t) \;=\; \arg\min_{\alpha, h}\sum_{i=1}^N \exp\bigl(-y_i\,(F_{t-1}(\mathbf{x}_i) + \alpha\, h(\mathbf{x}_i))\bigr).
+$$<p>Defining $w_t(i) = \exp(-y_i F_{t-1}(\mathbf{x}_i))$ pulls $w_t(i)$ outside the new exponential and reduces the problem to</p>
+$$
+\min_{\alpha, h}\sum_{i=1}^N w_t(i)\exp(-\alpha\, y_i\, h(\mathbf{x}_i)).
+$$<p>Solving for the optimal $h_t$ first (it minimises weighted error) and then for $\alpha_t$ (one-dimensional calculus) recovers <em>exactly</em> AdaBoost&rsquo;s update formulas. Nothing is heuristic; it is coordinate descent in function space, with one new basis function added per iteration.</p>
+<hr>
+<h2 id="5-gradient-boosting-decision-trees-gbdt">5. Gradient Boosting Decision Trees (GBDT)</h2>
+<h3 id="51-boosting-as-gradient-descent-in-function-space">5.1 Boosting as gradient descent in function space</h3>
+<p>Exponential loss is fragile. The key insight of Friedman (2001) was that the forward-stagewise idea works for <em>any</em> differentiable loss if we recast it as gradient descent.</p>
+<p>Let $F(\mathbf{x}) = \sum_{t=0}^T h_t(\mathbf{x})$ be the additive model and $\mathcal{L}(F) = \sum_i L(y_i, F(\mathbf{x}_i))$ the loss. At round $t$ we want a step $h_t$ that decreases $\mathcal{L}$. The negative functional gradient at the current iterate $F_{t-1}$, evaluated on the training points, is the vector</p>
+$$
+r_{ti} \;=\; -\!\left[\frac{\partial L(y_i, F)}{\partial F}\right]_{F = F_{t-1}(\mathbf{x}_i)},\qquad i = 1,\dots,N.
+$$<p>These $r_{ti}$ are the <strong>pseudo-residuals</strong>. A single regression tree fit to $\{(\mathbf{x}_i, r_{ti})\}$ is a finite-dimensional approximation of the steepest-descent direction in function space.</p>
+<p><strong>Algorithm (Friedman, 2001).</strong></p>
+<ol>
+<li>Initialise $F_0(\mathbf{x}) = \arg\min_c \sum_i L(y_i, c)$ (e.g. the mean for squared loss).</li>
+<li>For $t = 1,\dots,T$:
+<ul>
+<li>Compute pseudo-residuals $r_{ti}$.</li>
+<li>Fit regression tree $h_t$ to $\{(\mathbf{x}_i, r_{ti})\}$.</li>
+<li>Line search the step size $\rho_t = \arg\min_\rho \sum_i L(y_i, F_{t-1}(\mathbf{x}_i) + \rho\, h_t(\mathbf{x}_i))$.</li>
+<li>Update $F_t = F_{t-1} + \eta\,\rho_t\, h_t$, where $\eta \in (0, 1]$ is the learning rate.</li>
+</ul>
+</li>
+</ol>
+<h3 id="52-what-the-pseudo-residuals-look-like-for-common-losses">5.2 What the pseudo-residuals look like for common losses</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Loss</th>
+          <th>$L(y, F)$</th>
+          <th>Pseudo-residual $r_i$</th>
+          <th>Notes</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Squared (regression)</td>
+          <td>$\tfrac{1}{2}(y - F)^2$</td>
+          <td>$y_i - F_{t-1}(\mathbf{x}_i)$</td>
+          <td>Plain residual fitting.</td>
+      </tr>
+      <tr>
+          <td>Absolute (robust)</td>
+          <td>$\lvert y - F \rvert$</td>
+          <td>$\operatorname{sign}(y_i - F_{t-1}(\mathbf{x}_i))$</td>
+          <td>Robust to outliers, ignores magnitude.</td>
+      </tr>
+      <tr>
+          <td>Huber (robust)</td>
+          <td>piecewise</td>
+          <td>clipped residual</td>
+          <td>Best of both: smooth near zero, robust at the tails.</td>
+      </tr>
+      <tr>
+          <td>Logistic (binary)</td>
+          <td>$\log(1 + e^{-yF})$</td>
+          <td>$y_i / (1 + e^{y_i F_{t-1}(\mathbf{x}_i)})$</td>
+          <td>$F$ is log-odds; predict $\sigma(F)$.</td>
+      </tr>
+  </tbody>
+</table>
+<p>For squared loss the algorithm reduces to &ldquo;fit the residuals&rdquo;, which was the original boosting intuition. For everything else the gradient-in-function-space picture is the only clean way to see what is happening.</p>
+<h3 id="53-regularisation-the-three-knobs-that-actually-matter">5.3 Regularisation: the three knobs that actually matter</h3>
+<p>GBDT will overfit aggressively if you let it. The standard defences:</p>
+<ul>
+<li><strong>Shrinkage.</strong> $F_t = F_{t-1} + \eta\,h_t$ with small $\eta$ (typically $0.01$ to $0.1$). Smaller $\eta$ requires more trees but generalises better, just like a small SGD step size avoids overshooting. <em>Always pair small $\eta$ with large $T$.</em></li>
+<li><strong>Stochastic gradient boosting.</strong> Each round, fit $h_t$ on a random subsample (e.g. 50&ndash;80 % of training rows). Acts like SGD on the function-space objective, decorrelates trees, and cheapens each round.</li>
+<li><strong>Tree complexity caps.</strong> Limit depth (typically 3&ndash;6), minimum samples per leaf, or the number of leaves outright. Each tree stays a <em>weak</em> learner &mdash; the whole point of boosting.</li>
+</ul>
+<p>XGBoost (next post) adds an explicit $L_2$ penalty on leaf weights and a leaf-count penalty, baked into a closed-form leaf optimisation. It is worth understanding plain GBDT first.</p>
+<hr>
+<h2 id="6-stacking-meta-learning-over-heterogeneous-models">6. Stacking: meta-learning over heterogeneous models</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig6_stacking_diagram.png" alt="Stacking: meta-learner consumes base-learner outputs" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Bagging and Boosting use a single family of base learners. <strong>Stacking</strong> uses several:</p>
+<ol>
+<li><strong>Layer 1.</strong> Fit $K$ base models (e.g. logistic regression, random forest, GBDT, k-NN) on the training set. To avoid leakage, generate predictions via <strong>out-of-fold cross-validation</strong>: every training row is predicted by a model that did not see it.</li>
+<li><strong>Layer 2.</strong> Treat the $K$ out-of-fold predictions as a new feature vector $\mathbf{z} \in \mathbb{R}^K$ and fit a <em>meta-learner</em> $g(\mathbf{z}) \to \hat y$.</li>
+</ol>
+<p>The meta-learner is usually simple &mdash; logistic regression or a shallow GBDT &mdash; because the base learners have already done the heavy lifting. The hard part is the cross-validation plumbing; if any base prediction is in-sample, the meta-learner will learn to trust it blindly and overfit catastrophically.</p>
+<p>When does stacking pay off? When the base learners make <em>different kinds</em> of mistakes. Stacking a deep model with a tree model with a linear model often beats any single one because their errors decorrelate.</p>
+<hr>
+<h2 id="7-ensemble-size-how-many-learners-is-enough">7. Ensemble size: how many learners is enough?</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig7_size_vs_error.png" alt="Test error vs ensemble size for Bagging, Random Forest and AdaBoost" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure trains all three ensembles on the same problem and tracks test error as $T$ grows. A few patterns to internalise:</p>
+<ul>
+<li><strong>All three crush the single deep tree</strong> within the first dozen learners.</li>
+<li><strong>Bagging and Random Forest plateau gracefully.</strong> More trees never hurt; they just stop helping. The flat tail is a direct consequence of the variance floor $\rho\sigma^2$ in §1.1.</li>
+<li><strong>AdaBoost converges fastest</strong> but can <em>increase</em> test error in some regimes once it starts overfitting noise. Watch for it.</li>
+<li><strong>Random Forest&rsquo;s plateau is lower</strong> than vanilla Bagging because feature randomisation drops $\bar\rho$.</li>
+</ul>
+<p>Practical takeaway: for Bagging/RF, choose $T$ as large as your compute budget allows. For Boosting, choose $T$ via early stopping on a validation set.</p>
+<hr>
+<h2 id="8-reference-implementations">8. Reference implementations</h2>
+<p>The code below is intentionally short and dependency-free. It is not as fast as scikit-learn, but every step maps directly onto the formulas above.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DecisionStump</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Single-split decision tree used as an AdaBoost weak learner.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">feature_idx</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">left_value</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">right_value</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">N</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">best_error</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">threshold</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">left</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">threshold</span>
+</span></span><span class="line"><span class="cl">                <span class="n">right</span> <span class="o">=</span> <span class="o">~</span><span class="n">left</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="ow">not</span> <span class="n">left</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">right</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">                <span class="c1"># Weighted majority vote on each side.</span>
+</span></span><span class="line"><span class="cl">                <span class="n">lv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">left</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span><span class="n">left</span><span class="p">]))</span> <span class="ow">or</span> <span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">                <span class="n">rv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">right</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span><span class="n">right</span><span class="p">]))</span> <span class="ow">or</span> <span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">                <span class="n">pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">lv</span><span class="p">,</span> <span class="n">rv</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">pred</span> <span class="o">!=</span> <span class="n">y</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">best_error</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">best_error</span> <span class="o">=</span> <span class="n">err</span>
+</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">feature_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">j</span><span class="p">,</span> <span class="n">threshold</span>
+</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">left_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_value</span> <span class="o">=</span> <span class="n">lv</span><span class="p">,</span> <span class="n">rv</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">left</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_idx</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_value</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">AdaBoost</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;AdaBoost with decision stumps. Labels in {-1, +1}.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span> <span class="o">=</span> <span class="n">n_estimators</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">N</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="o">/</span> <span class="n">N</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">stump</span> <span class="o">=</span> <span class="n">DecisionStump</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">pred</span> <span class="o">=</span> <span class="n">stump</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="n">pred</span> <span class="o">!=</span> <span class="n">y</span><span class="p">]),</span> <span class="mf">1e-10</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="mf">1e-10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">eps</span><span class="p">)</span> <span class="o">/</span> <span class="n">eps</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">w</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="n">pred</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">w</span> <span class="o">/=</span> <span class="n">w</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stump</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">agg</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">h</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alphas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">agg</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GradientBoostingRegressor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;GBDT with squared loss. Trees are simple recursive splitters.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span> <span class="o">=</span> <span class="n">n_estimators</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="n">learning_rate</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span> <span class="o">=</span> <span class="n">max_depth</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_prediction</span> <span class="o">=</span> <span class="p">[],</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">init_prediction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_prediction</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">residuals</span> <span class="o">=</span> <span class="n">y</span> <span class="o">-</span> <span class="n">F</span>                       <span class="c1"># negative gradient</span>
+</span></span><span class="line"><span class="cl">            <span class="n">tree</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_tree</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">residuals</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">trees</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">F</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_tree</span><span class="p">(</span><span class="n">tree</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_build_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">depth</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;value&#34;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">best</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">left</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">t</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">left</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">(</span><span class="o">~</span><span class="n">left</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">                <span class="n">mse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">left</span><span class="p">])</span> <span class="o">*</span> <span class="n">left</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="o">~</span><span class="n">left</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="o">~</span><span class="n">left</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">mse</span> <span class="o">&lt;</span> <span class="n">best</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">best</span> <span class="o">=</span> <span class="p">((</span><span class="n">j</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">left</span><span class="p">),</span> <span class="n">best</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">mse</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">best</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;value&#34;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">j</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">left</span> <span class="o">=</span> <span class="n">best</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;feature&#34;</span><span class="p">:</span> <span class="n">j</span><span class="p">,</span> <span class="s2">&#34;threshold&#34;</span><span class="p">:</span> <span class="n">t</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;left&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_tree</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">left</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">left</span><span class="p">],</span> <span class="n">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;right&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_tree</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="o">~</span><span class="n">left</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="o">~</span><span class="n">left</span><span class="p">],</span> <span class="n">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_predict_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tree</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="s2">&#34;value&#34;</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">tree</span><span class="p">[</span><span class="s2">&#34;value&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">left</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">tree</span><span class="p">[</span><span class="s2">&#34;feature&#34;</span><span class="p">]]</span> <span class="o">&lt;=</span> <span class="n">tree</span><span class="p">[</span><span class="s2">&#34;threshold&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">[</span><span class="n">left</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_tree</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s2">&#34;left&#34;</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="n">left</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">[</span><span class="o">~</span><span class="n">left</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_tree</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s2">&#34;right&#34;</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="o">~</span><span class="n">left</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_prediction</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">tree</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">trees</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">F</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_tree</span><span class="p">(</span><span class="n">tree</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="9-qa">9. Q&amp;A</h2>
+<p><strong>Q1. Bagging or Boosting &mdash; which is &ldquo;better&rdquo;?</strong>
+Wrong question. Bagging reduces variance; Boosting reduces bias. If your base learner overfits (deep tree on a small dataset), bag it. If your base learner underfits (a stump), boost it. They live on opposite sides of the bias&ndash;variance dilemma.</p>
+<p><strong>Q2. Why exactly the exponential weight update in AdaBoost?</strong>
+It is the closed-form solution of forward-stagewise minimisation of exponential loss. There is nothing magical about it &mdash; different losses give different update rules. Logistic loss gives LogitBoost; squared loss gives gradient-boosted residual fitting.</p>
+<p><strong>Q3. Why does a small learning rate help GBDT?</strong>
+Same reason a small step size helps SGD: each tree is a noisy estimate of the true descent direction. A small $\eta$ trusts no single tree too much, so individual mistakes get diluted. The cost is more trees; the benefit is better generalisation. Pair $\eta = 0.05$ with $T = 1000$ over $\eta = 0.5$ with $T = 100$ almost every time.</p>
+<p><strong>Q4. How do I choose $m$ for Random Forest?</strong>
+Defaults of $\sqrt{d}$ (classification) and $d/3$ (regression) are excellent starting points. If the OOB error is high and trees look too similar, decrease $m$ to inject diversity. If the OOB error is high and individual trees look too weak, increase $m$.</p>
+<p><strong>Q5. Can Boosting be parallelised?</strong>
+The <em>outer</em> loop (rounds $t = 1, 2, \dots$) cannot be parallelised &mdash; each round depends on the previous. The <em>inner</em> loop (finding the best split inside a tree) is embarrassingly parallel across features and across data shards. XGBoost and LightGBM exploit this aggressively.</p>
+<p><strong>Q6. Does ensembling prevent overfitting?</strong>
+Bagging/RF: almost yes &mdash; adding trees rarely hurts, because variance is the only thing being reduced. Boosting: no &mdash; you can drive training error to zero while test error climbs. Cure with early stopping on a validation set, learning-rate shrinkage, subsampling, and tree-complexity caps.</p>
+<p><strong>Q7. Why is GBDT the foundation for XGBoost / LightGBM / CatBoost?</strong>
+Because the function-space view generalises: any differentiable loss, any tree learner, any second-order trick. XGBoost adds a Newton-step approximation and explicit regularisation; LightGBM adds histogram binning and leaf-wise growth; CatBoost adds ordered boosting for categorical features. All three are GBDT plus engineering.</p>
+<hr>
+<h2 id="10-exercises">10. Exercises</h2>
+<h3 id="exercise-1-bias--variance-arithmetic">Exercise 1: Bias&ndash;variance arithmetic</h3>
+<p>Three independent regression models each have $\text{bias}^2 = 4$ and $\text{Var} = 9$. Compute the expected MSE of (i) a single model and (ii) the simple-average ensemble. Ignore noise.</p>
+<p><strong>Solution.</strong> Single: $4 + 9 = 13$. Ensemble: bias unchanged at $4$, variance reduced to $9/3 = 3$, total $7$. Improvement: $\approx 46\%$.</p>
+<h3 id="exercise-2-majority-vote-error">Exercise 2: Majority-vote error</h3>
+<p>Twenty-one independent binary classifiers, each with error rate $\epsilon = 0.30$. Compute the majority-vote error.</p>
+<p><strong>Solution.</strong> Majority vote fails iff $> 10$ classifiers err:</p>
+$$
+P_{\text{ensemble}} = \sum_{k=11}^{21} \binom{21}{k}(0.3)^k(0.7)^{21-k} \approx 0.026.
+$$<p>A 30 % individual error becomes 2.6 %.</p>
+<h3 id="exercise-3-adaboost-weight-update-by-hand">Exercise 3: AdaBoost weight update by hand</h3>
+<p>After round $t$, learner $h_t$ has $\epsilon_t = 0.2$. Sample $i$ is correctly classified with current weight $w_t(i) = 0.05$. Compute (i) the learner weight $\alpha_t$ and (ii) the unnormalised next weight $w_{t+1}(i)$.</p>
+<p><strong>Solution.</strong> $\alpha_t = \tfrac{1}{2}\ln(0.8/0.2) = \tfrac{1}{2}\ln 4 \approx 0.693$. Correctly classified, so $w_{t+1}(i) = 0.05 \cdot e^{-0.693} = 0.025$ before normalisation. Misclassified samples would be multiplied by $e^{0.693} = 2$.</p>
+<h3 id="exercise-4-adaboost-vs-gbdt-cheat-sheet">Exercise 4: AdaBoost vs GBDT cheat sheet</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Aspect</th>
+          <th>AdaBoost</th>
+          <th>GBDT</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Loss</td>
+          <td>Exponential (fixed)</td>
+          <td>Any differentiable</td>
+      </tr>
+      <tr>
+          <td>Base learner</td>
+          <td>Decision stumps</td>
+          <td>CART regression trees</td>
+      </tr>
+      <tr>
+          <td>Update</td>
+          <td>Reweight samples</td>
+          <td>Fit negative gradient</td>
+      </tr>
+      <tr>
+          <td>Noise robustness</td>
+          <td>Poor (exp. penalty)</td>
+          <td>Tunable (Huber etc.)</td>
+      </tr>
+      <tr>
+          <td>Native regression</td>
+          <td>No</td>
+          <td>Yes</td>
+      </tr>
+  </tbody>
+</table>
+<p>Bottom line: AdaBoost is a beautiful special case; GBDT is the framework you want for production work.</p>
+<h3 id="exercise-5-why-feature-randomisation-matters">Exercise 5: Why feature randomisation matters</h3>
+<p>A Random Forest with $m = d$ (i.e. consider all features at every split) is just bagging. Explain why this typically performs <em>worse</em> than a forest with smaller $m$, even though each individual tree is stronger.</p>
+<p><strong>Solution.</strong> With $m = d$ every tree greedily picks the same dominant features at the top of the tree. The pairwise correlation $\rho$ stays large, so the variance floor $\rho\sigma^2$ in §1.1 is high. Reducing $m$ slightly weakens each tree (lower $s$) but dramatically lowers $\rho$, and the bound $\bar\rho(1 - s^2)/s^2$ tightens. The forest as a whole generalises better.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Breiman, L. (1996). Bagging predictors. <em>Machine Learning</em>, 24(2), 123&ndash;140.</li>
+<li>Breiman, L. (2001). Random forests. <em>Machine Learning</em>, 45(1), 5&ndash;32.</li>
+<li>Freund, Y., &amp; Schapire, R. E. (1997). A decision-theoretic generalization of on-line learning and an application to boosting. <em>Journal of Computer and System Sciences</em>, 55(1), 119&ndash;139.</li>
+<li>Friedman, J. H. (2001). Greedy function approximation: A gradient boosting machine. <em>Annals of Statistics</em>, 29(5), 1189&ndash;1232.</li>
+<li>Friedman, J. H. (2002). Stochastic gradient boosting. <em>Computational Statistics &amp; Data Analysis</em>, 38(4), 367&ndash;378.</li>
+<li>Schapire, R. E., Freund, Y., Bartlett, P., &amp; Lee, W. S. (1998). Boosting the margin: A new explanation for the effectiveness of voting methods. <em>Annals of Statistics</em>, 26(5), 1651&ndash;1686.</li>
+<li>Hastie, T., Tibshirani, R., &amp; Friedman, J. (2009). <em>The Elements of Statistical Learning</em> (2nd ed.). Springer. Chapter 10.</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<ul>
+<li>Previous: <a href="/en/Machine-Learning-Mathematical-Derivations-10-Semi-Naive-Bayes-and-Bayesian-Networks/">Part 10 &ndash; Semi-Naive Bayes and Bayesian Networks</a>
+</li>
+<li>Next: <a href="/en/Machine-Learning-Mathematical-Derivations-12-XGBoost-and-LightGBM/">Part 12 &ndash; XGBoost and LightGBM</a>
+</li>
+<li><a href="/tags/Machine-Learning/">View all 20 parts in this series</a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-why-ensembles-work">1. Why ensembles work</a>
+      <ul>
+        <li><a href="#11-the-variance-reduction-identity">1.1 The variance reduction identity</a></li>
+        <li><a href="#12-bias--variance-decomposition">1.2 Bias&ndash;variance decomposition</a></li>
+        <li><a href="#13-why-a-committee-of-mediocre-voters-works">1.3 Why a committee of mediocre voters works</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-bagging-and-random-forest">2. Bagging and Random Forest</a>
+      <ul>
+        <li><a href="#21-bagging-the-parallel-recipe">2.1 Bagging: the parallel recipe</a></li>
+        <li><a href="#22-random-forest-decorrelating-the-trees">2.2 Random Forest: decorrelating the trees</a></li>
+        <li><a href="#23-feature-importance">2.3 Feature importance</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-bagging-vs-boosting-----the-bias--variance-picture">3. Bagging vs Boosting &mdash; the bias&ndash;variance picture</a></li>
+    <li><a href="#4-boosting-sequential-bias-reduction">4. Boosting: sequential bias reduction</a>
+      <ul>
+        <li><a href="#41-adaboost-the-algorithm">4.1 AdaBoost: the algorithm</a></li>
+        <li><a href="#42-the-exponential-training-error-bound">4.2 The exponential training-error bound</a></li>
+        <li><a href="#43-why-exponential-weights-the-forward-stagewise-view">4.3 Why exponential weights? The forward stagewise view</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-gradient-boosting-decision-trees-gbdt">5. Gradient Boosting Decision Trees (GBDT)</a>
+      <ul>
+        <li><a href="#51-boosting-as-gradient-descent-in-function-space">5.1 Boosting as gradient descent in function space</a></li>
+        <li><a href="#52-what-the-pseudo-residuals-look-like-for-common-losses">5.2 What the pseudo-residuals look like for common losses</a></li>
+        <li><a href="#53-regularisation-the-three-knobs-that-actually-matter">5.3 Regularisation: the three knobs that actually matter</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-stacking-meta-learning-over-heterogeneous-models">6. Stacking: meta-learning over heterogeneous models</a></li>
+    <li><a href="#7-ensemble-size-how-many-learners-is-enough">7. Ensemble size: how many learners is enough?</a></li>
+    <li><a href="#8-reference-implementations">8. Reference implementations</a></li>
+    <li><a href="#9-qa">9. Q&amp;A</a></li>
+    <li><a href="#10-exercises">10. Exercises</a>
+      <ul>
+        <li><a href="#exercise-1-bias--variance-arithmetic">Exercise 1: Bias&ndash;variance arithmetic</a></li>
+        <li><a href="#exercise-2-majority-vote-error">Exercise 2: Majority-vote error</a></li>
+        <li><a href="#exercise-3-adaboost-weight-update-by-hand">Exercise 3: AdaBoost weight update by hand</a></li>
+        <li><a href="#exercise-4-adaboost-vs-gbdt-cheat-sheet">Exercise 4: AdaBoost vs GBDT cheat sheet</a></li>
+        <li><a href="#exercise-5-why-feature-randomisation-matters">Exercise 5: Why feature randomisation matters</a></li>
+      </ul>
+    </li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Ml mathematical derivations</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>19 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3900</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

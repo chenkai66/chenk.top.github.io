@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>自然语言处理（九）：大语言模型架构深度解析 · Chen Kai Blog</title>
+<meta name="description" content="拆解现代 LLM 的内部结构：Pre-norm &#43; RMSNorm &#43; SwiGLU &#43; RoPE &#43; GQA、KV Cache 机制、FlashAttention 的 IO 调度、稀疏 MoE，以及 INT8/INT4 量化。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="自然语言处理（九）：大语言模型架构深度解析">
+<meta property="og:description" content="拆解现代 LLM 的内部结构：Pre-norm &#43; RMSNorm &#43; SwiGLU &#43; RoPE &#43; GQA、KV Cache 机制、FlashAttention 的 IO 调度、稀疏 MoE，以及 INT8/INT4 量化。">
+<meta property="og:url" content="https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">自然语言处理</a>
+         · Chapter 9
+      </div>
+      <h1>自然语言处理（九）：大语言模型架构深度解析</h1>
+      <p class="deck">拆解现代 LLM 的内部结构：Pre-norm &#43; RMSNorm &#43; SwiGLU &#43; RoPE &#43; GQA、KV Cache 机制、FlashAttention 的 IO 调度、稀疏 MoE，以及 INT8/INT4 量化。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-11-10">November 10, 2025</time> · 13 min read · 6500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/nlp/" class="tag">#NLP</a><a href="/zh/tags/llm/" class="tag">#LLM</a><a href="/zh/tags/transformer/" class="tag">#Transformer</a><a href="/zh/tags/rope/" class="tag">#RoPE</a><a href="/zh/tags/flash-attention/" class="tag">#Flash Attention</a><a href="/zh/tags/moe/" class="tag">#MoE</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>2017 年的 Transformer 论文里画了一个 block。今天每一款生产级 LLM 还在沿用它的轮廓，但内部几乎每一个零件都换过：post-norm 换成了 pre-norm，LayerNorm 换成了 RMSNorm，GELU 换成了 SwiGLU，正弦位置换成了旋转位置（RoPE），多头注意力变成了分组查询注意力（GQA），稠密 FFN 在某些模型里被稀疏 MoE 替换。更重要的是，主导推理性能的那个数据结构——KV Cache——根本没出现在原论文里。</p>
+<p>这篇文章按照&quot;实现/训练/部署时真正起作用的顺序&quot;来串这些改动：先讲现代 decoder block，再讲为长上下文买单的 KV Cache，然后讲位置怎么编（RoPE / ALiBi），讲让 cache 小下来的注意力布局（GQA / MQA），讲让注意力跑得快的 IO 友好内核（FlashAttention），最后讲怎么&quot;长大但不增加每 token 计算量&quot;（MoE）以及&quot;压小但不掉精度&quot;（量化）。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li><strong>现代 block 布局</strong>：pre-norm + RMSNorm + SwiGLU + RoPE + GQA，每一项替换的动机。</li>
+<li><strong>KV Cache 机制</strong>：把前缀注意力从 $O(n^2)$ 重算变成每步 $O(n)$ 的代价是什么，内存代价又是什么。</li>
+<li><strong>位置编码</strong>：sinusoidal、RoPE、ALiBi 三种方案的不同回答。</li>
+<li><strong>注意力变种</strong>：MHA、MQA、GQA 在 70B 量级模型上具体差多少 cache。</li>
+<li><strong>FlashAttention</strong>：用 IO 感知调度让 tile 留在 SRAM、不再实例化 $n \times n$ 分数矩阵。</li>
+<li><strong>MoE</strong>：top-$k$ 稀疏路由让总参数变大但每 token FLOPs 不变。</li>
+<li><strong>量化</strong>：FP16 → INT8 → INT4 的 GPTQ/AWQ 路线，以及精度与显存的取舍。</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>基础 Transformer block（<a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%9b%9b-%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e4%b8%8eTransformer/">第四篇 — 注意力机制与 Transformer</a>
+）。</li>
+<li>预训练模型概念（<a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%ba%94-BERT%e4%b8%8e%e9%a2%84%e8%ae%ad%e7%bb%83%e6%a8%a1%e5%9e%8b/">第五篇 — BERT 与预训练模型</a>
+）。</li>
+<li>能读 PyTorch 和基础线性代数。</li>
+</ul>
+<hr>
+<h2 id="三大家族encoder-onlydecoder-onlyencoder-decoder">三大家族：encoder-only、decoder-only、encoder-decoder</h2>
+<p>在进入现代 block 之前，先回顾一下为什么几乎所有通用 LLM 都收敛到了 decoder-only。三种架构的差别只在注意力 mask：</p>
+<table>
+  <thead>
+      <tr>
+          <th>家族</th>
+          <th>Mask</th>
+          <th>预训练目标</th>
+          <th>强项</th>
+          <th>代表</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Encoder-only</td>
+          <td>双向</td>
+          <td>掩码语言模型（MLM）</td>
+          <td>语义理解</td>
+          <td>BERT、RoBERTa、DeBERTa</td>
+      </tr>
+      <tr>
+          <td>Decoder-only</td>
+          <td>因果（下三角）</td>
+          <td>下一 token 预测（LM）</td>
+          <td>生成、ICL</td>
+          <td>GPT、LLaMA、Qwen、Mistral</td>
+      </tr>
+      <tr>
+          <td>Encoder-Decoder</td>
+          <td>双向 encoder + 因果 decoder + cross-attn</td>
+          <td>去噪 / span corruption</td>
+          <td>seq-to-seq</td>
+          <td>T5、BART、FLAN-T5</td>
+      </tr>
+  </tbody>
+</table>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModel</span><span class="p">,</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoModelForSeq2SeqLM</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">enc</span>  <span class="o">=</span> <span class="n">AutoModel</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&#34;bert-base-uncased&#34;</span><span class="p">)</span>            <span class="c1"># encoder-only</span>
+</span></span><span class="line"><span class="cl"><span class="n">dec</span>  <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&#34;gpt2&#34;</span><span class="p">)</span>               <span class="c1"># decoder-only</span>
+</span></span><span class="line"><span class="cl"><span class="n">ed</span>   <span class="o">=</span> <span class="n">AutoModelForSeq2SeqLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&#34;t5-small&#34;</span><span class="p">)</span>          <span class="c1"># encoder-decoder</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Decoder-only 之所以赢在 scaling 上有两个原因：第一，所有任务都可以转成&quot;预测下一个 token&quot;，单一目标和数据格式可以无限扩展；第二，因果 mask 让前缀缓存（KV Cache）非常便宜——encoder-decoder 还要缓存 cross-attention，而 encoder-only 根本没法生成。今天说&quot;LLM&quot;几乎都默认指带后面这些改动的 decoder-only 模型。</p>
+<hr>
+<h2 id="现代-decoder-block">现代 decoder block</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig1_modern_block.png" alt="图 1 — 现代 LLM decoder block" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>LLaMA 风格的 block（LLaMA、LLaMA-2、Mistral、Qwen、Yi、DeepSeek……）相对 2017 年的 block 改了五处。每一处单独看影响都不大，但叠加起来就得到一个&quot;无须 warmup 调参也能稳定训练、能扩展到长上下文、推理更快&quot;的模型。</p>
+<p><strong>1. Pre-norm 替代 post-norm。</strong> 原版是 <code>Norm(x + Sublayer(x))</code>，现代版是 <code>x + Sublayer(Norm(x))</code>。残差路径变成干净的恒等通路，深层堆叠时梯度尺度更稳，也省掉了著名的 Transformer 学习率 warmup。</p>
+<p><strong>2. RMSNorm 替代 LayerNorm。</strong> LayerNorm 减去均值再除以标准差，RMSNorm 只除以均方根，没有均值，也没有 bias：</p>
+$$
+\mathrm{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_i x_i^2 + \varepsilon}} \cdot g.
+$$<p>少一个归约、少一组参数，质量没有可测损失。</p>
+<p><strong>3. SwiGLU 替代 GELU。</strong> 标准 FFN 是 <code>Linear → GELU → Linear</code>，SwiGLU 多加一条 gating linear：</p>
+$$
+\mathrm{SwiGLU}(x) = \big(\mathrm{Swish}(W_1 x) \odot (W_3 x)\big) W_2.
+$$<p>逐元素乘法给 FFN 注入了乘性交互，等参数量下 perplexity 通常改善 1–2%。为了维持参数预算，隐藏维度按 $2/3$ 缩。</p>
+<p><strong>4. RoPE 替代学习式绝对位置。</strong> 位置不再加在 embedding 上，而是在注意力时旋转 Q/K，下一节展开。</p>
+<p><strong>5. GQA / MQA 替代 MHA。</strong> 多个 query 头共享一个 KV 头，下下节展开。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RMSNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">g</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rms</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">rms</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">g</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SwiGLU</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">w1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   <span class="c1"># gate</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">w3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   <span class="c1"># value</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">w2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_ff</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   <span class="c1"># down-proj</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">w2</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">silu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">w1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w3</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LlamaBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Pre-norm + RMSNorm + SwiGLU；attention 由外部注入。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">attn</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span> <span class="o">=</span> <span class="n">RMSNorm</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span>  <span class="o">=</span> <span class="n">attn</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span> <span class="o">=</span> <span class="n">RMSNorm</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ffn</span>   <span class="o">=</span> <span class="n">SwiGLU</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="kv-cache为长上下文买单的数据结构">KV Cache：为长上下文买单的数据结构</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig2_kv_cache.png" alt="图 2 — KV Cache 把 O(n²) 前缀重算变成 O(n)" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>自回归解码每步只新增一个 token。朴素地实现，新位置的注意力需要&quot;所有过去 token 的 K 和 V&quot;——每步都从头投影一次的话，每步 $O(n)$，总共 $O(n^2)$。KV Cache 的关键观察是：这些投影只是过去 token 的确定函数，算一次存下来就行。</p>
+<p>它能成立靠两个事实：</p>
+<ul>
+<li>模型是<strong>因果</strong>的，已写入 cache 的位置不会因后续 token 而需要修改；</li>
+<li>K、V 投影对输入是<strong>线性</strong>的，缓存投影后张量与重算等价。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">KVCache</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;每层 KV cache，layout: [B, H_kv, T, D_h]。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">H_kv</span><span class="p">,</span> <span class="n">D_h</span><span class="p">,</span> <span class="n">max_T</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">H_kv</span><span class="p">,</span> <span class="n">max_T</span><span class="p">,</span> <span class="n">D_h</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">H_kv</span><span class="p">,</span> <span class="n">max_T</span><span class="p">,</span> <span class="n">D_h</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>                                     <span class="c1"># 已写入长度</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k_new</span><span class="p">,</span> <span class="n">v_new</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">T_new</span> <span class="o">=</span> <span class="n">k_new</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">[:,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">+</span> <span class="n">T_new</span><span class="p">]</span> <span class="o">=</span> <span class="n">k_new</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">[:,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">+</span> <span class="n">T_new</span><span class="p">]</span> <span class="o">=</span> <span class="n">v_new</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">+=</span> <span class="n">T_new</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">attention_step</span><span class="p">(</span><span class="n">q_new</span><span class="p">,</span> <span class="n">cache</span><span class="p">:</span> <span class="n">KVCache</span><span class="p">,</span> <span class="n">k_new</span><span class="p">,</span> <span class="n">v_new</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;一次 decode 步：q_new 形状 [B, H_q, 1, D_h]。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">K</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k_new</span><span class="p">,</span> <span class="n">v_new</span><span class="p">)</span>                  <span class="c1"># 完整前缀</span>
+</span></span><span class="line"><span class="cl">    <span class="n">scores</span> <span class="o">=</span> <span class="p">(</span><span class="n">q_new</span> <span class="o">@</span> <span class="n">K</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">scale</span>     <span class="c1"># [B, H, 1, T]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">attn</span>   <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">attn</span> <span class="o">@</span> <span class="n">V</span>                                    <span class="c1"># [B, H, 1, D_h]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>代价并不便宜：cache 显存与序列长度线性增长，是 decode 阶段的主导内存项。以 LLaMA-2-70B 形状（80 层、64 KV 头、head_dim=128、fp16）的朴素 MHA 为例：</p>
+$$
+2 \cdot 80 \cdot 64 \cdot 128 \cdot 2\text{ B} = 2.6\text{ MB / token},
+$$<p>32K 上下文光 cache 就要 84 GB——比权重还大。这正是 GQA、MQA 和 PagedAttention（vLLM）出现的根本原因。</p>
+<hr>
+<h2 id="位置编码sinusoidalropealibi">位置编码：sinusoidal、RoPE、ALiBi</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig3_position_encoding.png" alt="图 3 — 三种位置编码方案" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>自注意力本身没有顺序：把输入排列一下，输出也只是同样地排列。三种主流方案在三个不同的位置注入位置信息。</p>
+<p><strong>Sinusoidal 绝对位置（Vaswani 等，2017）。</strong> 在 embedding 层把固定的 $\sin/\cos$ 向量<em>加</em>到 token 上。位置信息要靠后续每一层线性投影把它带过去，外推到训练长度之外效果很差。</p>
+<p><strong>RoPE — 旋转位置嵌入（Su 等，2021）。</strong> 不加在 embedding 上，而是在注意力时<em>旋转</em> Q 和 K。把 $d$ 维 head 切成 $d/2$ 个二维平面，平面 $i$ 的频率为 $\theta_i = 10000^{-2i/d}$，位置 $m$ 把第 $i$ 个平面旋转角度 $m\theta_i$。关键恒等式：</p>
+$$
+\langle R_m q,\; R_n k \rangle = \langle q,\; R_{n-m} k \rangle,
+$$<p>点积只依赖于<em>相对偏移</em> $n - m$。这就是为什么 RoPE 能外推到比训练长度更长的上下文，也是为什么所有现代模型（LLaMA、Qwen、Mistral、Yi、DeepSeek、GPT-NeoX）都用它。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">precompute_rope</span><span class="p">(</span><span class="n">d_head</span><span class="p">,</span> <span class="n">max_T</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mf">10000.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cpu&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">half</span> <span class="o">=</span> <span class="n">d_head</span> <span class="o">//</span> <span class="mi">2</span>
+</span></span><span class="line"><span class="cl">    <span class="n">freqs</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">base</span> <span class="o">**</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">half</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="n">half</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_T</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">angles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">freqs</span><span class="p">)</span>                     <span class="c1"># [T, d_head/2]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angles</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">apply_rope</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;x: [B, H, T, D_h]。旋转 (i, i+half) 维度对。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">half</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="n">half</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">half</span><span class="p">:]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cos</span> <span class="o">=</span> <span class="n">cos</span><span class="p">[:</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sin</span> <span class="o">=</span> <span class="n">sin</span><span class="p">[:</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">rot1</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">*</span> <span class="n">cos</span> <span class="o">-</span> <span class="n">x2</span> <span class="o">*</span> <span class="n">sin</span>
+</span></span><span class="line"><span class="cl">    <span class="n">rot2</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">*</span> <span class="n">sin</span> <span class="o">+</span> <span class="n">x2</span> <span class="o">*</span> <span class="n">cos</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">rot1</span><span class="p">,</span> <span class="n">rot2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>ALiBi — 线性偏置注意力（Press 等，2021）。</strong> 直接不要位置嵌入，在 softmax 前的分数上加一个按头不同的线性惩罚 $-m_h \cdot |i - j|$。$m_h$ 小的头看全局，$m_h$ 大的头看局部。原论文里 ALiBi 比 RoPE 外推更远，但因为没注入相对相位，在知识密集的长上下文 benchmark 上通常输给 RoPE。BLOOM、MPT 用过它。</p>
+<p>工程上的现实是：RoPE 配上 NTK-aware scaling、YaRN、position interpolation 这些后训练技巧，可以让 4K 训练的模型微调到 32K–128K，已经成为绝对主流。</p>
+<hr>
+<h2 id="注意力变种mha--gqa--mqa">注意力变种：MHA → GQA → MQA</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig4_attention_variants.png" alt="图 4 — MHA / MQA / GQA 三种布局" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>标准多头注意力（MHA）每个 query 头都有自己的 K、V 投影，因此 KV Cache 与 KV 头数成正比，正是上一节算出 84 GB 的元凶。两个折中方案：</p>
+<ul>
+<li><strong>MQA — 多查询注意力（Shazeer，2019）：</strong> 所有 query 头共享<em>一个</em> KV 头，cache 缩 $H$ 倍，但 K/V 投影失去头多样性，难任务上质量明显下降。</li>
+<li><strong>GQA — 分组查询注意力（Ainslie 等，2023）：</strong> LLaMA-2-70B、Mistral 等当下普遍采用的中间方案。把 $H_q$ 个 query 头分成 $G$ 组，每组共享一个 KV 头。LLaMA-2-70B 用 $H_q = 64$、$G = 8$，cache 缩 8 倍而质量与 MHA 持平。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GroupedQueryAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">n_q_heads</span><span class="p">,</span> <span class="n">n_kv_heads</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">assert</span> <span class="n">n_q_heads</span> <span class="o">%</span> <span class="n">n_kv_heads</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">h_q</span>  <span class="o">=</span> <span class="n">n_q_heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">h_kv</span> <span class="o">=</span> <span class="n">n_kv_heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">rep</span>  <span class="o">=</span> <span class="n">n_q_heads</span> <span class="o">//</span> <span class="n">n_kv_heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">d_h</span>  <span class="o">=</span> <span class="n">d_model</span> <span class="o">//</span> <span class="n">n_q_heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">wq</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_q_heads</span>  <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_h</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">wk</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_kv_heads</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_h</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">wv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_kv_heads</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_h</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">wo</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_q_heads</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_h</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span><span class="p">,</span> <span class="n">cache</span><span class="p">:</span> <span class="n">KVCache</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wq</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_q</span><span class="p">,</span>  <span class="bp">self</span><span class="o">.</span><span class="n">d_h</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wk</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_kv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_h</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_kv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_h</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">q</span> <span class="o">=</span> <span class="n">apply_rope</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">k</span> <span class="o">=</span> <span class="n">apply_rope</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 把每个 KV 头广播到对应的 query 组</span>
+</span></span><span class="line"><span class="cl">        <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rep</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rep</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">scaled_dot_product_attention</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">wo</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>LLaMA-2-70B 形状下的具体数字（fp16，每 token）：</strong></p>
+<ul>
+<li>MHA，64 KV 头 → 2.56 MB/token → 32K 上下文 80 GB；</li>
+<li>GQA-8，8 KV 头 → 0.32 MB/token → 32K 上下文 10 GB；</li>
+<li>MQA，1 KV 头 → 0.04 MB/token → 32K 上下文 1.25 GB。</li>
+</ul>
+<p>GQA-8 几乎拿走了 MQA 的全部内存收益，而质量基本无损——这就是为什么近期开源权重模型默认都用它。</p>
+<hr>
+<h2 id="flashattention相同的数学io-感知的调度">FlashAttention：相同的数学，IO 感知的调度</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig5_flash_attention.png" alt="图 5 — FlashAttention 的 GPU 内存层级" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>朴素注意力内核会把 $S = QK^\top$ 整个 $n \times n$ 分数矩阵写进 HBM（GPU 主显存），在 HBM 上跑 softmax，再乘 $V$。$n=8192$、fp16 时，仅 $S$ 一个矩阵每个 head 每层就是 128 MB，绝大多数流量都被反复读写浪费掉。</p>
+<p>FlashAttention（Dao 等，2022）做的是同一份数学、不同的调度：</p>
+<ol>
+<li>把 $Q$、$K$、$V$ 切成行/列 tile，使其能放进每个 SM 上 ~192 KB 的 SRAM；</li>
+<li>在 SRAM 内一次只算一个 $S$ tile；</li>
+<li>用<strong>在线 softmax</strong>：维护逐行的最大值 $m$ 和分母 $\ell$，每个 tile 只增量更新部分输出，整行 $S$ 永远不需要存在；</li>
+<li>只把最终 $O$ 写回 HBM。完整的 $S$ 从未出现。</li>
+</ol>
+<p>结果是数学上完全等价（仅浮点归约顺序不同）的注意力，HBM 流量从 $O(n^2)$ 降到 $O(n)$，$n \geq 2048$ 时墙钟提速 2–4 倍，显存最高省 8 倍。FlashAttention-2 进一步优化 warp 级任务划分，能跑到 A100 FP16 峰值的约 70%。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># 现代 transformers/torch 里你不需要自己写 kernel，开关打开即可：</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForCausalLM</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;meta-llama/Llama-2-7b-hf&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">attn_implementation</span><span class="o">=</span><span class="s2">&#34;flash_attention_2&#34;</span><span class="p">,</span>   <span class="c1"># 也可选 &#34;sdpa&#34; / &#34;eager&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">torch_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">device_map</span><span class="o">=</span><span class="s2">&#34;auto&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 或者用 PyTorch 自带的 scaled_dot_product_attention，</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 它会自动派发到 flash / mem-efficient / math 三种内核。</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>记住：FlashAttention 不改变模型计算什么，只改变 GPU 上的算子顺序。序列长度超过 ~1K 时一律应该开。</p>
+<hr>
+<h2 id="混合专家长大但不增加每-token-计算量">混合专家：长大但不增加每 token 计算量</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig6_moe.png" alt="图 6 — 稀疏 MoE 的 top-k 路由" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>稠密 Transformer 的参数和 FLOPs 大头都在 FFN。MoE 把单个 FFN 换成 $N$ 个&quot;专家&quot;FFN，再加一个微型 router，<em>对每个 token</em>选 top-$k$ 个专家来执行：</p>
+$$
+y = \sum_{i \in \mathrm{TopK}(W_g x)} g_i(x)\, E_i(x),\qquad g(x) = \mathrm{softmax}(W_g x).
+$$<p>每 token 的 FFN FLOPs 随 $k$（通常 2）增长，而非随 $N$ 增长。所以 8 专家模型的 FFN 参数大约是稠密模型的 8 倍，但 FFN 计算只多了 2 倍。Mixtral 8×7B 总参数 47B，每 token 只激活约 13B，得到 70B 量级的质量、13B 量级的推理成本。</p>
+<p>老实说，代价在别的地方：</p>
+<ul>
+<li><strong>显存。</strong> 所有专家都得常驻，即使只跑 $k$ 个。Mixtral 8×7B fp16 要 ~94 GB，比稠密 70B 还大；INT4 后才能塞进 24 GB。</li>
+<li><strong>负载均衡。</strong> 没干预的 router 会塌缩到几个偏爱的专家。真实训练要加辅助负载均衡损失（Shazeer 2017、Switch Transformer）和小幅 router 噪声鼓励探索。</li>
+<li><strong>All-to-all 通信。</strong> 多卡训练时每个 token 要跑到目标专家上再跑回来，对互联拓扑非常敏感。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TopKRouter</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">n_experts</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gate</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_experts</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">k</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gate</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>                                   <span class="c1"># [*, N]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">topv</span><span class="p">,</span> <span class="n">topi</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">weights</span> <span class="o">=</span> <span class="n">topv</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>                              <span class="c1"># 重新归一</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">weights</span><span class="p">,</span> <span class="n">topi</span>                                    <span class="c1"># [*, k], [*, k]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SparseMoE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">n_experts</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">experts</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">[</span><span class="n">SwiGLU</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_experts</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">router</span> <span class="o">=</span> <span class="n">TopKRouter</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_experts</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">D</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">flat</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">w</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">router</span><span class="p">(</span><span class="n">flat</span><span class="p">)</span>                              <span class="c1"># [BT, k]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">flat</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">slot</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">k</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">experts</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">mask</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[:,</span> <span class="n">slot</span><span class="p">]</span> <span class="o">==</span> <span class="n">e</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">out</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">+=</span> <span class="n">w</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="n">slot</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">experts</span><span class="p">[</span><span class="n">e</span><span class="p">](</span><span class="n">flat</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>（生产实现会用 grouped GEMM 和容量限制 bucket 并行调度 token 到专家，上面的循环只为了清晰。）</p>
+<hr>
+<h2 id="量化每个权重少几比特">量化：每个权重少几比特</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/fig7_quantization.png" alt="图 7 — 量化：FP16 → INT8 → INT4" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>现代 LLM 权重一般用 BF16 训练（每参数 2 字节），70B 模型 140 GB，单张 A100 80GB / H100 80GB 装不下。量化把每个权重换成低比特整数加一组 per-block scale，以小幅精度代价换显存。</p>
+<p><strong>对称 INT8。</strong> 选一个 per-tensor（或 per-channel）scale $s = \max|w| / 127$，存 $\hat w = \mathrm{round}(w / s) \in [-127, 127]$。计算时恢复 $w \approx s \cdot \hat w$。显存减半，INT8 tensor core 上吞吐大致也翻倍。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">quantize_int8_per_channel</span><span class="p">(</span><span class="n">W</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;W: [out, in]。返回 int8 权重 + per-row fp16 scale。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">scale</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">/</span> <span class="mf">127.0</span>          <span class="c1"># [out, 1]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Wq</span> <span class="o">=</span> <span class="p">(</span><span class="n">W</span> <span class="o">/</span> <span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">()</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="o">-</span><span class="mi">127</span><span class="p">,</span> <span class="mi">127</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">Wq</span><span class="p">,</span> <span class="n">scale</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>INT4 + GPTQ（Frantar 等，2022）。</strong> 直接把每个权重独立量化到 4 bit 会精度暴跌。GPTQ 改为按列量化，每量完一列就用一小批校准数据估计的 Hessian <em>修正剩余未量化列</em>以补偿当前列的舍入误差。结果是 7B 以上模型 4 bit 后 perplexity 损失 &lt;1%。</p>
+<p><strong>INT4 + AWQ（Lin 等，2023）。</strong> AWQ 观察到权重通道里只有约 1% 是&quot;显著&quot;的（由大激活值驱动），只要<em>保护这部分通道</em>（用 per-channel scaling，并不真的留 fp16）就能恢复绝大部分精度。AWQ 比 GPTQ 计算快很多，是当下许多量化开源 checkpoint 的默认方案。</p>
+<table>
+  <thead>
+      <tr>
+          <th>精度</th>
+          <th>字节/参数</th>
+          <th>LLaMA-2-7B 权重</th>
+          <th>LLaMA-2-70B 权重</th>
+          <th>典型 PPL 增量</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>FP16 / BF16</td>
+          <td>2.0</td>
+          <td>13.5 GB</td>
+          <td>140 GB</td>
+          <td>参考基准</td>
+      </tr>
+      <tr>
+          <td>INT8（RTN）</td>
+          <td>1.0</td>
+          <td>6.7 GB</td>
+          <td>70 GB</td>
+          <td>&lt;0.5%</td>
+      </tr>
+      <tr>
+          <td>INT4（GPTQ / AWQ）</td>
+          <td>0.5</td>
+          <td>3.4 GB</td>
+          <td>35 GB</td>
+          <td>&lt;2%</td>
+      </tr>
+      <tr>
+          <td>INT3（高级算法）</td>
+          <td>0.375</td>
+          <td>2.5 GB</td>
+          <td>26 GB</td>
+          <td>3–6%</td>
+      </tr>
+  </tbody>
+</table>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># 加载预量化的 AWQ checkpoint</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;TheBloke/Llama-2-7B-AWQ&#34;</span><span class="p">,</span> <span class="n">device_map</span><span class="o">=</span><span class="s2">&#34;auto&#34;</span><span class="p">,</span> <span class="n">torch_dtype</span><span class="o">=</span><span class="s2">&#34;auto&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">tok</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&#34;TheBloke/Llama-2-7B-AWQ&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>激活通常仍保留 FP16/BF16，因为它们分布是重尾的（LLM.int8()，Dettmers 2022 发现少量&quot;离群特征&quot;承载了大部分激活能量，必须留高精度）。<strong>仅权重 INT4</strong> 是当下推理的最佳折中。</p>
+<hr>
+<h2 id="拼起来高吞吐推理栈">拼起来：高吞吐推理栈</h2>
+<p>这些组件是可组合的。一个现代的 vLLM 服务栈把以下东西凑在一起：</p>
+<ul>
+<li>LLaMA 风格 decoder block（pre-norm + RMSNorm + SwiGLU + RoPE + GQA）；</li>
+<li>每层 KV Cache，但按固定大小<strong>页</strong>布局（PagedAttention），上下文增删不再产生碎片；</li>
+<li>预填和解码都跑 FlashAttention 内核；</li>
+<li>权重 INT4 量化（AWQ / GPTQ）省显存；</li>
+<li>连续批处理：某条请求结束后空出的 slot 立刻被新提示填上，而不是等批里最慢的请求。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">vllm</span> <span class="kn">import</span> <span class="n">LLM</span><span class="p">,</span> <span class="n">SamplingParams</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">llm</span> <span class="o">=</span> <span class="n">LLM</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;TheBloke/Llama-2-7B-AWQ&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">quantization</span><span class="o">=</span><span class="s2">&#34;awq&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;float16&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">gpu_memory_utilization</span><span class="o">=</span><span class="mf">0.90</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">max_model_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">params</span> <span class="o">=</span> <span class="n">SamplingParams</span><span class="p">(</span><span class="n">temperature</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">top_p</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">max_tokens</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate</span><span class="p">([</span><span class="s2">&#34;用两句话解释 MoE。&#34;</span><span class="p">],</span> <span class="n">params</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>实测下来，单张 A100 80GB 跑 7B AWQ 模型能做到 3000–5000 tokens/s 的聚合吞吐，单张 H100 跑 Mixtral 8×7B AWQ 能做到 &gt;1000 tokens/s——这两个数字按 2017 年原版 block 来写是不可想象的。</p>
+<hr>
+<h2 id="常见问题">常见问题</h2>
+<h3 id="为什么是-decoder-only-而不是-encoder-decoder">为什么是 decoder-only 而不是 encoder-decoder？</h3>
+<p>因果 decoder-only 模型只要换提示就能当分类器、翻译器、对话机；encoder-decoder 还要额外一套 cross-attention 参数和更复杂的训练流程，且生成时无法享受廉价的前缀缓存。decoder-only 也更适合扩展，因为语料里每个 token 都是训练信号。</p>
+<h3 id="rope-还是-alibi">RoPE 还是 ALiBi？</h3>
+<p>工程上几乎都选 RoPE：它给模型真正的相对相位信息，配合 NTK / YaRN 等后训练缩放可以把上下文从 4K 扩到 32K–128K。ALiBi 的吸引力是不微调也能外推，但代价是 in-distribution 质量更弱。当下主流开源权重一律 RoPE。</p>
+<h3 id="flashattention-会改变模型输出吗">FlashAttention 会改变模型输出吗？</h3>
+<p>不会。FlashAttention 是精确注意力，仅浮点归约顺序不同，与朴素内核的数值差远低于训练噪声。</p>
+<h3 id="moe-是不是总比稠密便宜">MoE 是不是总比稠密便宜？</h3>
+<p>计算上更便宜，显存上更贵。如果你被显存卡住（比如单张 24GB 卡推理），量化的稠密模型通常优于 MoE；如果你有多卡显存但 decode FLOPs 是瓶颈，MoE 胜出。</p>
+<h3 id="7b-模型-int4-大约掉多少精度">7B 模型 INT4 大约掉多少精度？</h3>
+<p>用 GPTQ 或 AWQ 配 ~128 条校准样本，perplexity 增量通常 &lt;2%，绝大多数下游任务质量肉眼难辨。70B 模型损失通常 &lt;1%。7B 以下时量化会明显更难。</p>
+<h3 id="为什么-kv-cache-是长上下文的瓶颈">为什么 KV Cache 是长上下文的瓶颈？</h3>
+<p>cache 大小是 $2 \cdot L \cdot H_{kv} \cdot d_h \cdot T \cdot \text{字节数}$。70B 模型 32K 上下文走 MHA 是 ~80 GB，比权重还大。GQA 把它降到 ~10 GB，PagedAttention 又把碎片率压到 &lt;5%，两者合起来才让长上下文服务在普通硬件上跑得起来。</p>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+          <th>链接</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>8</td>
+          <td>模型微调与 PEFT</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%85%ab-%e6%a8%a1%e5%9e%8b%e5%be%ae%e8%b0%83%e4%b8%8ePEFT/">&lt;&ndash; 上一篇</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>9</strong></td>
+          <td><strong>大语言模型架构深度解析（本文）</strong></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td>10</td>
+          <td>RAG 与知识增强系统</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%8d%81-RAG%e4%b8%8e%e7%9f%a5%e8%af%86%e5%a2%9e%e5%bc%ba%e7%b3%bb%e7%bb%9f/">下一篇 &ndash;&gt;</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#三大家族encoder-onlydecoder-onlyencoder-decoder">三大家族：encoder-only、decoder-only、encoder-decoder</a></li>
+    <li><a href="#现代-decoder-block">现代 decoder block</a></li>
+    <li><a href="#kv-cache为长上下文买单的数据结构">KV Cache：为长上下文买单的数据结构</a></li>
+    <li><a href="#位置编码sinusoidalropealibi">位置编码：sinusoidal、RoPE、ALiBi</a></li>
+    <li><a href="#注意力变种mha--gqa--mqa">注意力变种：MHA → GQA → MQA</a></li>
+    <li><a href="#flashattention相同的数学io-感知的调度">FlashAttention：相同的数学，IO 感知的调度</a></li>
+    <li><a href="#混合专家长大但不增加每-token-计算量">混合专家：长大但不增加每 token 计算量</a></li>
+    <li><a href="#量化每个权重少几比特">量化：每个权重少几比特</a></li>
+    <li><a href="#拼起来高吞吐推理栈">拼起来：高吞吐推理栈</a></li>
+    <li><a href="#常见问题">常见问题</a>
+      <ul>
+        <li><a href="#为什么是-decoder-only-而不是-encoder-decoder">为什么是 decoder-only 而不是 encoder-decoder？</a></li>
+        <li><a href="#rope-还是-alibi">RoPE 还是 ALiBi？</a></li>
+        <li><a href="#flashattention-会改变模型输出吗">FlashAttention 会改变模型输出吗？</a></li>
+        <li><a href="#moe-是不是总比稠密便宜">MoE 是不是总比稠密便宜？</a></li>
+        <li><a href="#7b-模型-int4-大约掉多少精度">7B 模型 INT4 大约掉多少精度？</a></li>
+        <li><a href="#为什么-kv-cache-是长上下文的瓶颈">为什么 KV Cache 是长上下文的瓶颈？</a></li>
+      </ul>
+    </li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">自然语言处理</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6500</strong></div>
+      <div class="row"><span>Published</span><strong>Nov 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

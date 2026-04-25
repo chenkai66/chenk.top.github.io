@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Machine Learning Mathematical Derivations (13): EM Algorithm and GMM · Chen Kai Blog</title>
+<meta name="description" content="Derive the EM algorithm from Jensen&#39;s inequality and the ELBO, prove its monotone-ascent guarantee, and apply it to Gaussian Mixture Models with full E-step / M-step formulas, model selection via BIC/AIC, and the K-means correspondence.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/ml-math-derivations/13-em-algorithm-and-gmm/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/ml-math-derivations/13-em-algorithm-and-gmm/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Machine Learning Mathematical Derivations (13): EM Algorithm and GMM">
+<meta property="og:description" content="Derive the EM algorithm from Jensen&#39;s inequality and the ELBO, prove its monotone-ascent guarantee, and apply it to Gaussian Mixture Models with full E-step / M-step formulas, model selection via BIC/AIC, and the K-means correspondence.">
+<meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/13-em-algorithm-and-gmm/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Ml mathematical derivations</a>
+         · Chapter 13
+      </div>
+      <h1>Machine Learning Mathematical Derivations (13): EM Algorithm and GMM</h1>
+      <p class="deck">Derive the EM algorithm from Jensen&#39;s inequality and the ELBO, prove its monotone-ascent guarantee, and apply it to Gaussian Mixture Models with full E-step / M-step formulas, model selection via BIC/AIC, and the K-means correspondence.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-02-01">February 1, 2026</time> · 11 min read · 2200 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/em-algorithm/" class="tag">#EM Algorithm</a><a href="/en/tags/expectation-maximization/" class="tag">#Expectation Maximization</a><a href="/en/tags/gaussian-mixture-model/" class="tag">#Gaussian Mixture Model</a><a href="/en/tags/gmm/" class="tag">#GMM</a><a href="/en/tags/latent-variables/" class="tag">#Latent Variables</a><a href="/en/tags/mathematical-derivation/" class="tag">#Mathematical Derivation</a><a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>When data carries hidden structure &ndash; a cluster label you never observed, a missing feature, a topic you cannot directly see &ndash; maximum likelihood becomes painful. The log of a sum has no closed form, and gradient methods get tangled in the latent variables. The <strong>EM algorithm</strong> sidesteps the difficulty with a deceptively simple idea: alternate between <em>guessing</em> the hidden variables under a posterior (E-step) and <em>fitting</em> the parameters as if those guesses were true (M-step). Each iteration is mathematically guaranteed to push the likelihood up. This post derives EM from first principles, proves the monotone-ascent property via Jensen&rsquo;s inequality, and works through its most famous application: <strong>Gaussian Mixture Models (GMM)</strong> &ndash; the soft, elliptical generalisation of K-means.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>Why latent variables make MLE hard (the log-of-a-sum problem)</li>
+<li>How Jensen&rsquo;s inequality builds the <strong>Evidence Lower Bound (ELBO)</strong></li>
+<li>The EM algorithm as <strong>alternating maximisation</strong> of the ELBO in $(q, \boldsymbol{\theta})$</li>
+<li>A clean proof that $\ell(\boldsymbol{\theta}^{(t+1)}) \geq \ell(\boldsymbol{\theta}^{(t)})$</li>
+<li>Complete E-step / M-step formulas for GMM with full covariance</li>
+<li>How K-means is the hard, spherical limit of GMM</li>
+<li>Picking $K$ with <strong>BIC</strong> and <strong>AIC</strong></li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Maximum likelihood estimation</li>
+<li>Multivariate Gaussian density</li>
+<li>Jensen&rsquo;s inequality and KL divergence</li>
+<li>K-means clustering</li>
+</ul>
+<hr>
+<h2 id="1-latent-variables-and-incomplete-data-likelihood">1. Latent variables and incomplete-data likelihood</h2>
+<h3 id="11-setup">1.1 Setup</h3>
+<p>We model observations $\mathbf{x}_1,\dots,\mathbf{x}_N$ together with hidden variables $z_1,\dots,z_N$ via a joint $p(\mathbf{x}, z \mid \boldsymbol{\theta})$. We see $\mathbf{X}$, never $\mathbf{Z}$. The <strong>incomplete-data log-likelihood</strong> is</p>
+$$
+\ell(\boldsymbol{\theta}) \;=\; \sum_{i=1}^{N} \log p(\mathbf{x}_i \mid \boldsymbol{\theta})
+\;=\; \sum_{i=1}^{N} \log \sum_{z} p(\mathbf{x}_i, z \mid \boldsymbol{\theta}).
+$$<p>The summation <strong>inside</strong> the logarithm is the source of all the trouble. The log no longer factors over components, so the gradient does not split into per-component pieces and there is no closed-form maximiser.</p>
+<h3 id="12-the-mixture-example">1.2 The mixture example</h3>
+<p>For a Gaussian mixture with $K$ components,</p>
+$$
+p(\mathbf{x}\mid \boldsymbol{\theta}) \;=\; \sum_{k=1}^{K} \pi_k\, \mathcal{N}(\mathbf{x}\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k).
+$$<p>If we <em>knew</em> which component each point came from, fitting would reduce to $K$ independent weighted-Gaussian MLEs &ndash; trivial. We do not know, and that is exactly what EM patches up.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig1_gmm_clusters.png" alt="GMM components with covariance ellipses" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure above shows three Gaussian clusters fit by <code>sklearn.mixture.GaussianMixture</code>: each cross is a mean $\boldsymbol{\mu}_k$, the inner ellipse is the 1-sigma contour, the outer is 2-sigma, and $\pi_k$ is the mixing weight.</p>
+<hr>
+<h2 id="2-the-elbo-and-jensens-inequality">2. The ELBO and Jensen&rsquo;s inequality</h2>
+<h3 id="21-introducing-an-auxiliary-distribution-q">2.1 Introducing an auxiliary distribution $q$</h3>
+<p>Pick <strong>any</strong> distribution $q(z)$ over the latent variable. Multiply and divide:</p>
+$$
+\log p(\mathbf{x}\mid \boldsymbol{\theta})
+= \log \sum_{z} q(z)\, \frac{p(\mathbf{x}, z\mid \boldsymbol{\theta})}{q(z)}.
+$$<p>Because $\log$ is concave, <strong>Jensen&rsquo;s inequality</strong> gives</p>
+$$
+\boxed{\;
+\log p(\mathbf{x}\mid \boldsymbol{\theta})
+\;\geq\;
+\sum_{z} q(z)\, \log \frac{p(\mathbf{x}, z\mid \boldsymbol{\theta})}{q(z)}
+\;\equiv\;
+\mathcal{L}(q,\boldsymbol{\theta}).
+\;}
+$$<p>This $\mathcal{L}$ is the <strong>Evidence Lower Bound (ELBO)</strong>. It depends on both the variational distribution $q$ and the parameters $\boldsymbol{\theta}$.</p>
+<h3 id="22-the-exact-decomposition">2.2 The exact decomposition</h3>
+<p>A direct manipulation &ndash; no inequality needed &ndash; yields the <em>equality</em></p>
+$$
+\log p(\mathbf{x}\mid \boldsymbol{\theta})
+\;=\;
+\mathcal{L}(q,\boldsymbol{\theta})
+\;+\;
+\mathrm{KL}\bigl[q(z)\,\Vert\, p(z\mid \mathbf{x},\boldsymbol{\theta})\bigr].
+$$<p>Two consequences are immediate:</p>
+<ol>
+<li>The ELBO is <strong>always</strong> $\leq \log p(\mathbf{x}\mid\boldsymbol{\theta})$ because $\mathrm{KL}\geq 0$.</li>
+<li>The bound becomes <strong>tight</strong>, $\mathcal{L} = \log p$, <strong>iff</strong> $q(z) = p(z \mid \mathbf{x}, \boldsymbol{\theta})$ &ndash; the posterior.</li>
+</ol>
+<p>This single identity is the entire engine of EM.</p>
+<hr>
+<h2 id="3-em-as-coordinate-ascent-on-the-elbo">3. EM as coordinate ascent on the ELBO</h2>
+<p>EM repeatedly raises $\mathcal{L}$ by alternating in its two arguments.</p>
+<h3 id="31-the-two-steps">3.1 The two steps</h3>
+<p><strong>E-step.</strong> Hold $\boldsymbol{\theta}^{(t)}$ fixed. Maximise $\mathcal{L}(q, \boldsymbol{\theta}^{(t)})$ over $q$. The maximiser is the posterior:</p>
+$$
+q^{(t)}(z) \;=\; p\bigl(z \mid \mathbf{x}, \boldsymbol{\theta}^{(t)}\bigr).
+$$<p>After this step the bound is <strong>tight</strong>: $\mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)}) = \log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t)})$.</p>
+<p><strong>M-step.</strong> Hold $q^{(t)}$ fixed. Maximise $\mathcal{L}(q^{(t)}, \boldsymbol{\theta})$ over $\boldsymbol{\theta}$. Dropping the entropy of $q^{(t)}$ (constant in $\boldsymbol{\theta}$), this is the same as maximising the <strong>Q-function</strong></p>
+$$
+Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})
+\;=\;
+\mathbb{E}_{z\sim q^{(t)}}\!\bigl[\log p(\mathbf{x}, z\mid \boldsymbol{\theta})\bigr].
+$$<h3 id="32-the-monotone-ascent-proof">3.2 The monotone-ascent proof</h3>
+<p>Chain three inequalities:</p>
+$$
+\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t)})
+\;\overset{(a)}{=}\;
+\mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)})
+\;\overset{(b)}{\leq}\;
+\mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t+1)})
+\;\overset{(c)}{\leq}\;
+\log p(\mathbf{x}\mid \boldsymbol{\theta}^{(t+1)}).
+$$<p>(a) holds because the E-step makes the bound tight; (b) by definition of the M-step; (c) because the ELBO is <em>always</em> $\leq \log p$. Therefore</p>
+$$
+\boxed{\;\ell(\boldsymbol{\theta}^{(t+1)}) \;\geq\; \ell(\boldsymbol{\theta}^{(t)})\;}
+$$<p>at every iteration, with equality only at fixed points. EM converges to a stationary point of $\ell$ &ndash; typically a local maximum, occasionally a saddle point. <strong>It is not guaranteed to reach the global maximum</strong>, which is why multiple random restarts matter.</p>
+<h3 id="33-visualising-the-two-views">3.3 Visualising the two views</h3>
+<p>The <strong>ELBO view</strong> makes the dynamics very concrete. After every E-step the KL gap closes; the M-step then raises both the log-likelihood and the ELBO together, and the gap re-opens until the next E-step.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig7_elbo_vs_loglik.png" alt="ELBO and log-likelihood across EM iterations" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The shaded amber band is exactly the KL divergence $\mathrm{KL}\bigl[q\,\Vert\, p(z\mid\mathbf{x},\boldsymbol{\theta})\bigr]$. Green dots mark the post-E-step instants where the gap is zero by construction.</p>
+<hr>
+<h2 id="4-em-for-gaussian-mixture-models">4. EM for Gaussian Mixture Models</h2>
+<h3 id="41-the-model">4.1 The model</h3>
+<p>Generative process for one observation:</p>
+<ol>
+<li>Sample a component label $z_i \sim \mathrm{Categorical}(\pi_1,\dots,\pi_K)$.</li>
+<li>Sample $\mathbf{x}_i \mid z_i = k \;\sim\; \mathcal{N}(\boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)$.</li>
+</ol>
+<p>The parameters are $\boldsymbol{\theta} = \{\pi_k, \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k\}_{k=1}^{K}$, with $\sum_k \pi_k = 1$ and each $\boldsymbol{\Sigma}_k \succ 0$.</p>
+<h3 id="42-the-e-step-responsibilities">4.2 The E-step: responsibilities</h3>
+<p>The latent posterior is just Bayes&rsquo; rule on a finite alphabet. Define the <strong>responsibility</strong> of component $k$ for sample $i$:</p>
+$$
+\boxed{\;
+\gamma_{ik}
+\;=\;
+p\bigl(z_i = k \mid \mathbf{x}_i, \boldsymbol{\theta}^{(t)}\bigr)
+\;=\;
+\frac{\pi_k\,\mathcal{N}(\mathbf{x}_i\mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)}{\sum_{j=1}^{K} \pi_j\,\mathcal{N}(\mathbf{x}_i\mid \boldsymbol{\mu}_j, \boldsymbol{\Sigma}_j)}.
+\;}
+$$<p>Each row $(\gamma_{i1},\dots,\gamma_{iK})$ sums to 1 &ndash; the soft cluster membership.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig2_e_step.png" alt="E-step soft assignments" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>On the left every grid point is coloured by mixing the three component colours according to $\gamma_{ik}$: pure colour where one component dominates, blended colours along the boundaries. On the right, the responsibility matrix $\gamma_{ik}$ for twelve sample points &ndash; rows sum to 1.</p>
+<h3 id="43-the-m-step-weighted-mle">4.3 The M-step: weighted MLE</h3>
+<p>Plugging the Gaussian density into $Q(\boldsymbol{\theta}\mid \boldsymbol{\theta}^{(t)})$ and maximising (with a Lagrange multiplier for $\sum_k \pi_k = 1$) gives the closed-form updates. Let $N_k = \sum_{i=1}^{N} \gamma_{ik}$ be the <em>effective</em> sample size of component $k$:</p>
+$$
+\boxed{\;
+\pi_k = \frac{N_k}{N},\qquad
+\boldsymbol{\mu}_k = \frac{1}{N_k}\sum_{i=1}^{N} \gamma_{ik}\,\mathbf{x}_i,\qquad
+\boldsymbol{\Sigma}_k = \frac{1}{N_k}\sum_{i=1}^{N} \gamma_{ik}\,(\mathbf{x}_i - \boldsymbol{\mu}_k)(\mathbf{x}_i - \boldsymbol{\mu}_k)^{\!\top}.
+\;}
+$$<p>These are exactly the standard Gaussian MLE formulas, but with each sample re-weighted by its responsibility.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig3_m_step.png" alt="One M-step update &ndash; before vs after" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Starting from a deliberately bad initialisation, a single M-step pulls the means (red arrows) onto the data and stretches the covariance ellipses to match the observed scatter. After only a handful of E-M cycles the fit is essentially correct.</p>
+<h3 id="44-convergence-in-practice">4.4 Convergence in practice</h3>
+<p>Run EM for several random restarts and watch the log-likelihood:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig4_loglik_monotone.png" alt="Log-likelihood is monotone non-decreasing" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Every restart curve is non-decreasing &ndash; this is the algorithmic guarantee. Different restarts plateau at different basins; the dashed line is the best value found by <code>sklearn.mixture.GaussianMixture</code> with <code>n_init=20</code>. <strong>Use multiple random or K-means initialisations and keep the best.</strong></p>
+<hr>
+<h2 id="5-k-means-is-the-hard-spherical-limit-of-gmm">5. K-means is the hard, spherical limit of GMM</h2>
+<p>Let $\boldsymbol{\Sigma}_k = \epsilon \mathbf{I}$ for all $k$ and let $\epsilon \to 0$. The Gaussian density becomes infinitely peaked; the responsibility for the <strong>closest</strong> mean tends to 1 and the others to 0. The E-step degenerates to <em>hard assignment</em> and the M-step to averaging the assigned points &ndash; exactly K-means.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig6_kmeans_vs_gmm.png" alt="K-means vs GMM on anisotropic data" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>On anisotropic data the difference is stark: K-means (left) imposes spherical Voronoi cells and slices the elongated cluster awkwardly; GMM (right) fits an ellipse along the actual axis of variation. <strong>GMM should be your default whenever clusters are not isotropic or you want soft membership probabilities.</strong></p>
+<hr>
+<h2 id="6-choosing-the-number-of-components">6. Choosing the number of components</h2>
+<p>The likelihood always increases with $K$ (more flexibility), so $\ell$ alone cannot pick $K$. Use a complexity-penalised criterion:</p>
+$$
+\mathrm{BIC}(K) = -2\,\hat{\ell}(K) + p_K\,\log N,
+\qquad
+\mathrm{AIC}(K) = -2\,\hat{\ell}(K) + 2\,p_K,
+$$<p>where $p_K$ is the parameter count: for full-covariance GMM in $d$ dimensions,
+$p_K = (K-1) + Kd + K\frac{d(d+1)}{2}$.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/13-EM-Algorithm-and-GMM/fig5_bic_aic.png" alt="BIC and AIC vs number of components K" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Both curves drop sharply going from $K=1$ to the true $K=3$ and then flatten or rise. BIC penalises complexity more aggressively (an extra $\log N$ factor), so it tends to prefer smaller $K$ than AIC. Either gives the right answer here.</p>
+<hr>
+<h2 id="7-reference-implementation">7. Reference implementation</h2>
+<p>A minimal NumPy implementation that mirrors the formulas above. The actual experiments and figures use <code>sklearn.mixture.GaussianMixture</code> for verification.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">multivariate_normal</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GMM</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Full-covariance Gaussian Mixture Model trained by EM.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">K</span> <span class="o">=</span> <span class="n">n_components</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">reg</span> <span class="o">=</span> <span class="n">reg</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># ----- E-step: responsibilities -----</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_e_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">comp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">multivariate_normal</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">means</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">covs</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ll</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">comp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-300</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">comp</span> <span class="o">/</span> <span class="p">(</span><span class="n">comp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-300</span><span class="p">),</span> <span class="n">ll</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># ----- M-step: weighted MLE -----</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_m_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">N_k</span> <span class="o">=</span> <span class="n">gamma</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">N_k</span> <span class="o">/</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">means</span> <span class="o">=</span> <span class="p">(</span><span class="n">gamma</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">N_k</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">diff</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">means</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">covs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">gamma</span><span class="p">[:,</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">diff</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">N_k</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">covs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">N</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">means</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">covs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">)]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">prev</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">gamma</span><span class="p">,</span> <span class="n">ll</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_e_step</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">_m_step</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ll</span> <span class="o">-</span> <span class="n">prev</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">break</span>
+</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">ll</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_e_step</span><span class="p">(</span><span class="n">X</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="qa">Q&amp;A</h2>
+<h3 id="does-em-reach-the-global-optimum">Does EM reach the global optimum?</h3>
+<p>No. Monotone ascent guarantees only a stationary point &ndash; typically a local maximum, sometimes a saddle. Defend yourself with multiple restarts (random or K-means seeded) and keep the run with the highest final log-likelihood.</p>
+<h3 id="gmm-vs-k-means----when-does-it-actually-matter">GMM vs K-means &ndash; when does it actually matter?</h3>
+<p>Use GMM when (i) clusters are clearly elliptical / anisotropic, (ii) you want <strong>soft</strong> membership probabilities for downstream calibration, or (iii) you need a generative density model for sampling or anomaly scoring. K-means is faster and fine for roughly spherical, well-separated clusters.</p>
+<h3 id="singular-covariance--collapsed-component">Singular covariance / collapsed component?</h3>
+<p>Add a ridge $\boldsymbol{\Sigma}_k + \epsilon \mathbf{I}$ (the reference implementation does this), tie covariances across components, restrict to diagonal covariance, or restart on detection.</p>
+<h3 id="why-does-the-e-step-make-the-bound-tight">Why does the E-step &ldquo;make the bound tight&rdquo;?</h3>
+<p>Because $\log p = \mathcal{L}(q,\boldsymbol{\theta}) + \mathrm{KL}[q\Vert p(z\mid\mathbf{x},\boldsymbol{\theta})]$ and the KL is zero exactly when $q$ equals the posterior.</p>
+<h3 id="what-is-generalised-em">What is generalised EM?</h3>
+<p>Replace the M-step&rsquo;s full maximisation with any update that <em>increases</em> $Q$ (e.g. one gradient step). The monotone ascent argument still goes through.</p>
+<h3 id="how-is-em-related-to-variational-inference">How is EM related to variational inference?</h3>
+<p>Variational EM relaxes the E-step from the exact posterior to a tractable family $q \in \mathcal{Q}$. The decomposition $\log p = \mathcal{L} + \mathrm{KL}$ is identical; the algorithm now alternately minimises KL inside $\mathcal{Q}$ (E) and maximises $\mathcal{L}$ in $\boldsymbol{\theta}$ (M). See Part 14.</p>
+<hr>
+<h2 id="exercises">Exercises</h2>
+<p><strong>E1 (E-step).</strong> Consider a 1D GMM with $K=2$, equal priors $\pi_1 = \pi_2 = 1/2$, $\mu_1 = 0,\, \mu_2 = 3,\, \sigma^2 = 1$. Compute $\gamma_{i1}$ for $x_i = 1.5$.</p>
+<p><em>Solution.</em> By symmetry the two component densities at $x=1.5$ are equal, so $\gamma_{i1} = 1/2$.</p>
+<p><strong>E2 (M-step).</strong> Two samples $x_1 = 1,\; x_2 = 4$ with responsibilities $\gamma_{11} = 0.8,\; \gamma_{21} = 0.3$. Compute $\mu_1$ after the M-step.</p>
+<p><em>Solution.</em> $N_1 = 0.8 + 0.3 = 1.1$, so $\mu_1 = (0.8 \cdot 1 + 0.3 \cdot 4) / 1.1 = 2.0 / 1.1 \approx 1.82$.</p>
+<p><strong>E3 (Monotonicity).</strong> Where in the chain $\log p(\boldsymbol{\theta}^{(t)}) = \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t)}) \leq \mathcal{L}(q^{(t)},\boldsymbol{\theta}^{(t+1)}) \leq \log p(\boldsymbol{\theta}^{(t+1)})$ does the M-step&rsquo;s optimality enter, and where does the ELBO inequality enter?</p>
+<p><em>Solution.</em> The middle $\leq$ is by the M-step (definition of $\boldsymbol{\theta}^{(t+1)}$); the right $\leq$ is the ELBO inequality applied at the new parameters.</p>
+<p><strong>E4 (Singular limit).</strong> Show that if you fix $\boldsymbol{\Sigma}_k = \epsilon \mathbf{I}$ for all $k$ and let $\epsilon \to 0^+$, the EM updates for the means converge to the K-means updates.</p>
+<p><em>Sketch.</em> Write $\mathcal{N}(\mathbf{x}\mid\boldsymbol{\mu}_k, \epsilon\mathbf{I}) \propto \exp(-\Vert \mathbf{x} - \boldsymbol{\mu}_k\Vert^2 / (2\epsilon))$. As $\epsilon \to 0$ the soft-max over $-\Vert\mathbf{x}-\boldsymbol{\mu}_k\Vert^2$ becomes a hard argmin, $\gamma_{ik}\in\{0,1\}$, and the M-step mean reduces to the cluster-mean update of K-means.</p>
+<p><strong>E5 (Missing data).</strong> Suppose feature $j$ of $\mathbf{x}_i$ is missing. Outline an EM scheme that treats the missing value as an additional latent variable and updates parameters and missing entries jointly.</p>
+<p><em>Sketch.</em> Add the missing entry $x_{ij}$ to $z$. The E-step computes $\mathbb{E}[x_{ij} \mid \text{observed},\boldsymbol{\theta}^{(t)}]$ (and second moments). The M-step uses these expectations as plug-ins in the weighted-MLE updates above.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Dempster, A. P., Laird, N. M., &amp; Rubin, D. B. (1977). Maximum likelihood from incomplete data via the EM algorithm. <em>Journal of the Royal Statistical Society: Series B</em>, 39(1), 1-22.</li>
+<li>Bishop, C. M. (2006). <em>Pattern Recognition and Machine Learning</em>. Springer. <strong>Chapter 9</strong>.</li>
+<li>Murphy, K. P. (2012). <em>Machine Learning: A Probabilistic Perspective</em>. MIT Press. <strong>Chapter 11</strong>.</li>
+<li>McLachlan, G., &amp; Krishnan, T. (2007). <em>The EM Algorithm and Extensions</em> (2nd ed.). Wiley.</li>
+<li>Neal, R. M., &amp; Hinton, G. E. (1998). A view of the EM algorithm that justifies incremental, sparse, and other variants. <em>Learning in Graphical Models</em>, 89, 355-368.</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<ul>
+<li>Previous: <a href="/en/Machine-Learning-Mathematical-Derivations-12-XGBoost-and-LightGBM/">Part 12 &ndash; XGBoost and LightGBM</a>
+</li>
+<li>Next: <a href="/en/Machine-Learning-Mathematical-Derivations-14-Variational-Inference-and-Variational-EM/">Part 14 &ndash; Variational Inference</a>
+</li>
+<li><a href="/tags/Machine-Learning/">View all 20 parts in this series</a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-latent-variables-and-incomplete-data-likelihood">1. Latent variables and incomplete-data likelihood</a>
+      <ul>
+        <li><a href="#11-setup">1.1 Setup</a></li>
+        <li><a href="#12-the-mixture-example">1.2 The mixture example</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-the-elbo-and-jensens-inequality">2. The ELBO and Jensen&rsquo;s inequality</a>
+      <ul>
+        <li><a href="#21-introducing-an-auxiliary-distribution-q">2.1 Introducing an auxiliary distribution </a></li>
+        <li><a href="#22-the-exact-decomposition">2.2 The exact decomposition</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-em-as-coordinate-ascent-on-the-elbo">3. EM as coordinate ascent on the ELBO</a>
+      <ul>
+        <li><a href="#31-the-two-steps">3.1 The two steps</a></li>
+        <li><a href="#32-the-monotone-ascent-proof">3.2 The monotone-ascent proof</a></li>
+        <li><a href="#33-visualising-the-two-views">3.3 Visualising the two views</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-em-for-gaussian-mixture-models">4. EM for Gaussian Mixture Models</a>
+      <ul>
+        <li><a href="#41-the-model">4.1 The model</a></li>
+        <li><a href="#42-the-e-step-responsibilities">4.2 The E-step: responsibilities</a></li>
+        <li><a href="#43-the-m-step-weighted-mle">4.3 The M-step: weighted MLE</a></li>
+        <li><a href="#44-convergence-in-practice">4.4 Convergence in practice</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-k-means-is-the-hard-spherical-limit-of-gmm">5. K-means is the hard, spherical limit of GMM</a></li>
+    <li><a href="#6-choosing-the-number-of-components">6. Choosing the number of components</a></li>
+    <li><a href="#7-reference-implementation">7. Reference implementation</a></li>
+    <li><a href="#qa">Q&amp;A</a>
+      <ul>
+        <li><a href="#does-em-reach-the-global-optimum">Does EM reach the global optimum?</a></li>
+        <li><a href="#gmm-vs-k-means----when-does-it-actually-matter">GMM vs K-means &ndash; when does it actually matter?</a></li>
+        <li><a href="#singular-covariance--collapsed-component">Singular covariance / collapsed component?</a></li>
+        <li><a href="#why-does-the-e-step-make-the-bound-tight">Why does the E-step &ldquo;make the bound tight&rdquo;?</a></li>
+        <li><a href="#what-is-generalised-em">What is generalised EM?</a></li>
+        <li><a href="#how-is-em-related-to-variational-inference">How is EM related to variational inference?</a></li>
+      </ul>
+    </li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Ml mathematical derivations</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2200</strong></div>
+      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

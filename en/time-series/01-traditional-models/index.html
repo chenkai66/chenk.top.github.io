@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Time Series Forecasting (1): Traditional Statistical Models · Chen Kai Blog</title>
+<meta name="description" content="ARIMA, SARIMA, VAR, GARCH, Prophet, exponential smoothing and the Kalman filter, derived from a single state-space view. With Box-Jenkins workflow, ACF/PACF identification, and runnable Python.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/time-series/01-traditional-models/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/time-series/01-traditional-models/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Time Series Forecasting (1): Traditional Statistical Models">
+<meta property="og:description" content="ARIMA, SARIMA, VAR, GARCH, Prophet, exponential smoothing and the Kalman filter, derived from a single state-space view. With Box-Jenkins workflow, ACF/PACF identification, and runnable Python.">
+<meta property="og:url" content="https://www.chenk.top/en/time-series/01-traditional-models/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Time series forecasting</a>
+         · Chapter 1
+      </div>
+      <h1>Time Series Forecasting (1): Traditional Statistical Models</h1>
+      <p class="deck">ARIMA, SARIMA, VAR, GARCH, Prophet, exponential smoothing and the Kalman filter, derived from a single state-space view. With Box-Jenkins workflow, ACF/PACF identification, and runnable Python.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-09-01">September 1, 2024</time> · 13 min read · 2700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/time-series/" class="tag">#Time Series</a><a href="/en/tags/arima/" class="tag">#ARIMA</a><a href="/en/tags/statistical-models/" class="tag">#Statistical Models</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <blockquote>
+<p><a href="/en/time-series-lstm/">Next: LSTM Deep Dive &ndash;&gt;</a>
+</p>
+</blockquote>
+<h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li>Why <strong>stationarity</strong> is the entry ticket for the whole ARIMA family, and how differencing buys it.</li>
+<li>How to read <strong>ACF and PACF</strong> plots like a Box-Jenkins practitioner: cut-off vs. tail-off as the rule for identifying $p$ and $q$.</li>
+<li>The full <strong>ARIMA / SARIMA</strong> machinery, including how seasonality is folded in via lag-$s$ operators.</li>
+<li>Where <strong>VAR, GARCH, exponential smoothing, Prophet and the Kalman filter</strong> sit on the same map &ndash; mean dynamics vs. variance dynamics vs. state-space recursion.</li>
+<li>A decision rule for when a traditional model is the right answer and when to graduate to the deep models in the rest of this series.</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Basic probability and statistics (mean, variance, covariance, correlation).</li>
+<li>Familiarity with NumPy and <code>pandas</code> time indexes.</li>
+<li>A little linear algebra for the VAR / Kalman sections (matrix multiplication, eigenvalues).</li>
+</ul>
+<hr>
+<h2 id="1-why-traditional-models-still-matter">1. Why traditional models still matter</h2>
+<p>Before the deep-learning era, the time-series toolbox was already remarkably complete. ARIMA captures linear autocorrelation, SARIMA adds calendar effects, VAR generalises to vectors, GARCH models the variance, and the Kalman filter unifies the lot inside a state-space recursion. They share three properties that deep models do not give for free:</p>
+<ol>
+<li><strong>Interpretability.</strong> Every parameter has a meaning &ndash; &ldquo;yesterday&rsquo;s level matters with weight $\phi_1$&rdquo;, &ldquo;the shock from two months ago decays with weight $\theta_2$&rdquo;.</li>
+<li><strong>Calibrated uncertainty.</strong> Confidence intervals fall out of maximum likelihood, not from ad-hoc dropout tricks.</li>
+<li><strong>Sample efficiency.</strong> A few hundred observations is enough; you do not need a GPU.</li>
+</ol>
+<p>If your series is short, smooth, or has clean calendar structure, a traditional model will routinely beat an LSTM and is much easier to debug. Use this article as the <strong>baseline you must defeat</strong> before reaching for anything fancier.</p>
+<hr>
+<h2 id="2-the-decomposition-view">2. The decomposition view</h2>
+<p>A good mental picture before any modelling: most series can be written as</p>
+$$
+y_t = T_t + S_t + R_t,
+$$<p>a slowly moving <strong>trend</strong> $T_t$, a periodic <strong>seasonal</strong> component $S_t$ (period $s$), and a <strong>residual</strong> $R_t$ that should look like noise once the structure is removed. The classical additive decomposition makes this concrete:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig1_components.png" alt="Classical additive decomposition of a synthetic monthly series into trend, seasonality and residual." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Fig. 1 &ndash; Classical additive decomposition. Once trend and seasonality are subtracted, the residual should be approximately stationary white noise; that is exactly the regime where ARMA-style models are well-posed.</em></p>
+<p>The whole ARIMA programme can be summarised in one sentence: <strong>transform the data until what is left looks stationary, then fit a linear model with autocorrelated errors.</strong></p>
+<h3 id="stationarity-formally">Stationarity, formally</h3>
+<p>A series is <strong>(weakly) stationary</strong> if its mean, variance and autocovariances do not depend on $t$:</p>
+$$
+\mathbb{E}[y_t] = \mu, \qquad \mathrm{Var}(y_t) = \sigma^2, \qquad \mathrm{Cov}(y_t, y_{t-k}) = \gamma_k.
+$$<p>Most real series are <em>not</em> stationary &ndash; they trend, drift, or have variance that grows with the level. The two standard remedies are:</p>
+<ul>
+<li><strong>Differencing</strong>: $\nabla y_t = y_t - y_{t-1}$ removes a linear trend; $\nabla^2 y_t$ removes a quadratic one.</li>
+<li><strong>Variance-stabilising transforms</strong>: $\log y_t$ or a Box-Cox transform tames multiplicative growth.</li>
+</ul>
+<p>The <strong>Augmented Dickey-Fuller (ADF)</strong> test gives a hypothesis test: $H_0$ is &ldquo;unit root present&rdquo;, so a small $p$-value lets you treat the (transformed) series as stationary.</p>
+<hr>
+<h2 id="3-ar-ma-and-arma----three-flavours-of-memory">3. AR, MA, and ARMA &ndash; three flavours of memory</h2>
+<p>ARIMA is built from two atomic ingredients. They look similar but encode very different ideas about <em>what</em> the series remembers.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig2_ar_ma_arma.png" alt="Sample paths from AR(1), MA(2) and ARMA(1,1) processes contrasted on the same axes." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Fig. 2 &ndash; AR remembers past values, MA remembers past shocks, ARMA does both. The qualitative differences are visible in the sample paths even before any formal statistic is computed.</em></p>
+<h3 id="autoregressive-arp">Autoregressive: AR($p$)</h3>
+$$
+y_t = c + \phi_1 y_{t-1} + \phi_2 y_{t-2} + \cdots + \phi_p y_{t-p} + \varepsilon_t.
+$$<p>Today&rsquo;s value is a linear combination of the previous $p$ values plus a white-noise shock $\varepsilon_t \sim \mathcal{N}(0, \sigma^2)$. Persistence is encoded directly in the coefficients $\phi_k$. AR(1) with $\phi_1$ near 1 produces a very smooth, slowly mean-reverting path.</p>
+<h3 id="moving-average-maq">Moving average: MA($q$)</h3>
+$$
+y_t = \mu + \varepsilon_t + \theta_1 \varepsilon_{t-1} + \theta_2 \varepsilon_{t-2} + \cdots + \theta_q \varepsilon_{t-q}.
+$$<p>Today&rsquo;s value is a linear combination of the <em>last $q$ shocks</em>. The memory window is finite: an event that happened more than $q$ steps ago has zero direct effect.</p>
+<h3 id="combining-armap-q">Combining: ARMA($p$, $q$)</h3>
+$$
+\phi(B)\, y_t = \theta(B)\, \varepsilon_t,
+$$<p>where $B$ is the <strong>lag operator</strong> ($B y_t = y_{t-1}$) and</p>
+$$
+\phi(B) = 1 - \phi_1 B - \cdots - \phi_p B^p, \qquad
+\theta(B) = 1 + \theta_1 B + \cdots + \theta_q B^q.
+$$<p>ARMA is <em>parsimonious</em>: a small $(p, q)$ can imitate the autocorrelation of an MA($\infty$) or AR($\infty$). For stationarity all roots of $\phi(B) = 0$ must lie outside the unit circle; for invertibility the same holds for $\theta(B)$.</p>
+<h3 id="from-arma-to-arima">From ARMA to ARIMA</h3>
+<p>If the raw series is non-stationary, take $d$-th differences and fit ARMA on the result. The full notation is <strong>ARIMA($p, d, q$)</strong>:</p>
+$$
+\phi(B)\, (1-B)^d\, y_t = \theta(B)\, \varepsilon_t.
+$$<p>In practice $d = 1$ handles linear drift, $d = 2$ handles curvature; rarely do you need $d > 2$.</p>
+<hr>
+<h2 id="4-acf-and-pacf----the-model-identification-microscope">4. ACF and PACF &ndash; the model-identification microscope</h2>
+<p>How do you pick $p$ and $q$? Two diagnostic plots almost always do the job.</p>
+<ul>
+<li><strong>Autocorrelation function (ACF)</strong>: $\rho_k = \mathrm{Corr}(y_t, y_{t-k})$.</li>
+<li><strong>Partial autocorrelation (PACF)</strong>: the correlation between $y_t$ and $y_{t-k}$ <em>after removing</em> the linear effect of $y_{t-1}, \ldots, y_{t-k+1}$.</li>
+</ul>
+<p>The Box-Jenkins identification rules:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Process</th>
+          <th>ACF</th>
+          <th>PACF</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>AR($p$)</td>
+          <td>tails off (decays smoothly)</td>
+          <td><strong>cuts off after lag $p$</strong></td>
+      </tr>
+      <tr>
+          <td>MA($q$)</td>
+          <td><strong>cuts off after lag $q$</strong></td>
+          <td>tails off</td>
+      </tr>
+      <tr>
+          <td>ARMA($p$, $q$)</td>
+          <td>tails off</td>
+          <td>tails off</td>
+      </tr>
+  </tbody>
+</table>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig3_acf_pacf.png" alt="ACF and PACF of an AR(2) process and an MA(2) process." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Fig. 3 &ndash; The PACF of an AR(2) drops to zero after lag 2 (the spike pattern is the signature). Symmetrically, the ACF of an MA(2) drops to zero after lag 2. When in doubt, prefer the simpler model &ndash; the diagnostic tests in step 5 will catch under-fitting.</em></p>
+<p>When neither plot has a clean cut-off, you are looking at an ARMA process; the cleanest path is then to grid-search $(p, q)$ and pick the pair that minimises an information criterion.</p>
+<h3 id="aic-and-bic">AIC and BIC</h3>
+$$
+\mathrm{AIC} = -2\,\ell(\hat{\theta}) + 2k, \qquad
+\mathrm{BIC} = -2\,\ell(\hat{\theta}) + k\log n,
+$$<p>with $\ell$ the maximised log-likelihood, $k$ the number of free parameters, $n$ the sample size. BIC penalises complexity more harshly and is the safer default when $n$ is small.</p>
+<hr>
+<h2 id="5-the-box-jenkins-workflow">5. The Box-Jenkins workflow</h2>
+<p>ARIMA is not a one-shot fit; it is an <strong>iterative loop</strong> that Box and Jenkins formalised in 1970. Every subsequent statistical-forecasting toolkit (including <code>auto.arima</code>) is just an automation of the same four boxes.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig6_box_jenkins_flow.png" alt="Box-Jenkins methodology: identification, estimation, diagnostic checking and forecasting, with a feedback loop when residual diagnostics fail." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Fig. 4 &ndash; The point is the feedback arrow. If the fitted residuals fail a Ljung-Box test or show structure in their ACF, the model is misspecified &ndash; go back and revise $(p, d, q)$ rather than trusting the forecast.</em></p>
+<ol>
+<li><strong>Identification.</strong> Plot the series, run ADF for stationarity, study ACF/PACF, propose a candidate $(p, d, q)$.</li>
+<li><strong>Estimation.</strong> Fit by maximum likelihood (or conditional least squares). All major libraries do this for you.</li>
+<li><strong>Diagnostic checking.</strong> Are the residuals white noise?
+<ul>
+<li>The <strong>Ljung-Box</strong> statistic $Q = n(n+2)\sum_{k=1}^h \hat{\rho}_k^2 / (n-k)$ should fail to reject $H_0$.</li>
+<li>The residual ACF should lie inside the $\pm 1.96/\sqrt{n}$ band.</li>
+<li>QQ-plots and Jarque-Bera check normality (matters for prediction intervals).</li>
+</ul>
+</li>
+<li><strong>Forecasting.</strong> Only after the residuals look clean do you produce point and interval forecasts.</li>
+</ol>
+<hr>
+<h2 id="6-arima-in-code">6. ARIMA in code</h2>
+<p>A faithful, minimal walk-through using <code>statsmodels</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">statsmodels.tsa.arima.model</span> <span class="kn">import</span> <span class="n">ARIMA</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">statsmodels.tsa.stattools</span> <span class="kn">import</span> <span class="n">adfuller</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">statsmodels.stats.diagnostic</span> <span class="kn">import</span> <span class="n">acorr_ljungbox</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 1. Simulate a non-stationary series (random walk + drift)</span>
+</span></span><span class="line"><span class="cl"><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">n</span> <span class="o">=</span> <span class="mi">200</span>
+</span></span><span class="line"><span class="cl"><span class="n">eps</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">y</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.05</span> <span class="o">+</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="n">eps</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">&#34;2018-01-01&#34;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&#34;D&#34;</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. Identification: ADF test on the level vs the first difference</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;ADF on level :&#34;</span><span class="p">,</span> <span class="n">adfuller</span><span class="p">(</span><span class="n">series</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>         <span class="c1"># large p -&gt; non-stationary</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;ADF on diff  :&#34;</span><span class="p">,</span> <span class="n">adfuller</span><span class="p">(</span><span class="n">series</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">())[</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># small p -&gt; stationary</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. Estimation: train on the first 170 points</span>
+</span></span><span class="line"><span class="cl"><span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="o">-</span><span class="mi">30</span><span class="p">],</span> <span class="n">series</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">30</span><span class="p">:]</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">ARIMA</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. Diagnostic checking</span>
+</span></span><span class="line"><span class="cl"><span class="n">lb</span> <span class="o">=</span> <span class="n">acorr_ljungbox</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">resid</span><span class="p">,</span> <span class="n">lags</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span> <span class="n">return_df</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">lb</span><span class="p">)</span>  <span class="c1"># high p-value -&gt; residuals are white noise</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 5. Forecasting with a 95% interval</span>
+</span></span><span class="line"><span class="cl"><span class="n">fc</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_forecast</span><span class="p">(</span><span class="n">steps</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">mean_fc</span> <span class="o">=</span> <span class="n">fc</span><span class="o">.</span><span class="n">predicted_mean</span>
+</span></span><span class="line"><span class="cl"><span class="n">ci</span> <span class="o">=</span> <span class="n">fc</span><span class="o">.</span><span class="n">conf_int</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The forecast on a held-out tail looks like this:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig4_arima_forecast.png" alt="ARIMA(2,1,1) forecast with 95% confidence band on a held-out segment." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Fig. 5 &ndash; The point forecast quickly reverts to the long-run drift, and the interval fans out at rate $\sigma\sqrt{h}$ in the horizon $h$. That widening cone is the honest representation of how little a linear model truly knows about the future.</em></p>
+<hr>
+<h2 id="7-seasonality-sarima">7. Seasonality: SARIMA</h2>
+<p>Many series have a calendar that ARIMA on its own cannot exploit &ndash; monthly retail with a December peak, daily traffic with a weekly cycle, hourly load with a 24-hour cycle. <strong>SARIMA</strong> ($p, d, q$)($P, D, Q$)$_s$ folds in seasonal lags of period $s$:</p>
+$$
+\Phi(B^s)\, \phi(B)\, (1-B)^d (1-B^s)^D y_t \;=\; \Theta(B^s)\, \theta(B)\, \varepsilon_t.
+$$<p>You apply two kinds of differencing &ndash; regular ($1-B$) for trend and seasonal ($1-B^s$) for the period &ndash; and then attach AR/MA terms at both regular lags and lags that are multiples of $s$.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">statsmodels.tsa.statespace.sarimax</span> <span class="kn">import</span> <span class="n">SARIMAX</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">SARIMAX</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">train</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">order</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">seasonal_order</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">12</span><span class="p">),</span>  <span class="c1"># P, D, Q, s</span>
+</span></span><span class="line"><span class="cl">    <span class="n">enforce_stationarity</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">enforce_invertibility</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">disp</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">forecast</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_forecast</span><span class="p">(</span><span class="n">steps</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig5_sarima_forecast.png" alt="SARIMA(1,1,1)(1,1,1,12) forecast on a series with strong yearly seasonality." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Fig. 6 &ndash; The seasonal cycle is reproduced cleanly out of sample because the seasonal-difference operator $(1-B^{12})$ has stripped the yearly pattern from the residual, and the seasonal AR/MA terms put it back in the forecast at the right phase.</em></p>
+<p><strong>Identification cheat sheet for the seasonal part</strong>: look at the ACF/PACF of the <em>seasonally differenced</em> series at the seasonal lags $s, 2s, 3s, \ldots$. The same cut-off / tail-off rules apply as in the non-seasonal case.</p>
+<hr>
+<h2 id="8-beyond-arima-the-rest-of-the-family">8. Beyond ARIMA: the rest of the family</h2>
+<p>The ideas above generalise in four useful directions. They are not separate worlds &ndash; each one specialises ARIMA in a single dimension.</p>
+<h3 id="81-var----multivariate-dynamics">8.1 VAR &ndash; multivariate dynamics</h3>
+<p>When you have several series that influence each other (GDP and unemployment, electricity demand and temperature), promote the scalar AR to a <strong>vector autoregression</strong>:</p>
+$$
+\mathbf{y}_t = \mathbf{c} + A_1 \mathbf{y}_{t-1} + A_2 \mathbf{y}_{t-2} + \cdots + A_p \mathbf{y}_{t-p} + \boldsymbol{\varepsilon}_t.
+$$<p>Each entry of the matrix $A_k$ has an interpretation: $(A_k)_{ij}$ is the marginal effect of variable $j$ at lag $k$ on variable $i$ today. This makes VAR popular in macroeconomics where <strong>Granger causality</strong> (&ldquo;does $x$ help predict $y$ beyond $y$&rsquo;s own past?&rdquo;) is the central question.</p>
+<p>A practical caveat: with $K$ series and lag $p$ the model has $K + pK^2$ free parameters. For $K = 10, p = 4$ that is already 410 numbers from probably a few hundred observations. Hence the regularised cousins &ndash; Bayesian VAR, factor models &ndash; exist for high-dimensional settings.</p>
+<h3 id="82-garch----variance-dynamics">8.2 GARCH &ndash; variance dynamics</h3>
+<p>ARIMA models the <strong>mean</strong>; GARCH models the <strong>conditional variance</strong>. The basic GARCH(1,1) is:</p>
+$$
+\sigma_t^2 = \omega + \alpha\, \varepsilon_{t-1}^2 + \beta\, \sigma_{t-1}^2,
+\qquad \varepsilon_t = \sigma_t\, z_t,\quad z_t \sim \mathcal{N}(0, 1).
+$$<p>The $\alpha$ term lets a large shock yesterday push variance up today (the &ldquo;ARCH&rdquo; effect); the $\beta$ term lets variance be persistent. Stationarity requires $\alpha + \beta < 1$, and in financial data $\alpha + \beta$ typically lands near 0.95-0.99 &ndash; volatility is a slow-moving thing.</p>
+<p>GARCH is <em>the</em> standard tool for risk management (VaR, options pricing) and pairs naturally with an ARIMA mean model: fit ARIMA to the returns, then GARCH to the squared residuals.</p>
+<h3 id="83-exponential-smoothing-and-holt-winters">8.3 Exponential smoothing and Holt-Winters</h3>
+<p>If ARIMA is the &ldquo;explicitly stochastic&rdquo; view, exponential smoothing is the &ldquo;weighted-average&rdquo; view. Simple exponential smoothing assumes a level $\ell_t$ that drifts with new information:</p>
+$$
+\ell_t = \alpha\, y_t + (1-\alpha)\, \ell_{t-1}.
+$$<p><strong>Holt</strong> adds a trend $b_t$; <strong>Holt-Winters</strong> adds a seasonal $s_t$. The additive variant is:</p>
+$$
+\ell_t = \alpha (y_t - s_{t-s}) + (1-\alpha)(\ell_{t-1} + b_{t-1}),\\
+b_t = \beta(\ell_t - \ell_{t-1}) + (1-\beta) b_{t-1},\\
+s_t = \gamma(y_t - \ell_t) + (1-\gamma) s_{t-s}.
+$$<p>This is the workhorse behind the <strong>ETS</strong> family in R / <code>statsmodels</code>, and many of the methods that won the M-competitions are sophisticated descendants of it.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/fig7_holt_winters.png" alt="Holt-Winters additive forecast and the underlying level / trend / seasonal components." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Fig. 7 &ndash; The decomposition gives Holt-Winters its appeal: each component is intelligible on its own, the smoothing coefficients ($\alpha, \beta, \gamma$) say how quickly each one adapts, and the recursive form means it costs $O(n)$ to fit.</em></p>
+<h3 id="84-prophet">8.4 Prophet</h3>
+<p>Prophet (Facebook, 2017) is a deliberately simple <strong>additive</strong> decomposition aimed at business analysts:</p>
+$$
+y(t) = g(t) + s(t) + h(t) + \varepsilon_t,
+$$<p>where $g(t)$ is a piecewise-linear or logistic trend with <strong>changepoints</strong>, $s(t)$ is a Fourier expansion for multiple seasonalities, and $h(t)$ encodes user-supplied holidays. It is fitted with Stan via MAP or full Bayesian sampling, exposes only a handful of tunables, and is robust to missing data and outliers. In practice it is <em>not</em> state of the art on benchmarks, but the API quality and the holiday handling are why it remains a default in product analytics.</p>
+<h3 id="85-the-kalman-filter-and-the-state-space-view">8.5 The Kalman filter and the state-space view</h3>
+<p>Everything above is a special case of a <strong>linear Gaussian state-space model</strong>:</p>
+$$
+\mathbf{x}_t = F_t \mathbf{x}_{t-1} + \mathbf{w}_t, \qquad \mathbf{w}_t \sim \mathcal{N}(0, Q_t),\\
+\mathbf{y}_t = H_t \mathbf{x}_t + \mathbf{v}_t, \qquad \mathbf{v}_t \sim \mathcal{N}(0, R_t).
+$$<p>The <strong>Kalman filter</strong> is the exact Bayesian recursion that maintains $p(\mathbf{x}_t \mid \mathbf{y}_{1:t}) = \mathcal{N}(\hat{\mathbf{x}}_t, P_t)$ as data arrive:</p>
+$$
+\hat{\mathbf{x}}_{t|t-1} = F_t\, \hat{\mathbf{x}}_{t-1},\\
+P_{t|t-1} = F_t\, P_{t-1}\, F_t^\top + Q_t,\\
+K_t = P_{t|t-1} H_t^\top (H_t P_{t|t-1} H_t^\top + R_t)^{-1},\\
+\hat{\mathbf{x}}_t = \hat{\mathbf{x}}_{t|t-1} + K_t (\mathbf{y}_t - H_t \hat{\mathbf{x}}_{t|t-1}),\\
+P_t = (I - K_t H_t)\, P_{t|t-1}.
+$$<p>Why this matters: ARIMA, exponential smoothing, dynamic linear regressions, structural models with seasonal dummies &ndash; all of them can be cast in the form above and inherit the Kalman recursion for free. That is exactly how <code>statsmodels</code>&rsquo;s <code>SARIMAX</code> works under the hood, and why it can handle missing observations and exogenous regressors with no extra effort.</p>
+<hr>
+<h2 id="9-choosing-a-model">9. Choosing a model</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Model</th>
+          <th>Best when</th>
+          <th>Avoid when</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>ARIMA</strong></td>
+          <td>One series, linear autocorrelation, no calendar</td>
+          <td>Strong seasonality, multiple inputs</td>
+      </tr>
+      <tr>
+          <td><strong>SARIMA</strong></td>
+          <td>Clear single seasonal period, moderate length</td>
+          <td>Multiple overlapping seasonalities</td>
+      </tr>
+      <tr>
+          <td><strong>VAR</strong></td>
+          <td>Several stationary series with feedback</td>
+          <td>High-dimensional ($K \gtrsim 10$)</td>
+      </tr>
+      <tr>
+          <td><strong>GARCH</strong></td>
+          <td>Returns / volatility data with clustering</td>
+          <td>Slow, smooth series with constant variance</td>
+      </tr>
+      <tr>
+          <td><strong>Holt-Winters / ETS</strong></td>
+          <td>Robust seasonal baseline, fast retraining</td>
+          <td>Highly non-linear regimes</td>
+      </tr>
+      <tr>
+          <td><strong>Prophet</strong></td>
+          <td>Business series with holidays, missing data</td>
+          <td>Sub-daily high-frequency data</td>
+      </tr>
+      <tr>
+          <td><strong>Kalman / state-space</strong></td>
+          <td>Online updating, missing data, custom structure</td>
+          <td>When a black-box is acceptable and abundant data is available</td>
+      </tr>
+  </tbody>
+</table>
+<p>A pragmatic recipe: start with <strong>ETS or SARIMA</strong> as a baseline, add <strong>GARCH</strong> if the variance is the quantity you care about, and only move to deep models (LSTM, TCN, Transformer, N-BEATS, Informer &ndash; the rest of this series) when the residuals show clear non-linear structure or you have many parallel series to share information across.</p>
+<hr>
+<h2 id="10-limits-and-what-comes-next">10. Limits, and what comes next</h2>
+<p>Traditional models reach their ceiling when:</p>
+<ul>
+<li>The dynamics are <strong>non-linear</strong> (regime switches, thresholds, hard saturations).</li>
+<li>You have <strong>hundreds or thousands of parallel series</strong> that should share parameters.</li>
+<li>The relevant context window is very long and ARMA roots cannot represent it parsimoniously.</li>
+<li>The signal is <strong>non-Gaussian</strong> in a way that even Box-Cox cannot fix.</li>
+</ul>
+<p>That is the launchpad for the next seven articles. We start with <strong>LSTM</strong> as the canonical non-linear sequential model, then build up through GRU, attention, the Transformer, TCN, N-BEATS, and finally Informer for very long sequences. Each of them generalises one of the linear models above; treat ARIMA / SARIMA / Holt-Winters as the baselines you must beat, not as the past you can skip.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Box, G., Jenkins, G., Reinsel, G., &amp; Ljung, G. (2015). <em>Time Series Analysis: Forecasting and Control</em> (5th ed.). Wiley.</li>
+<li>Hamilton, J. D. (1994). <em>Time Series Analysis</em>. Princeton University Press.</li>
+<li>Hyndman, R. J., &amp; Athanasopoulos, G. (2021). <em>Forecasting: Principles and Practice</em> (3rd ed.). OTexts. <a href="https://otexts.com/fpp3/" target="_blank" rel="noopener noreferrer">https://otexts.com/fpp3/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Durbin, J., &amp; Koopman, S. J. (2012). <em>Time Series Analysis by State Space Methods</em> (2nd ed.). Oxford University Press.</li>
+<li>Engle, R. F. (1982). Autoregressive conditional heteroscedasticity with estimates of the variance of United Kingdom inflation. <em>Econometrica</em>, 50(4), 987-1007.</li>
+<li>Bollerslev, T. (1986). Generalized autoregressive conditional heteroskedasticity. <em>Journal of Econometrics</em>, 31(3), 307-327.</li>
+<li>Taylor, S. J., &amp; Letham, B. (2018). Forecasting at scale. <em>The American Statistician</em>, 72(1), 37-45.</li>
+</ul>
+<hr>
+<p><strong>Series Navigation</strong></p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">Previous</div>
+      <span class="title" style="color: var(--ink-faint)">—</span>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/time-series/lstm/"><span class="title">Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-why-traditional-models-still-matter">1. Why traditional models still matter</a></li>
+    <li><a href="#2-the-decomposition-view">2. The decomposition view</a>
+      <ul>
+        <li><a href="#stationarity-formally">Stationarity, formally</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-ar-ma-and-arma----three-flavours-of-memory">3. AR, MA, and ARMA &ndash; three flavours of memory</a>
+      <ul>
+        <li><a href="#autoregressive-arp">Autoregressive: AR()</a></li>
+        <li><a href="#moving-average-maq">Moving average: MA()</a></li>
+        <li><a href="#combining-armap-q">Combining: ARMA(, )</a></li>
+        <li><a href="#from-arma-to-arima">From ARMA to ARIMA</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-acf-and-pacf----the-model-identification-microscope">4. ACF and PACF &ndash; the model-identification microscope</a>
+      <ul>
+        <li><a href="#aic-and-bic">AIC and BIC</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-the-box-jenkins-workflow">5. The Box-Jenkins workflow</a></li>
+    <li><a href="#6-arima-in-code">6. ARIMA in code</a></li>
+    <li><a href="#7-seasonality-sarima">7. Seasonality: SARIMA</a></li>
+    <li><a href="#8-beyond-arima-the-rest-of-the-family">8. Beyond ARIMA: the rest of the family</a>
+      <ul>
+        <li><a href="#81-var----multivariate-dynamics">8.1 VAR &ndash; multivariate dynamics</a></li>
+        <li><a href="#82-garch----variance-dynamics">8.2 GARCH &ndash; variance dynamics</a></li>
+        <li><a href="#83-exponential-smoothing-and-holt-winters">8.3 Exponential smoothing and Holt-Winters</a></li>
+        <li><a href="#84-prophet">8.4 Prophet</a></li>
+        <li><a href="#85-the-kalman-filter-and-the-state-space-view">8.5 The Kalman filter and the state-space view</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-choosing-a-model">9. Choosing a model</a></li>
+    <li><a href="#10-limits-and-what-comes-next">10. Limits, and what comes next</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Time series forecasting</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2700</strong></div>
+      <div class="row"><span>Published</span><strong>Sep 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

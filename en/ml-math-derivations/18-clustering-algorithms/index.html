@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>ML Math Derivations (18): Clustering Algorithms · Chen Kai Blog</title>
+<meta name="description" content="How do you find groups in unlabeled data? This article derives K-means (Lloyd &#43; K-means&#43;&#43;), hierarchical, DBSCAN, spectral, and GMM clustering from their mathematical foundations, with seven figures that show why each algorithm encodes a different prior.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/ml-math-derivations/18-clustering-algorithms/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/ml-math-derivations/18-clustering-algorithms/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="ML Math Derivations (18): Clustering Algorithms">
+<meta property="og:description" content="How do you find groups in unlabeled data? This article derives K-means (Lloyd &#43; K-means&#43;&#43;), hierarchical, DBSCAN, spectral, and GMM clustering from their mathematical foundations, with seven figures that show why each algorithm encodes a different prior.">
+<meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/18-clustering-algorithms/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Ml mathematical derivations</a>
+         · Chapter 18
+      </div>
+      <h1>ML Math Derivations (18): Clustering Algorithms</h1>
+      <p class="deck">How do you find groups in unlabeled data? This article derives K-means (Lloyd &#43; K-means&#43;&#43;), hierarchical, DBSCAN, spectral, and GMM clustering from their mathematical foundations, with seven figures that show why each algorithm encodes a different prior.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-02-06">February 6, 2026</time> · 13 min read · 2600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a><a href="/en/tags/clustering/" class="tag">#Clustering</a><a href="/en/tags/k-means/" class="tag">#K-means</a><a href="/en/tags/dbscan/" class="tag">#DBSCAN</a><a href="/en/tags/spectral-clustering/" class="tag">#Spectral Clustering</a><a href="/en/tags/hierarchical-clustering/" class="tag">#Hierarchical Clustering</a><a href="/en/tags/gmm/" class="tag">#GMM</a><a href="/en/tags/mathematical-derivations/" class="tag">#Mathematical Derivations</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <h2 id="what-this-article-covers">What This Article Covers</h2>
+<p>A million customer records arrive with no labels. Can you discover meaningful groups automatically? That is <strong>clustering</strong>, the most fundamental unsupervised learning task. Unlike classification, clustering forces you to first answer a slippery question: <em>what does &ldquo;similar&rdquo; even mean?</em> Every clustering algorithm is, at heart, a different answer to that question &ndash; a different geometric, probabilistic, or graph-theoretic prior on what a &ldquo;group&rdquo; is.</p>
+<p><strong>What you will learn:</strong></p>
+<ol>
+<li><strong>K-means</strong> as coordinate descent on a discrete-continuous objective, why Lloyd&rsquo;s algorithm always converges, and how K-means++ tames the initialization problem.</li>
+<li><strong>Hierarchical clustering</strong> as a greedy merge process, and how the choice of linkage controls cluster shape.</li>
+<li><strong>DBSCAN</strong> as density-based connectivity, and why it can find non-convex clusters and label noise.</li>
+<li><strong>Spectral clustering</strong> as a continuous relaxation of NCut, with the graph Laplacian doing the heavy lifting.</li>
+<li><strong>Gaussian Mixture Models</strong> as the probabilistic generalization of K-means &ndash; what you gain (soft assignments, ellipsoidal covariance) and what you pay for it.</li>
+<li>How to <strong>evaluate</strong> clustering quality without labels (silhouette, elbow) and how to choose $K$.</li>
+</ol>
+<p><strong>Prerequisites:</strong> linear algebra (eigendecomposition), basic probability, and the EM algorithm from <a href="/en/Machine-Learning-Mathematical-Derivations-13-EM-Algorithm-and-GMM/">Part 13</a>
+.</p>
+<hr>
+<h2 id="1-formalizing-the-clustering-problem">1. Formalizing the Clustering Problem</h2>
+<h3 id="11-what-makes-a-good-clustering">1.1 What Makes a Good Clustering?</h3>
+<p><strong>Input:</strong> dataset $\mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N\}$ with $\mathbf{x}_i \in \mathbb{R}^d$.</p>
+<p><strong>Output:</strong> assignments $\{c_1, \dots, c_N\}$ with $c_i \in \{1, \dots, K\}$.</p>
+<p><strong>Two competing principles:</strong></p>
+<ul>
+<li><strong>High cohesion:</strong> points in the same cluster should be similar.</li>
+<li><strong>Low coupling:</strong> points in different clusters should be dissimilar.</li>
+</ul>
+<p>Every objective we will write down is just one way to balance these two. The disagreements between K-means, DBSCAN, and spectral clustering all trace back to <em>how</em> they measure &ldquo;similar&rdquo;.</p>
+<h3 id="12-distance-and-similarity-measures">1.2 Distance and Similarity Measures</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Measure</th>
+          <th>Formula</th>
+          <th>Best for</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Euclidean</td>
+          <td>$d(\mathbf{x}, \mathbf{y}) = \\|\mathbf{x} - \mathbf{y}\\|_2$</td>
+          <td>dense, low-dimensional data</td>
+      </tr>
+      <tr>
+          <td>Manhattan</td>
+          <td>$d(\mathbf{x}, \mathbf{y}) = \sum_j \\|x_j - y_j\\|$</td>
+          <td>sparse features, anomaly-resistant</td>
+      </tr>
+      <tr>
+          <td>Cosine</td>
+          <td>$\text{sim}(\mathbf{x}, \mathbf{y}) = \frac{\mathbf{x}^T\mathbf{y}}{\\|\mathbf{x}\\|\\|\mathbf{y}\\|}$</td>
+          <td>text, high-dimensional sparse vectors</td>
+      </tr>
+      <tr>
+          <td>Mahalanobis</td>
+          <td>$d(\mathbf{x}, \mathbf{y}) = \sqrt{(\mathbf{x}-\mathbf{y})^T \boldsymbol{\Sigma}^{-1}(\mathbf{x}-\mathbf{y})}$</td>
+          <td>correlated features</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Practical note:</strong> because every distance is sensitive to feature scale, <em>standardize before clustering</em> unless your features are already on comparable scales.</p>
+<h3 id="13-evaluating-clusters-without-labels">1.3 Evaluating Clusters Without Labels</h3>
+<p>The <strong>silhouette coefficient</strong> for point $i$ is</p>
+$$s(i) = \frac{b(i) - a(i)}{\max\{a(i), b(i)\}} \in [-1, 1]$$<p>where $a(i)$ is the mean intra-cluster distance and $b(i)$ is the mean distance to the <em>nearest other</em> cluster. A value near $1$ means $i$ is comfortably inside its cluster; near $0$ it lies on a boundary; negative means it was probably misassigned. Averaging $s(i)$ over the dataset gives a label-free quality score.</p>
+<hr>
+<h2 id="2-k-means-centroid-driven-clustering">2. K-means: Centroid-Driven Clustering</h2>
+<h3 id="21-the-objective">2.1 The Objective</h3>
+<p>K-means minimizes the <strong>Within-Cluster Sum of Squares (WCSS):</strong></p>
+$$J(\{c_i\}, \{\boldsymbol{\mu}_k\}) = \sum_{k=1}^{K} \sum_{i: c_i = k} \\|\mathbf{x}_i - \boldsymbol{\mu}_k\\|^2 \tag{1}$$<p>This is a <em>joint</em> optimization over discrete assignments $\{c_i\}$ and continuous centroids $\{\boldsymbol{\mu}_k\}$ &ndash; and it is NP-hard in general. Lloyd&rsquo;s algorithm tackles it with <strong>coordinate descent</strong>: alternately optimize one set of variables while fixing the other.</p>
+<h3 id="22-lloyds-algorithm">2.2 Lloyd&rsquo;s Algorithm</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig1_kmeans_steps.png" alt="Lloyd&rsquo;s algorithm: four iterations on a 3-blob dataset showing centroid trajectories and the monotonically decreasing WCSS J" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>Step 1 &ndash; Assignment.</strong> Fix centroids, assign each point to the nearest:</p>
+$$c_i = \arg\min_{k} \\|\mathbf{x}_i - \boldsymbol{\mu}_k\\|^2$$<p><strong>Step 2 &ndash; Update.</strong> Fix assignments, recompute centroids by setting $\partial J / \partial \boldsymbol{\mu}_k = 0$:</p>
+$$\boldsymbol{\mu}_k = \frac{1}{|C_k|} \sum_{i \in C_k} \mathbf{x}_i \tag{2}$$<p><strong>Why it converges.</strong> Each step <em>can only decrease</em> $J$. Step 1 is optimal because every point ends up at its closest centroid. Step 2 is optimal because the within-cluster mean is the unique minimizer of squared error (the second derivative $2|C_k|\mathbf{I}$ is positive definite). Since $J \geq 0$ and decreases monotonically, the iteration must terminate at a local minimum &ndash; usually within tens of iterations on real data, as the four-panel figure above shows: centroids drift from a poor initialization, decision regions reshape, and $J$ collapses to a steady value.</p>
+<p><strong>Caveat: local optima.</strong> Lloyd&rsquo;s algorithm finds <em>a</em> local minimum, not the global one. Bad initialization can trap it on a plateau where two centroids share one true cluster while a third tries to cover two. The standard remedy is to restart Lloyd&rsquo;s algorithm from many random initializations and keep the lowest-$J$ run; a smarter remedy is K-means++.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">kmeans</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Vanilla Lloyd&#39;s algorithm.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">N</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">centroids</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iter</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">centroids</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">new_centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">[</span><span class="n">X</span><span class="p">[</span><span class="n">labels</span> <span class="o">==</span> <span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">K</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">centroids</span><span class="p">,</span> <span class="n">new_centroids</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">break</span>
+</span></span><span class="line"><span class="cl">        <span class="n">centroids</span> <span class="o">=</span> <span class="n">new_centroids</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">labels</span><span class="p">,</span> <span class="n">centroids</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="23-k-means-initialization">2.3 K-means++ Initialization</h3>
+<p>The idea is simple: spread initial centroids far apart by picking each one <em>with probability proportional to its squared distance from the existing seeds</em>.</p>
+<ol>
+<li>Pick $\boldsymbol{\mu}_1$ uniformly at random from $\mathbf{X}$.</li>
+<li>For $k = 2, \dots, K$: compute $D(\mathbf{x}_i)^2 = \min_{j < k} \\|\mathbf{x}_i - \boldsymbol{\mu}_j\\|^2$, then sample $\boldsymbol{\mu}_k = \mathbf{x}_i$ with probability $D(\mathbf{x}_i)^2 / \sum_l D(\mathbf{x}_l)^2$.</li>
+</ol>
+<p><strong>Theoretical guarantee</strong> (Arthur &amp; Vassilvitskii, 2007): the expected K-means++ objective is at most $8(\ln K + 2) \cdot J_{\text{opt}}$ &ndash; a logarithmic-in-$K$ approximation, <em>without even running Lloyd&rsquo;s iterations afterward</em>.</p>
+<h3 id="24-choosing-k-silhouette-and-elbow">2.4 Choosing $K$: Silhouette and Elbow</h3>
+<p>K-means makes you specify $K$. The two most common ways to pick it are visualized below.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig4_silhouette_curve.png" alt="Silhouette score versus K: peak at the true number of clusters, with under- and over-fit regions shaded" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The silhouette curve typically <em>peaks</em> at the right $K$ and decays on both sides. The elbow plot tells the same story from a different angle:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig5_elbow.png" alt="Elbow plot: WCSS versus K, with the elbow point highlighted as diminishing returns kick in" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>WCSS strictly decreases as $K$ grows (more centroids can always fit better), so we look for the <strong>kink</strong> where extra clusters stop helping much. The point of maximum perpendicular distance from the line connecting the two endpoints is a robust elbow heuristic.</p>
+<h3 id="25-limitations">2.5 Limitations</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Limitation</th>
+          <th>Cause</th>
+          <th>Remedy</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Need to specify $K$</td>
+          <td>no built-in model selection</td>
+          <td>silhouette / elbow / BIC</td>
+      </tr>
+      <tr>
+          <td>Spherical clusters only</td>
+          <td>uses Euclidean distance, equal radii</td>
+          <td>GMM, spectral, kernel K-means</td>
+      </tr>
+      <tr>
+          <td>Sensitive to outliers</td>
+          <td>mean is not robust</td>
+          <td>K-medoids</td>
+      </tr>
+      <tr>
+          <td>Scale-sensitive</td>
+          <td>distance is dominated by largest features</td>
+          <td>standardize first</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="3-hierarchical-clustering">3. Hierarchical Clustering</h2>
+<h3 id="31-agglomerative-approach">3.1 Agglomerative Approach</h3>
+<p>Build a <strong>dendrogram</strong> from the bottom up:</p>
+<ol>
+<li>Start with $N$ singleton clusters.</li>
+<li>Merge the two closest clusters.</li>
+<li>Repeat until one cluster (or until you have $K$).</li>
+</ol>
+<p>The result is a binary tree where the height of each merge encodes the distance at which it happened. To get a flat partition, draw a horizontal line through the tree &ndash; every branch it cuts is one cluster.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig3_dendrogram.png" alt="Ward dendrogram with horizontal cut producing three clusters, plus the resulting scatter plot" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="32-linkage-criteria">3.2 Linkage Criteria</h3>
+<p>The merge rule depends on <strong>linkage</strong>, which is just a choice of how to define distance between two <em>sets</em> of points:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Linkage</th>
+          <th>$d(C_i, C_j)$</th>
+          <th>Character</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Single</td>
+          <td>$\min_{a \in C_i, b \in C_j} d(a, b)$</td>
+          <td>finds elongated/chained clusters; fragile to noise bridges</td>
+      </tr>
+      <tr>
+          <td>Complete</td>
+          <td>$\max_{a \in C_i, b \in C_j} d(a, b)$</td>
+          <td>compact, roughly spherical clusters; noise-robust</td>
+      </tr>
+      <tr>
+          <td>Average</td>
+          <td>$\frac{1}{</td>
+          <td>C_i</td>
+      </tr>
+      <tr>
+          <td>Ward</td>
+          <td>minimize variance increase $\Delta\!J$ after merge</td>
+          <td>most consistent with the K-means objective; produces balanced sizes</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Ward is the default choice</strong> for most numerical data because its objective coincides with WCSS reduction.</p>
+<h3 id="33-when-to-use-it">3.3 When to Use It</h3>
+<ul>
+<li>You don&rsquo;t know $K$ and want to <em>see</em> the data&rsquo;s natural granularity.</li>
+<li>You want a <strong>hierarchy</strong> (e.g. taxonomy of products, gene families).</li>
+<li>$N$ is small-to-medium (naive complexity is $O(N^3)$; $O(N^2 \log N)$ with priority queues).</li>
+</ul>
+<hr>
+<h2 id="4-dbscan-density-based-clustering">4. DBSCAN: Density-Based Clustering</h2>
+<h3 id="41-core-concepts">4.1 Core Concepts</h3>
+<p>DBSCAN (&ldquo;Density-Based Spatial Clustering of Applications with Noise&rdquo;) replaces the &ldquo;every point belongs to some cluster&rdquo; assumption with a density rule. It uses two parameters: neighborhood radius $\epsilon$ and minimum points $\text{MinPts}$.</p>
+<ul>
+<li><strong>$\epsilon$-neighborhood:</strong> $N_\epsilon(\mathbf{x}) = \{\mathbf{x}' \in \mathbf{X} : \\|\mathbf{x} - \mathbf{x}'\\| \leq \epsilon\}$.</li>
+<li><strong>Core point:</strong> $|N_\epsilon(\mathbf{x})| \geq \text{MinPts}$ &ndash; it sits in a dense neighborhood.</li>
+<li><strong>Border point:</strong> not core, but inside some core point&rsquo;s neighborhood.</li>
+<li><strong>Noise point:</strong> neither &ndash; DBSCAN explicitly labels it as an outlier.</li>
+</ul>
+<h3 id="42-density-reachability">4.2 Density Reachability</h3>
+<p>DBSCAN grows clusters by chaining core points:</p>
+<ul>
+<li><strong>Directly density-reachable:</strong> $\mathbf{x}'$ lies in $\mathbf{x}$&rsquo;s neighborhood, and $\mathbf{x}$ is a core point.</li>
+<li><strong>Density-reachable:</strong> there is a chain of directly density-reachable links from $\mathbf{x}$ to $\mathbf{x}'$.</li>
+<li><strong>Density-connected:</strong> both points are density-reachable from a common third point.</li>
+</ul>
+<p><strong>A cluster is a maximal set of density-connected points.</strong> This is why DBSCAN handles arbitrary cluster shapes &ndash; no assumption of convexity, no assumption of equal radii, no fixed $K$.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig2_dbscan_density.png" alt="DBSCAN on noisy moons: core points filled, border points ringed, noise points marked with x; one core point&rsquo;s epsilon-neighborhood is highlighted" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure makes the bookkeeping concrete. The amber circle around the highlighted core point contains at least $\text{MinPts}=5$ neighbors, qualifying it as a core point. Any other point that falls inside such a ball joins the same cluster, and from there the density-reachability relation propagates outward through the moon shape. Stray points in low-density regions never accumulate enough neighbors and get labeled noise.</p>
+<h3 id="43-choosing-epsilon-the-k-distance-plot">4.3 Choosing $\epsilon$: the K-Distance Plot</h3>
+<p>Plot, for every point, the distance to its $k$-th nearest neighbor (with $k = \text{MinPts}$), then sort those values descending. The curve has a knee where it transitions from &ldquo;dense&rdquo; to &ldquo;sparse&rdquo; distances &ndash; pick $\epsilon$ at that knee.</p>
+<h3 id="44-strengths-and-weaknesses">4.4 Strengths and Weaknesses</h3>
+<p><strong>Strengths.</strong> No need to specify $K$; finds arbitrary shapes; identifies noise; robust to outliers.</p>
+<p><strong>Weaknesses.</strong> Two parameters that interact ($\epsilon$, $\text{MinPts}$); struggles when clusters have <em>very</em> different densities (use <strong>HDBSCAN</strong> for this); suffers in high dimensions where Euclidean distances concentrate.</p>
+<hr>
+<h2 id="5-spectral-clustering-a-graph-theory-approach">5. Spectral Clustering: A Graph Theory Approach</h2>
+<h3 id="51-from-data-to-graphs">5.1 From Data to Graphs</h3>
+<p>Treat each data point as a graph node and put a weighted edge between every pair. The most common similarity is the Gaussian kernel:</p>
+$$W_{ij} = \exp\left(-\frac{\\|\mathbf{x}_i - \mathbf{x}_j\\|^2}{2\sigma^2}\right)$$<p>For scalability, sparsify with $k$-nearest-neighbor or $\epsilon$-ball graphs.</p>
+<h3 id="52-the-graph-laplacian">5.2 The Graph Laplacian</h3>
+<p>Define the <strong>degree matrix</strong> $D_{ii} = \sum_j W_{ij}$ and the <strong>unnormalized Laplacian</strong></p>
+$$\mathbf{L} = \mathbf{D} - \mathbf{W}.$$<p>The Laplacian&rsquo;s defining property is</p>
+$$\mathbf{f}^T \mathbf{L} \mathbf{f} = \tfrac{1}{2}\sum_{i,j} W_{ij}(f_i - f_j)^2 \geq 0.$$<p>That is, $\mathbf{L}$ measures how much a function $\mathbf{f}$ varies across edges. Smooth functions on the graph &ndash; those that change slowly between strongly connected nodes &ndash; have <em>small</em> Laplacian quadratic form, and they are exactly the eigenvectors of $\mathbf{L}$ with the smallest eigenvalues.</p>
+<p>The <strong>symmetric normalized Laplacian</strong> rescales by node degree to prevent high-degree nodes from dominating:</p>
+$$\mathbf{L}_{\text{sym}} = \mathbf{I} - \mathbf{D}^{-1/2}\mathbf{W}\mathbf{D}^{-1/2}.$$<h3 id="53-normalized-cut-objective">5.3 Normalized Cut Objective</h3>
+<p>Spectral clustering minimizes a graph cut:</p>
+$$\text{NCut}(A, B) = \frac{\text{cut}(A, B)}{\text{vol}(A)} + \frac{\text{cut}(A, B)}{\text{vol}(B)} \tag{3}$$<p>where $\text{cut}(A,B) = \sum_{i \in A, j \in B} W_{ij}$ and $\text{vol}(A) = \sum_{i \in A} D_{ii}$. Dividing by volume prevents the trivial &ldquo;split off one point&rdquo; solution. Combinatorially this is NP-hard, but a <strong>continuous relaxation</strong> &ndash; letting cluster indicators take real values &ndash; has an exact closed-form solution: it is the eigenvalue problem for $\mathbf{L}_{\text{sym}}$.</p>
+<h3 id="54-the-algorithm">5.4 The Algorithm</h3>
+<ol>
+<li>Build the similarity matrix $\mathbf{W}$.</li>
+<li>Compute the Laplacian $\mathbf{L}_{\text{sym}}$.</li>
+<li>Compute the $K$ eigenvectors corresponding to the <em>smallest</em> eigenvalues.</li>
+<li>Stack them as columns of $\mathbf{U} \in \mathbb{R}^{N \times K}$.</li>
+<li>Normalize each row of $\mathbf{U}$ to unit length.</li>
+<li>Run <strong>K-means on the rows</strong> to recover discrete cluster labels.</li>
+</ol>
+<p><strong>Why this works.</strong> Step 3 maps the data into a low-dimensional embedding where graph-connected clusters become <em>linearly separable point clouds</em>. K-means, which fails on the original non-convex shape, succeeds in this embedding.</p>
+<p><strong>Complexity.</strong> $O(N^2)$ to build $\mathbf{W}$, $O(N^3)$ for the eigendecomposition. For large $N$, use sparse $k$-NN graphs and Lanczos / Nyström approximation.</p>
+<hr>
+<h2 id="6-gaussian-mixture-models-k-means-with-probabilities">6. Gaussian Mixture Models: K-means with Probabilities</h2>
+<h3 id="61-the-generative-model">6.1 The Generative Model</h3>
+<p>GMM assumes each point is generated by first sampling a component $z \sim \text{Categorical}(\pi_1, \dots, \pi_K)$, then sampling $\mathbf{x} \sim \mathcal{N}(\boldsymbol{\mu}_z, \boldsymbol{\Sigma}_z)$. The marginal density is</p>
+$$p(\mathbf{x}) = \sum_{k=1}^{K} \pi_k \, \mathcal{N}(\mathbf{x} \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k).$$<p>Fit by EM (see <a href="/en/Machine-Learning-Mathematical-Derivations-13-EM-Algorithm-and-GMM/">Part 13</a>
+):</p>
+<ul>
+<li><strong>E-step:</strong> posterior responsibility $\gamma_{ik} = \pi_k \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k) / \sum_j \pi_j \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_j, \boldsymbol{\Sigma}_j)$.</li>
+<li><strong>M-step:</strong> weighted updates $\boldsymbol{\mu}_k = \sum_i \gamma_{ik} \mathbf{x}_i / \sum_i \gamma_{ik}$, similarly for $\boldsymbol{\Sigma}_k$ and $\pi_k$.</li>
+</ul>
+<h3 id="62-why-gmm-generalizes-k-means">6.2 Why GMM Generalizes K-means</h3>
+<p>K-means is the <strong>limit</strong> of GMM with $\boldsymbol{\Sigma}_k = \sigma^2 \mathbf{I}$ and $\sigma \to 0$: as the variance shrinks, the soft posterior $\gamma_{ik}$ collapses to a one-hot vector, and the M-step becomes the centroid mean. So K-means is GMM with two strong assumptions hard-baked: spherical equal-radius clusters, hard assignments.</p>
+<p>GMM relaxes both &ndash; it allows <strong>ellipsoidal covariance</strong> (rotated, stretched clusters) and <strong>soft membership</strong> (a point can be 70% cluster A, 30% cluster B). The price is more parameters and slower convergence.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig6_gmm_vs_kmeans.png" alt="GMM versus K-means on anisotropic blobs: K-means imposes straight Voronoi boundaries, GMM recovers tilted Gaussian ellipses" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure makes the difference vivid. On stretched, tilted clusters, K-means&rsquo; Voronoi cells slice across them at the wrong angles, splitting one true cluster between two centroids. GMM&rsquo;s ellipses align with the data&rsquo;s covariance and recover the true partition.</p>
+<hr>
+<h2 id="7-putting-it-all-together-when-to-use-what">7. Putting It All Together: When to Use What</h2>
+<p>Different priors, different victories. The grid below runs K-means, DBSCAN, and spectral clustering on three classic dataset shapes:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/fig7_algo_comparison.png" alt="Three algorithms (K-means, DBSCAN, Spectral) on three dataset shapes (Blobs, Moons, Circles)" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Reading the grid:</p>
+<ul>
+<li><strong>Blobs (top row).</strong> All three succeed &ndash; this is the easy case. K-means is fastest.</li>
+<li><strong>Moons (middle).</strong> K-means slices each moon in half (its prior is convex, the data isn&rsquo;t). DBSCAN and spectral both follow the curves correctly.</li>
+<li><strong>Circles (bottom).</strong> K-means again fails for the same reason. DBSCAN traces the inner and outer rings via density chains; spectral exploits the graph structure.</li>
+</ul>
+<p><strong>Rule of thumb:</strong></p>
+<table>
+  <thead>
+      <tr>
+          <th>If your data&hellip;</th>
+          <th>Try first</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>has roughly spherical, well-separated clusters</td>
+          <td>K-means</td>
+      </tr>
+      <tr>
+          <td>has elongated or non-convex clusters with noise</td>
+          <td>DBSCAN</td>
+      </tr>
+      <tr>
+          <td>has non-convex clusters in a smooth manifold</td>
+          <td>Spectral</td>
+      </tr>
+      <tr>
+          <td>needs soft assignments or covariance modelling</td>
+          <td>GMM</td>
+      </tr>
+      <tr>
+          <td>needs a hierarchy / unknown $K$</td>
+          <td>Agglomerative (Ward)</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="8-exercises">8. Exercises</h2>
+<p><strong>Exercise 1: K-means convergence.</strong> Prove that the update step minimizes WCSS for fixed assignments.</p>
+<blockquote>
+<p><strong>Solution.</strong> Take $\partial / \partial \boldsymbol{\mu}_k$ of $\sum_{i \in C_k}\\|\mathbf{x}_i - \boldsymbol{\mu}_k\\|^2$ and set to zero: $\boldsymbol{\mu}_k = \tfrac{1}{|C_k|}\sum_{i \in C_k}\mathbf{x}_i$. The Hessian is $2|C_k|\mathbf{I} \succ 0$, so this is a global minimum.</p>
+</blockquote>
+<p><strong>Exercise 2: DBSCAN.</strong> With $\text{MinPts} = 3$, $\epsilon = 0.5$, point $\mathbf{x}$ has 2 neighbors within radius 0.5. Is $\mathbf{x}$ a core point?</p>
+<blockquote>
+<p><strong>Solution.</strong> The $\epsilon$-neighborhood includes $\mathbf{x}$ itself plus 2 neighbors = 3 points. Since $3 \geq 3$, yes, $\mathbf{x}$ is a core point. (If $\text{MinPts}$ were $4$ it would be a border or noise point.)</p>
+</blockquote>
+<p><strong>Exercise 3: GMM vs K-means.</strong> When should you reach for GMM instead of K-means?</p>
+<blockquote>
+<p><strong>Solution.</strong> When clusters are elliptical (different variances along different axes), when you need soft assignments (e.g. for downstream Bayesian reasoning), or when you want a generative model you can sample from. Stick with K-means when clusters are spherical, $N$ is huge, or you need fast iteration.</p>
+</blockquote>
+<p><strong>Exercise 4: Linkage choice.</strong> Why does single-linkage often fail on noisy data?</p>
+<blockquote>
+<p><strong>Solution.</strong> Single-linkage merges based on the minimum pairwise distance, so a <em>single</em> noise point bridging two clusters is enough to chain them together (the &ldquo;chaining effect&rdquo;). Complete- and Ward-linkage use aggregate distances and are robust to such bridges.</p>
+</blockquote>
+<p><strong>Exercise 5: Silhouette.</strong> $a(i) = 2$, $b(i) = 5$. Compute $s(i)$.</p>
+<blockquote>
+<p><strong>Solution.</strong> $s = (5 - 2)/\max(2, 5) = 3/5 = 0.6$. A respectable score: point $i$ is roughly twice as far from the next cluster as from its own.</p>
+</blockquote>
+<hr>
+<h2 id="references">References</h2>
+<p>[1] Lloyd, S. (1982). Least squares quantization in PCM. <em>IEEE Trans. Info. Theory</em>, 28(2), 129-137.</p>
+<p>[2] Arthur, D., &amp; Vassilvitskii, S. (2007). k-means++: The advantages of careful seeding. <em>SODA</em>, 1027-1035.</p>
+<p>[3] Ester, M., Kriegel, H. P., Sander, J., &amp; Xu, X. (1996). A density-based algorithm for discovering clusters in large spatial databases with noise. <em>KDD</em>, 226-231.</p>
+<p>[4] Ng, A. Y., Jordan, M. I., &amp; Weiss, Y. (2002). On spectral clustering: Analysis and an algorithm. <em>NIPS</em>, 849-856.</p>
+<p>[5] Von Luxburg, U. (2007). A tutorial on spectral clustering. <em>Statistics and Computing</em>, 17(4), 395-416.</p>
+<p>[6] Shi, J., &amp; Malik, J. (2000). Normalized cuts and image segmentation. <em>IEEE Trans. PAMI</em>, 22(8), 888-905.</p>
+<p>[7] Ward, J. H. (1963). Hierarchical grouping to optimize an objective function. <em>JASA</em>, 58(301), 236-244.</p>
+<p>[8] Campello, R. J., Moulavi, D., &amp; Sander, J. (2013). Density-based clustering based on hierarchical density estimates (HDBSCAN). <em>PAKDD</em>, 160-172.</p>
+<hr>
+<p><em>This is Part 18 of the <a href="/tags/Mathematical-Derivations/">ML Mathematical Derivations</a>
+ series. Next: <a href="/en/Machine-Learning-Mathematical-Derivations-19-Neural-Networks-and-Backpropagation/">Part 19 &ndash; Neural Networks and Backpropagation</a>
+. Previous: <a href="/en/Machine-Learning-Mathematical-Derivations-17-Dimensionality-Reduction-and-PCA/">Part 17 &ndash; Dimensionality Reduction and PCA</a>
+.</em></p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-this-article-covers">What This Article Covers</a></li>
+    <li><a href="#1-formalizing-the-clustering-problem">1. Formalizing the Clustering Problem</a>
+      <ul>
+        <li><a href="#11-what-makes-a-good-clustering">1.1 What Makes a Good Clustering?</a></li>
+        <li><a href="#12-distance-and-similarity-measures">1.2 Distance and Similarity Measures</a></li>
+        <li><a href="#13-evaluating-clusters-without-labels">1.3 Evaluating Clusters Without Labels</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-k-means-centroid-driven-clustering">2. K-means: Centroid-Driven Clustering</a>
+      <ul>
+        <li><a href="#21-the-objective">2.1 The Objective</a></li>
+        <li><a href="#22-lloyds-algorithm">2.2 Lloyd&rsquo;s Algorithm</a></li>
+        <li><a href="#23-k-means-initialization">2.3 K-means++ Initialization</a></li>
+        <li><a href="#24-choosing-k-silhouette-and-elbow">2.4 Choosing : Silhouette and Elbow</a></li>
+        <li><a href="#25-limitations">2.5 Limitations</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-hierarchical-clustering">3. Hierarchical Clustering</a>
+      <ul>
+        <li><a href="#31-agglomerative-approach">3.1 Agglomerative Approach</a></li>
+        <li><a href="#32-linkage-criteria">3.2 Linkage Criteria</a></li>
+        <li><a href="#33-when-to-use-it">3.3 When to Use It</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-dbscan-density-based-clustering">4. DBSCAN: Density-Based Clustering</a>
+      <ul>
+        <li><a href="#41-core-concepts">4.1 Core Concepts</a></li>
+        <li><a href="#42-density-reachability">4.2 Density Reachability</a></li>
+        <li><a href="#43-choosing-epsilon-the-k-distance-plot">4.3 Choosing : the K-Distance Plot</a></li>
+        <li><a href="#44-strengths-and-weaknesses">4.4 Strengths and Weaknesses</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-spectral-clustering-a-graph-theory-approach">5. Spectral Clustering: A Graph Theory Approach</a>
+      <ul>
+        <li><a href="#51-from-data-to-graphs">5.1 From Data to Graphs</a></li>
+        <li><a href="#52-the-graph-laplacian">5.2 The Graph Laplacian</a></li>
+        <li><a href="#53-normalized-cut-objective">5.3 Normalized Cut Objective</a></li>
+        <li><a href="#54-the-algorithm">5.4 The Algorithm</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-gaussian-mixture-models-k-means-with-probabilities">6. Gaussian Mixture Models: K-means with Probabilities</a>
+      <ul>
+        <li><a href="#61-the-generative-model">6.1 The Generative Model</a></li>
+        <li><a href="#62-why-gmm-generalizes-k-means">6.2 Why GMM Generalizes K-means</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-putting-it-all-together-when-to-use-what">7. Putting It All Together: When to Use What</a></li>
+    <li><a href="#8-exercises">8. Exercises</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Ml mathematical derivations</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2600</strong></div>
+      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

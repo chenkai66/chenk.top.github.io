@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>矩阵范数与条件数 -- 数值计算的健康体检 · Chen Kai Blog</title>
+<meta name="description" content="条件数是线性系统的&#39;健康体检报告&#39;：它告诉你输入端的微小扰动会不会被放大成输出端的灾难。本章从向量范数、矩阵范数讲到谱范数、条件数与谱半径，剖析数值不稳定的根源，并给出预条件这一治本之策。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="矩阵范数与条件数 -- 数值计算的健康体检">
+<meta property="og:description" content="条件数是线性系统的&#39;健康体检报告&#39;：它告诉你输入端的微小扰动会不会被放大成输出端的灾难。本章从向量范数、矩阵范数讲到谱范数、条件数与谱半径，剖析数值不稳定的根源，并给出预条件这一治本之策。">
+<meta property="og:url" content="https://www.chenk.top/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">线性代数</a>
+         · Chapter 10
+      </div>
+      <h1>矩阵范数与条件数 -- 数值计算的健康体检</h1>
+      <p class="deck">条件数是线性系统的&#39;健康体检报告&#39;：它告诉你输入端的微小扰动会不会被放大成输出端的灾难。本章从向量范数、矩阵范数讲到谱范数、条件数与谱半径，剖析数值不稳定的根源，并给出预条件这一治本之策。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-03-05">March 5, 2025</time> · 13 min read · 6100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/" class="tag">#线性代数</a><a href="/zh/tags/%E6%95%B0%E5%80%BC%E7%A8%B3%E5%AE%9A%E6%80%A7/" class="tag">#数值稳定性</a><a href="/zh/tags/%E6%9D%A1%E4%BB%B6%E6%95%B0/" class="tag">#条件数</a><a href="/zh/tags/%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0/" class="tag">#矩阵范数</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <h2 id="困扰工程师的那个问题">困扰工程师的那个问题</h2>
+<p>方程列对了，算法也写对了，为什么算出来的结果完全不对？</p>
+<p>罪魁祸首往往是一个叫做<strong>条件数</strong>的量。它衡量一个线性系统有多&quot;敏感&quot;——输入端一点点抖动，会不会被放大成输出端的灾难。要谈条件数，得先有办法度量向量和矩阵的&quot;大小&quot;，这就是范数要做的事。</p>
+<h3 id="本章要点">本章要点</h3>
+<ul>
+<li>三种向量范数（$L^1$、$L^2$、$L^\infty$）以及它们的&quot;单位球&quot;长什么样。</li>
+<li>矩阵范数：Frobenius 范数、诱导范数，以及最关键的谱范数。</li>
+<li>条件数 $\kappa(A) = \sigma_{\max}/\sigma_{\min}$ 到底意味着什么。</li>
+<li>病态矩阵（如 Hilbert 矩阵）为什么会在双精度下完全失效。</li>
+<li>输入误差如何被条件数放大。</li>
+<li>谱半径与迭代法的收敛性。</li>
+<li>用预条件子驯服病态矩阵。</li>
+</ul>
+<h3 id="前置知识">前置知识</h3>
+<ul>
+<li>奇异值与 SVD（第 9 章）</li>
+<li>矩阵乘法与求逆（第 3 章）</li>
+<li>特征值（第 6 章）</li>
+</ul>
+<hr>
+<h2 id="向量范数度量大小">向量范数：度量&quot;大小&quot;</h2>
+<h3 id="什么是范数">什么是范数？</h3>
+<p>向量空间上的<strong>范数</strong> $\|\cdot\|$ 是满足三条公理的函数：</p>
+<ol>
+<li><strong>非负性。</strong> $\|\vec{x}\| \geq 0$，且等号当且仅当 $\vec{x} = \vec{0}$。</li>
+<li><strong>齐次性。</strong> $\|c\vec{x}\| = |c|\,\|\vec{x}\|$。</li>
+<li><strong>三角不等式。</strong> $\|\vec{x} + \vec{y}\| \leq \|\vec{x}\| + \|\vec{y}\|$。</li>
+</ol>
+<p>这三条都和我们日常对&quot;大小&quot;的直觉一致：没有什么东西的大小可以是负数；放大两倍尺寸也变两倍；绕路永远不会比直走更短。</p>
+<h3 id="必须熟记的三种范数">必须熟记的三种范数</h3>
+<p>对 $\vec{x} \in \mathbb{R}^n$：</p>
+<p><strong>$L^1$ 范数 —— 曼哈顿距离。</strong> $\|\vec{x}\|_1 = |x_1| + |x_2| + \cdots + |x_n|.$ 出租车在网格街道上只能横平竖直地开，从原点到 $(3, 4)$ 要走 $3 + 4 = 7$ 个街区。</p>
+<p><strong>$L^2$ 范数 —— 欧几里得距离。</strong> $\|\vec{x}\|_2 = \sqrt{x_1^2 + x_2^2 + \cdots + x_n^2}.$ &ldquo;乌鸦直飞&quot;的距离，从原点到 $(3, 4)$ 是 $\sqrt{9+16}=5$。</p>
+<p><strong>$L^\infty$ 范数 —— 切比雪夫距离。</strong> $\|\vec{x}\|_\infty = \max_i |x_i|.$ 国际象棋的国王每步可走八方向中的一步。从 $(0,0)$ 到 $(3, 4)$ 共 $\max(3,4) = 4$ 步——因为国王能斜走，等于横竖两个方向同时推进。</p>
+<h3 id="单位球的几何">单位球的几何</h3>
+<p>每种范数都对应一个&quot;单位球&rdquo; $\{\vec{x} : \|\vec{x}\| \leq 1\}$：</p>
+<ul>
+<li><strong>$L^1$</strong>：二维是菱形，三维是八面体——尖角正好戳在坐标轴上。</li>
+<li><strong>$L^2$</strong>：二维是圆，三维是球——完全旋转不变。</li>
+<li><strong>$L^\infty$</strong>：二维是正方形，三维是立方体——平面紧贴坐标轴。</li>
+</ul>
+<p>随着 $p$ 从 $1$ 增大到 $\infty$，单位球从菱形&quot;鼓&quot;成圆，再&quot;撑&quot;成正方形。$L^1$ 球那几个尖角，正是 LASSO 回归能产生稀疏解的几何原因：损失函数的等高线很容易最先碰到 $L^1$ 球的尖角，而尖角位于坐标轴上——意味着某些坐标必然被压成零。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/fig1_norm_unit_balls.png" alt="向量范数：单位球的形状随 p 变化" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="范数等价定理">范数等价定理</h3>
+$$c\|\vec{x}\|_a \leq \|\vec{x}\|_b \leq C\|\vec{x}\|_a.$$<p>不同范数只是用不同的尺子量同一个向量。在某个范数下收敛的序列，在所有范数下都收敛。范数的选择更多是物理意义和计算便利的取舍——但一旦谈到收敛<strong>速度</strong>，范数的选择又重新重要起来。</p>
+<hr>
+<h2 id="矩阵范数这个变换有多猛">矩阵范数：这个变换有多&quot;猛&quot;？</h2>
+<h3 id="frobenius-范数把矩阵当成一个长向量">Frobenius 范数：把矩阵当成一个长向量</h3>
+$$\|A\|_F = \sqrt{\sum_{i,j} a_{ij}^2}.$$<p>
+做法很朴素：把所有元素拉直成一个长向量，算它的 $L^2$ 范数。</p>
+<p><strong>图像类比。</strong> 把 $A$ 想成灰度图，每个元素是一个像素亮度。Frobenius 范数就是这张图的&quot;总能量&quot;。从图像压缩误差，到神经网络权重更新的幅度，工业界用它来度量&quot;两个矩阵差多远&quot;几乎是默认选项。</p>
+$$\|A\|_F = \sqrt{\sigma_1^2 + \sigma_2^2 + \cdots + \sigma_r^2}.$$<p>
+所以 Frobenius 范数是<strong>所有</strong>奇异值的均方根——它在意 $A$ 在每一个方向上的拉伸。</p>
+<h3 id="诱导范数最大放大倍数">诱导范数：最大放大倍数</h3>
+$$\|A\| = \max_{\|\vec{x}\|=1} \|A\vec{x}\|.$$<p>把 $A$ 想成放大镜——诱导范数问的是：这个放大镜最大能放多少倍？如果 $\|A\|_2 = 3$，就意味着存在某个输入，被 $A$ 作用后长度变成原来的 3 倍。</p>
+<p>最常见的三种诱导范数：</p>
+<table>
+  <thead>
+      <tr>
+          <th>范数</th>
+          <th>公式</th>
+          <th>怎么算</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>$\|A\|_1$（列和范数）</td>
+          <td>$\max_j \sum_i</td>
+          <td>a_{ij}</td>
+      </tr>
+      <tr>
+          <td>$\|A\|_2$（谱范数）</td>
+          <td>$\sigma_{\max}(A)$</td>
+          <td>最大奇异值</td>
+      </tr>
+      <tr>
+          <td>$\|A\|_\infty$（行和范数）</td>
+          <td>$\max_i \sum_j</td>
+          <td>a_{ij}</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>记忆口诀：</strong> $1$ → 列和，$\infty$ → 行和。</p>
+<h3 id="谱范数当家花旦">谱范数：当家花旦</h3>
+<p>谱范数 $\|A\|_2 = \sigma_1$ 是最有用的矩阵范数：</p>
+<ul>
+<li>等于<strong>最大奇异值</strong>。</li>
+<li>几何上，$A$ 把单位球映成椭球，$\|A\|_2$ 就是椭球<strong>最长半轴</strong>的长度。</li>
+<li>它就是 $A$ 的<strong>最大放大倍数</strong>。</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/fig2_operator_norm.png" alt="算子范数：像椭圆最长半轴" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图把整件事讲完了。左边是单位圆和两个极端方向 $v_{\max}$、$v_{\min}$。右边是经过 $A$ 旋转拉伸后的椭圆——橙色箭头落在最长半轴上，长度是 $\sigma_{\max} = \|A\|_2$；绿色箭头被压缩到长度 $\sigma_{\min}$。</p>
+<h3 id="frobenius-与谱范数两种大小观">Frobenius 与谱范数：两种&quot;大小观&quot;</h3>
+<p>这两种范数在回答同一个矩阵的两个不同问题。谱范数是<strong>峰值拉伸</strong>——担心最坏情况的时候用它。Frobenius 范数是<strong>总体拉伸</strong>——关心整体行为时用它。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/fig3_frob_vs_spectral.png" alt="Frobenius 与谱范数" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>图中那个矩阵，$\|A\|_2 = \sigma_1 \approx 2.78$，而 $\|A\|_F \approx 2.93$。两者很接近，是因为 $\sigma_2$ 相对 $\sigma_1$ 已经不大；如果一个矩阵的奇异值都差不多大，二者会拉开明显的差距。</p>
+<h3 id="次乘性">次乘性</h3>
+$$\|AB\| \leq \|A\|\,\|B\|.$$<p>
+两次变换叠加的总放大倍数，不会超过两次单独放大倍数的乘积。这条不起眼的不等式，是分析所有迭代算法收敛性的基石——也解释了为什么深层神经网络容易出现梯度爆炸/消失。</p>
+<hr>
+<h2 id="条件数线性系统的体检报告">条件数：线性系统的体检报告</h2>
+<h3 id="定义">定义</h3>
+$$\kappa(A) = \|A\|\,\|A^{-1}\|.$$$$\kappa_2(A) = \frac{\sigma_{\max}}{\sigma_{\min}}.$$<p>
+最大奇异值除以最小奇异值。</p>
+<p><strong>过敏体质类比。</strong></p>
+<ul>
+<li>$\kappa \approx 1$：免疫系统强健，吹一阵冷风没事。</li>
+<li>$\kappa \approx 10^{10}$：极度过敏，空气里飘一点花粉就送急诊。</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/fig4_condition_number.png" alt="条件数：良态 vs 病态" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>良态的矩阵把输入圆映成一个接近圆的椭圆（虚线灰圆几乎和绿色实线椭圆重合）。病态的矩阵把同一个圆压成一根针：在输入空间里有那么些方向，矩阵几乎&quot;看不见&quot;——做反演时就得把这些被压扁的输出再放大回去，于是噪声也跟着一起放大了。</p>
+<h3 id="关键性质">关键性质</h3>
+<ul>
+<li><strong>下界。</strong> $\kappa(A) \geq 1$，等号只在 $A$ 是正交矩阵的标量倍时成立。</li>
+<li><strong>正交不变性。</strong> 对正交矩阵 $Q$，$\kappa(QA) = \kappa(A)$——旋转和反射不改变病态程度。</li>
+<li><strong>缩放不变性。</strong> $\kappa(\alpha A) = \kappa(A)$——决定健康的是椭圆的<strong>形状</strong>，不是大小。</li>
+<li><strong>求逆对称性。</strong> $\kappa(A^{-1}) = \kappa(A)$——解方程和求逆一样难。</li>
+</ul>
+<h3 id="一句话几何意义">一句话几何意义</h3>
+$$\kappa = \frac{\text{最长半轴}}{\text{最短半轴}}.$$<p>
+$\kappa = 1$ 椭圆退化为圆；$\kappa = \infty$ 椭圆塌成一条线段（矩阵奇异）。</p>
+<p><strong>速记例子。</strong> $A = I$，$\kappa = 1$。$B = \begin{pmatrix} 1 & 0 \\ 0 & 10^{-5} \end{pmatrix}$，$\kappa = 10^{5}$——某个方向被压扁了 $10^{5}$ 倍。</p>
+<hr>
+<h2 id="病态矩阵数值计算的噩梦">病态矩阵：数值计算的噩梦</h2>
+<h3 id="hilbert-矩阵">Hilbert 矩阵</h3>
+$$H_{ij} = \frac{1}{i + j - 1}.$$<p>
+它的条件数增长得快到让人胆寒。</p>
+<table>
+  <thead>
+      <tr>
+          <th>阶数 $n$</th>
+          <th>$\kappa(H_n)$</th>
+          <th>双精度下可信位数</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>5</td>
+          <td>$\sim 10^{5}$</td>
+          <td>约 10 位</td>
+      </tr>
+      <tr>
+          <td>10</td>
+          <td>$\sim 10^{13}$</td>
+          <td>约 3 位</td>
+      </tr>
+      <tr>
+          <td>12</td>
+          <td>$\sim 10^{16}$</td>
+          <td>几乎为 0</td>
+      </tr>
+      <tr>
+          <td>15</td>
+          <td>$\sim 10^{18}$</td>
+          <td>完全不可靠</td>
+      </tr>
+  </tbody>
+</table>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">hilbert</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">n</span> <span class="o">=</span> <span class="mi">12</span>
+</span></span><span class="line"><span class="cl"><span class="n">H</span> <span class="o">=</span> <span class="n">hilbert</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">x_true</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">b</span> <span class="o">=</span> <span class="n">H</span> <span class="o">@</span> <span class="n">x_true</span>
+</span></span><span class="line"><span class="cl"><span class="n">x_hat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;kappa(H_</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">)    = </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">H</span><span class="p">)</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;相对误差       = </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_true</span> <span class="o">-</span> <span class="n">x_hat</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_true</span><span class="p">)</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>到 $n = 12$，相对误差就已经在 $1$ 这个量级——算法本身没错，但答案就是可以错 100%。</p>
+<h3 id="把爆炸画出来">把&quot;爆炸&quot;画出来</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/fig6_singular_values.png" alt="奇异值谱与 Hilbert 矩阵的 κ(n) 增长" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>左图是两个 $20 \times 20$ 矩阵的奇异值：一个温顺，奇异值平缓下降；一个病态，奇异值跨越六个数量级。右图把 $\kappa_2(H_n)$ 画在对数坐标里——几乎是一条直线，每两个 $n$ 值条件数就翻一番左右。红色虚线是<strong>双精度的天花板</strong> $10^{16}$，越过这条线，IEEE 754 双精度的任何算法都救不回来。</p>
+<h3 id="病态从哪儿来">病态从哪儿来？</h3>
+<ul>
+<li><strong>多项式拟合。</strong> 高次拟合产生的 Vandermonde 矩阵，条件数随阶数指数增长。</li>
+<li><strong>细网格。</strong> 有限元网格细化 $h$ 倍，条件数大致变为原来的 $h^{-2}$ 倍。</li>
+<li><strong>正规方程。</strong> $\kappa(A^TA) = \kappa(A)^2$——把最小二乘问题硬推成正规方程，条件数直接平方，业内有人称之为&quot;数值线性代数的原罪&quot;。</li>
+<li><strong>接近奇异。</strong> 两行（或两列）&ldquo;几乎&quot;线性相关。</li>
+</ul>
+<hr>
+<h2 id="误差分析条件数到底放大了多少">误差分析：条件数到底放大了多少</h2>
+<h3 id="右端项扰动">右端项扰动</h3>
+<p>求解 $A\vec{x} = \vec{b}$，但右端 $\vec{b}$ 被一点点 $\delta\vec{b}$ 污染了。解会变多少？</p>
+$$\frac{\|\delta\vec{x}\|}{\|\vec{x}\|} \;\leq\; \kappa(A)\,\frac{\|\delta\vec{b}\|}{\|\vec{b}\|}.$$<p>条件数就是相对误差的<strong>最大放大因子</strong>。</p>
+<p>具体地：</p>
+<ul>
+<li>$\kappa = 10$：$1\%$ 的输入误差最多变成 $10\%$ 的输出误差。</li>
+<li>$\kappa = 10^{10}$：$1\%$ 的输入误差可能放成 $10^{8}\%$——结果就是噪声。</li>
+<li>$\kappa = 10^{16}$：连机器精度（约 $10^{-16}$）的舍入都足以毁掉答案。</li>
+</ul>
+<p>我们可以把它真切地&quot;看到&rdquo;。下图把同样幅度（$2\%$）但方向各异的扰动加到 $b$ 上，画出每个扰动对应的解 $x + \delta x$ 形成的点云。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/fig5_perturbation.png" alt="扰动敏感性：微小 δb，巨大 δx" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>$\kappa \approx 2$ 时，点云缩成围着真解 $x$ 的一小圈，放大倍数约 $1$。$\kappa \approx 200$ 时，<strong>完全相同</strong>幅度的扰动让解沿着一条对角长针来回滑动——最坏放大倍数大约就是 $\kappa$ 本身。</p>
+<h3 id="矩阵扰动">矩阵扰动</h3>
+$$\frac{\|\delta\vec{x}\|}{\|\vec{x}\|} \;\leq\; \kappa(A)\!\left(\frac{\|\delta A\|}{\|A\|} + \frac{\|\delta\vec{b}\|}{\|\vec{b}\|}\right).$$<p>
+公式还是同样的&quot;罚款率&quot;——矩阵元素的误差也照样被 $\kappa(A)$ 放大。</p>
+<h3 id="经验法则损失多少位有效数字">经验法则：损失多少位有效数字</h3>
+<p>如果 $\kappa(A) \approx 10^k$，在双精度下解 $A\vec{x} = \vec{b}$ 大约会<strong>损失 $k$ 位有效数字</strong>。</p>
+<table>
+  <thead>
+      <tr>
+          <th>$\kappa(A)$</th>
+          <th>损失位数</th>
+          <th>可靠位数</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>$10^{4}$</td>
+          <td>4</td>
+          <td>≈ 12</td>
+      </tr>
+      <tr>
+          <td>$10^{8}$</td>
+          <td>8</td>
+          <td>≈ 8</td>
+      </tr>
+      <tr>
+          <td>$10^{12}$</td>
+          <td>12</td>
+          <td>≈ 4</td>
+      </tr>
+      <tr>
+          <td>$10^{16}$</td>
+          <td>16</td>
+          <td>0（完全不可信）</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="谱半径与迭代收敛">谱半径与迭代收敛</h2>
+<h3 id="定义-1">定义</h3>
+$$\rho(A) = \max_i |\lambda_i|.$$<p>
+它被任何矩阵范数从上方控制：$\rho(A) \leq \|A\|$。</p>
+<h3 id="收敛判据">收敛判据</h3>
+<p>迭代格式 $\vec{x}_{k+1} = B\vec{x}_k + \vec{c}$，从任意初值都收敛<strong>当且仅当</strong> $\rho(B) < 1$。</p>
+<p><strong>淋浴水温类比。</strong> 如果系统稳定（$\rho < 1$），每次调节都更接近目标温度；如果不稳定（$\rho \geq 1$），水温就会在冰水和滚烫之间反复横跳。</p>
+<p><strong>收敛速度。</strong> 每迭代一次误差大约缩小为 $\rho(B)$ 倍，所以达到误差 $\epsilon$ 大约需要 $\log\epsilon / \log\rho(B)$ 步。$\rho$ 越小，收敛越快。</p>
+<h3 id="neumann-级数">Neumann 级数</h3>
+$$(I - A)^{-1} = I + A + A^2 + A^3 + \cdots,$$<p>
+正是 $\frac{1}{1-x} = 1 + x + x^2 + \cdots$ 的矩阵版本。在摄动分析和小矩阵逆的近似计算中很常用。</p>
+<hr>
+<h2 id="数值稳定性算法挑选学">数值稳定性：算法挑选学</h2>
+<h3 id="为什么正规方程是个陷阱">为什么正规方程是个陷阱</h3>
+$$\kappa(A^TA) = \kappa(A)^2.$$<p>
+$A$ 的条件数是 $10^6$，正规方程的条件数就成了 $10^{12}$——这是你自己亲手制造的灾难。</p>
+<h3 id="qr稳定的替代">QR：稳定的替代</h3>
+<p>用 $A = QR$ 求解 $R\hat{\vec{x}} = Q^T\vec{b}$。因为 $Q$ 是正交矩阵，问题的条件数仍然是 $\kappa(A)$，没有被平方。这是几乎所有现代最小二乘库的默认做法。</p>
+<h3 id="svd最稳定但最贵">SVD：最稳定但最贵</h3>
+<p>用伪逆 $\hat{\vec{x}} = V\Sigma^+U^T\vec{b}$ 求解。SVD 优雅地处理秩亏问题，给出最小范数解，并把奇异值送给你做&quot;赠品&quot;。代价是大约 2–3 倍 QR 的开销。</p>
+<h3 id="三种解法的对比">三种解法的对比</h3>
+<p>下图用同一个 $50 \times 50$ 系统 $Ax = b$，把三种解法在条件数从 $10^2$ 一路加到 $10^{14}$ 的过程中，相对误差的演化画出来：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/10-%E7%9F%A9%E9%98%B5%E8%8C%83%E6%95%B0%E4%B8%8E%E6%9D%A1%E4%BB%B6%E6%95%B0/fig7_numerical_stability.png" alt="数值稳定性：三种解法的误差 vs 条件数" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>三个值得注意的现象。(1) QR 和 SVD 的曲线几乎重合，沿着 $\varepsilon_{\text{mach}} \cdot \kappa$ 这条参考线一路向上。(2) 正规方程的曲线在双对数坐标下斜率是它们的两倍——这就是 $\kappa^2$ 的&quot;税金&quot;。(3) 在 $\kappa \approx 10^8$ 附近，正规方程已经穿过了&quot;完全不可信&quot;的红线，QR / SVD 这时候还有八位有效数字。<strong>算法的选择，要在数据进入之前就做好。</strong></p>
+<hr>
+<h2 id="预条件驯服病态矩阵">预条件：驯服病态矩阵</h2>
+<h3 id="核心想法">核心想法</h3>
+$$M^{-1}A\vec{x} = M^{-1}\vec{b}.$$<p>
+若 $M \approx A$，则 $M^{-1}A \approx I$，新系统 $\kappa(M^{-1}A) \approx 1$。</p>
+<p><strong>类比。</strong> 用厨房秤称大象毫无意义——但如果你已经粗略知道大象重多少，秤只需要量误差就行。预条件就是把一个&quot;尺度不对&quot;的问题，搬到你的工具能称量的尺度上。</p>
+<h3 id="常见预条件子">常见预条件子</h3>
+<table>
+  <thead>
+      <tr>
+          <th>预条件子</th>
+          <th>$M$</th>
+          <th>优点</th>
+          <th>缺点</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Jacobi</td>
+          <td>$\text{diag}(A)$</td>
+          <td>实现简单，天然并行</td>
+          <td>提升有限</td>
+      </tr>
+      <tr>
+          <td>Gauss–Seidel</td>
+          <td>$A$ 的下三角部分</td>
+          <td>比 Jacobi 强</td>
+          <td>不易并行</td>
+      </tr>
+      <tr>
+          <td>不完全 LU（ILU）</td>
+          <td>稀疏近似 $LU$</td>
+          <td>通用且强力</td>
+          <td>需要控制填入元</td>
+      </tr>
+      <tr>
+          <td>不完全 Cholesky（ICC）</td>
+          <td>稀疏近似 $LL^T$</td>
+          <td>存储减半</td>
+          <td>仅适用于对称正定</td>
+      </tr>
+  </tbody>
+</table>
+<p>权衡是一致的：预条件越强，迭代次数越少，但每步代价更高。最强的预条件子往往利用问题本身的结构（PDE 用几何多重网格，并行求解用域分解，等等）。</p>
+<hr>
+<h2 id="应用拾遗">应用拾遗</h2>
+<h3 id="有限元分析">有限元分析</h3>
+<p>结构力学里的刚度矩阵 $K$ 满足 $\kappa(K) \propto h^{-2}$，$h$ 是网格尺寸。为捕捉几何细节而细化网格，会让矩阵越来越难解。如果网格高度不均匀，或者材料属性差异巨大（比如钢筋混凝土，钢和混凝土的刚度差好几个数量级），情况更糟——预条件几乎是必需的。</p>
+<h3 id="图像去模糊">图像去模糊</h3>
+$$\min_{\vec{x}} \|B\vec{x} - \vec{y}\|^2 + \lambda\|\vec{x}\|^2.$$<p>
+正则化参数 $\lambda$ 在保真度和稳定性之间做权衡——本质上是把条件数里的 $\sigma_{\min}$ 换成了 $\sqrt{\sigma_{\min}^2 + \lambda}$，哪怕 $\lambda$ 很小，也能救活整个问题。</p>
+<h3 id="深度学习梯度消失与爆炸">深度学习：梯度消失与爆炸</h3>
+<p>权重矩阵的谱范数控制信号传播：</p>
+<ul>
+<li>大量层 $\|W\|_2 > 1$：前向信号（和反向梯度）指数爆炸。</li>
+<li>大量层 $\|W\|_2 < 1$：信号指数衰减；梯度消失。</li>
+</ul>
+<p>应对手段——批归一化、合适的初始化（Xavier、He）、残差连接、梯度裁剪——都可以理解为：让网络雅可比矩阵的有效谱范数尽量贴近 $1$。</p>
+<h3 id="机器学习中的正则化">机器学习中的正则化</h3>
+$$\kappa(X^TX + \lambda I) = \frac{\sigma_1^2 + \lambda}{\sigma_n^2 + \lambda}.$$<p>
+不大的 $\lambda$ 就能把条件数砍下好几个数量级。同样的思路（Levenberg–Marquardt、信赖域、weight decay）在优化里反复出现。</p>
+<hr>
+<h2 id="python-示例">Python 示例</h2>
+<h3 id="计算各种范数和条件数">计算各种范数和条件数</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">              <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Frobenius 范数 : </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="s1">&#39;fro&#39;</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;谱范数         : </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;1 范数         : </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;无穷范数       : </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;条件数         : </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">A</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="hilbert-矩阵实验">Hilbert 矩阵实验</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">hilbert</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">sizes</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">conds</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">hilbert</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">sizes</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sizes</span><span class="p">),</span> <span class="n">conds</span><span class="p">,</span> <span class="s2">&#34;o-&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&#34;矩阵阶 n&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&#34;条件数&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">plt</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mf">1e16</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&#34;--&#34;</span><span class="p">)</span>  <span class="c1"># 双精度天花板</span>
+</span></span><span class="line"><span class="cl"><span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&#34;Hilbert 矩阵：条件数随 n 爆炸&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="三种最小二乘解法的对比">三种最小二乘解法的对比</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">compare_methods</span><span class="p">(</span><span class="n">cond_target</span><span class="o">=</span><span class="mf">1e8</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Q1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Q2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">cond_target</span><span class="p">),</span> <span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">A</span> <span class="o">=</span> <span class="n">Q1</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">@</span> <span class="n">Q2</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">x_true</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">b</span> <span class="o">=</span> <span class="n">A</span> <span class="o">@</span> <span class="n">x_true</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">x_normal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">A</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">b</span><span class="p">)</span>        <span class="c1"># 危险解法</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Q</span><span class="p">,</span> <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">A</span><span class="p">);</span> <span class="n">x_qr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">Q</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">b</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x_svd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">rcond</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;kappa(A)        : </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">A</span><span class="p">)</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;正规方程误差     : </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_normal</span> <span class="o">-</span> <span class="n">x_true</span><span class="p">)</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;QR 误差         : </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_qr</span> <span class="o">-</span> <span class="n">x_true</span><span class="p">)</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;SVD 误差        : </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_svd</span> <span class="o">-</span> <span class="n">x_true</span><span class="p">)</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">compare_methods</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="习题">习题</h2>
+<h3 id="热身">热身</h3>
+<ol>
+<li>计算 $\vec{x} = (3, -4, 0, 1)$ 的 $\|\vec{x}\|_1$、$\|\vec{x}\|_2$、$\|\vec{x}\|_\infty$。</li>
+<li>计算 $A = \begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix}$ 的 Frobenius 范数和谱范数。</li>
+<li>对对角矩阵 $D = \text{diag}(d_1, \ldots, d_n)$，证明 $\kappa_2(D) = \max|d_i| / \min|d_i|$。</li>
+</ol>
+<h3 id="进阶">进阶</h3>
+<ol start="4">
+<li>证明：对任意矩阵范数都有 $\rho(A) \leq \|A\|$。</li>
+<li>证明：若 $\|A\| < 1$（诱导范数），则 $I - A$ 可逆。</li>
+<li>证明：正交矩阵 $Q$ 满足 $\kappa_2(Q) = 1$。</li>
+<li>用 <code>np.linalg.cond</code> 估计 $\kappa(H_n)$ 在 $n = 2, \ldots, 15$ 时的值，把它画在半对数坐标里并拟合直线，估计经验增长率。</li>
+</ol>
+<h3 id="编程题">编程题</h3>
+<ol start="8">
+<li>不调用 <code>np.linalg.norm</code>，从头实现 $\|A\|_1$、$\|A\|_2$、$\|A\|_\infty$。</li>
+<li>复现本章的稳定性图：在不断增大的条件数下，画出正规方程、QR、SVD 三种最小二乘解的相对误差。</li>
+<li>实现带和不带对角预条件的 Jacobi 迭代，画出&quot;达到收敛所需迭代次数 vs 迭代矩阵谱半径&quot;的关系曲线。</li>
+</ol>
+<hr>
+<h2 id="工程实务速查表">工程实务速查表</h2>
+<table>
+  <thead>
+      <tr>
+          <th>$\kappa(A)$</th>
+          <th>风险</th>
+          <th>建议</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>$< 10^{4}$</td>
+          <td>低</td>
+          <td>标准方法即可</td>
+      </tr>
+      <tr>
+          <td>$10^{4}$–$10^{8}$</td>
+          <td>中</td>
+          <td>校验结果；优先 QR 或 SVD</td>
+      </tr>
+      <tr>
+          <td>$10^{8}$–$10^{12}$</td>
+          <td>高</td>
+          <td>引入正则化或预条件</td>
+      </tr>
+      <tr>
+          <td>$> 10^{12}$</td>
+          <td>极高</td>
+          <td>退一步，重新建模</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="本章总结">本章总结</h2>
+<table>
+  <thead>
+      <tr>
+          <th>概念</th>
+          <th>关键公式</th>
+          <th>直觉</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>向量范数</td>
+          <td>$|\vec{x}|_p = (\sum</td>
+          <td>x_i</td>
+      </tr>
+      <tr>
+          <td>Frobenius 范数</td>
+          <td>$\|A\|_F = \sqrt{\sum a_{ij}^2}$</td>
+          <td>矩阵的总能量</td>
+      </tr>
+      <tr>
+          <td>谱范数</td>
+          <td>$\|A\|_2 = \sigma_{\max}$</td>
+          <td>最大放大倍数</td>
+      </tr>
+      <tr>
+          <td>条件数</td>
+          <td>$\kappa = \sigma_{\max}/\sigma_{\min}$</td>
+          <td>误差放大上界</td>
+      </tr>
+      <tr>
+          <td>谱半径</td>
+          <td>$\rho(A) = \max</td>
+          <td>\lambda_i</td>
+      </tr>
+      <tr>
+          <td>正规方程</td>
+          <td>$\kappa(A^TA) = \kappa(A)^2$</td>
+          <td>它危险的根本原因</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<ul>
+<li><strong>上一篇：</strong> <a href="/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e4%b9%9d-%e5%a5%87%e5%bc%82%e5%80%bc%e5%88%86%e8%a7%a3SVD/">第九章：奇异值分解 SVD</a>
+</li>
+<li><strong>下一篇：</strong> <a href="/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e5%8d%81%e4%b8%80-%e7%9f%a9%e9%98%b5%e5%be%ae%e7%a7%af%e5%88%86%e4%b8%8e%e4%bc%98%e5%8c%96/">第十一章：矩阵微积分与优化</a>
+</li>
+<li><strong>完整系列：</strong> 线性代数的本质（1–18）</li>
+</ul>
+<h2 id="参考资料">参考资料</h2>
+<ul>
+<li>Golub, G. H. &amp; Van Loan, C. F. (2013). <em>Matrix Computations</em>, 4th ed. —— 数值线性代数圣经，条件数分析的权威。</li>
+<li>Trefethen, L. N. &amp; Bau, D. (1997). <em>Numerical Linear Algebra</em>. —— 几何直觉极佳的稳定性讲解。</li>
+<li>Higham, N. J. (2002). <em>Accuracy and Stability of Numerical Algorithms</em>, 2nd ed. —— 数值稳定性百科全书。</li>
+<li>Demmel, J. W. (1997). <em>Applied Numerical Linear Algebra</em>. —— 理论与实践兼顾，应用案例丰富。</li>
+<li>Saad, Y. (2003). <em>Iterative Methods for Sparse Linear Systems</em>, 2nd ed. —— 迭代方法与预条件技术的详尽指南。</li>
+</ul>
+<p><em>本文是&quot;线性代数的本质&quot;系列第 10 章，共 18 章。</em></p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#困扰工程师的那个问题">困扰工程师的那个问题</a>
+      <ul>
+        <li><a href="#本章要点">本章要点</a></li>
+        <li><a href="#前置知识">前置知识</a></li>
+      </ul>
+    </li>
+    <li><a href="#向量范数度量大小">向量范数：度量&quot;大小&quot;</a>
+      <ul>
+        <li><a href="#什么是范数">什么是范数？</a></li>
+        <li><a href="#必须熟记的三种范数">必须熟记的三种范数</a></li>
+        <li><a href="#单位球的几何">单位球的几何</a></li>
+        <li><a href="#范数等价定理">范数等价定理</a></li>
+      </ul>
+    </li>
+    <li><a href="#矩阵范数这个变换有多猛">矩阵范数：这个变换有多&quot;猛&quot;？</a>
+      <ul>
+        <li><a href="#frobenius-范数把矩阵当成一个长向量">Frobenius 范数：把矩阵当成一个长向量</a></li>
+        <li><a href="#诱导范数最大放大倍数">诱导范数：最大放大倍数</a></li>
+        <li><a href="#谱范数当家花旦">谱范数：当家花旦</a></li>
+        <li><a href="#frobenius-与谱范数两种大小观">Frobenius 与谱范数：两种&quot;大小观&quot;</a></li>
+        <li><a href="#次乘性">次乘性</a></li>
+      </ul>
+    </li>
+    <li><a href="#条件数线性系统的体检报告">条件数：线性系统的体检报告</a>
+      <ul>
+        <li><a href="#定义">定义</a></li>
+        <li><a href="#关键性质">关键性质</a></li>
+        <li><a href="#一句话几何意义">一句话几何意义</a></li>
+      </ul>
+    </li>
+    <li><a href="#病态矩阵数值计算的噩梦">病态矩阵：数值计算的噩梦</a>
+      <ul>
+        <li><a href="#hilbert-矩阵">Hilbert 矩阵</a></li>
+        <li><a href="#把爆炸画出来">把&quot;爆炸&quot;画出来</a></li>
+        <li><a href="#病态从哪儿来">病态从哪儿来？</a></li>
+      </ul>
+    </li>
+    <li><a href="#误差分析条件数到底放大了多少">误差分析：条件数到底放大了多少</a>
+      <ul>
+        <li><a href="#右端项扰动">右端项扰动</a></li>
+        <li><a href="#矩阵扰动">矩阵扰动</a></li>
+        <li><a href="#经验法则损失多少位有效数字">经验法则：损失多少位有效数字</a></li>
+      </ul>
+    </li>
+    <li><a href="#谱半径与迭代收敛">谱半径与迭代收敛</a>
+      <ul>
+        <li><a href="#定义-1">定义</a></li>
+        <li><a href="#收敛判据">收敛判据</a></li>
+        <li><a href="#neumann-级数">Neumann 级数</a></li>
+      </ul>
+    </li>
+    <li><a href="#数值稳定性算法挑选学">数值稳定性：算法挑选学</a>
+      <ul>
+        <li><a href="#为什么正规方程是个陷阱">为什么正规方程是个陷阱</a></li>
+        <li><a href="#qr稳定的替代">QR：稳定的替代</a></li>
+        <li><a href="#svd最稳定但最贵">SVD：最稳定但最贵</a></li>
+        <li><a href="#三种解法的对比">三种解法的对比</a></li>
+      </ul>
+    </li>
+    <li><a href="#预条件驯服病态矩阵">预条件：驯服病态矩阵</a>
+      <ul>
+        <li><a href="#核心想法">核心想法</a></li>
+        <li><a href="#常见预条件子">常见预条件子</a></li>
+      </ul>
+    </li>
+    <li><a href="#应用拾遗">应用拾遗</a>
+      <ul>
+        <li><a href="#有限元分析">有限元分析</a></li>
+        <li><a href="#图像去模糊">图像去模糊</a></li>
+        <li><a href="#深度学习梯度消失与爆炸">深度学习：梯度消失与爆炸</a></li>
+        <li><a href="#机器学习中的正则化">机器学习中的正则化</a></li>
+      </ul>
+    </li>
+    <li><a href="#python-示例">Python 示例</a>
+      <ul>
+        <li><a href="#计算各种范数和条件数">计算各种范数和条件数</a></li>
+        <li><a href="#hilbert-矩阵实验">Hilbert 矩阵实验</a></li>
+        <li><a href="#三种最小二乘解法的对比">三种最小二乘解法的对比</a></li>
+      </ul>
+    </li>
+    <li><a href="#习题">习题</a>
+      <ul>
+        <li><a href="#热身">热身</a></li>
+        <li><a href="#进阶">进阶</a></li>
+        <li><a href="#编程题">编程题</a></li>
+      </ul>
+    </li>
+    <li><a href="#工程实务速查表">工程实务速查表</a></li>
+    <li><a href="#本章总结">本章总结</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+    <li><a href="#参考资料">参考资料</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">线性代数</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6100</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

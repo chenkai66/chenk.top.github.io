@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning · Chen Kai Blog</title>
+<meta name="description" content="How do RL agents discover rewards when the environment gives almost no feedback? From count-based methods to ICM, RND, and NGU -- the science of curiosity-driven exploration.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning">
+<meta property="og:description" content="How do RL agents discover rewards when the environment gives almost no feedback? From count-based methods to ICM, RND, and NGU -- the science of curiosity-driven exploration.">
+<meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Reinforcement Learning</a>
+         · Chapter 4
+      </div>
+      <h1>Reinforcement Learning (4): Exploration Strategies and Curiosity-Driven Learning</h1>
+      <p class="deck">How do RL agents discover rewards when the environment gives almost no feedback? From count-based methods to ICM, RND, and NGU -- the science of curiosity-driven exploration.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-08-16">August 16, 2025</time> · 18 min read · 3700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/reinforcement-learning/" class="tag">#Reinforcement Learning</a><a href="/en/tags/exploration-strategies/" class="tag">#Exploration Strategies</a><a href="/en/tags/intrinsic-reward/" class="tag">#Intrinsic Reward</a><a href="/en/tags/curiosity-driven-learning/" class="tag">#Curiosity-Driven Learning</a><a href="/en/tags/icm/" class="tag">#ICM</a><a href="/en/tags/rnd/" class="tag">#RND</a><a href="/en/tags/ngu/" class="tag">#NGU</a><a href="/en/tags/count-based-methods/" class="tag">#Count-Based Methods</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Drop a fresh agent into Montezuma&rsquo;s Revenge. To score a single point it must walk to the right, jump a skull, climb a rope, leap to a platform, and grab a key &ndash; roughly <strong>a hundred precise actions in a row</strong>. Until that key is collected, every reward signal is exactly zero.</p>
+<p>A textbook DQN with $\varepsilon=0.1$ exploration has, by a generous estimate, a $0.1^{100} \approx 10^{-100}$ chance of stumbling onto that key by accident. Unsurprisingly, vanilla DQN scores <strong>0</strong> on this game. Not &ldquo;low&rdquo; &ndash; literally zero, every episode, for the entire training run.</p>
+<p>This is the <strong>sparse-reward problem</strong>, and it exposes an uncomfortable truth: a deep RL algorithm is only as good as its exploration strategy. Even the finest Bellman backup is useless if the agent never observes a non-zero reward to back up. This chapter walks the path from blind random exploration to <strong>curiosity-driven learning</strong> &ndash; algorithms that manufacture their own rewards for discovering anything new.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>Why $\varepsilon$-greedy, Boltzmann, and even UCB collapse in high-dimensional environments</li>
+<li><strong>Count-based</strong> methods and pseudo-counts via density models</li>
+<li><strong>ICM</strong> (Intrinsic Curiosity Module): prediction error in a learned feature space</li>
+<li><strong>RND</strong> (Random Network Distillation): the simplest curiosity signal that actually works at scale</li>
+<li><strong>NGU</strong> (Never Give Up): episodic memory for tasks that punish forgetting</li>
+<li>Practical PPO + curiosity recipes, hyper-parameters, and failure modes</li>
+</ul>
+<p><strong>Prerequisites:</strong> <a href="/en/reinforcement-learning-1-fundamentals-and-core-concepts/">Part 1-3</a>
+ (MDPs, DQN, policy gradients, PPO basics).</p>
+<hr>
+<h2 id="1-why-exploration-is-so-hard">1. Why exploration is so hard</h2>
+<h3 id="11-classical-schedules-and-what-they-actually-look-like">1.1 Classical schedules and what they actually look like</h3>
+<p>Every introductory RL course starts with <strong>$\varepsilon$-greedy</strong>: with probability $\varepsilon$ pick a uniformly random action, otherwise pick the greedy one. The hard part is not the formula &ndash; it is the <em>schedule</em>: how should $\varepsilon$ decay as training progresses?</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig1_epsilon_greedy_decay.png" alt="Epsilon-greedy decay schedules and induced action probabilities" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure above shows three popular schedules (linear, exponential, piecewise step) on the left, and on the right what the actual action distribution looks like under linear decay with four available actions. Three observations are worth internalising:</p>
+<ol>
+<li><strong>Different schedules give very different &ldquo;exploration budgets.&rdquo;</strong> Exponential decay spends most of its random actions in the first 20k steps; linear decay spreads them more evenly; step schedules behave like crude curricula.</li>
+<li><strong>Even at $\varepsilon = 0.05$ a quarter of the random actions still go to the greedy choice</strong> ($1 - \varepsilon + \varepsilon/|\mathcal{A}|$), which surprises people who expect 5% noise to mean 5% off-policy behaviour.</li>
+<li><strong>Nothing in any of these curves looks at the state.</strong> Exploration is purely a function of training step. That is the central weakness we are about to attack.</li>
+</ol>
+<p>Mathematically:</p>
+$$
+\pi_\varepsilon(a \mid s) = \begin{cases}
+1 - \varepsilon + \dfrac{\varepsilon}{|\mathcal{A}|} & a = \arg\max_{a'} Q(s, a') \\[4pt]
+\dfrac{\varepsilon}{|\mathcal{A}|} & \text{otherwise}
+\end{cases}
+$$<h3 id="12-boltzmann-softmax-exploration-a-marginal-upgrade">1.2 Boltzmann (softmax) exploration: a marginal upgrade</h3>
+<p>Instead of an all-or-nothing random kick, <strong>Boltzmann</strong> weights actions by their Q-values:</p>
+$$
+\pi_\tau(a \mid s) = \frac{\exp(Q(s,a)/\tau)}{\sum_{a'} \exp(Q(s,a')/\tau)}.
+$$<p>The temperature $\tau$ replaces $\varepsilon$ as the exploration knob. As $\tau \to 0$ the policy becomes greedy; as $\tau \to \infty$ it becomes uniform.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig2_boltzmann_softmax.png" alt="Boltzmann action distribution and policy entropy for several temperatures" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The right panel plots policy entropy $H(\pi_\tau) = -\sum_a \pi_\tau(a) \log \pi_\tau(a)$ against $\tau$. The curve flattens to the maximum value $\ln |\mathcal{A}|$ surprisingly fast: by $\tau = 2$ you are already above 90 % of maximum entropy. This is exactly the <strong>entropy bonus</strong> trick used inside PPO and SAC &ndash; it is Boltzmann exploration, repackaged as a regulariser on the policy network.</p>
+<p>But Boltzmann shares $\varepsilon$-greedy&rsquo;s fatal flaw: it spreads probability based on the agent&rsquo;s <em>current Q estimates</em>, not on any notion of how much it has actually visited each region of the state space. Two states the agent has never seen still get the same softmax over the same untrained Q-values.</p>
+<h3 id="13-ucb-the-principled-approach-that-does-not-scale">1.3 UCB: the principled approach that does not scale</h3>
+<p>For multi-armed bandits, the classical <strong>UCB1</strong> rule is provably near-optimal:</p>
+$$
+a_t = \arg\max_a \left[ \hat Q(a) + c \sqrt{\frac{\ln t}{N(a)}} \right].
+$$<p>The first term <em>exploits</em>; the second <em>explores</em> &ndash; arms pulled fewer times get a larger uncertainty bonus.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig3_ucb_bandit.png" alt="UCB1 score decomposition and arm-pull statistics over a 5-arm bandit" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Watch what happens in the figure above. At $t = 50$ the bonus dominates (orange bars), all arms look attractive, and pulls are spread across the bandit. By $t = 1000$ the uncertainty bonus has shrunk for the optimal arm 3 (it has been pulled hundreds of times) but stays high for the rest, so the algorithm settles into a <em>near-greedy regime</em> on arm 3 while still occasionally checking the others. This is exploration done right &ndash; and it is <em>guided by data</em>, not by a pre-baked schedule.</p>
+<p>So why do we not just use UCB everywhere? <strong>Because $N(s,a)$ is meaningless in high-dimensional state spaces.</strong> In Atari each frame is $84 \times 84 \times 4 = 28{,}224$ pixels; the agent will essentially never see the same state twice. So $N(s, a) = 1$ for almost every encountered state-action pair, and the bonus becomes a useless constant.</p>
+<h3 id="14-thompson-sampling-posterior-beliefs-over-rewards">1.4 Thompson sampling: posterior beliefs over rewards</h3>
+<p>A close cousin of UCB is <strong>Thompson sampling</strong>: maintain a posterior over each arm&rsquo;s reward parameter, sample one possible world from that posterior, and pick the action that is best in that sampled world. For Bernoulli arms with a Beta prior the update is delightfully simple &ndash; on success increment $\alpha$, on failure increment $\beta$.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig4_thompson_sampling.png" alt="Beta posteriors for three Bernoulli arms after 10, 50, and 300 pulls" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure shows posteriors sharpening around the true reward rates (dashed). After 10 pulls the algorithm has barely committed; by 300 pulls the posterior on the best arm (arm 2, $\mu = 0.75$) is a tight spike, while losing arms still carry enough variance to keep them in the running. Thompson sampling tends to match or beat UCB in practice and is widely used inside contextual-bandit recommender systems. As an exploration strategy in deep RL, however, it suffers the same generalisation problem as UCB: maintaining a posterior over a $10^{60}$-dimensional state-action space is intractable, and <em>Bayesian</em> deep RL approaches (e.g. <strong>Bootstrapped DQN</strong>, <strong>Bayes by Backprop</strong>) only partially recover its benefits.</p>
+<h3 id="15-four-reasons-exploration-is-hard-in-deep-rl">1.5 Four reasons exploration is hard in deep RL</h3>
+<p>Putting the pieces together, the difficulty of exploration in real environments compounds along four axes:</p>
+<ol>
+<li><strong>Sparse rewards.</strong> Hundreds or thousands of correct actions before any external signal arrives. Random exploration cannot find a needle in this haystack.</li>
+<li><strong>Combinatorial state spaces.</strong> $256^{28224}$ possible Atari frames; you cannot count visits if you never see the same thing twice.</li>
+<li><strong>Local optima.</strong> Small early rewards (a coin in a dead-end corridor) can permanently distract the agent from the much larger reward behind a hard-to-find door.</li>
+<li><strong>The noisy-TV problem.</strong> A naive novelty signal mistakes random pixel noise for &ldquo;new and interesting.&rdquo; Drop a TV showing static into the room and the agent will sit and watch it forever.</li>
+</ol>
+<p>The conceptual leap of the modern era is to stop computing exploration as a <em>function of step number</em> and start computing it as a <em>function of the agent&rsquo;s own experience</em>. Babies do this naturally: they play with new toys, not old ones.</p>
+<hr>
+<h2 id="2-the-curiosity-blueprint-intrinsic-rewards">2. The curiosity blueprint: intrinsic rewards</h2>
+<p>Every modern method we will discuss adds a <strong>intrinsic reward</strong> $r^{\text{int}}_t$ on top of the environment&rsquo;s external reward:</p>
+$$
+r^{\text{total}}_t = r^{\text{ext}}_t + \beta \cdot r^{\text{int}}_t.
+$$<p>The agent is then trained on $r^{\text{total}}$ with whatever RL algorithm you like (DQN, PPO, IMPALA, &hellip;). All the design effort goes into a single question:</p>
+<blockquote>
+<p><strong>How do we compute $r^{\text{int}}_t$ so it is large for genuinely novel experiences and small for stale ones, without requiring us to count pixels?</strong></p>
+</blockquote>
+<p>We now look at three increasingly elegant answers.</p>
+<hr>
+<h2 id="3-count-based-methods-when-counting-still-works">3. Count-based methods: when counting still works</h2>
+<p>The cleanest definition of novelty is &ldquo;states I have visited fewer times.&rdquo; For tabular MDPs this gives the MBIE-EB bonus</p>
+$$
+r^{\text{int}}(s) = \frac{\beta}{\sqrt{N(s)}},
+$$<p>which has matching theoretical guarantees to UCB. The headache is that $N(s) = 0$ for almost every state in pixel-based environments.</p>
+<p>Bellemare et al. (2016) replaced the literal count with a <strong>pseudo-count</strong> derived from a density model $\rho(s)$:</p>
+$$
+\hat N(s) = \frac{\rho(s)\bigl(1 - \rho_{\text{new}}(s)\bigr)}{\rho_{\text{new}}(s) - \rho(s)},
+$$<p>where $\rho_{\text{new}}$ is the model&rsquo;s density after training on one extra observation of $s$. The construction pretends $\rho$ is the empirical distribution of a giant counter and inverts it. With a strong density model (PixelCNN, neural autoregressive models) this delivers the first non-trivial scores on Montezuma&rsquo;s Revenge &ndash; but the model is expensive to train, fragile, and the noisy-TV problem is still wide open: random pixel noise looks low-density, hence high-novelty, hence highly rewarded. Modern systems abandoned pseudo-counts for the more robust prediction-error methods we cover next.</p>
+<hr>
+<h2 id="4-icm-curiosity-through-prediction-error">4. ICM: curiosity through prediction error</h2>
+<p><strong>Intrinsic Curiosity Module (ICM)</strong> (Pathak et al., ICML 2017) replaces &ldquo;have I seen this before?&rdquo; with &ldquo;can I predict what happens next?&rdquo;. The intuition:</p>
+<ul>
+<li>If the environment&rsquo;s response to my action is <em>predictable</em>, I already understand it &ndash; low intrinsic reward.</li>
+<li>If the response <em>surprises</em> me, I have found something I do not yet model &ndash; high intrinsic reward.</li>
+</ul>
+<p>But predicting raw pixels is a bad idea: TV static is unpredictable yet useless. ICM&rsquo;s brilliant move is to predict in a <strong>learned feature space</strong> $\phi$ that only encodes information <em>the agent&rsquo;s actions can affect</em>.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig5_icm_rnd_architecture.png" alt="ICM and RND architectures side by side" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The left half of the figure above shows the three components:</p>
+<ol>
+<li><strong>Encoder $\phi$</strong> (CNN) maps $s_t$ to a feature vector $\phi(s_t)$.</li>
+<li><strong>Forward model $\hat f$</strong> predicts the next features from current features and action: $\hat\phi_{t+1} = \hat f(\phi(s_t), a_t)$. Its squared error
+$$r^{\text{int}}_t = \eta \,\bigl\| \hat\phi_{t+1} - \phi(s_{t+1}) \bigr\|^2$$
+<em>is</em> the intrinsic reward.</li>
+<li><strong>Inverse model $g$</strong> predicts the action from a pair of consecutive features: $\hat a_t = g(\phi(s_t), \phi(s_{t+1}))$. Its loss flows back into the encoder $\phi$.</li>
+</ol>
+<p>Step 3 is the magic ingredient. The inverse model can only succeed if $\phi$ retains information that <em>changes between $s_t$ and $s_{t+1}$ as a function of the agent&rsquo;s action</em>. Static background pixels, TV noise, and other action-independent distractions get filtered out of $\phi$ because they do not help predict $a_t$. Once they are gone, the forward model cannot mistake them for novelty.</p>
+<h3 id="reference-implementation">Reference implementation</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ICM</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Intrinsic Curiosity Module (Pathak et al., 2017).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs_channels</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">feature_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Feature encoder (Atari-style CNN).</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">obs_channels</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="n">feature_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Forward model: (phi_t, a_t) -&gt; phi_{t+1}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">forward_model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">feature_dim</span> <span class="o">+</span> <span class="n">action_dim</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">feature_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Inverse model: (phi_t, phi_{t+1}) -&gt; a_t</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">inverse_model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">feature_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">next_obs</span><span class="p">,</span> <span class="n">action_onehot</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">phi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">phi_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">next_obs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Forward prediction error == intrinsic reward.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">phi_next_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_model</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">phi</span><span class="p">,</span> <span class="n">action_onehot</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">forward_err</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">phi_next_pred</span><span class="p">,</span> <span class="n">phi_next</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;none&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">intrinsic_reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">*</span> <span class="n">forward_err</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Inverse-model loss trains the encoder to keep only</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># action-relevant information.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">action_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inverse_model</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">phi</span><span class="p">,</span> <span class="n">phi_next</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">inverse_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">action_pred</span><span class="p">,</span> <span class="n">action_onehot</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">intrinsic_reward</span><span class="p">,</span> <span class="n">forward_err</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">inverse_loss</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="what-you-can-expect">What you can expect</h3>
+<p>On Montezuma&rsquo;s Revenge, ICM + A3C reaches roughly <strong>6,600</strong> points within 25 M frames (vanilla DQN sits at 0 forever). Even more striking, an agent trained with <strong>zero external reward</strong> &ndash; only ICM&rsquo;s intrinsic signal &ndash; learns to navigate the first few rooms, dodge enemies, and pick up keys, simply because doing those things keeps its forward model on its toes.</p>
+<h3 id="where-icm-falls-down">Where ICM falls down</h3>
+<ul>
+<li><strong>Stochastic environments.</strong> If a slot machine in the environment has a genuinely random outcome, the forward model can never predict it, and the agent fixates on pulling the lever. The inverse-model trick filters action-independent randomness, but action-<em>dependent</em> randomness still bites.</li>
+<li><strong>Compute.</strong> Three networks (encoder, forward, inverse) on top of your policy; expect roughly 2x training cost compared to vanilla PPO.</li>
+</ul>
+<hr>
+<h2 id="5-rnd-a-startlingly-simple-alternative">5. RND: a startlingly simple alternative</h2>
+<p><strong>Random Network Distillation</strong> (Burda et al., ICLR 2019) replaces the entire forward/inverse machinery with a single observation:</p>
+<blockquote>
+<p><em>Distil a fixed random network. Wherever the predictor still has high error, the agent has not been there enough.</em></p>
+</blockquote>
+<p>Concretely, RND keeps two networks (right half of the architecture figure above):</p>
+<ul>
+<li>A <strong>target network $f$</strong>, with random weights, <strong>frozen</strong> for the entire training run.</li>
+<li>A <strong>predictor network $\hat f$</strong>, trained by gradient descent to minimise $\| \hat f(s) - f(s) \|^2$ on observed states.</li>
+</ul>
+<p>Intrinsic reward is the predictor&rsquo;s residual:</p>
+$$
+r^{\text{int}}(s) = \bigl\| \hat f(s) - f(s) \bigr\|^2.
+$$<p>For a state the predictor has seen many times, training has driven the loss to near zero &ndash; low reward. For a novel state, the predictor has never been trained there, so its output is random and the residual is large &ndash; high reward. The frozen target acts like a deterministic hash function: structurally similar states map to similar targets, so generalisation comes for free.</p>
+<p>The same trick neutralises the noisy-TV problem. Random static frames are visually different but <strong>structurally similar</strong> in the eyes of a random CNN; the predictor learns to match them after a handful of updates and the reward decays to zero. ICM and RND therefore handle &ldquo;noisy TV&rdquo; by completely different mechanisms &ndash; ICM by filtering the <em>features</em>, RND by exploiting the <em>consistency of a random map</em>.</p>
+<h3 id="reference-implementation-1">Reference implementation</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RND</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Random Network Distillation (Burda et al., 2019).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs_channels</span><span class="p">,</span> <span class="n">output_dim</span><span class="o">=</span><span class="mi">512</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Target network: random weights, NEVER updated.</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">obs_channels</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Predictor network: trained to match the target.</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">predictor</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">obs_channels</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Running statistics for reward normalisation.</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">r_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_std</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">compute_reward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">(</span><span class="n">obs</span><span class="p">))</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">r</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">obs</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">loss</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">normalise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Critical: keep intrinsic reward on a stable scale.</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">r_mean</span> <span class="o">=</span> <span class="mf">0.99</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_mean</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">r</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">r_std</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.99</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_std</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">r</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_std</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="headline-numbers">Headline numbers</h3>
+<ul>
+<li><strong>Montezuma&rsquo;s Revenge</strong>: 8,152 average score &ndash; the first algorithm to surpass the human expert benchmark of 7,385.</li>
+<li><strong>Pitfall</strong>: 70.4 (previous best: exactly 0).</li>
+<li>RND was, for a year or two, the strongest reported method on every &ldquo;hard exploration&rdquo; Atari game.</li>
+</ul>
+<p>The two non-obvious tricks that make RND work: (i) <strong>two value heads</strong> in the policy, one for $r^{\text{ext}}$ and one for $r^{\text{int}}$, with separate discount factors; (ii) <strong>per-environment normalisation</strong> of intrinsic rewards using a running estimate of their standard deviation. Without (ii) the intrinsic-reward scale grows wildly, drowns out the external reward, and training collapses.</p>
+<hr>
+<h2 id="6-ngu-never-give-up-on-a-state">6. NGU: never give up on a state</h2>
+<p>RND has a quiet assumption: once a state&rsquo;s predictor error has been driven to zero, that state is never novel again. Most of the time this is what we want. But two important cases break it:</p>
+<ul>
+<li><strong>Key-door tasks.</strong> The agent needs to <em>re-pick-up</em> a key every time it dies and respawns. After the first pickup, RND considers the key location boring; the agent never goes back for it.</li>
+<li><strong>Backtracking.</strong> After exploring the right half of a level, the agent must return through the start and head left. The start has been visited thousands of times; RND sees no reason to ever go through it again.</li>
+</ul>
+<p><strong>Never Give Up (NGU)</strong> (Badia et al., ICLR 2020) repairs this by combining two novelty signals:</p>
+$$
+r^{\text{int}}_t = r^{\text{episodic}}_t \cdot \min\bigl(r^{\text{lifetime}}_t,\; L\bigr).
+$$<ul>
+<li><strong>Episodic novelty</strong> $r^{\text{episodic}}$. Maintain an episodic memory of state embeddings <em>for the current episode only</em>. The reward is large when the current state is far (in embedding space) from anything in this memory. Crucially, the memory <strong>resets on each new episode</strong>, so even a state that has been visited millions of times across training still feels novel within a fresh run.</li>
+<li><strong>Lifetime novelty</strong> $r^{\text{lifetime}}$. The classic RND signal, capped at $L$ to prevent run-away.</li>
+</ul>
+<p>The multiplication insists on both: a state must be locally novel <em>and</em> globally not yet exhausted to score high. NGU also introduces a <strong>family of policies</strong> with different exploration coefficients trained in parallel, and a <strong>directed exploration</strong> scheme on top &ndash; but the episodic-lifetime decomposition is the heart of the idea.</p>
+<p>The successor, <strong>Agent57</strong> (Badia et al., 2020), bolts NGU onto a meta-controller that picks which exploration policy to use at each moment. It is the first single algorithm to surpass the human baseline on <strong>all 57 Atari games</strong>.</p>
+<h3 id="highlight-scores">Highlight scores</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Game</th>
+          <th style="text-align: right">DQN (ε-greedy)</th>
+          <th style="text-align: right">RND</th>
+          <th style="text-align: right">NGU</th>
+          <th style="text-align: right">Human expert</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Montezuma&rsquo;s Revenge</td>
+          <td style="text-align: right">0</td>
+          <td style="text-align: right">8,152</td>
+          <td style="text-align: right">11,000+</td>
+          <td style="text-align: right">7,385</td>
+      </tr>
+      <tr>
+          <td>Pitfall!</td>
+          <td style="text-align: right">0</td>
+          <td style="text-align: right">70</td>
+          <td style="text-align: right">5,000+</td>
+          <td style="text-align: right">6,464</td>
+      </tr>
+      <tr>
+          <td>Private Eye</td>
+          <td style="text-align: right">0</td>
+          <td style="text-align: right">8,800</td>
+          <td style="text-align: right">69,000</td>
+          <td style="text-align: right">69,571</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="7-visualising-the-gap-random-vs-curious-agents">7. Visualising the gap: random vs curious agents</h2>
+<p>It is worth seeing, on a tiny problem, just how different &ldquo;random&rdquo; and &ldquo;curious&rdquo; exploration look.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig7_trajectory_comparison.png" alt="Visit-count heatmaps for ε-greedy and curiosity-driven agents on a 25x25 grid" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Both panels show 1,500 steps of an agent starting at the white star in a 25 x 25 GridWorld. The blue agent is a uniform random walker; the purple agent samples its next move with probability proportional to $1/\sqrt{N(s')}$ over neighbours &ndash; the simplest possible count-based curiosity reward. After the same number of steps, the random walker has covered only <strong>65.6 %</strong> of the grid and revisited its favourite cell <strong>19</strong> times; the curious agent has covered <strong>80 %</strong> with a maximum revisit count of <strong>11</strong>. The right panel makes the same point with a sorted log-scale visit-count distribution: curiosity flattens the head of the distribution (no over-visited cells) and lifts the tail (no neglected cells).</p>
+<p>Now multiply that effect over 100 million Atari frames in a state space the size of an exoplanet and you understand why curiosity is the difference between scoring zero and scoring eleven thousand.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/04-exploration-and-curiosity-driven-learning/fig6_sparse_reward_montezuma.png" alt="Score curves and time-to-first-reward on Montezuma&rsquo;s Revenge" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure above tells the same story at scale. Vanilla DQN stays at zero forever &ndash; it never finds a single reward. Each successive generation of curiosity (count-based -&gt; ICM -&gt; RND -&gt; NGU) shaves frames off the time-to-first-reward and lifts the asymptotic score. NGU is the first to clear the human-expert dashed line.</p>
+<hr>
+<h2 id="8-practical-recipes-ppo--curiosity-in-production">8. Practical recipes: PPO + curiosity in production</h2>
+<h3 id="hyper-parameter-starting-points">Hyper-parameter starting points</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Parameter</th>
+          <th>Suggested start</th>
+          <th>Notes</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Intrinsic coefficient $\beta$</td>
+          <td>0.01</td>
+          <td>Push to 0.1 if rewards are extremely sparse</td>
+      </tr>
+      <tr>
+          <td>Reward normalisation</td>
+          <td><strong>always on</strong>, separately for $r^{\text{ext}}$ and $r^{\text{int}}$</td>
+          <td>Without this, RND/ICM can dwarf the task reward</td>
+      </tr>
+      <tr>
+          <td>Discount $\gamma_{\text{int}}$</td>
+          <td>0.99</td>
+          <td>Often <em>lower</em> than $\gamma_{\text{ext}}$ to encourage local exploration</td>
+      </tr>
+      <tr>
+          <td>Two value heads</td>
+          <td>yes</td>
+          <td>One head per reward stream is consistently better than mixing</td>
+      </tr>
+      <tr>
+          <td>Frame skip / stack</td>
+          <td>4 / 4</td>
+          <td>Atari standard</td>
+      </tr>
+      <tr>
+          <td>Gradient clipping</td>
+          <td>0.5</td>
+          <td>ICM/RND gradients can be heavy-tailed</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="what-progress-should-look-like">What progress should look like</h3>
+<p>On Montezuma&rsquo;s Revenge with PPO + RND on a single modern GPU:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Frames</th>
+          <th>Expected milestone</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>10 M</td>
+          <td>Consistently clears the first room (~100 pts)</td>
+      </tr>
+      <tr>
+          <td>30 M</td>
+          <td>Picks up the key, opens the door (~400 pts)</td>
+      </tr>
+      <tr>
+          <td>100 M</td>
+          <td>Average return 6,000+, occasional 8,000+</td>
+      </tr>
+  </tbody>
+</table>
+<p>If you are stuck below the first milestone for 20 M frames, the most common culprits (in order) are: forgetting to normalise $r^{\text{int}}$, using a single value head, or setting $\beta$ too low.</p>
+<h3 id="choosing-a-method">Choosing a method</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Setting</th>
+          <th>Recommended exploration</th>
+          <th>Reason</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Dense rewards, low-dim observations</td>
+          <td>$\varepsilon$-greedy with linear decay</td>
+          <td>Cheap, sufficient</td>
+      </tr>
+      <tr>
+          <td>Continuous control (MuJoCo, robotics)</td>
+          <td>SAC entropy bonus or parameter noise</td>
+          <td>Smooth action spaces want smooth exploration</td>
+      </tr>
+      <tr>
+          <td>Sparse-reward Atari, single hard game</td>
+          <td><strong>PPO + RND</strong></td>
+          <td>Best simplicity / performance ratio</td>
+      </tr>
+      <tr>
+          <td>Sparse-reward tasks needing revisits</td>
+          <td><strong>NGU</strong></td>
+          <td>Episodic memory handles &ldquo;do this thing again&rdquo;</td>
+      </tr>
+      <tr>
+          <td>All-of-Atari, research-grade results</td>
+          <td>Agent57 / Go-Explore</td>
+          <td>State-of-the-art, much more engineering</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="9-summary-and-what-comes-next">9. Summary and what comes next</h2>
+<p>Exploration is the bottleneck that separates toy reinforcement learning from anything resembling general intelligence. Random exploration scales catastrophically badly &ndash; not because the math is wrong, but because the universe of possible states is unimaginably larger than what uniform sampling can cover.</p>
+<p>The unifying idea behind every modern advance:</p>
+<blockquote>
+<p><strong>Treat curiosity as a learnable reward.</strong> Define &ldquo;novelty&rdquo; operationally &ndash; as low visit count, high prediction error, large distillation residual, or distance from episodic memory &ndash; and let the agent maximise it alongside the task reward.</p>
+</blockquote>
+<p>We saw four concrete instantiations:</p>
+<ul>
+<li><strong>Count-based / pseudo-count</strong> &ndash; elegant in tabular MDPs, fragile in pixels.</li>
+<li><strong>ICM</strong> &ndash; prediction error in a learned, action-relevant feature space.</li>
+<li><strong>RND</strong> &ndash; distillation error of a random network; embarrassingly simple, embarrassingly effective.</li>
+<li><strong>NGU / Agent57</strong> &ndash; episodic and lifetime novelty multiplied together for tasks that punish forgetting.</li>
+</ul>
+<p>The exploration problem is far from closed. Current methods still need on the order of $10^8$-$10^9$ environment frames; the human brain solves Montezuma&rsquo;s Revenge in a few hours. Active research directions include skill discovery, language-grounded exploration, and learning exploration policies from human demonstrations.</p>
+<p><strong>Coming up next:</strong> <a href="/en/reinforcement-learning-5-model-based-rl-and-world-models/">Part 5</a>
+ introduces <strong>Model-Based RL and World Models</strong> &ndash; learning a differentiable simulator of the environment so the agent can &ldquo;dream&rdquo; thousands of imaginary trajectories per real interaction.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Pathak, D., Agrawal, P., Efros, A. A., &amp; Darrell, T. (2017). Curiosity-driven exploration by self-supervised prediction. <em>ICML</em>. <a href="https://arxiv.org/abs/1705.05363" target="_blank" rel="noopener noreferrer">arXiv:1705.05363 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Burda, Y., Edwards, H., Storkey, A., &amp; Klimov, O. (2019). Exploration by random network distillation. <em>ICLR</em>. <a href="https://arxiv.org/abs/1810.12894" target="_blank" rel="noopener noreferrer">arXiv:1810.12894 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Badia, A. P., Sprechmann, P., Vitvitskyi, A., et al. (2020). Never Give Up: learning directed exploration strategies. <em>ICLR</em>. <a href="https://arxiv.org/abs/2002.06038" target="_blank" rel="noopener noreferrer">arXiv:2002.06038 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Badia, A. P., Piot, B., Kapturowski, S., et al. (2020). Agent57: outperforming the Atari human benchmark. <em>ICML</em>. <a href="https://arxiv.org/abs/2003.13350" target="_blank" rel="noopener noreferrer">arXiv:2003.13350 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Bellemare, M. G., Srinivasan, S., Ostrovski, G., Schaul, T., Saxton, D., &amp; Munos, R. (2016). Unifying count-based exploration and intrinsic motivation. <em>NeurIPS</em>. <a href="https://arxiv.org/abs/1606.01868" target="_blank" rel="noopener noreferrer">arXiv:1606.01868 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Ecoffet, A., Huizinga, J., Lehman, J., Stanley, K. O., &amp; Clune, J. (2021). First return, then explore. <em>Nature</em>, 590, 580-586. <a href="https://arxiv.org/abs/2004.12919" target="_blank" rel="noopener noreferrer">arXiv:2004.12919 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Auer, P., Cesa-Bianchi, N., &amp; Fischer, P. (2002). Finite-time analysis of the multi-armed bandit problem. <em>Machine Learning</em>, 47, 235-256.</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Part</th>
+          <th>Topic</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td><a href="/en/reinforcement-learning-1-fundamentals-and-core-concepts/">Fundamentals and Core Concepts</a>
+</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td><a href="/en/reinforcement-learning-2-q-learning-and-dqn/">Q-Learning and DQN</a>
+</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td><a href="/en/reinforcement-learning-3-policy-gradient-and-actor-critic/">Policy Gradient and Actor-Critic</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>4</strong></td>
+          <td><strong>Exploration and Curiosity-Driven Learning (you are here)</strong></td>
+      </tr>
+      <tr>
+          <td>5</td>
+          <td><a href="/en/reinforcement-learning-5-model-based-rl-and-world-models/">Model-Based RL and World Models</a>
+</td>
+      </tr>
+      <tr>
+          <td>6</td>
+          <td><a href="/en/reinforcement-learning-6-ppo-and-trpo/">PPO and TRPO</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#1-why-exploration-is-so-hard">1. Why exploration is so hard</a>
+      <ul>
+        <li><a href="#11-classical-schedules-and-what-they-actually-look-like">1.1 Classical schedules and what they actually look like</a></li>
+        <li><a href="#12-boltzmann-softmax-exploration-a-marginal-upgrade">1.2 Boltzmann (softmax) exploration: a marginal upgrade</a></li>
+        <li><a href="#13-ucb-the-principled-approach-that-does-not-scale">1.3 UCB: the principled approach that does not scale</a></li>
+        <li><a href="#14-thompson-sampling-posterior-beliefs-over-rewards">1.4 Thompson sampling: posterior beliefs over rewards</a></li>
+        <li><a href="#15-four-reasons-exploration-is-hard-in-deep-rl">1.5 Four reasons exploration is hard in deep RL</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-the-curiosity-blueprint-intrinsic-rewards">2. The curiosity blueprint: intrinsic rewards</a></li>
+    <li><a href="#3-count-based-methods-when-counting-still-works">3. Count-based methods: when counting still works</a></li>
+    <li><a href="#4-icm-curiosity-through-prediction-error">4. ICM: curiosity through prediction error</a>
+      <ul>
+        <li><a href="#reference-implementation">Reference implementation</a></li>
+        <li><a href="#what-you-can-expect">What you can expect</a></li>
+        <li><a href="#where-icm-falls-down">Where ICM falls down</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-rnd-a-startlingly-simple-alternative">5. RND: a startlingly simple alternative</a>
+      <ul>
+        <li><a href="#reference-implementation-1">Reference implementation</a></li>
+        <li><a href="#headline-numbers">Headline numbers</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-ngu-never-give-up-on-a-state">6. NGU: never give up on a state</a>
+      <ul>
+        <li><a href="#highlight-scores">Highlight scores</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-visualising-the-gap-random-vs-curious-agents">7. Visualising the gap: random vs curious agents</a></li>
+    <li><a href="#8-practical-recipes-ppo--curiosity-in-production">8. Practical recipes: PPO + curiosity in production</a>
+      <ul>
+        <li><a href="#hyper-parameter-starting-points">Hyper-parameter starting points</a></li>
+        <li><a href="#what-progress-should-look-like">What progress should look like</a></li>
+        <li><a href="#choosing-a-method">Choosing a method</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-summary-and-what-comes-next">9. Summary and what comes next</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Reinforcement Learning</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>18 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3700</strong></div>
+      <div class="row"><span>Published</span><strong>Aug 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

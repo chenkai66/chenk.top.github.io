@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Learning Rate: From Basics to Large-Scale Training · Chen Kai Blog</title>
+<meta name="description" content="A practitioner&#39;s guide to the single most important hyperparameter: why too-large LR explodes, how warmup and schedules really work, the LR range test, the LR-batch-size-weight-decay coupling, and recent ideas like WSD, Schedule-Free AdamW, and D-Adaptation.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/standalone/learning-rate-guide/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/learning-rate-guide/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Learning Rate: From Basics to Large-Scale Training">
+<meta property="og:description" content="A practitioner&#39;s guide to the single most important hyperparameter: why too-large LR explodes, how warmup and schedules really work, the LR range test, the LR-batch-size-weight-decay coupling, and recent ideas like WSD, Schedule-Free AdamW, and D-Adaptation.">
+<meta property="og:url" content="https://www.chenk.top/en/standalone/learning-rate-guide/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
+        
+      </div>
+      <h1>Learning Rate: From Basics to Large-Scale Training</h1>
+      <p class="deck">A practitioner&#39;s guide to the single most important hyperparameter: why too-large LR explodes, how warmup and schedules really work, the LR range test, the LR-batch-size-weight-decay coupling, and recent ideas like WSD, Schedule-Free AdamW, and D-Adaptation.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2023-03-13">March 13, 2023</time> · 19 min read · 4100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/ml/" class="tag">#ML</a><a href="/en/tags/optimization/" class="tag">#Optimization</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/llm/" class="tag">#LLM</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Your model diverges. You halve the learning rate. Now it trains, but takes forever. You halve again — now the loss is a flat line. Sound familiar? Of all the knobs you can turn, <strong>learning rate</strong> is the one that most often decides whether training converges, crawls, or blows up. This guide gives you the intuition, the minimal math, and a practical workflow to get it right — from a 12-layer CNN on your laptop to a 70B-parameter LLM on a thousand GPUs.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>Why &ldquo;too big explodes, too small stalls&rdquo; — derived from the simplest possible model</li>
+<li>How batch size, momentum, and weight decay couple with LR (you cannot tune one in isolation)</li>
+<li>The schedule zoo — constant, step, cosine, WSD, schedule-free — and when to use which</li>
+<li>The <strong>LR range test</strong>: how to find your stability boundary in 200 mini-batches</li>
+<li>A diagnostic checklist for NaN losses, plateaus, and oscillations</li>
+<li>What&rsquo;s new since 2023 — Schedule-Free AdamW, D-Adaptation, Power Scheduler, the new theory of warmup</li>
+</ul>
+<p><strong>Prerequisites</strong>: basic calculus (gradients, chain rule) and you have trained at least one neural network.</p>
+<hr>
+<h1 id="1-the-one-sentence-definition">1. The one-sentence definition</h1>
+<p><strong>Learning rate $\eta$ controls how far you move along the direction the gradient suggests, each step.</strong></p>
+<p>The basic update rule is</p>
+$$
+\theta_{t+1} = \theta_t - \eta \cdot \tilde g_t,
+$$<p>where $\tilde g_t$ is usually a mini-batch (stochastic) estimate of the true gradient $\nabla L(\theta_t)$.</p>
+<p>The core trade-off:</p>
+<blockquote>
+<p><strong>$\eta$ large → fast progress, but unstable. $\eta$ small → stable, but slow (or stuck).</strong></p>
+</blockquote>
+<p>The rest of this article is, essentially, the story of how researchers and engineers have learned to walk this tightrope.</p>
+<hr>
+<h1 id="2-why-too-big-explodes-too-small-stalls">2. Why &ldquo;too big explodes, too small stalls&rdquo;</h1>
+<h2 id="21-a-1-d-quadratic--the-cleanest-possible-intuition">2.1 A 1-D quadratic — the cleanest possible intuition</h2>
+<p>Take the simplest non-trivial loss:</p>
+$$
+L(\theta) = \tfrac{1}{2} a \theta^2, \qquad a > 0.
+$$<p>The gradient is $\nabla L(\theta) = a\theta$, so gradient descent gives</p>
+$$
+\theta_{t+1} = \theta_t - \eta a \theta_t = (1 - \eta a)\,\theta_t.
+$$<p>The whole trajectory is now a geometric sequence with ratio $r = 1 - \eta a$. Three regimes pop out:</p>
+<ul>
+<li>$|r| < 1 \Leftrightarrow 0 < \eta < 2/a$ — converges to 0.</li>
+<li>$|r| = 1 \Leftrightarrow \eta = 2/a$ — bounces forever.</li>
+<li>$|r| > 1 \Leftrightarrow \eta > 2/a$ — blows up.</li>
+</ul>
+<p>So the <strong>stability ceiling is $\eta < 2/a$</strong>, where $a$ is the curvature. Bigger curvature → smaller maximum stable LR. The picture below shows all three regimes on the same loss bowl.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig1_lr_regimes.png" alt="Three learning-rate regimes on a 1-D quadratic loss" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Notice in the right panel that the iterate doesn&rsquo;t just overshoot — it bounces with <strong>growing amplitude</strong>. That&rsquo;s the geometric explosion that turns into NaN in real training.</p>
+<h2 id="22-in-high-dimensions-the-steepest-direction-sets-the-ceiling">2.2 In high dimensions: the steepest direction sets the ceiling</h2>
+<p>Real losses are not 1-D quadratics, but locally a quadratic approximation $L(\theta) \approx \tfrac{1}{2} (\theta - \theta^\star)^\top H (\theta - \theta^\star)$ is a fine model. The Hessian $H$ has eigenvalues $\lambda_1 \geq \dots \geq \lambda_n \geq 0$, and stability now requires</p>
+$$
+\eta < \frac{2}{\lambda_{\max}(H)}.
+$$<p><strong>Key insight</strong>: it does not matter how gentle most directions are — a single sharp direction (the largest eigenvalue) sets the ceiling for the entire optimizer. You&rsquo;re walking a wide valley, but one cliff edge is enough to make you fall.</p>
+<p>This is also why training feels harder than it &ldquo;should&rdquo;: the <strong>largest eigenvalue grows during training</strong> (this phenomenon is called <em>progressive sharpening</em>, see Cohen et al. 2021), so the LR you got away with at step 100 may blow up at step 10 000.</p>
+<h2 id="23-l-smoothness-where-the-textbook-bound-eta-leq-1l-comes-from">2.3 $L$-smoothness: where the textbook bound $\eta \leq 1/L$ comes from</h2>
+<p>Generalize beyond quadratics. A function is <strong>$L$-smooth</strong> if its gradient is $L$-Lipschitz:</p>
+$$
+\|\nabla L(\theta) - \nabla L(\theta')\| \leq L \,\|\theta - \theta'\|.
+$$<p>Intuitively: the loss surface has no &ldquo;infinitely sharp&rdquo; direction; curvature is bounded by $L$. Under this assumption, classical analysis shows that <strong>gradient descent with $\eta \leq 1/L$ never increases the loss</strong>. The exact form is the <em>descent lemma</em></p>
+$$
+L(\theta_{t+1}) \leq L(\theta_t) - \eta\left(1 - \tfrac{\eta L}{2}\right) \|\nabla L(\theta_t)\|^2,
+$$<p>which is monotonically decreasing for $\eta < 2/L$ and most aggressively decreasing at $\eta = 1/L$. This is the &ldquo;safe choice&rdquo; — it&rsquo;s also why $L$ and the maximum eigenvalue $\lambda_{\max}(H)$ play essentially the same role.</p>
+<h2 id="24-why-schedules-exist-at-all">2.4 Why schedules exist at all</h2>
+<p>In real networks the curvature, the gradient noise, and even the eigenvector directions all change as training progresses. <strong>No constant LR is right for the whole run.</strong> A typical schedule does three things in sequence:</p>
+<ul>
+<li><strong>Warmup</strong> — the curvature is huge and parameters are random; ramp $\eta$ up slowly.</li>
+<li><strong>Stable / high LR</strong> — curvature has settled; harvest fast progress.</li>
+<li><strong>Decay / cooldown</strong> — averaged gradient is small but noise is constant; shrink $\eta$ to settle into the basin.</li>
+</ul>
+<p>The best way to picture this is to plot the standard schedules on one chart.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig2_lr_schedules.png" alt="Common learning-rate schedules: cosine, step, linear, WSD" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>We will dissect each of these in §5.</p>
+<hr>
+<h1 id="3-batch-size-momentum-weight-decay-the-hidden-coupling">3. Batch size, momentum, weight decay: the hidden coupling</h1>
+<p>You cannot tune LR in isolation. Three friends always travel with it.</p>
+<h2 id="31-batch-size-and-the-linear-scaling-rule">3.1 Batch size and the linear scaling rule</h2>
+<p>The mini-batch gradient $\tilde g_t$ is an unbiased estimate of $\nabla L(\theta_t)$ with variance roughly $\sigma^2 / B$, where $B$ is the batch size. So:</p>
+<ul>
+<li>larger batch → less noise → larger LR is <em>safe</em>.</li>
+<li>smaller batch → more noise → larger LR causes random &ldquo;kicks&rdquo; that diverge.</li>
+</ul>
+<p>The classical empirical rule (Goyal et al. 2017, &ldquo;Accurate, Large Minibatch SGD&rdquo;) is the <strong>linear scaling rule</strong>: if you increase $B$ by $k$, multiply $\eta$ by $k$. <strong>But add warmup</strong> — early training is so unstable that the linear rule alone overshoots.</p>
+<p>Modern large-batch results (LAMB, LARS) extend this idea, but the basic message is unchanged: <strong>LR and $B$ are tied</strong>.</p>
+<h2 id="32-momentum-a-hidden-lr-amplifier">3.2 Momentum: a hidden LR amplifier</h2>
+<p>SGD with momentum (Polyak / heavy-ball form):</p>
+$$
+v_{t+1} = \beta v_t + g_t, \qquad \theta_{t+1} = \theta_t - \eta \, v_{t+1}.
+$$<p>In steady state, $v_t \approx g / (1 - \beta)$, so the effective step size is roughly $\eta / (1 - \beta)$. With the typical $\beta = 0.9$, <strong>momentum multiplies your effective LR by 10×.</strong> That&rsquo;s why SGD-with-momentum recipes often use a smaller $\eta$ than what bare SGD could tolerate — the momentum is doing half the gas-pedal work.</p>
+<p>Adam&rsquo;s first moment is similar in spirit.</p>
+<h2 id="33-weight-decay-a-coupled-regularizer">3.3 Weight decay: a coupled regularizer</h2>
+<p>Decoupled weight decay (AdamW) is</p>
+$$
+\theta_{t+1} = \theta_t - \eta \, (\text{adaptive update}) - \eta \lambda \theta_t,
+$$<p>so the &ldquo;shrinkage&rdquo; applied per step is $\eta \lambda$. Doubling LR also doubles your effective weight decay. The <em>steady-state weight norm</em> is roughly $\propto \sqrt{1/\lambda}$, independent of $\eta$, but <em>how fast</em> you reach it depends on $\eta$. This is why &ldquo;lower $\eta$ → less regularization&rdquo; is a real and frequently-overlooked effect.</p>
+<p><strong>Practical rule</strong>: when retuning LR, retune weight decay in the same sweep.</p>
+<hr>
+<h1 id="4-adaptive-optimizers-per-parameter-learning-rates">4. Adaptive optimizers: per-parameter learning rates</h1>
+<p>If SGD&rsquo;s LR is one big hammer, Adam is a workshop full of small hammers — each parameter gets its own.</p>
+<h2 id="41-the-adam-update">4.1 The Adam update</h2>
+$$
+\begin{aligned}
+m_t &= \beta_1 m_{t-1} + (1-\beta_1) g_t, \\
+v_t &= \beta_2 v_{t-1} + (1-\beta_2) g_t^2, \\
+\hat m_t &= m_t / (1 - \beta_1^t), \quad \hat v_t = v_t / (1 - \beta_2^t), \\
+\theta_{t+1} &= \theta_t - \eta \cdot \frac{\hat m_t}{\sqrt{\hat v_t} + \varepsilon}.
+\end{aligned}
+$$<p>The key term is $\eta / \sqrt{\hat v_t}$ — the <strong>effective per-parameter LR</strong> scales like $\eta / |g|$. Parameters with consistently large gradients get small steps; quiet parameters get full $\eta$. That is why Adam works out-of-the-box on dramatically different scales (embeddings, attention, layer norms) where SGD would need careful per-layer LR.</p>
+<h2 id="42-why-adam-still-needs-warmup">4.2 Why Adam still needs warmup</h2>
+<p>It&rsquo;s tempting to think the adaptive scaling makes warmup unnecessary. It doesn&rsquo;t. Two reasons:</p>
+<ul>
+<li><strong>Statistics are unstable early.</strong> $\hat v_t$ is computed from a few noisy gradients; the bias correction divides by $(1 - \beta_2^t)$, which is <em>huge</em> for small $t$. This used to be the textbook explanation.</li>
+<li><strong>Preconditioned sharpness is large.</strong> The newer view (Kalra et al., <em>Why Warmup the Learning Rate?</em>, 2024) is that warmup pushes the network into a region where the <strong>preconditioned Hessian has smaller maximum eigenvalue</strong> — i.e. it shapes the optimization landscape, so a larger peak LR becomes safe later.</li>
+</ul>
+<p>Either way: <strong>always warm up Adam</strong>. 1–5% of total steps for vision/CNN, 5–10% for LLMs and very large batches.</p>
+<hr>
+<h1 id="5-schedules-from-old-school-to-modern-llms">5. Schedules: from old-school to modern LLMs</h1>
+<p>The plot above shows four common families on one axis. Here is when to reach for which.</p>
+<h2 id="51-constant-lr">5.1 Constant LR</h2>
+<p>Simple. Almost always wrong. Either too slow early or too noisy late — you cannot have both.</p>
+<h2 id="52-step-decay">5.2 Step decay</h2>
+<p>Multiply $\eta$ by $\gamma$ (typically 0.1) at fixed milestones. The classic ResNet recipe. Pros: easy to implement, easy to tune by hand. Cons: the abrupt drop can cause loss spikes if your weight decay or batch normalization is sensitive.</p>
+<h2 id="53-cosine-decay-the-deep-learning-workhorse">5.3 Cosine decay (the deep-learning workhorse)</h2>
+$$
+\eta_t = \eta_{\min} + (\eta_{\max} - \eta_{\min}) \cdot \tfrac{1}{2}\left[1 + \cos\left(\pi \cdot \tfrac{t - t_w}{T - t_w}\right)\right],
+$$<p>after a linear warmup of length $t_w$. The shape — slow decay early, fast decay late — matches the intuition: explore at high $\eta$ for as long as possible, then settle.</p>
+<p>This was the schedule of choice for almost every &ldquo;big model&rdquo; paper between 2019 and 2023 (BERT, RoBERTa, GPT-3, ViT, ResNet on ImageNet at scale). Its main drawback is <strong>rigidity</strong>: the cosine half-period is set by the <em>known</em> total step count $T$. If you want to extend the run, you have to redesign the schedule.</p>
+<h2 id="54-wsd-warmupstabledecay-the-modern-llm-default">5.4 WSD: warmup–stable–decay (the modern LLM default)</h2>
+<p>Hägele et al. (<em>Scaling Laws and Compute-Optimal Training Beyond Fixed Training Durations</em>, 2024) and others have popularized <strong>WSD</strong>:</p>
+<ul>
+<li><strong>Warmup</strong> — same as before.</li>
+<li><strong>Stable</strong> — hold $\eta = \eta_{\max}$ for the <em>bulk</em> of training (60–90%).</li>
+<li><strong>Cooldown</strong> — linearly (or polynomially) drop to $\eta_{\min}$ in the last 10–20%.</li>
+</ul>
+<p>Three reasons it has become the LLM default:</p>
+<ol>
+<li><strong>Resumable / extensible.</strong> Want 2× more tokens? Just continue the stable phase, then cooldown later. Cosine cannot do this without re-fitting the full curve.</li>
+<li><strong>The &ldquo;cooldown drop&rdquo; effect.</strong> Empirically, when cooldown starts the loss often takes a sharp final dip — as if the model had been &ldquo;barely held back&rdquo; and was finally allowed to settle.</li>
+<li><strong>Theoretical backing.</strong> Schaipp et al. (<em>The surprising agreement between convex optimization theory and learning-rate scheduling</em>, 2025, arXiv:2501.18965) showed that the cooldown shape matches a tight bound from convex theory, with cooldown specifically removing log-factor terms.</li>
+</ol>
+<h2 id="55-cosine-vs-wsd-vs-schedule-free-at-a-glance">5.5 Cosine vs WSD vs Schedule-Free at a glance</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Schedule</th>
+          <th>Pros</th>
+          <th>Cons</th>
+          <th>Best for</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Cosine</strong></td>
+          <td>Smooth, well-tested</td>
+          <td>Needs total $T$ upfront</td>
+          <td>Fixed-length runs</td>
+      </tr>
+      <tr>
+          <td><strong>WSD</strong></td>
+          <td>Resumable, clear phases, strong final dip</td>
+          <td>Pick cooldown timing</td>
+          <td>Long / resumable LLM training</td>
+      </tr>
+      <tr>
+          <td><strong>Schedule-Free</strong></td>
+          <td>No $T$ needed, minimal tuning</td>
+          <td>Newer, less battle-tested</td>
+          <td>Prototyping, variable budgets</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h1 id="6-the-lr-range-test-find-your-ceiling-in-200-batches">6. The LR range test: find your ceiling in 200 batches</h1>
+<p>The single most useful tool for picking $\eta_{\max}$, due originally to Smith (2015, <em>Cyclical Learning Rates</em>):</p>
+<ol>
+<li>Set $\eta = \eta_{\min} \approx 10^{-7}$.</li>
+<li>After every mini-batch, multiply $\eta$ by a fixed factor (e.g. 1.1) so it grows exponentially.</li>
+<li>Stop when the loss starts climbing.</li>
+<li>Plot loss against $\log\eta$.</li>
+</ol>
+<p>You&rsquo;ll see four phases: noisy plateau → descent → noisy minimum → blow-up. The &ldquo;edge&rdquo; is just before the blow-up; pick your peak LR somewhere in $[0.3 \times, 1.0 \times]$ that edge.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig3_lr_range_test.png" alt="LR range test: pick 0.3-1× the stability edge" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lr_range_test</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">loss_fn</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">lr_min</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">lr_max</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">num_steps</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Run an exponential LR sweep; return (lrs, losses) for plotting.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mult</span> <span class="o">=</span> <span class="p">(</span><span class="n">lr_max</span> <span class="o">/</span> <span class="n">lr_min</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">lr</span> <span class="o">=</span> <span class="n">lr_min</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">g</span><span class="p">[</span><span class="s2">&#34;lr&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">lrs</span><span class="p">,</span> <span class="n">losses</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_steps</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">try</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">(</span><span class="n">set_to_none</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">lrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="n">lr</span> <span class="o">*=</span> <span class="n">mult</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">g</span><span class="p">[</span><span class="s2">&#34;lr&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">lrs</span><span class="p">,</span> <span class="n">losses</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A tidy variant smooths the loss with an exponential moving average and stops automatically once loss rises by more than $4\times$ the running minimum — that&rsquo;s how <code>fastai</code>&rsquo;s <code>lr_find()</code> is implemented.</p>
+<hr>
+<h1 id="7-optimizer-choice-changes-the-picture">7. Optimizer choice changes the picture</h1>
+<p>The same schedule does not give the same loss curve under different optimizers. The figure below shares one warmup-cosine schedule between AdamW and SGD-with-momentum on a synthetic problem. AdamW descends faster early; SGD often catches up later but is more sensitive to the peak LR.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig4_adam_vs_sgd.png" alt="Adam vs SGD under the same warmup-cosine schedule" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Practical heuristics, condensed from a decade of recipes:</p>
+<ul>
+<li><strong>AdamW</strong> with <code>lr ≈ 1e-4 ~ 5e-4</code> for Transformers and most NLP/multimodal pretraining.</li>
+<li><strong>AdamW</strong> with <code>lr ≈ 1e-5 ~ 5e-5</code> for fine-tuning pretrained Transformers.</li>
+<li><strong>SGD + momentum 0.9</strong> with <code>lr ≈ 0.1</code> for ResNet/CNN training from scratch, with cosine or step decay.</li>
+<li><strong>SGD + momentum</strong> when you want lower memory (no second-moment buffer) and have time to tune.</li>
+</ul>
+<hr>
+<h1 id="8-layer-wise--discriminative-lr-the-fine-tuning-trick">8. Layer-wise / discriminative LR: the fine-tuning trick</h1>
+<p>When you fine-tune a pretrained model, the lower layers already know how to extract good features — you don&rsquo;t want to wash them away. The higher layers are random / task-specific and need much larger updates. This was popularized by ULMFiT (Howard &amp; Ruder, 2018) as <strong>discriminative learning rates</strong>: use a small base LR for the top, and divide by a factor (e.g. 2.6 or 0.8 per group) as you go down.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig5_layerwise_lr.png" alt="Layer-wise discriminative LR for fine-tuning, ULMFiT style" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A minimal PyTorch pattern:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">layer_wise_param_groups</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">base_lr</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">,</span> <span class="n">decay</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Assign smaller LR to layers closer to the input.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">layers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>            <span class="c1"># Hugging Face style</span>
+</span></span><span class="line"><span class="cl">    <span class="n">groups</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layers</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">groups</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&#34;params&#34;</span><span class="p">:</span> <span class="n">layer</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                       <span class="s2">&#34;lr&#34;</span><span class="p">:</span> <span class="n">base_lr</span> <span class="o">*</span> <span class="p">(</span><span class="n">decay</span> <span class="o">**</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">))})</span>
+</span></span><span class="line"><span class="cl">    <span class="n">groups</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&#34;params&#34;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="s2">&#34;lr&#34;</span><span class="p">:</span> <span class="n">base_lr</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">groups</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>For LLM fine-tuning the same idea reappears as:</p>
+<ul>
+<li><strong>LoRA / adapters</strong> — train only a tiny set of new params at full LR; keep the rest frozen.</li>
+<li><strong>LLaMA-Adapter</strong> style — gradually unfreeze, with a smaller LR for the unfrozen base.</li>
+</ul>
+<hr>
+<h1 id="9-schedule-free-and-learning-rate-free-optimizers">9. Schedule-free and learning-rate-free optimizers</h1>
+<p>Both schedules and the LR scalar itself can, in principle, be eliminated. Two recent lines of work try to.</p>
+<h2 id="91-d-adaptation-defazio--mishchenko-2023">9.1 D-Adaptation (Defazio &amp; Mishchenko, 2023)</h2>
+<p>D-Adaptation estimates the <em>distance from initialization to optimum</em> during training, and uses that estimate to set the step size. There is no $\eta$ to tune. On many tasks it matches a tuned baseline within a few percent.</p>
+<h2 id="92-schedule-free-adamw-defazio-et-al-2024-arxiv240515682">9.2 Schedule-Free AdamW (Defazio et al., 2024, arXiv:2405.15682)</h2>
+<p>Schedule-Free AdamW combines iterate averaging with a constant base LR to produce trajectories that <em>behave</em> like cosine-decayed runs without ever explicitly decaying $\eta$. This means <strong>you don&rsquo;t have to commit to a total step count $T$ upfront</strong>: you can stop whenever you like, or extend, without re-tuning.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig6_schedule_free.png" alt="Schedule-free vs cosine: competitive without specifying T" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>When to consider these:</p>
+<ul>
+<li>Prototyping; you don&rsquo;t yet know your budget.</li>
+<li>Multi-budget studies (5%, 25%, 100% of tokens) where redoing cosine for each is painful.</li>
+<li>Compute-elastic settings (cluster preemption, reschedules).</li>
+</ul>
+<hr>
+<h1 id="10-what-an-llm-schedule-actually-looks-like">10. What an LLM schedule actually looks like</h1>
+<p>The schedule used by GPT-3 (175B) and LLaMA (7B/13B/65B) is the same template: <strong>linear warmup over a small fraction of steps, then cosine decay to 10% of the peak LR</strong>. The peak itself depends on model size (bigger model → smaller peak, roughly $\eta_{\max} \propto 1/\sqrt{N}$ in the GPT scaling laws).</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/learning-rate-guide/fig7_llm_schedule.png" alt="Typical LLM pretraining schedule (GPT-3 / LLaMA style)" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Concrete numbers from public papers:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Model</th>
+          <th>Peak LR</th>
+          <th>Min LR</th>
+          <th>Warmup</th>
+          <th>Schedule</th>
+          <th>Batch (tokens)</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>GPT-3 175B (Brown et al., 2020)</td>
+          <td>0.6e-4</td>
+          <td>0.6e-5</td>
+          <td>375M tokens</td>
+          <td>cosine</td>
+          <td>3.2M</td>
+      </tr>
+      <tr>
+          <td>LLaMA-7B (Touvron et al., 2023)</td>
+          <td>3e-4</td>
+          <td>3e-5</td>
+          <td>2 000 steps</td>
+          <td>cosine</td>
+          <td>4M</td>
+      </tr>
+      <tr>
+          <td>LLaMA-65B</td>
+          <td>1.5e-4</td>
+          <td>1.5e-5</td>
+          <td>2 000 steps</td>
+          <td>cosine</td>
+          <td>4M</td>
+      </tr>
+      <tr>
+          <td>Chinchilla 70B (Hoffmann et al., 2022)</td>
+          <td>1e-4</td>
+          <td>1e-5</td>
+          <td>1 875 steps</td>
+          <td>cosine</td>
+          <td>1.5M–3M</td>
+      </tr>
+      <tr>
+          <td>MiniCPM (Hu et al., 2024)</td>
+          <td>1e-2</td>
+          <td>1e-3</td>
+          <td>2% steps</td>
+          <td><strong>WSD</strong></td>
+          <td>varies</td>
+      </tr>
+  </tbody>
+</table>
+<p>A few things worth noting:</p>
+<ul>
+<li><strong>Min LR ≈ 10% of peak LR</strong> is the near-universal convention, not zero. Going to zero often makes the very last steps useless.</li>
+<li><strong>Gradient clipping at 1.0</strong> is universal in this regime; without it, the occasional bad batch can knock you off the cliff.</li>
+<li><strong>Weight decay 0.1</strong> (decoupled, AdamW) is another common default in LLM recipes — much higher than the 1e-4 you see in vision.</li>
+</ul>
+<hr>
+<h1 id="11-from-it-runs-to-it-works-a-practical-workflow">11. From &ldquo;it runs&rdquo; to &ldquo;it works&rdquo;: a practical workflow</h1>
+<h2 id="step-1--diagnose-the-failure-mode">Step 1 — diagnose the failure mode</h2>
+<p>Training fails in three distinct flavours:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Symptom</th>
+          <th>Likely cause</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Loss → NaN/Inf within a few steps</td>
+          <td>LR too large; missing warmup; missing clip; AMP underflow</td>
+      </tr>
+      <tr>
+          <td>Loss bouncing wildly</td>
+          <td>LR too large; momentum too high; norm-decay mismatch</td>
+      </tr>
+      <tr>
+          <td>Loss almost flat</td>
+          <td>LR too small; schedule decays too fast; bug in data/labels</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="step-2--find-your-ceiling">Step 2 — find your ceiling</h2>
+<p>Run an LR range test (§6). Most &ldquo;I tried 1e-3 and 1e-4, both bad&rdquo; stories are solved here.</p>
+<h2 id="step-3--choose-the-schedule">Step 3 — choose the schedule</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Setting</th>
+          <th>Default</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Mid-size model (&lt;1B params), fixed budget</td>
+          <td>Warmup + cosine</td>
+      </tr>
+      <tr>
+          <td>LLM pretraining, possibly resumable</td>
+          <td>Warmup + WSD</td>
+      </tr>
+      <tr>
+          <td>Fine-tuning a pretrained model</td>
+          <td>Linear warmup + linear decay, peak ≈ 1e-5 ~ 5e-5</td>
+      </tr>
+      <tr>
+          <td>Unknown / variable budget</td>
+          <td>Schedule-Free AdamW</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="step-4--co-tune-lr-with-batch-and-weight-decay">Step 4 — co-tune LR with batch and weight decay</h2>
+<p>Don&rsquo;t change LR in isolation. The mental model is a three-way coupling:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Issue</th>
+          <th>Wrong fix</th>
+          <th>Better</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Training unstable</td>
+          <td>Lower LR blindly</td>
+          <td>Add gradient clipping; longer warmup; raise weight decay</td>
+      </tr>
+      <tr>
+          <td>Loss stuck high</td>
+          <td>Raise LR blindly</td>
+          <td>Increase batch (less noise); check data pipeline</td>
+      </tr>
+      <tr>
+          <td>Overfitting</td>
+          <td>Lower LR</td>
+          <td>Increase weight decay; add dropout/augmentation</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="step-5--monitor-three-things-not-just-loss">Step 5 — monitor three things, not just loss</h2>
+<ul>
+<li><strong>Gradient norm.</strong> Should be roughly constant after warmup; sudden spikes precede divergence.</li>
+<li><strong>Update / parameter ratio.</strong> $\|\Delta\theta\| / \|\theta\|$ around $10^{-3}$ is healthy. Below $10^{-5}$ → underfit; above $10^{-2}$ → unstable.</li>
+<li><strong>LR sensitivity.</strong> If small changes to $\eta$ produce large changes in final loss, you are near the stability edge. Add a margin.</li>
+</ul>
+<hr>
+<h1 id="12-troubleshooting-checklist">12. Troubleshooting checklist</h1>
+<h2 id="121-loss-explodes-immediately-nan--inf">12.1 Loss explodes immediately (NaN / Inf)</h2>
+<p>In priority order:</p>
+<ol>
+<li>Drop peak LR by 10× (e.g. <code>3e-4 → 3e-5</code>).</li>
+<li>Add or lengthen warmup (e.g. 0 → 5% of steps).</li>
+<li>Add gradient clipping: <code>torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)</code>.</li>
+<li>Verify mixed-precision: are you using <code>GradScaler</code> (fp16) or <code>bf16</code> properly?</li>
+<li>Increase weight decay (especially for LLMs).</li>
+</ol>
+<h2 id="122-loss-decreases-too-slowly">12.2 Loss decreases too slowly</h2>
+<p>Common causes:</p>
+<ul>
+<li>LR too small (run an LR range test).</li>
+<li>Schedule decays too fast (try WSD with longer stable phase).</li>
+<li>Batch too small → too much noise (increase batch or use gradient accumulation).</li>
+<li>Data/labels broken (this is <em>not</em> an LR problem; check the pipeline first).</li>
+</ul>
+<h2 id="123-loss-oscillates-wildly">12.3 Loss oscillates wildly</h2>
+<ul>
+<li>Lower peak LR (10–30%).</li>
+<li>Reduce momentum ($\beta = 0.9 \to 0.85$, or $\beta_1 = 0.9 \to 0.85$ for Adam).</li>
+<li>Add gradient clipping.</li>
+<li>Check optimizer–normalization interaction (AdamW + LayerNorm is robust; SGD + BatchNorm with high LR is fragile).</li>
+</ul>
+<h2 id="124-validation-loss-diverges-from-training-loss">12.4 Validation loss diverges from training loss</h2>
+<p>This is overfitting, not directly an LR issue, but $\eta$ does affect implicit regularization:</p>
+<ul>
+<li>Increase weight decay.</li>
+<li>Lower peak LR slightly (slower training often generalizes better).</li>
+<li>Add dropout, label smoothing, data augmentation.</li>
+<li>Early stopping with patience 5–10.</li>
+</ul>
+<hr>
+<h1 id="13-reference-implementations">13. Reference implementations</h1>
+<h2 id="warmup--cosine">Warmup + cosine</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lr_warmup_cosine</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">total_steps</span><span class="p">,</span> <span class="n">warmup_steps</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">,</span> <span class="n">lr_min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Linear warmup, then cosine decay from lr_max down to lr_min.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">step</span> <span class="o">&lt;</span> <span class="n">warmup_steps</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">lr_max</span> <span class="o">*</span> <span class="p">(</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_steps</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">t</span> <span class="o">=</span> <span class="n">step</span> <span class="o">-</span> <span class="n">warmup_steps</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">total_steps</span> <span class="o">-</span> <span class="n">warmup_steps</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cos</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">t</span> <span class="o">/</span> <span class="n">T</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">lr_min</span> <span class="o">+</span> <span class="p">(</span><span class="n">lr_max</span> <span class="o">-</span> <span class="n">lr_min</span><span class="p">)</span> <span class="o">*</span> <span class="n">cos</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="warmup--stable--decay-wsd">Warmup + Stable + Decay (WSD)</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lr_wsd</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">total_steps</span><span class="p">,</span> <span class="n">warmup_steps</span><span class="p">,</span> <span class="n">cooldown_steps</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">           <span class="n">lr_max</span><span class="p">,</span> <span class="n">lr_min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Warmup → constant lr_max → linear cooldown to lr_min.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">step</span> <span class="o">&lt;</span> <span class="n">warmup_steps</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">lr_max</span> <span class="o">*</span> <span class="p">(</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">warmup_steps</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">stable_end</span> <span class="o">=</span> <span class="n">total_steps</span> <span class="o">-</span> <span class="n">cooldown_steps</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">step</span> <span class="o">&lt;</span> <span class="n">stable_end</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">lr_max</span>
+</span></span><span class="line"><span class="cl">    <span class="n">t</span> <span class="o">=</span> <span class="n">step</span> <span class="o">-</span> <span class="n">stable_end</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">cooldown_steps</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">frac</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">T</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">lr_max</span> <span class="o">+</span> <span class="p">(</span><span class="n">lr_min</span> <span class="o">-</span> <span class="n">lr_max</span><span class="p">)</span> <span class="o">*</span> <span class="n">frac</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="plugging-it-into-a-training-loop">Plugging it into a training loop</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_one_epoch</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">step_offset</span><span class="p">,</span> <span class="n">total_steps</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">schedule_fn</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">,</span> <span class="n">clip_norm</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">step</span> <span class="o">=</span> <span class="n">step_offset</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">lr</span> <span class="o">=</span> <span class="n">schedule_fn</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">total_steps</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">g</span><span class="p">[</span><span class="s2">&#34;lr&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">(</span><span class="n">set_to_none</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">clip_norm</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">step</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">step</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A typical configuration call:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">schedule_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="n">lr_wsd</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">step</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">total_steps</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">warmup_steps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">0.02</span> <span class="o">*</span> <span class="n">T</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cooldown_steps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">0.10</span> <span class="o">*</span> <span class="n">T</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">lr_max</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">,</span> <span class="n">lr_min</span><span class="o">=</span><span class="mf">3e-5</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h1 id="14-whats-new-since-2023">14. What&rsquo;s new since 2023</h1>
+<p>Five strands of research worth knowing about.</p>
+<h2 id="141-d-adaptation--learning-rate-free-optimization-2023">14.1 D-Adaptation — learning-rate-free optimization (2023)</h2>
+<p>Idea: estimate the distance from the current point to the optimum, and use that to derive the step size. No tunable $\eta$. Useful for prototyping and for grid-search reduction.</p>
+<p>Reference: <a href="https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/" target="_blank" rel="noopener noreferrer">Learning-Rate-Free Learning by D-Adaptation (Defazio &amp; Mishchenko, 2023) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<h2 id="142-schedule-free-adamw-2024">14.2 Schedule-Free AdamW (2024)</h2>
+<p>Combines iterate averaging with a constant base LR to deliver schedule-like behaviour without an explicit decay. Concretely: you can stop or extend at any time without redesigning your schedule.</p>
+<p>Reference: <a href="https://arxiv.org/abs/2405.15682" target="_blank" rel="noopener noreferrer">Schedule-Free AdamW (Defazio et al., 2024, arXiv:2405.15682) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<h2 id="143-why-warmup-really-helps-2024">14.3 Why warmup <em>really</em> helps (2024)</h2>
+<p>The traditional explanation (&ldquo;Adam&rsquo;s statistics need to settle&rdquo;) is incomplete. Kalra et al. (2024) show that warmup decreases the maximum eigenvalue of the <em>preconditioned</em> Hessian, allowing a larger sustainable peak LR.</p>
+<p>Reference: <a href="https://arxiv.org/abs/2406.09405" target="_blank" rel="noopener noreferrer">Why Warmup the Learning Rate? (Kalra et al., 2024, arXiv:2406.09405) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<h2 id="144-power-scheduler--batch-token-agnostic-2024">14.4 Power Scheduler — batch-/token-agnostic (2024)</h2>
+<p>When you change batch size or training-token budget, the optimal LR drifts. Power Scheduler exploits a <em>power-law</em> relationship between LR, batch size and tokens, giving schedules that transfer across regimes.</p>
+<p>Reference: <a href="https://arxiv.org/abs/2408.13359" target="_blank" rel="noopener noreferrer">Power Scheduler: A Batch Size and Token Number Agnostic Learning Rate Scheduler (Shen et al., 2024, arXiv:2408.13359) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<h2 id="145-small-scale-proxies-for-llm-instabilities-20232024">14.5 Small-scale proxies for LLM instabilities (2023–2024)</h2>
+<p>Many &ldquo;LLM-only&rdquo; loss spikes can be reproduced in much smaller models by dialling up the LR. This means you can debug instabilities at 1/100 the cost.</p>
+<p>Reference: <a href="https://arxiv.org/abs/2309.14322" target="_blank" rel="noopener noreferrer">Small-scale proxies for large-scale Transformer training instabilities (Wortsman et al., 2023, arXiv:2309.14322) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<h2 id="146-cosine--wsd-a-convex-theory-bridge-2025">14.6 Cosine ↔ WSD: a convex-theory bridge (2025)</h2>
+<p>A 2025 result (Schaipp et al., arXiv:2501.18965) shows that the WSD cooldown shape matches a tight convex-optimization bound, with cooldown specifically removing logarithmic terms. This gives a principled reason why cooldown helps.</p>
+<p>Reference: <a href="https://arxiv.org/abs/2501.18965" target="_blank" rel="noopener noreferrer">The surprising agreement between convex optimization theory and learning-rate scheduling (Schaipp et al., 2025, arXiv:2501.18965) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</p>
+<hr>
+<h1 id="15-one-page-cheat-sheet">15. One-page cheat sheet</h1>
+<h2 id="default-adamw-recipe">Default AdamW recipe</h2>
+<ul>
+<li><strong>Schedule</strong>: Warmup + cosine <em>or</em> Warmup + WSD.</li>
+<li><strong>Warmup</strong>: 1–5% of total steps (5–10% for very large batches / LLMs).</li>
+<li><strong>Cooldown</strong> (WSD only): last 10–20% of steps; min LR = 10% of peak.</li>
+<li><strong>Gradient clipping</strong>: <code>max_norm = 1.0</code> (almost always for LLMs).</li>
+<li><strong>Weight decay</strong>: 0.01 for vision, 0.1 for LLMs (decoupled, AdamW).</li>
+<li><strong>Peak LR rules of thumb</strong>:
+<ul>
+<li>From-scratch Transformer: <code>1e-4 ~ 5e-4</code>.</li>
+<li>Fine-tune Transformer: <code>1e-5 ~ 5e-5</code>.</li>
+<li>From-scratch CNN with SGD-momentum: <code>0.05 ~ 0.1</code>.</li>
+</ul>
+</li>
+</ul>
+<h2 id="three-signals-to-monitor-better-than-just-loss">Three signals to monitor (better than just loss)</h2>
+<ul>
+<li>Gradient norm — flat after warmup; spikes mean trouble.</li>
+<li>$\|\Delta\theta\| / \|\theta\|$ — should sit around $10^{-3}$.</li>
+<li>LR sensitivity — large effect from small changes = you&rsquo;re at the edge.</li>
+</ul>
+<h2 id="fast-triage-table">Fast triage table</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Symptom</th>
+          <th>First fix</th>
+          <th>Second fix</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>NaN / Inf early</td>
+          <td>Lower LR 10×</td>
+          <td>Add warmup; clip to 1.0</td>
+      </tr>
+      <tr>
+          <td>Slow descent</td>
+          <td>LR range test</td>
+          <td>Longer stable phase (WSD)</td>
+      </tr>
+      <tr>
+          <td>Wild oscillations</td>
+          <td>Lower LR or momentum</td>
+          <td>Add clipping</td>
+      </tr>
+      <tr>
+          <td>Train-val gap</td>
+          <td>More weight decay</td>
+          <td>Lower LR slightly</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h1 id="16-five-step-summary">16. Five-step summary</h1>
+<ol>
+<li><strong>Run an LR range test</strong> to find the stability edge.</li>
+<li><strong>Set $\eta_{\max}$ to 0.3–1× the edge.</strong></li>
+<li><strong>Add warmup</strong> — 1–5% of steps for vision, 5–10% for LLMs.</li>
+<li><strong>Pick a schedule</strong> — cosine for fixed budgets, WSD for resumable / LLM, schedule-free for unknown.</li>
+<li><strong>Co-tune</strong> with batch size, weight decay, and gradient clipping. Never tune LR alone.</li>
+</ol>
+<p>If you remember nothing else: <strong>most problems blamed on &ldquo;the optimizer&rdquo; are LR-schedule problems, and most LR-schedule problems can be fixed in a single afternoon with an LR range test plus a warmup.</strong></p>
+<hr>
+<h1 id="further-reading">Further reading</h1>
+<ul>
+<li><a href="https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/" target="_blank" rel="noopener noreferrer">Learning-Rate-Free Learning by D-Adaptation (2023) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><a href="https://arxiv.org/abs/2405.15682" target="_blank" rel="noopener noreferrer">Schedule-Free AdamW (2024) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><a href="https://arxiv.org/abs/2406.09405" target="_blank" rel="noopener noreferrer">Why Warmup the Learning Rate? (2024) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><a href="https://arxiv.org/abs/2408.13359" target="_blank" rel="noopener noreferrer">Power Scheduler (2024) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><a href="https://arxiv.org/abs/2309.14322" target="_blank" rel="noopener noreferrer">Small-scale proxies for large-scale Transformer instabilities (2023) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><a href="https://arxiv.org/abs/2501.18965" target="_blank" rel="noopener noreferrer">Convex theory view of WSD cooldown (2025) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><a href="https://arxiv.org/abs/1506.01186" target="_blank" rel="noopener noreferrer">Cyclical Learning Rates for Training Neural Networks (Smith, 2015) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><a href="https://arxiv.org/abs/1706.02677" target="_blank" rel="noopener noreferrer">Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour (Goyal et al., 2017) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li><a href="https://arxiv.org/abs/2103.00065" target="_blank" rel="noopener noreferrer">Edge of Stability (Cohen et al., 2021) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#21-a-1-d-quadratic--the-cleanest-possible-intuition">2.1 A 1-D quadratic — the cleanest possible intuition</a></li>
+    <li><a href="#22-in-high-dimensions-the-steepest-direction-sets-the-ceiling">2.2 In high dimensions: the steepest direction sets the ceiling</a></li>
+    <li><a href="#23-l-smoothness-where-the-textbook-bound-eta-leq-1l-comes-from">2.3 -smoothness: where the textbook bound  comes from</a></li>
+    <li><a href="#24-why-schedules-exist-at-all">2.4 Why schedules exist at all</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#31-batch-size-and-the-linear-scaling-rule">3.1 Batch size and the linear scaling rule</a></li>
+    <li><a href="#32-momentum-a-hidden-lr-amplifier">3.2 Momentum: a hidden LR amplifier</a></li>
+    <li><a href="#33-weight-decay-a-coupled-regularizer">3.3 Weight decay: a coupled regularizer</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#41-the-adam-update">4.1 The Adam update</a></li>
+    <li><a href="#42-why-adam-still-needs-warmup">4.2 Why Adam still needs warmup</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#51-constant-lr">5.1 Constant LR</a></li>
+    <li><a href="#52-step-decay">5.2 Step decay</a></li>
+    <li><a href="#53-cosine-decay-the-deep-learning-workhorse">5.3 Cosine decay (the deep-learning workhorse)</a></li>
+    <li><a href="#54-wsd-warmupstabledecay-the-modern-llm-default">5.4 WSD: warmup–stable–decay (the modern LLM default)</a></li>
+    <li><a href="#55-cosine-vs-wsd-vs-schedule-free-at-a-glance">5.5 Cosine vs WSD vs Schedule-Free at a glance</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#91-d-adaptation-defazio--mishchenko-2023">9.1 D-Adaptation (Defazio &amp; Mishchenko, 2023)</a></li>
+    <li><a href="#92-schedule-free-adamw-defazio-et-al-2024-arxiv240515682">9.2 Schedule-Free AdamW (Defazio et al., 2024, arXiv:2405.15682)</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#step-1--diagnose-the-failure-mode">Step 1 — diagnose the failure mode</a></li>
+    <li><a href="#step-2--find-your-ceiling">Step 2 — find your ceiling</a></li>
+    <li><a href="#step-3--choose-the-schedule">Step 3 — choose the schedule</a></li>
+    <li><a href="#step-4--co-tune-lr-with-batch-and-weight-decay">Step 4 — co-tune LR with batch and weight decay</a></li>
+    <li><a href="#step-5--monitor-three-things-not-just-loss">Step 5 — monitor three things, not just loss</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#121-loss-explodes-immediately-nan--inf">12.1 Loss explodes immediately (NaN / Inf)</a></li>
+    <li><a href="#122-loss-decreases-too-slowly">12.2 Loss decreases too slowly</a></li>
+    <li><a href="#123-loss-oscillates-wildly">12.3 Loss oscillates wildly</a></li>
+    <li><a href="#124-validation-loss-diverges-from-training-loss">12.4 Validation loss diverges from training loss</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#warmup--cosine">Warmup + cosine</a></li>
+    <li><a href="#warmup--stable--decay-wsd">Warmup + Stable + Decay (WSD)</a></li>
+    <li><a href="#plugging-it-into-a-training-loop">Plugging it into a training loop</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#141-d-adaptation--learning-rate-free-optimization-2023">14.1 D-Adaptation — learning-rate-free optimization (2023)</a></li>
+    <li><a href="#142-schedule-free-adamw-2024">14.2 Schedule-Free AdamW (2024)</a></li>
+    <li><a href="#143-why-warmup-really-helps-2024">14.3 Why warmup <em>really</em> helps (2024)</a></li>
+    <li><a href="#144-power-scheduler--batch-token-agnostic-2024">14.4 Power Scheduler — batch-/token-agnostic (2024)</a></li>
+    <li><a href="#145-small-scale-proxies-for-llm-instabilities-20232024">14.5 Small-scale proxies for LLM instabilities (2023–2024)</a></li>
+    <li><a href="#146-cosine--wsd-a-convex-theory-bridge-2025">14.6 Cosine ↔ WSD: a convex-theory bridge (2025)</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#default-adamw-recipe">Default AdamW recipe</a></li>
+    <li><a href="#three-signals-to-monitor-better-than-just-loss">Three signals to monitor (better than just loss)</a></li>
+    <li><a href="#fast-triage-table">Fast triage table</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>19 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4100</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2023</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

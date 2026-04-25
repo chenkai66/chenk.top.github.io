@@ -1,0 +1,1405 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>LAMP Stack on Alibaba Cloud ECS: From Fresh Instance to Production-Ready Web Server · Chen Kai Blog</title>
+<meta name="description" content="Set up a LAMP stack (Linux, Apache, MySQL, PHP) on Alibaba Cloud ECS. Covers security groups, service installation, Discuz deployment, source compilation, hardening and three-tier scale-out.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/standalone/lamp-on-ecs/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/lamp-on-ecs/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="LAMP Stack on Alibaba Cloud ECS: From Fresh Instance to Production-Ready Web Server">
+<meta property="og:description" content="Set up a LAMP stack (Linux, Apache, MySQL, PHP) on Alibaba Cloud ECS. Covers security groups, service installation, Discuz deployment, source compilation, hardening and three-tier scale-out.">
+<meta property="og:url" content="https://www.chenk.top/en/standalone/lamp-on-ecs/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
+        
+      </div>
+      <h1>LAMP Stack on Alibaba Cloud ECS: From Fresh Instance to Production-Ready Web Server</h1>
+      <p class="deck">Set up a LAMP stack (Linux, Apache, MySQL, PHP) on Alibaba Cloud ECS. Covers security groups, service installation, Discuz deployment, source compilation, hardening and three-tier scale-out.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2023-09-01">September 1, 2023</time> · 25 min read · 5300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/cloud-computing/" class="tag">#Cloud Computing</a><a href="/en/tags/linux/" class="tag">#Linux</a><a href="/en/tags/web-server/" class="tag">#Web Server</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>You have a fresh ECS instance and SSH access. Your goal is a public website running Apache, PHP and MySQL. Between you and that goal sit three classes of problems that catch every beginner the first time:</p>
+<ol>
+<li><strong>Network reachability</strong> &ndash; packets are silently dropped at the cloud security group, the OS firewall, or the listening socket, and the symptom is the same in all three cases: nothing happens.</li>
+<li><strong>Service wiring</strong> &ndash; Apache, PHP and MySQL are three separate processes that have to find each other through file extensions, Unix sockets and TCP ports. Each interface has its own failure mode.</li>
+<li><strong>Identity and permissions</strong> &ndash; Apache runs as <code>www-data</code>, MySQL runs as <code>mysql</code>, files are owned by <code>root</code> after <code>wget</code>. The wrong combination produces 403, &ldquo;Access denied&rdquo;, or <code>chmod 777</code> desperation.</li>
+</ol>
+<p>This guide walks through all of them in the order you actually hit them on day one, then keeps going into the things that show up on day thirty: TLS, virtual hosts, backups, source compilation, and when to stop running everything on a single box.</p>
+<h2 id="what-you-will-be-able-to-do-after-reading">What you will be able to do after reading</h2>
+<ul>
+<li>Build a mental model of how an HTTP request travels through Linux, Apache, PHP and MySQL, and predict where it will break.</li>
+<li>Configure Aliyun networking from the security group inwards, with a real defence-in-depth model rather than <code>0.0.0.0/0</code> everywhere.</li>
+<li>Install, verify and harden each LAMP component on Ubuntu (the steps for CentOS / Alibaba Cloud Linux are called out alongside).</li>
+<li>Deploy a non-trivial application end-to-end (Discuz!), including the file-permission and database-account work that the docs gloss over.</li>
+<li>Diagnose the five failures that account for ~90% of &ldquo;my LAMP doesn&rsquo;t work&rdquo; tickets.</li>
+<li>Decide when to stay on a single ECS, and when to split into SLB + ECS + RDS.</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>An Alibaba Cloud ECS instance, Ubuntu 22.04 LTS or Alibaba Cloud Linux 3 / CentOS 7+.</li>
+<li>SSH access from your laptop using a key (not a password).</li>
+<li>Comfort with the Linux command line: <code>ls</code>, <code>cd</code>, <code>cat</code>, <code>systemctl</code>, <code>sudo</code>.</li>
+<li>A domain name is optional but nice to have for the TLS section.</li>
+</ul>
+<hr>
+<h1 id="1-why-lamp-still-earns-its-place">1. Why LAMP still earns its place</h1>
+<p>LAMP &ndash; <strong>L</strong>inux + <strong>A</strong>pache + <strong>M</strong>ySQL + <strong>P</strong>HP &ndash; has been declared dead in every web framework cycle since 2010 and refuses to oblige. The reason is not nostalgia, it is fitness for purpose. For content sites, CMS platforms (WordPress, Discuz, Drupal, MediaWiki), customer portals, internal tools and a long tail of small SaaS backends, LAMP is the <strong>most cost-effective, best-documented and lowest-maintenance</strong> way to put dynamic web pages in front of users.</p>
+<p>What you actually get for free with LAMP that newer stacks make you reassemble:</p>
+<ul>
+<li><strong>A mature ecosystem.</strong> Apache is twenty-eight years old, MySQL twenty-eight, PHP thirty. Almost every problem you can have has been hit, written up and indexed.</li>
+<li><strong>Shared-hosting parity.</strong> A LAMP app moves between a $5/month shared host and an ECS without a code change.</li>
+<li><strong>A predictable request path.</strong> No service mesh, no sidecar, no orchestrator &ndash; one process tree on one machine. When latency rises you can <code>top</code> your way to the answer.</li>
+<li><strong>A low operational floor.</strong> One server, three services. The cognitive load is a fraction of Kubernetes.</li>
+</ul>
+<p>LAMP is <strong>not</strong> the right answer when your workload is high-fanout APIs (use Nginx + Go/Node/Rust), event-driven and connection-heavy (websockets at scale prefer event loops over Apache prefork), or when your team has already invested in containers and a control plane. Pick LAMP for what it is good at, not as a default.</p>
+<h1 id="2-the-four-layer-architecture">2. The four-layer architecture</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig1_lamp_architecture.png" alt="The four-layer LAMP stack" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The diagram above is the single most important picture in this guide. Internalise it and most operational problems become &ldquo;which layer is broken&rdquo; instead of &ldquo;the server doesn&rsquo;t work&rdquo;.</p>
+<p>Each layer <strong>owns</strong> something specific:</p>
+<ul>
+<li><strong>Linux</strong> owns processes, files and sockets. If <code>systemctl status apache2</code> says <code>inactive</code>, the rest does not matter.</li>
+<li><strong>Apache</strong> owns the HTTP wire format and the mapping from URL to handler. If Apache is not loaded, port 80 is just a closed socket; if it is loaded but no <code>VirtualHost</code> matches your <code>Host:</code> header, you fall through to the default page.</li>
+<li><strong>PHP</strong> owns code execution. Apache hands it a <code>.php</code> file; PHP parses it, runs it, returns text. If PHP is missing or its module is not enabled, Apache happily serves your source code as plain text &ndash; a security incident dressed as a misconfiguration.</li>
+<li><strong>MySQL</strong> owns durability. If MySQL is down, PHP scripts that need data raise exceptions; if MySQL is up but the credentials are wrong, the same scripts produce blank pages.</li>
+</ul>
+<p>The interfaces between the layers are the parts that fail:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Interface</th>
+          <th>What can go wrong</th>
+          <th>Fast check</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Linux -&gt; Apache</td>
+          <td>service not started, port 80 in use</td>
+          <td><code>ss -tlnp | grep ':80'</code></td>
+      </tr>
+      <tr>
+          <td>Apache -&gt; PHP</td>
+          <td><code>php</code> module not enabled</td>
+          <td><code>apache2ctl -M | grep php</code></td>
+      </tr>
+      <tr>
+          <td>PHP -&gt; MySQL</td>
+          <td>extension missing, wrong host/socket</td>
+          <td><code>php -r &quot;var_dump(extension_loaded('mysqli'));&quot;</code></td>
+      </tr>
+      <tr>
+          <td>MySQL -&gt; disk</td>
+          <td>data directory permissions, full disk</td>
+          <td><code>journalctl -u mysql -n 50</code></td>
+      </tr>
+  </tbody>
+</table>
+<p>Memorise these four checks and you will resolve most LAMP issues without ever opening Stack Overflow.</p>
+<h1 id="3-anatomy-of-an-aliyun-ecs-instance">3. Anatomy of an Aliyun ECS instance</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig2_aliyun_ecs_overview.png" alt="Anatomy of an Alibaba Cloud ECS instance" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Before installing anything, pick the right instance. The console shows hundreds of options; in practice for a starter LAMP server you decide on four things:</p>
+<p><strong>Region and zone.</strong> A region is a city (Hangzhou, Beijing, Singapore); a zone is a data centre inside that city. Latency to your users is set by the region; resilience to one DC failure is set by the zone. For a single-instance LAMP you only pick one zone &ndash; there is no point pretending to be multi-AZ on one machine.</p>
+<p><strong>Instance family.</strong> The naming is <code>&lt;family&gt;&lt;generation&gt;.&lt;size&gt;</code>. For a public LAMP site:</p>
+<ul>
+<li><code>g7.large</code> (2 vCPU / 8 GiB) is the safe default &ndash; balanced compute and memory.</li>
+<li><code>c7.large</code> if your workload is mostly PHP (CPU-bound) and your DB is small.</li>
+<li><code>r7.large</code> if your workload is read-heavy and you can win by caching aggressively in MySQL&rsquo;s buffer pool.</li>
+<li><code>t6</code> burstable instances cost a fraction of <code>g7</code> and are fine for a low-traffic blog &ndash; as long as you understand CPU credits run out.</li>
+</ul>
+<p><strong>Disk.</strong> Choose ESSD PL1 over basic cloud disks. The IOPS difference (5000 vs ~1000) is the difference between a snappy admin panel and a slow one, and the price gap on small disks is small. Forty GiB is enough for the OS plus a moderate site &ndash; attach a separate data disk if your database will grow past a few gigabytes.</p>
+<p><strong>Public IP.</strong> You can take the public IP that comes with the instance (cheap, but bound to the instance and lost on release) or attach an Elastic IP (EIP) which survives instance changes. For anything you might rebuild, pay the small EIP fee.</p>
+<p>That is the entire decision. Skip the long list of features and confirm.</p>
+<h1 id="4-networking-the-part-that-traps-everyone">4. Networking: the part that traps everyone</h1>
+<p>Every &ldquo;I can&rsquo;t reach my server&rdquo; question on the Aliyun forum has the same root cause &ndash; packets are dropped at one of the four points in the path:</p>
+<pre tabindex="0"><code>client laptop ---internet---&gt; [security group] ---&gt; [OS firewall] ---&gt; [listen socket] ---&gt; Apache
+</code></pre><p>You have to open all four, or you will diagnose the wrong layer.</p>
+<h2 id="41-public-ip">4.1 Public IP</h2>
+<p>In the ECS console, <strong>Instances -&gt; your instance -&gt; Networking -&gt; Bind EIP</strong> (or assign a public IP at create time). Note the address; treat it like a domain name (<code>8.134.207.88</code> is the example used below).</p>
+<h2 id="42-security-group-rules">4.2 Security group rules</h2>
+<p>The security group is a stateful packet filter that lives in the cloud, not on the OS. It runs <strong>before</strong> anything reaches your instance, so it overrides whatever your OS firewall says. In the console: <strong>Security Groups -&gt; Configure Rules -&gt; Inbound</strong>.</p>
+<p>A safe starter rule set for a public LAMP server:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Protocol</th>
+          <th>Port range</th>
+          <th>Source</th>
+          <th>Purpose</th>
+          <th>Notes</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>TCP</td>
+          <td>22/22</td>
+          <td>your home IP/32</td>
+          <td>SSH</td>
+          <td>Never <code>0.0.0.0/0</code>. Use <code>curl ifconfig.me</code> to find your IP.</td>
+      </tr>
+      <tr>
+          <td>TCP</td>
+          <td>80/80</td>
+          <td>0.0.0.0/0</td>
+          <td>HTTP</td>
+          <td>Only as a <code>301 -&gt; https</code> redirect.</td>
+      </tr>
+      <tr>
+          <td>TCP</td>
+          <td>443/443</td>
+          <td>0.0.0.0/0</td>
+          <td>HTTPS</td>
+          <td>The only port the public actually talks to.</td>
+      </tr>
+      <tr>
+          <td>TCP</td>
+          <td>3306/3306</td>
+          <td>(closed)</td>
+          <td>MySQL</td>
+          <td><strong>Never open.</strong> Reach DB via SSH tunnel.</td>
+      </tr>
+      <tr>
+          <td>ICMP</td>
+          <td>-1/-1</td>
+          <td>0.0.0.0/0</td>
+          <td>Ping</td>
+          <td>Optional, useful for monitoring.</td>
+      </tr>
+  </tbody>
+</table>
+<p>If you genuinely need remote MySQL access for a developer, add their IP only:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># On your laptop, build a tunnel instead of opening 3306</span>
+</span></span><span class="line"><span class="cl">ssh -L 33306:127.0.0.1:3306 user@8.134.207.88
+</span></span><span class="line"><span class="cl"><span class="c1"># Then connect locally to 127.0.0.1:33306</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Compared to opening 3306 on the security group, the tunnel:</p>
+<ul>
+<li>reuses your existing SSH key auth (no extra credential),</li>
+<li>only exposes the DB while the tunnel is up,</li>
+<li>never appears in shodan scans.</li>
+</ul>
+<h2 id="43-os-level-firewall">4.3 OS-level firewall</h2>
+<p>The cloud security group is necessary but not sufficient &ndash; a future operator might open everything on the security group &ldquo;to debug&rdquo;, and your second line of defence is the OS firewall.</p>
+<p>On Ubuntu / Debian:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ufw default deny incoming
+</span></span><span class="line"><span class="cl">sudo ufw default allow outgoing
+</span></span><span class="line"><span class="cl">sudo ufw allow 22/tcp
+</span></span><span class="line"><span class="cl">sudo ufw allow 80/tcp
+</span></span><span class="line"><span class="cl">sudo ufw allow 443/tcp
+</span></span><span class="line"><span class="cl">sudo ufw <span class="nb">enable</span>
+</span></span><span class="line"><span class="cl">sudo ufw status numbered
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>On CentOS / Alibaba Cloud Linux (firewalld):</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-service<span class="o">=</span>ssh
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-service<span class="o">=</span>http
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-service<span class="o">=</span>https
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --reload
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --list-all
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="44-verifying-reachability-hop-by-hop">4.4 Verifying reachability hop by hop</h2>
+<p>When something does not respond, isolate the failing hop in this exact order. Doing it out of order is how you spend three hours debugging the wrong thing.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Step 1 -- can I reach the public IP at all?</span>
+</span></span><span class="line"><span class="cl">ping 8.134.207.88
+</span></span><span class="line"><span class="cl"><span class="c1"># fails  -&gt; security group ICMP rule, or instance is stopped</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Step 2 -- is anything listening on the OS?</span>
+</span></span><span class="line"><span class="cl">ss -tlnp <span class="p">|</span> grep -E <span class="s1">&#39;:80|:443|:22&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># missing -&gt; service not started</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Step 3 -- does the OS firewall pass it?</span>
+</span></span><span class="line"><span class="cl">sudo ufw status            <span class="c1"># or: sudo firewall-cmd --list-all</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Step 4 -- does Apache answer locally?</span>
+</span></span><span class="line"><span class="cl">curl -I http://127.0.0.1
+</span></span><span class="line"><span class="cl"><span class="c1"># 200 OK -&gt; the problem is upstream of Apache (firewall / SG)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="5-the-request-flow-end-to-end">5. The request flow, end to end</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig3_request_flow.png" alt="How a request travels through the stack" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>When the request finally lands and Apache answers, this is what happens. Knowing this flow turns &ldquo;the site is broken&rdquo; into a sequence of yes/no questions.</p>
+<ol>
+<li>Browser opens a TCP connection to <code>8.134.207.88:80</code>.</li>
+<li>Aliyun&rsquo;s security group accepts the SYN (rule for tcp:80 from 0.0.0.0/0).</li>
+<li>The kernel hands the connection to whoever is listening &ndash; <code>apache2</code>.</li>
+<li>Apache parses the request line <code>GET /index.php HTTP/1.1</code>, walks its <code>VirtualHost</code> config to find one whose <code>ServerName</code> matches the <code>Host:</code> header, then resolves <code>/index.php</code> against that vhost&rsquo;s <code>DocumentRoot</code>.</li>
+<li>The <code>mod_php</code> handler matches <code>.php</code> and Apache invokes the embedded PHP interpreter (or, with FPM, opens the unix socket and forwards the request).</li>
+<li>The PHP script runs; one of its first statements is usually <code>new mysqli('localhost', ...)</code> or <code>new PDO('mysql:host=localhost;...')</code>. PHP opens a TCP connection to <code>127.0.0.1:3306</code> (or, on Debian/Ubuntu, the unix socket <code>/var/run/mysqld/mysqld.sock</code>).</li>
+<li>MySQL authenticates the user, parses the SQL, hits the InnoDB buffer pool (or disk if cold), returns rows.</li>
+<li>PHP renders the rows into HTML, returns it to Apache, which writes it on the wire.</li>
+</ol>
+<p>The classic failure modes are annotated under the figure. The most common are:</p>
+<ul>
+<li><strong>PHP shows as plain text.</strong> Apache is serving the file but is not invoking PHP. The handler module is not loaded.</li>
+<li><strong>Blank page after install.</strong> PHP errors are being suppressed and the script crashed &ndash; look in <code>/var/log/apache2/error.log</code>, not in the browser.</li>
+<li><strong>&ldquo;Connection refused&rdquo; intermittently.</strong> The MySQL connection limit is hit, or the OOM killer just shot <code>mysqld</code>. Check <code>dmesg</code> and <code>mysql.err</code>.</li>
+</ul>
+<h1 id="6-installing-the-stack-on-ubuntu">6. Installing the stack on Ubuntu</h1>
+<p>Step zero before installing anything: make sure no other web server or database is already on the box.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl status apache2 nginx mysql mariadb 2&gt;/dev/null <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  <span class="p">|</span> grep -E <span class="s1">&#39;Active|service&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Stop and mask anything you do not want</span>
+</span></span><span class="line"><span class="cl">sudo systemctl disable --now nginx
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The order matters: install Apache, then MySQL, then PHP last. PHP&rsquo;s package will pull in the Apache module and will run a post-install hook that enables it &ndash; this only works if Apache is already there.</p>
+<h2 id="61-apache">6.1 Apache</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt update
+</span></span><span class="line"><span class="cl">sudo apt install -y apache2
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now apache2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Visit <code>http://YOUR_PUBLIC_IP/</code> &ndash; you should see the Apache2 Ubuntu Default Page. If you do not, run the four-step verification from section 4.4 in order.</p>
+<p>The directories you will actually edit:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Path</th>
+          <th>What lives there</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>/etc/apache2/apache2.conf</code></td>
+          <td>global config &ndash; almost never edit directly</td>
+      </tr>
+      <tr>
+          <td><code>/etc/apache2/sites-available/*.conf</code></td>
+          <td>virtual host definitions</td>
+      </tr>
+      <tr>
+          <td><code>/etc/apache2/sites-enabled/</code></td>
+          <td>symlinks; <code>a2ensite</code> / <code>a2dissite</code> manage them</td>
+      </tr>
+      <tr>
+          <td><code>/etc/apache2/mods-available/*.{load,conf}</code></td>
+          <td>module config &ndash; managed by <code>a2enmod</code></td>
+      </tr>
+      <tr>
+          <td><code>/var/www/html/</code></td>
+          <td>default DocumentRoot</td>
+      </tr>
+      <tr>
+          <td><code>/var/log/apache2/{access,error}.log</code></td>
+          <td>the first place to look when anything fails</td>
+      </tr>
+  </tbody>
+</table>
+<p>A small but worth-it tweak: increase logging detail temporarily during setup, then revert.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo sed -i <span class="s1">&#39;s/^LogLevel warn/LogLevel info/&#39;</span> /etc/apache2/apache2.conf
+</span></span><span class="line"><span class="cl">sudo systemctl reload apache2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="62-mysql">6.2 MySQL</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install -y mysql-server
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now mysql
+</span></span><span class="line"><span class="cl">sudo mysql_secure_installation
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The <code>mysql_secure_installation</code> wizard asks five questions. The right answers are:</p>
+<ol>
+<li><strong>VALIDATE PASSWORD plugin:</strong> yes, level 2 (strong).</li>
+<li><strong>Set root password:</strong> a 16+ character password from a password manager. Save it.</li>
+<li><strong>Remove anonymous users:</strong> yes.</li>
+<li><strong>Disallow root login remotely:</strong> yes &ndash; you will tunnel via SSH.</li>
+<li><strong>Remove test database:</strong> yes.</li>
+</ol>
+<p>Then verify:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl status mysql
+</span></span><span class="line"><span class="cl">sudo mysql -e <span class="s2">&#34;SELECT version(), @@hostname;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="the-caching_sha2_password-trap">The <code>caching_sha2_password</code> trap</h3>
+<p>MySQL 8.0 changed the default authentication plugin from <code>mysql_native_password</code> to <code>caching_sha2_password</code>. Older PHP <code>mysqli</code> drivers, the <code>mysql</code> PHP extension, and a number of CMS installers cannot speak the new protocol and fail with <code>The server requested authentication method unknown to the client</code>. The right fix today is to upgrade the driver; the pragmatic fix when you cannot is to tell MySQL to use the old plugin <strong>per user</strong>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">ALTER</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="s1">&#39;discuz_user&#39;</span><span class="o">@</span><span class="s1">&#39;localhost&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="n">mysql_native_password</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="s1">&#39;StrongPassword123!&#39;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">FLUSH</span><span class="w"> </span><span class="k">PRIVILEGES</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>Do this for the application user only &ndash; never weaken <code>root</code>.</p>
+<h3 id="a-starter-mycnf-worth-knowing-about">A starter <code>my.cnf</code> worth knowing about</h3>
+<p>Out of the box MySQL 8 ships with a tiny buffer pool. For a site that is even slightly busy this is the biggest single performance lever:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="c1"># /etc/mysql/mysql.conf.d/zz-tuning.cnf</span>
+</span></span><span class="line"><span class="cl"><span class="k">[mysqld]</span>
+</span></span><span class="line"><span class="cl"><span class="na">innodb_buffer_pool_size</span> <span class="o">=</span> <span class="s">4G          # ~50% of system RAM on a DB-only box</span>
+</span></span><span class="line"><span class="cl"><span class="na">innodb_log_file_size</span>    <span class="o">=</span> <span class="s">512M</span>
+</span></span><span class="line"><span class="cl"><span class="na">innodb_flush_log_at_trx_commit</span> <span class="o">=</span> <span class="s">1    # 2 if you can tolerate 1s data loss for speed</span>
+</span></span><span class="line"><span class="cl"><span class="na">max_connections</span> <span class="o">=</span> <span class="s">200</span>
+</span></span><span class="line"><span class="cl"><span class="na">character-set-server</span>   <span class="o">=</span> <span class="s">utf8mb4</span>
+</span></span><span class="line"><span class="cl"><span class="na">collation-server</span>       <span class="o">=</span> <span class="s">utf8mb4_unicode_ci</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Restart MySQL after editing. The buffer pool is single-handedly responsible for the difference between &ldquo;every query hits disk&rdquo; and &ldquo;the working set lives in RAM&rdquo;.</p>
+<h2 id="63-php">6.3 PHP</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install -y php libapache2-mod-php php-mysql <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>                    php-curl php-gd php-mbstring php-xml php-zip php-intl
+</span></span><span class="line"><span class="cl">sudo systemctl restart apache2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Verify the bridge between Apache and PHP:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;&lt;?php phpinfo();&#39;</span> <span class="p">|</span> sudo tee /var/www/html/info.php
+</span></span><span class="line"><span class="cl">curl -s http://127.0.0.1/info.php <span class="p">|</span> head -n <span class="m">5</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>You should see HTML, not PHP source. If you see source, the <code>php</code> module did not get enabled:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /etc/apache2/mods-enabled/php*.load   <span class="c1"># is there one?</span>
+</span></span><span class="line"><span class="cl">sudo a2enmod php8.1                      <span class="c1"># match your installed version</span>
+</span></span><span class="line"><span class="cl">sudo systemctl restart apache2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Delete <code>info.php</code> after testing</strong> &ndash; it leaks the entire PHP configuration, including loaded extensions, file paths and <code>disable_functions</code>. It is the first thing an attacker grep s for.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo rm /var/www/html/info.php
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="7-defence-in-depth-hardening-the-public-surface">7. Defence in depth: hardening the public surface</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig4_security_setup.png" alt="Defence in depth for a public LAMP server" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A public LAMP server with default settings will be probed by automated scanners within minutes. Treat security as five concentric rings, each one buying time even when the one outside it fails.</p>
+<h2 id="71-security-group----the-perimeter">7.1 Security group &ndash; the perimeter</h2>
+<p>Already covered in section 4. The rule of thumb: your security group should make the OS firewall feel redundant, and your OS firewall should make the security group feel redundant. Neither should be your only line.</p>
+<h2 id="72-os-hardening">7.2 OS hardening</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Keep the system patched -- enable unattended security upgrades</span>
+</span></span><span class="line"><span class="cl">sudo apt install -y unattended-upgrades
+</span></span><span class="line"><span class="cl">sudo dpkg-reconfigure -plow unattended-upgrades
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Disable password SSH (after you have key auth working)</span>
+</span></span><span class="line"><span class="cl">sudo sed -i <span class="s1">&#39;s/^#\?PasswordAuthentication.*/PasswordAuthentication no/&#39;</span> /etc/ssh/sshd_config
+</span></span><span class="line"><span class="cl">sudo sed -i <span class="s1">&#39;s/^#\?PermitRootLogin.*/PermitRootLogin no/&#39;</span> /etc/ssh/sshd_config
+</span></span><span class="line"><span class="cl">sudo systemctl restart ssh
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Install fail2ban to slow brute force</span>
+</span></span><span class="line"><span class="cl">sudo apt install -y fail2ban
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now fail2ban
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="73-tls-with-lets-encrypt">7.3 TLS with Let&rsquo;s Encrypt</h2>
+<p>Once you have a domain pointed at your IP, getting a certificate is two commands:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install -y certbot python3-certbot-apache
+</span></span><span class="line"><span class="cl">sudo certbot --apache -d example.com -d www.example.com <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --redirect --agree-tos -m you@example.com
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>certbot --apache</code> writes a new vhost on port 443, enables <code>mod_ssl</code> and <code>mod_rewrite</code>, and adds a 301 redirect from 80 to 443. It also drops a systemd timer that renews the cert before expiry; verify with:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl list-timers <span class="p">|</span> grep certbot
+</span></span><span class="line"><span class="cl">sudo certbot renew --dry-run
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A modern TLS config does not just turn TLS on; it turns the bad parts off. After certbot, edit <code>/etc/apache2/sites-available/example.com-le-ssl.conf</code> and add:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-apache" data-lang="apache"><span class="line"><span class="cl"><span class="nb">SSLProtocol</span>             <span class="k">all</span> -SSLv3 -TLSv1 -TLSv1.1
+</span></span><span class="line"><span class="cl"><span class="nb">SSLCipherSuite</span>          HIGH:!aNULL:!MD5:!3DES
+</span></span><span class="line"><span class="cl"><span class="nb">SSLHonorCipherOrder</span>     <span class="k">on</span>
+</span></span><span class="line"><span class="cl"><span class="nb">Header</span> always set Strict-Transport-Security <span class="s2">&#34;max-age=63072000&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="74-mysql-hardening">7.4 MySQL hardening</h2>
+<ul>
+<li>Bind to <code>127.0.0.1</code> only (default in modern packages, verify in <code>/etc/mysql/mysql.conf.d/mysqld.cnf</code>).</li>
+<li>One database user <strong>per application</strong>, with <code>GRANT</code> scoped to that database.</li>
+<li>No <code>GRANT ALL ... TO root@'%'</code> &ndash; ever.</li>
+<li>Backups encrypted at rest if the data is sensitive.</li>
+</ul>
+<h2 id="75-application-hygiene">7.5 Application hygiene</h2>
+<ul>
+<li><code>php-fpm</code> instead of <code>mod_php</code> if you can &ndash; isolates PHP failures from the Apache process tree.</li>
+<li><code>expose_php = Off</code> and <code>display_errors = Off</code> in <code>/etc/php/8.1/apache2/php.ini</code> for production.</li>
+<li>Whatever framework you deploy, check it has a security advisory feed and subscribe to it. CVEs in CMSes are the single largest source of compromised LAMP servers.</li>
+</ul>
+<h1 id="8-end-to-end-deployment-discuz">8. End-to-end deployment: Discuz!</h1>
+<p>Discuz! is worth using as a worked example because it exercises every weak point of a fresh LAMP install: file permissions, multiple writable directories, MySQL user creation, PHP extension requirements and a web-based installer that double-checks all of them.</p>
+<h2 id="81-download">8.1 Download</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /var/www/html
+</span></span><span class="line"><span class="cl">sudo wget https://download.comsenz.com/DiscuzX/3.4/Discuz_X3.4_SC_UTF8.zip
+</span></span><span class="line"><span class="cl">sudo apt install -y unzip
+</span></span><span class="line"><span class="cl">sudo unzip -q Discuz_X3.4_SC_UTF8.zip
+</span></span><span class="line"><span class="cl">sudo mv upload/* upload/.htaccess . 2&gt;/dev/null <span class="o">||</span> sudo mv upload/* .
+</span></span><span class="line"><span class="cl">sudo rm -rf upload Discuz_X3.4_SC_UTF8.zip readme.txt utility/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="82-permissions----the-part-everyone-gets-wrong">8.2 Permissions &ndash; the part everyone gets wrong</h2>
+<p>Apache runs as <code>www-data</code> (Ubuntu) or <code>apache</code> (CentOS). The single rule: <strong>the user running Apache must own every file that PHP needs to write</strong>, and only those.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Baseline: everything readable, owned by web user</span>
+</span></span><span class="line"><span class="cl">sudo chown -R www-data:www-data /var/www/html
+</span></span><span class="line"><span class="cl">sudo find /var/www/html -type d -exec chmod <span class="m">755</span> <span class="o">{}</span> <span class="se">\;</span>
+</span></span><span class="line"><span class="cl">sudo find /var/www/html -type f -exec chmod <span class="m">644</span> <span class="o">{}</span> <span class="se">\;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Discuz&#39;s writable directories (the installer checks these)</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> d in data config uc_server/data uc_client/data<span class="p">;</span> <span class="k">do</span>
+</span></span><span class="line"><span class="cl">  sudo chmod -R <span class="m">775</span> /var/www/html/<span class="nv">$d</span>
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Note that this is <code>775</code>, <strong>not</strong> <code>777</code>. If <code>www-data</code> already owns the directory, <code>775</code> lets the owner (web user) write while keeping <code>o+r</code> for the rest. <code>chmod 777</code> is folk wisdom, not advice &ndash; it lets every user on the system write your application files, and on a shared server that is a privilege-escalation path.</p>
+<h2 id="83-database-account">8.3 Database account</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mysql -e <span class="s2">&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s2">  CREATE DATABASE discuz CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+</span></span></span><span class="line"><span class="cl"><span class="s2">  CREATE USER &#39;discuz_user&#39;@&#39;localhost&#39; IDENTIFIED BY &#39;StrongPassword123!&#39;;
+</span></span></span><span class="line"><span class="cl"><span class="s2">  GRANT ALL PRIVILEGES ON discuz.* TO &#39;discuz_user&#39;@&#39;localhost&#39;;
+</span></span></span><span class="line"><span class="cl"><span class="s2">  FLUSH PRIVILEGES;
+</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Two things to notice:</p>
+<ul>
+<li><code>discuz.*</code> &ndash; the grant is scoped to one database. If Discuz is ever compromised, the attacker cannot read your other applications&rsquo; tables.</li>
+<li><code>'discuz_user'@'localhost'</code> &ndash; the host part is part of the identity. The same username from a different host is a different user. Connections via the unix socket count as <code>'localhost'</code>; TCP to <code>127.0.0.1</code> counts as <code>'127.0.0.1'</code>. If <code>mysql_secure_installation</code> left <code>localhost</code> and <code>127.0.0.1</code> distinct, grant both.</li>
+</ul>
+<h2 id="84-run-the-installer">8.4 Run the installer</h2>
+<p>Visit <code>http://YOUR_PUBLIC_IP/install/</code>. Three things happen:</p>
+<ol>
+<li><strong>Environment check</strong> &ndash; PHP version, GD, mbstring, mysqli. If anything is missing: <code>sudo apt install -y php-&lt;extension&gt; &amp;&amp; sudo systemctl reload apache2</code>.</li>
+<li><strong>Permission check</strong> &ndash; the green ticks should appear next to <code>data/</code>, <code>config/</code>, <code>uc_server/data/</code>, <code>uc_client/data/</code>. If not, recheck section 8.2.</li>
+<li><strong>Database details</strong> &ndash; host <code>localhost</code>, name <code>discuz</code>, user <code>discuz_user</code>, password as set above.</li>
+</ol>
+<p>After install:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo rm -rf /var/www/html/install
+</span></span><span class="line"><span class="cl"><span class="c1"># tighten the directories that no longer need write access</span>
+</span></span><span class="line"><span class="cl">sudo chmod -R <span class="m">755</span> /var/www/html/config
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="9-the-five-failures-that-hit-everyone">9. The five failures that hit everyone</h1>
+<h2 id="failure-1----connection-refused">Failure 1 &ndash; &ldquo;Connection refused&rdquo;</h2>
+<p><strong>Means:</strong> something between you and Apache is dropping the TCP SYN, or Apache is not listening.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Local on the server -- if this works, Apache is fine; the problem is the network</span>
+</span></span><span class="line"><span class="cl">curl -I http://127.0.0.1
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># What is actually listening?</span>
+</span></span><span class="line"><span class="cl">sudo ss -tlnp <span class="p">|</span> grep -E <span class="s1">&#39;:80|:443&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># What does the OS firewall say?</span>
+</span></span><span class="line"><span class="cl">sudo ufw status
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If <code>127.0.0.1</code> works but the public IP does not, the OS is fine &ndash; check the security group in the cloud console.</p>
+<h2 id="failure-2----403-forbidden-or-index-of-">Failure 2 &ndash; &ldquo;403 Forbidden&rdquo; or &ldquo;Index of /&rdquo;</h2>
+<p><strong>Means:</strong> Apache served the directory but did not find an index file, or could not read it.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls -l /var/www/html/                       <span class="c1"># is index.php / index.html there?</span>
+</span></span><span class="line"><span class="cl">sudo -u www-data cat /var/www/html/index.php <span class="c1"># can the web user read it?</span>
+</span></span><span class="line"><span class="cl">grep -r DirectoryIndex /etc/apache2/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The fix is almost always <code>chown -R www-data:www-data /var/www/html</code> &ndash; you <code>wget</code> ed something as root, and the web user cannot read it.</p>
+<h2 id="failure-3----php-source-code-visible-in-the-browser">Failure 3 &ndash; PHP source code visible in the browser</h2>
+<p><strong>Means:</strong> Apache is serving <code>.php</code> as a static file because the PHP handler is not registered.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apache2ctl -M <span class="p">|</span> grep php_module    <span class="c1"># nothing? PHP module is off</span>
+</span></span><span class="line"><span class="cl">sudo a2enmod php8.1                <span class="c1"># use your version</span>
+</span></span><span class="line"><span class="cl">sudo systemctl restart apache2
+</span></span><span class="line"><span class="cl">curl -s http://127.0.0.1/info.php <span class="p">|</span> head -n <span class="m">1</span>   <span class="c1"># should be HTML, not &lt;?php</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>This is a security incident, not just a misconfiguration &ndash; never leave the box exposed in this state.</p>
+<h2 id="failure-4----cant-connect-to-mysql-server-on-localhost">Failure 4 &ndash; &ldquo;Can&rsquo;t connect to MySQL server on &rsquo;localhost'&rdquo;</h2>
+<p><strong>Means:</strong> MySQL is down, the socket has moved, or credentials are wrong.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl status mysql
+</span></span><span class="line"><span class="cl">sudo journalctl -u mysql -n <span class="m">100</span> --no-pager
+</span></span><span class="line"><span class="cl">mysql -u discuz_user -p -h 127.0.0.1 -e <span class="s1">&#39;SELECT 1&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A common cause on small instances: MySQL was OOM-killed. <code>dmesg | tail -50</code> will show <code>Killed process ... mysqld</code>. Either tune <code>innodb_buffer_pool_size</code> down or move to a larger instance.</p>
+<h2 id="failure-5----discuz-says-directory-not-writable">Failure 5 &ndash; Discuz says &ldquo;Directory not writable&rdquo;</h2>
+<p><strong>Means:</strong> the web user cannot write to one of the four required dirs.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo -u www-data touch /var/www/html/data/.write_test
+</span></span><span class="line"><span class="cl"><span class="c1"># Permission denied? Then:</span>
+</span></span><span class="line"><span class="cl">sudo chown -R www-data:www-data /var/www/html/<span class="o">{</span>data,config,uc_server/data,uc_client/data<span class="o">}</span>
+</span></span><span class="line"><span class="cl">sudo chmod -R <span class="m">775</span> /var/www/html/<span class="o">{</span>data,config,uc_server/data,uc_client/data<span class="o">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Resist the urge to <code>chmod -R 777 /var/www</code>. It will work, and it will hurt later.</p>
+<h1 id="10-production-essentials">10. Production essentials</h1>
+<h2 id="101-virtual-hosts">10.1 Virtual hosts</h2>
+<p>Stop dumping everything in <code>/var/www/html/</code> the moment you have more than one site. Per-site directories under <code>/var/www/&lt;sitename&gt;/</code> and per-site vhost files keep the layout sane.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-apache" data-lang="apache"><span class="line"><span class="cl"><span class="c"># /etc/apache2/sites-available/blog.example.com.conf</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;VirtualHost</span> <span class="s">*:443</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">ServerName</span>  blog.example.com
+</span></span><span class="line"><span class="cl">    <span class="nb">ServerAlias</span> www.blog.example.com
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nb">DocumentRoot</span> <span class="sx">/var/www/blog.example.com</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;Directory</span> <span class="s">/var/www/blog.example.com</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">Options</span> -Indexes +FollowSymLinks
+</span></span><span class="line"><span class="cl">        <span class="nb">AllowOverride</span> <span class="k">All</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">Require</span> <span class="k">all</span> granted
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/Directory&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nb">SSLEngine</span> <span class="k">on</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">SSLCertificateFile</span>      <span class="sx">/etc/letsencrypt/live/blog.example.com/fullchain.pem</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">SSLCertificateKeyFile</span>   <span class="sx">/etc/letsencrypt/live/blog.example.com/privkey.pem</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nb">ErrorLog</span>  ${APACHE_LOG_DIR}/blog.example.com.error.log
+</span></span><span class="line"><span class="cl">    <span class="nb">CustomLog</span> ${APACHE_LOG_DIR}/blog.example.com.access.log combined
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/VirtualHost&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo a2ensite blog.example.com
+</span></span><span class="line"><span class="cl">sudo apache2ctl configtest <span class="o">&amp;&amp;</span> sudo systemctl reload apache2
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>configtest</code> before <code>reload</code> is the difference between a graceful change and a five-minute outage when you mistype a brace.</p>
+<h2 id="102-backups-that-you-actually-test">10.2 Backups that you actually test</h2>
+<p>A backup you have not restored is not a backup. The minimum:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># /usr/local/bin/db-backup.sh</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#!/usr/bin/env bash</span>
+</span></span><span class="line"><span class="cl"><span class="nb">set</span> -euo pipefail
+</span></span><span class="line"><span class="cl"><span class="nv">DEST</span><span class="o">=</span>/var/backups/mysql
+</span></span><span class="line"><span class="cl"><span class="nv">DATE</span><span class="o">=</span><span class="k">$(</span>date +%F_%H%M<span class="k">)</span>
+</span></span><span class="line"><span class="cl">mkdir -p <span class="s2">&#34;</span><span class="nv">$DEST</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">mysqldump --single-transaction --routines --events <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>          --databases discuz <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>        <span class="p">|</span> gzip &gt; <span class="s2">&#34;</span><span class="nv">$DEST</span><span class="s2">/discuz_</span><span class="nv">$DATE</span><span class="s2">.sql.gz&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># keep 14 days</span>
+</span></span><span class="line"><span class="cl">find <span class="s2">&#34;</span><span class="nv">$DEST</span><span class="s2">&#34;</span> -name <span class="s1">&#39;discuz_*.sql.gz&#39;</span> -mtime +14 -delete
+</span></span></code></pre></td></tr></table>
+</div>
+</div><pre tabindex="0"><code class="language-cron" data-lang="cron"># crontab -e
+0 3 * * * /usr/local/bin/db-backup.sh
+</code></pre><p>Add an OSS sync once a week so a failed disk does not also lose your backups:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/<span class="k">$(</span>hostname<span class="k">)</span>/
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>And once a month, on a separate machine: <code>gunzip &lt; some_backup.sql.gz | mysql -u root -p test_restore</code> and verify the row counts. The first time is always educational.</p>
+<h2 id="103-observability">10.3 Observability</h2>
+<p>The Aliyun Cloud Monitor agent gives you CPU, memory, disk and bandwidth out of the box. The two extra signals worth wiring up yourself:</p>
+<ul>
+<li>Apache <code>mod_status</code> exposed on <code>127.0.0.1:80/server-status</code> &ndash; requests per second, busy workers, slow requests.</li>
+<li>MySQL <code>performance_schema</code> queries to find the slow queries (<code>SELECT digest_text, count_star, avg_timer_wait FROM events_statements_summary_by_digest ORDER BY sum_timer_wait DESC LIMIT 10</code>).</li>
+</ul>
+<p>A weekly five-minute look at these will catch capacity problems weeks before they bite.</p>
+<h1 id="11-two-topologies-one-app">11. Two topologies, one app</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/lamp-on-ecs/fig5_deployment_topology.png" alt="Two topologies for a LAMP site" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Almost every successful LAMP site eventually hits the wall of the single-instance topology and has to decide whether to scale up (bigger ECS) or out (split tiers). The picture above is the destination of that decision.</p>
+<p><strong>Stay all-in-one when</strong> your peak traffic fits in one instance, your DB is small enough that the buffer pool covers the working set, and you have one engineer. The localhost connection between PHP and MySQL is faster than any network call you can buy, and the operational footprint is one OS to patch.</p>
+<p><strong>Split into three tiers when</strong> you need horizontal scale (more PHP workers behind an SLB), high availability (RDS gives you primary + standby for free), or you are spending more on your single ECS than two smaller ones plus an RDS. The classic Aliyun three-tier:</p>
+<ul>
+<li><strong>SLB</strong> terminates TLS, fans out to the web tier.</li>
+<li><strong>ECS x N</strong> running Apache + PHP, all stateless (sessions in Redis, uploads on OSS).</li>
+<li><strong>RDS for MySQL</strong> as the single source of truth.</li>
+</ul>
+<p>The cost roughly triples; the failure surface goes from &ldquo;one box&rdquo; to &ldquo;many boxes plus a network&rdquo;, which is genuinely harder to operate. Do not migrate just because the diagrams look impressive &ndash; migrate because the single instance is actually saturating.</p>
+<h1 id="12-compiling-mysql-from-source-advanced">12. Compiling MySQL from source (advanced)</h1>
+<p>You normally do not need to do this. Use the package manager unless you have a concrete reason &ndash; a build flag the package omits, a pinned version your vendor mandates, a patch the upstream has not merged. The downsides of source builds are real: hours of compile time, no automatic security updates, your own job to track CVEs.</p>
+<p>If you do need it, the canonical incantation for MySQL 5.6 on CentOS:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo yum install -y gcc gcc-c++ cmake bison <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>                    libaio-devel ncurses-devel zlib-devel openssl-devel
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/local
+</span></span><span class="line"><span class="cl">sudo mkdir software-mysql <span class="o">&amp;&amp;</span> <span class="nb">cd</span> software-mysql
+</span></span><span class="line"><span class="cl">sudo wget https://repo.huaweicloud.com/mysql/Downloads/MySQL-5.6/mysql-5.6.49.tar.gz
+</span></span><span class="line"><span class="cl">sudo tar -xzf mysql-5.6.49.tar.gz
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> mysql-5.6.49
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo cmake . <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DCMAKE_INSTALL_PREFIX<span class="o">=</span>/usr/local/mysql <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DMYSQL_DATADIR<span class="o">=</span>/usr/local/mysql/data <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DENABLE_LOCAL_INFILE<span class="o">=</span><span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DWITH_INNOBASE_STORAGE_ENGINE<span class="o">=</span><span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DMYSQL_TCP_PORT<span class="o">=</span><span class="m">3306</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DDEFAULT_CHARSET<span class="o">=</span>utf8mb4 <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DDEFAULT_COLLATION<span class="o">=</span>utf8mb4_general_ci <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DWITH_EXTRA_CHARSETS<span class="o">=</span>all <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DMYSQL_USER<span class="o">=</span>mysql
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo make -j<span class="k">$(</span>nproc<span class="k">)</span>         <span class="c1"># 1-3 hours on a 2 vCPU box</span>
+</span></span><span class="line"><span class="cl">sudo make install
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo useradd -r -s /sbin/nologin mysql
+</span></span><span class="line"><span class="cl">sudo chown -R mysql:mysql /usr/local/mysql
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/local/mysql
+</span></span><span class="line"><span class="cl">sudo ./scripts/mysql_install_db --user<span class="o">=</span>mysql
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo cp support-files/mysql.server /etc/init.d/mysql
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now mysql
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Two things go wrong almost every time:</p>
+<ol>
+<li><strong><code>Could not find OpenSSL</code></strong> &ndash; you missed <code>openssl-devel</code>. Fix: install it, then <strong>remove the build directory and re-extract</strong> before retrying. <code>cmake</code> caches partial state and a half-finished tree will not pick up the new headers.</li>
+<li><strong>OOM during compilation</strong> &ndash; <code>make -j$(nproc)</code> on a 2 GiB instance will be killed. Use <code>-j2</code> and add 2 GiB of swap before starting.</li>
+</ol>
+<p>After install, do not forget the same <code>mysql_secure_installation</code> and <code>my.cnf</code> tuning from section 6.2 &ndash; a from-source build is not configured for you.</p>
+<h1 id="13-real-world-cases">13. Real-world cases</h1>
+<h2 id="case-a----migrating-wordpress-from-shared-hosting">Case A &ndash; Migrating WordPress from shared hosting</h2>
+<p>The recipe that has worked dozens of times:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># On the old host (cPanel / phpMyAdmin / SSH)</span>
+</span></span><span class="line"><span class="cl">mysqldump --single-transaction wordpress &gt; wp.sql
+</span></span><span class="line"><span class="cl">tar czf wp-files.tar.gz public_html/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Move both to the ECS via scp / OSS</span>
+</span></span><span class="line"><span class="cl">scp wp.sql wp-files.tar.gz user@8.134.207.88:/tmp/
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># On the ECS</span>
+</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /var/www/html
+</span></span><span class="line"><span class="cl">sudo tar xzf /tmp/wp-files.tar.gz --strip-components<span class="o">=</span><span class="m">1</span>
+</span></span><span class="line"><span class="cl">sudo mysql -e <span class="s2">&#34;CREATE DATABASE wordpress; \
+</span></span></span><span class="line"><span class="cl"><span class="s2">               CREATE USER &#39;wp&#39;@&#39;localhost&#39; IDENTIFIED BY &#39;...&#39;; \
+</span></span></span><span class="line"><span class="cl"><span class="s2">               GRANT ALL ON wordpress.* TO &#39;wp&#39;@&#39;localhost&#39;;&#34;</span>
+</span></span><span class="line"><span class="cl">sudo mysql wordpress &lt; /tmp/wp.sql
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Update wp-config.php with the new DB credentials</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Update the site URL in two places:</span>
+</span></span><span class="line"><span class="cl">sudo mysql wordpress -e <span class="s2">&#34;UPDATE wp_options SET option_value=&#39;https://example.com&#39; \
+</span></span></span><span class="line"><span class="cl"><span class="s2">                         WHERE option_name IN (&#39;siteurl&#39;,&#39;home&#39;);&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Permissions</span>
+</span></span><span class="line"><span class="cl">sudo chown -R www-data:www-data /var/www/html
+</span></span><span class="line"><span class="cl">sudo find /var/www/html -type d -exec chmod <span class="m">755</span> <span class="o">{}</span> <span class="se">\;</span>
+</span></span><span class="line"><span class="cl">sudo find /var/www/html -type f -exec chmod <span class="m">644</span> <span class="o">{}</span> <span class="se">\;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># DNS A record -&gt; 8.134.207.88, TTL low for cutover</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The pitfall is almost always permissions &ndash; shared hosts give you ownership of everything; on ECS, <code>www-data</code> does, and uploads will silently fail until you fix it.</p>
+<h2 id="case-b----two-php-versions-on-one-box">Case B &ndash; Two PHP versions on one box</h2>
+<p>Old plugin needs 5.6, new app wants 8.1. Use <code>php-fpm</code> per version and route by vhost:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo add-apt-repository ppa:ondrej/php
+</span></span><span class="line"><span class="cl">sudo apt update
+</span></span><span class="line"><span class="cl">sudo apt install -y php5.6-fpm php8.1-fpm
+</span></span></code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-apache" data-lang="apache"><span class="line"><span class="cl"><span class="nt">&lt;VirtualHost</span> <span class="s">*:443</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">ServerName</span> legacy.example.com
+</span></span><span class="line"><span class="cl">    <span class="nb">DocumentRoot</span> <span class="sx">/var/www/legacy</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;FilesMatch</span> <span class="s">\.php$</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">SetHandler</span> <span class="s2">&#34;proxy:unix:/run/php/php5.6-fpm.sock|fcgi://localhost&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/FilesMatch&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/VirtualHost&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;VirtualHost</span> <span class="s">*:443</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">ServerName</span> modern.example.com
+</span></span><span class="line"><span class="cl">    <span class="nb">DocumentRoot</span> <span class="sx">/var/www/modern</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;FilesMatch</span> <span class="s">\.php$</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">SetHandler</span> <span class="s2">&#34;proxy:unix:/run/php/php8.1-fpm.sock|fcgi://localhost&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/FilesMatch&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/VirtualHost&gt;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>This is also the right time to leave <code>mod_php</code> behind. <code>php-fpm</code> runs PHP in its own process pool, with its own user, its own resource limits, and its own crash recovery &ndash; a memory leak in PHP no longer takes Apache down.</p>
+<h2 id="case-c----a-site-that-suddenly-returns-502s-under-load">Case C &ndash; A site that suddenly returns 502s under load</h2>
+<p>A common pattern: traffic doubles, the site starts returning 502 to about 5% of requests. The chain of cause is almost always:</p>
+<ol>
+<li>Apache prefork hits <code>MaxRequestWorkers</code>; new connections queue.</li>
+<li>PHP-FPM hits <code>pm.max_children</code>; Apache gets a 502 from the FPM socket.</li>
+<li>MySQL hits <code>max_connections</code>; PHP-FPM workers block waiting for a connection, then time out.</li>
+</ol>
+<p>The fix is to size each tier to one above the next. A starting point on a 4 vCPU / 16 GiB instance:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="c1"># /etc/apache2/mods-available/mpm_event.conf</span>
+</span></span><span class="line"><span class="cl"><span class="na">StartServers             4</span>
+</span></span><span class="line"><span class="cl"><span class="na">MinSpareThreads         50</span>
+</span></span><span class="line"><span class="cl"><span class="na">MaxSpareThreads        100</span>
+</span></span><span class="line"><span class="cl"><span class="na">ThreadsPerChild         25</span>
+</span></span><span class="line"><span class="cl"><span class="na">MaxRequestWorkers      300</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># /etc/php/8.1/fpm/pool.d/www.conf</span>
+</span></span><span class="line"><span class="cl"><span class="na">pm</span> <span class="o">=</span> <span class="s">dynamic</span>
+</span></span><span class="line"><span class="cl"><span class="na">pm.max_children</span>      <span class="o">=</span> <span class="s">60</span>
+</span></span><span class="line"><span class="cl"><span class="na">pm.start_servers</span>     <span class="o">=</span> <span class="s">10</span>
+</span></span><span class="line"><span class="cl"><span class="na">pm.min_spare_servers</span> <span class="o">=</span> <span class="s">5</span>
+</span></span><span class="line"><span class="cl"><span class="na">pm.max_spare_servers</span> <span class="o">=</span> <span class="s">20</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># my.cnf</span>
+</span></span><span class="line"><span class="cl"><span class="na">max_connections</span> <span class="o">=</span> <span class="s">200</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The numbers are not magic; the principle is. Each layer&rsquo;s worker pool must be able to absorb the layer above it without queueing for too long.</p>
+<h1 id="14-summary">14. Summary</h1>
+<p>LAMP on Aliyun ECS reduces to a five-step recipe:</p>
+<ol>
+<li><strong>Open ports correctly</strong> &ndash; security group, then OS firewall, then verify hop by hop.</li>
+<li><strong>Install in order</strong> &ndash; Apache, MySQL, PHP, in that order, each one verified before moving on.</li>
+<li><strong>Verify each layer</strong> &ndash; Apache serves HTML, PHP runs, MySQL connects. Three commands, every time.</li>
+<li><strong>Set permissions deliberately</strong> &ndash; <code>www-data</code> owns the writable parts, no <code>chmod 777</code>.</li>
+<li><strong>Deploy the app</strong> &ndash; whether Discuz, WordPress or your own PHP, the playbook is the same.</li>
+</ol>
+<p>What to do next:</p>
+<ul>
+<li>Add HTTPS with Let&rsquo;s Encrypt and set HSTS.</li>
+<li>Wire up <code>mysqldump -&gt; OSS</code> and <strong>restore from backup</strong> at least once.</li>
+<li>Read your access log for an hour &ndash; you will learn more about your traffic and your attackers than from any blog post.</li>
+<li>Once you outgrow one box, split into SLB + ECS + RDS rather than scaling the single instance forever.</li>
+</ul>
+<p>Further reading:</p>
+<ul>
+<li>Apache HTTP Server documentation &ndash; <a href="https://httpd.apache.org/docs/" target="_blank" rel="noopener noreferrer">https://httpd.apache.org/docs/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>MySQL 8.0 reference manual &ndash; <a href="https://dev.mysql.com/doc/refman/8.0/en/" target="_blank" rel="noopener noreferrer">https://dev.mysql.com/doc/refman/8.0/en/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>PHP manual &ndash; <a href="https://www.php.net/manual/en/" target="_blank" rel="noopener noreferrer">https://www.php.net/manual/en/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Aliyun ECS user guide &ndash; <a href="https://www.alibabacloud.com/help/en/ecs/" target="_blank" rel="noopener noreferrer">https://www.alibabacloud.com/help/en/ecs/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Let&rsquo;s Encrypt with Certbot &ndash; <a href="https://certbot.eff.org/instructions" target="_blank" rel="noopener noreferrer">https://certbot.eff.org/instructions <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-be-able-to-do-after-reading">What you will be able to do after reading</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#41-public-ip">4.1 Public IP</a></li>
+    <li><a href="#42-security-group-rules">4.2 Security group rules</a></li>
+    <li><a href="#43-os-level-firewall">4.3 OS-level firewall</a></li>
+    <li><a href="#44-verifying-reachability-hop-by-hop">4.4 Verifying reachability hop by hop</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#61-apache">6.1 Apache</a></li>
+    <li><a href="#62-mysql">6.2 MySQL</a>
+      <ul>
+        <li><a href="#the-caching_sha2_password-trap">The <code>caching_sha2_password</code> trap</a></li>
+        <li><a href="#a-starter-mycnf-worth-knowing-about">A starter <code>my.cnf</code> worth knowing about</a></li>
+      </ul>
+    </li>
+    <li><a href="#63-php">6.3 PHP</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#71-security-group----the-perimeter">7.1 Security group &ndash; the perimeter</a></li>
+    <li><a href="#72-os-hardening">7.2 OS hardening</a></li>
+    <li><a href="#73-tls-with-lets-encrypt">7.3 TLS with Let&rsquo;s Encrypt</a></li>
+    <li><a href="#74-mysql-hardening">7.4 MySQL hardening</a></li>
+    <li><a href="#75-application-hygiene">7.5 Application hygiene</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#81-download">8.1 Download</a></li>
+    <li><a href="#82-permissions----the-part-everyone-gets-wrong">8.2 Permissions &ndash; the part everyone gets wrong</a></li>
+    <li><a href="#83-database-account">8.3 Database account</a></li>
+    <li><a href="#84-run-the-installer">8.4 Run the installer</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#failure-1----connection-refused">Failure 1 &ndash; &ldquo;Connection refused&rdquo;</a></li>
+    <li><a href="#failure-2----403-forbidden-or-index-of-">Failure 2 &ndash; &ldquo;403 Forbidden&rdquo; or &ldquo;Index of /&rdquo;</a></li>
+    <li><a href="#failure-3----php-source-code-visible-in-the-browser">Failure 3 &ndash; PHP source code visible in the browser</a></li>
+    <li><a href="#failure-4----cant-connect-to-mysql-server-on-localhost">Failure 4 &ndash; &ldquo;Can&rsquo;t connect to MySQL server on &rsquo;localhost'&rdquo;</a></li>
+    <li><a href="#failure-5----discuz-says-directory-not-writable">Failure 5 &ndash; Discuz says &ldquo;Directory not writable&rdquo;</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#101-virtual-hosts">10.1 Virtual hosts</a></li>
+    <li><a href="#102-backups-that-you-actually-test">10.2 Backups that you actually test</a></li>
+    <li><a href="#103-observability">10.3 Observability</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#case-a----migrating-wordpress-from-shared-hosting">Case A &ndash; Migrating WordPress from shared hosting</a></li>
+    <li><a href="#case-b----two-php-versions-on-one-box">Case B &ndash; Two PHP versions on one box</a></li>
+    <li><a href="#case-c----a-site-that-suddenly-returns-502s-under-load">Case C &ndash; A site that suddenly returns 502s under load</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>25 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5300</strong></div>
+      <div class="row"><span>Published</span><strong>Sep 2023</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

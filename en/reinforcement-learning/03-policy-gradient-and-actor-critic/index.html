@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods · Chen Kai Blog</title>
+<meta name="description" content="From REINFORCE to SAC -- how policy gradient methods directly optimize policies, naturally handle continuous actions, and power modern algorithms like PPO, TD3, and SAC.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/reinforcement-learning/03-policy-gradient-and-actor-critic/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/reinforcement-learning/03-policy-gradient-and-actor-critic/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods">
+<meta property="og:description" content="From REINFORCE to SAC -- how policy gradient methods directly optimize policies, naturally handle continuous actions, and power modern algorithms like PPO, TD3, and SAC.">
+<meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/03-policy-gradient-and-actor-critic/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Reinforcement Learning</a>
+         · Chapter 3
+      </div>
+      <h1>Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods</h1>
+      <p class="deck">From REINFORCE to SAC -- how policy gradient methods directly optimize policies, naturally handle continuous actions, and power modern algorithms like PPO, TD3, and SAC.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-08-11">August 11, 2025</time> · 14 min read · 3000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/reinforcement-learning/" class="tag">#Reinforcement Learning</a><a href="/en/tags/policy-gradient/" class="tag">#Policy Gradient</a><a href="/en/tags/reinforce/" class="tag">#REINFORCE</a><a href="/en/tags/actor-critic/" class="tag">#Actor-Critic</a><a href="/en/tags/a3c/" class="tag">#A3C</a><a href="/en/tags/ddpg/" class="tag">#DDPG</a><a href="/en/tags/td3/" class="tag">#TD3</a><a href="/en/tags/sac/" class="tag">#SAC</a><a href="/en/tags/ppo/" class="tag">#PPO</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>DQN proved that deep RL can master Atari, but it has a hard ceiling: it only works in <strong>discrete action spaces</strong>. Ask it to control a robot arm with seven continuous joint angles and it falls apart &ndash; you would have to solve an inner optimisation problem every time you choose an action.</p>
+<p><strong>Policy gradient methods</strong> take a fundamentally different route. Instead of learning a value function and <em>deriving</em> a policy from it, they <strong>directly optimise the policy</strong>. That single change opens the door to continuous actions, stochastic strategies, and problems where the optimal play is itself random (think rock-paper-scissors).</p>
+<h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li>Why policy gradients exist, and what the <strong>Policy Gradient Theorem</strong> actually says</li>
+<li><strong>REINFORCE</strong>: the simplest policy-gradient algorithm and why its variance is so painful</li>
+<li>The <strong>Actor-Critic</strong> architecture and how the <strong>advantage function</strong> $A = Q - V$ shrinks variance</li>
+<li><strong>GAE($\lambda$)</strong>: one knob for the bias-variance trade-off</li>
+<li><strong>DDPG / TD3 / SAC</strong> for continuous control</li>
+<li>A practical <strong>algorithm-selection guide</strong> grounded in current industrial usage</li>
+</ul>
+<p><strong>Prerequisites:</strong> <a href="/en/reinforcement-learning-1-fundamentals-and-core-concepts/">Part 1</a>
+ (MDPs, value functions, TD learning) and <a href="/en/reinforcement-learning-2-q-learning-and-dqn/">Part 2</a>
+ (DQN, target networks, replay buffers).</p>
+<hr>
+<h2 id="1-why-policy-gradients">1. Why Policy Gradients?</h2>
+<p>DQN learns $Q(s,a)$ and acts greedily: $\pi(s) = \arg\max_a Q(s,a)$. That indirect recipe creates four pain points:</p>
+<ol>
+<li><strong>Discrete actions only.</strong> Computing $\arg\max$ over a continuous space is itself a non-trivial optimisation, repeated at every environment step.</li>
+<li><strong>No stochastic policies.</strong> Greedy policies are deterministic. But in matching-pennies-style games the <strong>optimal</strong> policy is genuinely random.</li>
+<li><strong>Error amplification.</strong> Q-value approximation errors get amplified by the $\max$ operator &ndash; the overestimation bias we fixed (partially) with Double DQN in Part 2.</li>
+<li><strong>Ad-hoc exploration.</strong> $\epsilon$-greedy is a hack: it has no principled reason for the noise it injects.</li>
+</ol>
+<p>Policy gradient methods sidestep all four by <strong>parameterising the policy directly</strong> as $\pi_\theta(a|s)$:</p>
+<ul>
+<li>For <strong>discrete</strong> actions: a linear layer followed by a softmax produces a categorical distribution.</li>
+<li>For <strong>continuous</strong> actions: the network outputs the parameters of a Gaussian (mean $\mu_\theta(s)$ and log-std $\log\sigma_\theta(s)$), often squashed through $\tanh$ to bound the action.</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig6_action_policies.png" alt="Discrete categorical vs continuous tanh-squashed Gaussian policy heads" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Either way, the loss machinery is identical: pick an action by sampling from $\pi_\theta$, then push the parameters in a direction that makes good actions more likely.</p>
+<h3 id="11-the-policy-gradient-theorem">1.1 The Policy Gradient Theorem</h3>
+<p>Let $J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[G_0]$ be the expected return of the trajectories produced by $\pi_\theta$. We want $\nabla_\theta J(\theta)$ so we can do gradient ascent.</p>
+<p>The <strong>Policy Gradient Theorem</strong> (Sutton et al., 2000) gives a clean, sample-able form:</p>
+$$
+\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\pi_\theta}\!\Big[\sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t \mid s_t)\;\cdot\;Q^{\pi_\theta}(s_t, a_t)\Big]
+$$<p>Three things are worth pausing on:</p>
+<ul>
+<li>$\nabla_\theta \log \pi_\theta(a|s)$ is called the <strong>score function</strong>. It is the gradient that, on its own, would make action $a$ slightly <em>more</em> likely.</li>
+<li>$Q^\pi(s,a)$ acts as a <strong>scalar weight</strong> on that direction: good actions amplify the score, bad actions invert it.</li>
+<li>The <strong>environment dynamics $P(s'|s,a)$ disappear</strong> from the formula. We never need to know them; sampled trajectories are enough. This is what makes the method <strong>model-free</strong>.</li>
+</ul>
+<p>Visually, the theorem says &ldquo;shift probability mass toward actions whose realised return was high&rdquo;:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig1_policy_gradient_theorem.png" alt="Policy gradient as a score-function update on the action distribution" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The left panel shows $\pi_\theta(a|s)$ before and after one (large, illustrative) update &ndash; mass migrates toward the reward bump. The right panel shows the update direction itself: the score function multiplied by the reward and the current density. Where the product is positive we increase $\pi(a)$; where it is negative we decrease it.</p>
+<h3 id="12-the-variance-problem-and-the-baseline-trick">1.2 The Variance Problem and the Baseline Trick</h3>
+<p>The raw estimator above is <strong>unbiased</strong>, but its variance is horrible. $Q^\pi$ can be hundreds or thousands; one lucky episode can shove $\theta$ in any direction.</p>
+<p>A simple identity rescues us. For <strong>any function</strong> $b(s)$ that does <em>not</em> depend on the action,</p>
+$$
+\mathbb{E}_{a \sim \pi_\theta}\!\big[\,\nabla_\theta \log \pi_\theta(a|s)\,\cdot\,b(s)\,\big] \;=\; 0,
+$$<p>so subtracting $b(s)$ from $Q$ leaves the gradient unchanged in expectation but can drastically shrink variance. The optimal choice is the state-value function $V^\pi(s)$, which gives us the <strong>advantage function</strong>:</p>
+$$
+A^\pi(s,a) \;=\; Q^\pi(s,a) - V^\pi(s).
+$$<p>&ldquo;Advantage&rdquo; is exactly what it sounds like: how much better is action $a$ than the average action in state $s$? Centred around zero, the gradient signal stops swinging wildly.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig4_advantage_decomposition.png" alt="Q(s,a), the value baseline V(s), and the resulting advantage" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Green bars on the right are actions worth reinforcing; red bars are actions to suppress. The greedy DQN view (&ldquo;pick the biggest $Q$&rdquo;) becomes a continuous, signed update: &ldquo;lift the policy in proportion to how above-average each action turned out to be.&rdquo;</p>
+<hr>
+<h2 id="2-reinforce-monte-carlo-policy-gradient">2. REINFORCE: Monte Carlo Policy Gradient</h2>
+<p><strong>REINFORCE</strong> (Williams, 1992) is the textbook starting point. It uses the <em>actual</em> discounted return $G_t$ as a Monte Carlo estimate of $Q^\pi(s_t, a_t)$.</p>
+<h3 id="21-algorithm">2.1 Algorithm</h3>
+<ol>
+<li>Roll out one full trajectory $\tau = (s_0, a_0, r_0, \ldots, s_T)$ under $\pi_\theta$.</li>
+<li>Compute the discounted return for every step: $G_t = \sum_{k=0}^{T-t-1} \gamma^k r_{t+k}$.</li>
+<li>Estimate the gradient: $\hat g = \sum_t \nabla_\theta \log \pi_\theta(a_t|s_t)\,(G_t - b(s_t))$.</li>
+<li>Ascend: $\theta \leftarrow \theta + \alpha\,\hat g$.</li>
+</ol>
+<p>That is the whole algorithm. The simplicity is the point.</p>
+<h3 id="22-reinforce-with-a-learned-baseline-on-cartpole">2.2 REINFORCE with a Learned Baseline on CartPole</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span><span class="lnt">88
+</span><span class="lnt">89
+</span><span class="lnt">90
+</span><span class="lnt">91
+</span><span class="lnt">92
+</span><span class="lnt">93
+</span><span class="lnt">94
+</span><span class="lnt">95
+</span><span class="lnt">96
+</span><span class="lnt">97
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.distributions</span> <span class="kn">import</span> <span class="n">Categorical</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">gym</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PolicyNetwork</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc3</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ValueNetwork</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc3</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">reinforce_with_baseline</span><span class="p">(</span><span class="n">env_name</span><span class="o">=</span><span class="s2">&#34;CartPole-v1&#34;</span><span class="p">,</span> <span class="n">episodes</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">env</span> <span class="o">=</span> <span class="n">gym</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="n">env_name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">state_dim</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">observation_space</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">action_dim</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">n</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">policy</span> <span class="o">=</span> <span class="n">PolicyNetwork</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">value</span> <span class="o">=</span> <span class="n">ValueNetwork</span><span class="p">(</span><span class="n">state_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">policy_opt</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">value_opt</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">history</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">ep</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">episodes</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">log_probs</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">rewards</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">st</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">probs</span> <span class="o">=</span> <span class="n">policy</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">dist</span> <span class="o">=</span> <span class="n">Categorical</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">action</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">log_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dist</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">action</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">(</span><span class="n">st</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">state</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="n">rewards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reward</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">break</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Discounted returns G_t (Monte-Carlo estimate of Q).</span>
+</span></span><span class="line"><span class="cl">        <span class="n">returns</span><span class="p">,</span> <span class="n">G</span> <span class="o">=</span> <span class="p">[],</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">rewards</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">G</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">G</span>
+</span></span><span class="line"><span class="cl">            <span class="n">returns</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">returns</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">returns</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">log_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Advantage = G_t - V_phi(s_t)  (baseline subtraction)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">advantages</span> <span class="o">=</span> <span class="n">returns</span> <span class="o">-</span> <span class="n">values</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Policy: gradient ascent on log pi * advantage  -&gt; minimise the negation.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">policy_loss</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">log_probs</span> <span class="o">*</span> <span class="n">advantages</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">policy_opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">policy_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">policy_opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Value: regress V_phi onto the empirical returns.</span>
+</span></span><span class="line"><span class="cl">        <span class="n">value_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">returns</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">value_opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">value_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">value_opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">rewards</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">ep</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;ep </span><span class="si">{</span><span class="n">ep</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">4d</span><span class="si">}</span><span class="s2">  avg100 = &#34;</span>
+</span></span><span class="line"><span class="cl">                  <span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">100</span><span class="p">:])</span><span class="si">:</span><span class="s2">6.1f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">policy</span><span class="p">,</span> <span class="n">history</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>This typically solves CartPole in 100&ndash;200 episodes. On harder tasks, though, REINFORCE shows its weakness fast.</p>
+<p><strong>Strengths:</strong> simple, unbiased, action-space agnostic.
+<strong>Weaknesses:</strong> very high gradient variance, every trajectory is used exactly once (no off-policy reuse), and updates only happen at episode boundaries.</p>
+<hr>
+<h2 id="3-actor-critic-replacing-returns-with-td-estimates">3. Actor-Critic: Replacing Returns with TD Estimates</h2>
+<p>REINFORCE waits until the end of the episode to compute $G_t$. That return contains noise from <em>every</em> future state, action, and reward. Can we do better?</p>
+<p><strong>Actor-Critic</strong> says: train a second network &ndash; a <strong>critic</strong> $V_\phi(s)$ &ndash; and use it to bootstrap the gradient signal.</p>
+<ul>
+<li><strong>Actor</strong> $\pi_\theta(a|s)$: decides what to do.</li>
+<li><strong>Critic</strong> $V_\phi(s)$: scores how good a state is.</li>
+</ul>
+<p>The crucial substitution is the <strong>TD-error advantage</strong>:</p>
+$$
+\hat A_t \;=\; r_t + \gamma\,V_\phi(s_{t+1}) - V_\phi(s_t).
+$$<p>This depends on <strong>only one step</strong> of randomness instead of the entire tail of the trajectory. The variance collapses; in exchange we accept some bias from the imperfect critic.</p>
+<p>The two networks usually share a backbone:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig3_actor_critic_architecture.png" alt="Actor-Critic shared-backbone architecture and update flow" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The TD error $\delta_t$ does double duty: it acts as the <strong>advantage</strong> weighting the actor&rsquo;s gradient, and as the <strong>target</strong> for the critic&rsquo;s regression loss.</p>
+<h3 id="31-how-big-a-deal-is-the-variance-reduction">3.1 How Big a Deal Is the Variance Reduction?</h3>
+<p>A simulated comparison on the same set of trajectories: the orange line uses raw Monte Carlo returns, the blue line uses the advantage produced by a learned baseline.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig2_variance_reduction.png" alt="Per-step gradient signal: REINFORCE vs A2C" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Same trajectories, same expected gradient. The right panel shows the practical payoff: variance shrinks by an order of magnitude, which is exactly why training curves of A2C/PPO look so much smoother than REINFORCE.</p>
+<h3 id="32-a2c-in-code">3.2 A2C in Code</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ActorCritic</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Shared-trunk Actor-Critic.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">trunk</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">actor</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>   <span class="c1"># policy head</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>            <span class="c1"># value head</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">actor</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">critic</span><span class="p">(</span><span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A3C (Mnih et al., 2016) parallelised this across asynchronous workers. Modern practice prefers the synchronous version <strong>A2C</strong>: collect rollouts from $N$ environments in lockstep, then take one combined gradient step. Same idea, much friendlier to GPUs.</p>
+<h3 id="33-gae-a-dial-between-td-and-monte-carlo">3.3 GAE: A Dial Between TD and Monte Carlo</h3>
+<p>One-step TD has low variance but high bias; Monte Carlo has the opposite. <strong>Generalised Advantage Estimation</strong> (Schulman et al., 2016) interpolates between them with a single hyperparameter $\lambda \in [0, 1]$:</p>
+$$
+\hat A_t^{\text{GAE}(\lambda)} \;=\; \sum_{k=0}^{\infty} (\gamma\lambda)^k\,\delta_{t+k},
+\quad \delta_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t).
+$$<p>$\lambda = 0$ recovers the one-step TD advantage; $\lambda = 1$ recovers the full Monte Carlo return (minus the baseline). Practitioners almost always pick something in $[0.9, 0.97]$.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig5_gae_lambda_sweep.png" alt="GAE bias-variance trade-off and n-step return weighting" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The left panel shows the qualitative trade-off; the right panel shows what the weighting actually does &ndash; larger $\lambda$ spreads the credit across many future TD errors, smaller $\lambda$ trusts only the immediate one. PPO&rsquo;s defaults ($\lambda = 0.95$, $\gamma = 0.99$) live near the sweet spot.</p>
+<hr>
+<h2 id="4-continuous-control-ddpg-and-td3">4. Continuous Control: DDPG and TD3</h2>
+<p>For continuous actions like joint torques the policy is naturally Gaussian: $a \sim \mathcal{N}(\mu_\theta(s),\,\sigma_\theta(s))$. But sampling injects noise that hurts precise control. <strong>Deterministic policies</strong> $a = \mu_\theta(s)$ avoid that noise &ndash; and admit a particularly clean gradient.</p>
+<h3 id="41-ddpg-deep-deterministic-policy-gradient">4.1 DDPG: Deep Deterministic Policy Gradient</h3>
+<p>DDPG (Lillicrap et al., 2016) couples DQN-style stability tricks with an Actor-Critic structure:</p>
+<ul>
+<li><strong>Replay buffer + target networks</strong> (inherited from DQN).</li>
+<li>The <strong>deterministic policy gradient</strong> (Silver et al., 2014):</li>
+</ul>
+$$
+\nabla_\theta J \;=\; \mathbb{E}_{s \sim \rho^\beta}\!\Big[\,\nabla_a Q_\phi(s,a)\big|_{a=\mu_\theta(s)}\;\nabla_\theta \mu_\theta(s)\,\Big].
+$$<p>Read it from right to left: shift $\theta$ in whatever direction $\mu_\theta(s)$ moves, weighted by how steeply $Q$ rises in $a$ at that point. Pure chain rule.</p>
+<p>Exploration is added externally as action noise: $a_t = \mu_\theta(s_t) + \mathcal{N}(0,\sigma)$.</p>
+<h3 id="42-td3-three-tricks-that-stabilise-ddpg">4.2 TD3: Three Tricks That Stabilise DDPG</h3>
+<p>DDPG inherits DQN&rsquo;s overestimation bias and is famously brittle. <strong>TD3</strong> (Fujimoto et al., 2018) fixes it with three independent ideas, each useful on its own:</p>
+<ol>
+<li><strong>Clipped double Q-learning.</strong> Train two critics and use the <em>minimum</em> of their target predictions: $y = r + \gamma \min_{i=1,2} Q_{\phi_i'}(s', \tilde a')$.</li>
+<li><strong>Delayed policy updates.</strong> Update the actor only every $d$ critic updates (typically $d=2$). Lets the critic settle before the actor pulls the rug.</li>
+<li><strong>Target policy smoothing.</strong> Add clipped noise to the target action: $\tilde a' = \mu_{\theta'}(s') + \mathrm{clip}(\epsilon, -c, c)$, $\epsilon \sim \mathcal{N}(0, \sigma)$. This forces the critic to be smooth in $a$, so the actor cannot exploit narrow Q-spikes.</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TD3</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">max_action</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">actor</span> <span class="o">=</span> <span class="n">Actor</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">max_action</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">actor_target</span> <span class="o">=</span> <span class="n">Actor</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">max_action</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">actor_target</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">actor</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic_1</span> <span class="o">=</span> <span class="n">Critic</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic_2</span> <span class="o">=</span> <span class="n">Critic</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic_1_target</span> <span class="o">=</span> <span class="n">Critic</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic_2_target</span> <span class="o">=</span> <span class="n">Critic</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic_1_target</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">critic_1</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic_2_target</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">critic_2</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_action</span> <span class="o">=</span> <span class="n">max_action</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">total_it</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">replay_buffer</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">              <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span> <span class="n">policy_noise</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">              <span class="n">noise_clip</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">policy_delay</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">total_it</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">        <span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">next_state</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> \
+</span></span><span class="line"><span class="cl">            <span class="n">replay_buffer</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># (3) Target policy smoothing.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">noise</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">action</span><span class="p">)</span> <span class="o">*</span> <span class="n">policy_noise</span><span class="p">)</span> \
+</span></span><span class="line"><span class="cl">                <span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="o">-</span><span class="n">noise_clip</span><span class="p">,</span> <span class="n">noise_clip</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">next_action</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">actor_target</span><span class="p">(</span><span class="n">next_state</span><span class="p">)</span> <span class="o">+</span> <span class="n">noise</span><span class="p">)</span> \
+</span></span><span class="line"><span class="cl">                <span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">max_action</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_action</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1"># (1) Clipped double-Q target.</span>
+</span></span><span class="line"><span class="cl">            <span class="n">target_q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">critic_1_target</span><span class="p">(</span><span class="n">next_state</span><span class="p">,</span> <span class="n">next_action</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">critic_2_target</span><span class="p">(</span><span class="n">next_state</span><span class="p">,</span> <span class="n">next_action</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">target_q</span> <span class="o">=</span> <span class="n">reward</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">done</span><span class="p">)</span> <span class="o">*</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">target_q</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">critic_loss</span> <span class="o">=</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">critic_1</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">),</span> <span class="n">target_q</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="o">+</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">critic_2</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">),</span> <span class="n">target_q</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic_optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">critic_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic_optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># (2) Delayed actor + target updates.</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_it</span> <span class="o">%</span> <span class="n">policy_delay</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">actor_loss</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">critic_1</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">actor</span><span class="p">(</span><span class="n">state</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">actor_optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">actor_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">actor_optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">tp</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">actor</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                             <span class="bp">self</span><span class="o">.</span><span class="n">actor_target</span><span class="o">.</span><span class="n">parameters</span><span class="p">()):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">tp</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">tau</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">data</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tau</span><span class="p">)</span> <span class="o">*</span> <span class="n">tp</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># ... same Polyak averaging for both critics.</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>These three changes turn DDPG from &ldquo;sometimes works after careful tuning&rdquo; into a competitive, reproducible baseline.</p>
+<hr>
+<h2 id="5-sac-maximum-entropy-rl">5. SAC: Maximum Entropy RL</h2>
+<p>Even TD3 has a failure mode: the policy can collapse to a narrow distribution and stop exploring. <strong>Soft Actor-Critic</strong> (Haarnoja et al., 2018) attacks the problem at its root by <strong>changing the objective</strong>:</p>
+$$
+J(\pi) \;=\; \mathbb{E}\!\Big[\sum_t \gamma^t\big(r_t + \alpha\,\mathcal H[\pi(\cdot|s_t)]\big)\Big].
+$$<p>The entropy term $\mathcal H[\pi]$ pays the agent for being uncertain. The temperature $\alpha$ controls the trade-off. The Bellman backups are modified to match: the &ldquo;soft&rdquo; Q-target adds an expected log-policy term.</p>
+<p>Three engineering details make SAC the workhorse it is:</p>
+<ul>
+<li><strong>Automatic temperature tuning.</strong> $\alpha$ is itself learned by gradient descent against a target-entropy constraint, so you do not have to guess.</li>
+<li><strong>Stochastic squashed-Gaussian policy.</strong> The actor outputs $(\mu, \log\sigma)$; samples are passed through $\tanh$ and the log-prob is corrected by the change-of-variables Jacobian.</li>
+<li><strong>Twin critics with clipped double-Q</strong>, off-policy replay, and soft target updates &ndash; the familiar TD3 stack.</li>
+</ul>
+<p>In practice, SAC matches or beats TD3 on MuJoCo benchmarks while being noticeably less sensitive to hyperparameters. For continuous control on real hardware, SAC is the default starting point in many labs.</p>
+<hr>
+<h2 id="6-why-does-this-even-work-climbing-a-noisy-hill-in-theta-space">6. Why Does This Even Work? Climbing a Noisy Hill in $\theta$-Space</h2>
+<p>It is worth zooming out. Every algorithm in this article is a special case of one idea: <strong>stochastic gradient ascent on $J(\theta)$ in policy parameter space</strong>. The &ldquo;stochastic&rdquo; is doing a lot of work &ndash; our gradient estimates are noisy, sometimes wildly so, and the loss surface itself is non-convex.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/fig7_policy_optimization_landscape.png" alt="Stochastic gradient ascent on the policy return surface" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A few things this picture makes obvious:</p>
+<ul>
+<li>The path is <strong>jagged</strong>, not smooth. Variance reduction (baseline, advantage, GAE) buys us a less jagged path, not a different destination.</li>
+<li><strong>Local plateaus exist.</strong> Entropy regularisation (SAC) and stochastic policies are partly defences against getting stuck on them.</li>
+<li>The landscape itself <strong>changes as $\theta$ changes</strong> &ndash; the data distribution is on-policy. This is why off-policy methods (DDPG, TD3, SAC) need careful corrections, and why PPO clips the update step in the next instalment.</li>
+</ul>
+<hr>
+<h2 id="7-algorithm-selection-guide">7. Algorithm Selection Guide</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Situation</th>
+          <th>Recommended</th>
+          <th>Why</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Discrete actions, fast prototyping</td>
+          <td><strong>PPO</strong></td>
+          <td>Stable, simple, well-supported by every library</td>
+      </tr>
+      <tr>
+          <td>Continuous actions, expensive samples</td>
+          <td><strong>SAC</strong> or <strong>TD3</strong></td>
+          <td>Off-policy, high sample efficiency</td>
+      </tr>
+      <tr>
+          <td>Continuous actions, abundant simulation</td>
+          <td><strong>PPO</strong></td>
+          <td>Smoother training curves, easy to scale across environments</td>
+      </tr>
+      <tr>
+          <td>Need a stochastic policy by design</td>
+          <td><strong>SAC</strong></td>
+          <td>Maximum-entropy framework gives you one for free</td>
+      </tr>
+      <tr>
+          <td>Sparse rewards</td>
+          <td><strong>SAC</strong></td>
+          <td>Entropy keeps the policy exploring long enough to find them</td>
+      </tr>
+      <tr>
+          <td>Learning the field, building intuition</td>
+          <td><strong>REINFORCE -&gt; A2C -&gt; PPO</strong></td>
+          <td>Each step adds exactly one new idea on top of the last</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>What major labs actually use, as of 2026:</strong></p>
+<ul>
+<li>OpenAI (Dota 2, ChatGPT RLHF): <strong>PPO</strong></li>
+<li>DeepMind (continuous control research): <strong>SAC</strong> and variants</li>
+<li>Berkeley robotics: <strong>SAC</strong> for real-world manipulation</li>
+<li>TD3 remains the standard reference baseline in continuous-control benchmarks</li>
+</ul>
+<hr>
+<h2 id="8-summary">8. Summary</h2>
+<p>Policy-gradient methods opened RL to the world beyond discrete actions:</p>
+<ul>
+<li><strong>REINFORCE</strong> showed that policies can be optimised directly via gradient ascent on expected return &ndash; conceptually clean, practically noisy.</li>
+<li><strong>Actor-Critic + advantage</strong> traded a touch of bias for an order-of-magnitude variance reduction, making training tractable.</li>
+<li><strong>GAE($\lambda$)</strong> turned the bias-variance choice into a single tunable knob.</li>
+<li><strong>DDPG / TD3</strong> brought off-policy efficiency to continuous control with deterministic policies and DQN-style stabilisation.</li>
+<li><strong>SAC</strong> added entropy regularisation and became the go-to method for continuous control.</li>
+<li><strong>PPO</strong> &ndash; the subject of <a href="/en/reinforcement-learning-6-ppo-and-trpo/">Part 6</a>
+ &ndash; simplified trust-region ideas into a clipped surrogate that became the industry workhorse.</li>
+</ul>
+<p>All of these methods are <strong>model-free</strong>: they learn from interaction without ever building an explicit model of the environment. That generality is their strength, and the millions of samples they consume is their weakness.</p>
+<p><strong>Next up:</strong> <a href="/en/reinforcement-learning-4-exploration-and-curiosity-driven-learning/">Part 4</a>
+ tackles the <strong>exploration problem</strong> &ndash; how do agents discover rewards in the first place when the environment provides almost no feedback?</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Williams, R. J. (1992). Simple statistical gradient-following algorithms for connectionist reinforcement learning. <em>Machine Learning</em>, 8(3-4), 229-256.</li>
+<li>Sutton, R. S., McAllester, D., Singh, S., &amp; Mansour, Y. (2000). Policy gradient methods for reinforcement learning with function approximation. <em>NeurIPS</em>.</li>
+<li>Silver, D., Lever, G., Heess, N., Degris, T., Wierstra, D., &amp; Riedmiller, M. (2014). Deterministic policy gradient algorithms. <em>ICML</em>.</li>
+<li>Mnih, V., et al. (2016). Asynchronous methods for deep reinforcement learning. <em>ICML</em>.</li>
+<li>Lillicrap, T. P., et al. (2016). Continuous control with deep reinforcement learning. <em>ICLR</em>.</li>
+<li>Schulman, J., Moritz, P., Levine, S., Jordan, M., &amp; Abbeel, P. (2016). High-dimensional continuous control using generalized advantage estimation. <em>ICLR</em>.</li>
+<li>Schulman, J., Wolski, F., Dhariwal, P., Radford, A., &amp; Klimov, O. (2017). Proximal policy optimization algorithms. <em>arXiv:1707.06347</em>.</li>
+<li>Fujimoto, S., van Hoof, H., &amp; Meger, D. (2018). Addressing function approximation error in actor-critic methods. <em>ICML</em>.</li>
+<li>Haarnoja, T., Zhou, A., Abbeel, P., &amp; Levine, S. (2018). Soft actor-critic: off-policy maximum entropy deep RL. <em>ICML</em>.</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Part</th>
+          <th>Topic</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td><a href="/en/reinforcement-learning-1-fundamentals-and-core-concepts/">Fundamentals and Core Concepts</a>
+</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td><a href="/en/reinforcement-learning-2-q-learning-and-dqn/">Q-Learning and DQN</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>3</strong></td>
+          <td><strong>Policy Gradient and Actor-Critic (you are here)</strong></td>
+      </tr>
+      <tr>
+          <td>4</td>
+          <td><a href="/en/reinforcement-learning-4-exploration-and-curiosity-driven-learning/">Exploration and Curiosity-Driven Learning</a>
+</td>
+      </tr>
+      <tr>
+          <td>5</td>
+          <td><a href="/en/reinforcement-learning-5-model-based-rl-and-world-models/">Model-Based RL and World Models</a>
+</td>
+      </tr>
+      <tr>
+          <td>6</td>
+          <td><a href="/en/reinforcement-learning-6-ppo-and-trpo/">PPO and TRPO</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#1-why-policy-gradients">1. Why Policy Gradients?</a>
+      <ul>
+        <li><a href="#11-the-policy-gradient-theorem">1.1 The Policy Gradient Theorem</a></li>
+        <li><a href="#12-the-variance-problem-and-the-baseline-trick">1.2 The Variance Problem and the Baseline Trick</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-reinforce-monte-carlo-policy-gradient">2. REINFORCE: Monte Carlo Policy Gradient</a>
+      <ul>
+        <li><a href="#21-algorithm">2.1 Algorithm</a></li>
+        <li><a href="#22-reinforce-with-a-learned-baseline-on-cartpole">2.2 REINFORCE with a Learned Baseline on CartPole</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-actor-critic-replacing-returns-with-td-estimates">3. Actor-Critic: Replacing Returns with TD Estimates</a>
+      <ul>
+        <li><a href="#31-how-big-a-deal-is-the-variance-reduction">3.1 How Big a Deal Is the Variance Reduction?</a></li>
+        <li><a href="#32-a2c-in-code">3.2 A2C in Code</a></li>
+        <li><a href="#33-gae-a-dial-between-td-and-monte-carlo">3.3 GAE: A Dial Between TD and Monte Carlo</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-continuous-control-ddpg-and-td3">4. Continuous Control: DDPG and TD3</a>
+      <ul>
+        <li><a href="#41-ddpg-deep-deterministic-policy-gradient">4.1 DDPG: Deep Deterministic Policy Gradient</a></li>
+        <li><a href="#42-td3-three-tricks-that-stabilise-ddpg">4.2 TD3: Three Tricks That Stabilise DDPG</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-sac-maximum-entropy-rl">5. SAC: Maximum Entropy RL</a></li>
+    <li><a href="#6-why-does-this-even-work-climbing-a-noisy-hill-in-theta-space">6. Why Does This Even Work? Climbing a Noisy Hill in -Space</a></li>
+    <li><a href="#7-algorithm-selection-guide">7. Algorithm Selection Guide</a></li>
+    <li><a href="#8-summary">8. Summary</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Reinforcement Learning</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3000</strong></div>
+      <div class="row"><span>Published</span><strong>Aug 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

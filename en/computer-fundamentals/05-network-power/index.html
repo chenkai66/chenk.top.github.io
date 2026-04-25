@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/computer-fundamentals/05-network-power/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Computer Fundamentals: Network, Power, and Troubleshooting · Chen Kai Blog</title>
+<meta name="description" content="Deep dive into the NIC pipeline (PHY/MAC/DMA), TCP handshake, network topologies, PSU efficiency curves, datacenter PUE, component power hierarchy, and UPS architecture.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/computer-fundamentals/05-network-power/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/computer-fundamentals/05-network-power/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/computer-fundamentals/05-network-power/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/computer-fundamentals/05-network-power/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Computer Fundamentals: Network, Power, and Troubleshooting">
+<meta property="og:description" content="Deep dive into the NIC pipeline (PHY/MAC/DMA), TCP handshake, network topologies, PSU efficiency curves, datacenter PUE, component power hierarchy, and UPS architecture.">
+<meta property="og:url" content="https://www.chenk.top/en/computer-fundamentals/05-network-power/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-3);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Computer Fundamentals</a>
+         · Chapter 5
+      </div>
+      <h1>Computer Fundamentals: Network, Power, and Troubleshooting</h1>
+      <p class="deck">Deep dive into the NIC pipeline (PHY/MAC/DMA), TCP handshake, network topologies, PSU efficiency curves, datacenter PUE, component power hierarchy, and UPS architecture.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-12-24">December 24, 2022</time> · 20 min read · 4200 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/computer-hardware/" class="tag">#Computer Hardware</a><a href="/en/tags/system-architecture/" class="tag">#System Architecture</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/computer-fundamentals/05-network-power/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Why does the gigabit NIC on your motherboard sometimes negotiate down to 100 Mbps? Why does a brand-new build with a 650 W &ldquo;Gold&rdquo; PSU randomly reboot under heavy GPU load? Why does the room next to the server rack always feel warm? These are the everyday consequences of two systems that most people never look at: <strong>the network I/O pipeline</strong> and <strong>the power-and-cooling chain</strong> that keeps the silicon alive.</p>
+<p>This is the finale of the Computer Fundamentals series. Instead of repeating component spec tables, we will follow the data and the energy: from the copper pair on the wall, through the PHY, MAC, and DMA engine into RAM; and from the wall socket, through the PSU&rsquo;s conversion stages, into the 12 V rails powering the GPU. Along the way we will look at how a datacenter quantifies waste with PUE, and how a UPS keeps the lights on when the grid falters.</p>
+<h1 id="series-navigation">Series Navigation</h1>
+<p><strong>Computer Fundamentals Deep Dive Series</strong> (6 parts):</p>
+<ol>
+<li>CPU and Computing Core</li>
+<li>Memory and High-Speed Cache</li>
+<li>Storage Systems</li>
+<li>Motherboard, Graphics, and Expansion</li>
+<li><strong>Network, Power, and Troubleshooting</strong> <em>(this article)</em></li>
+<li>Deep Dive: Cross-Cutting Topics</li>
+</ol>
+<h1 id="part-1-how-a-nic-actually-works">Part 1: How a NIC Actually Works</h1>
+<p>A network interface card is not just &ldquo;the port on the back of the case&rdquo;. Inside that port is a small, dedicated subsystem that converts electrical pulses on a twisted pair into packets that the kernel can route — at line rate, with almost no help from the CPU.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig1_nic_architecture.png" alt="NIC architecture: PHY, MAC, DMA, and offload features" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="the-three-layers-inside-the-silicon">The three layers inside the silicon</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Stage</th>
+          <th>What it does</th>
+          <th>What can go wrong</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>PHY</strong> (Physical Layer)</td>
+          <td>SerDes, signal conditioning, magnetics. Encodes 1000BASE-T over 4 twisted pairs at 125 MHz.</td>
+          <td>Bad cabling (CAT5 instead of CAT5e+), kinked patch leads, EMI from a PSU sitting next to the cable.</td>
+      </tr>
+      <tr>
+          <td><strong>MAC</strong> (Media Access Control)</td>
+          <td>Frame assembly, CRC, MAC-address filtering, flow control (PAUSE frames), jumbo frames.</td>
+          <td>Mismatched MTU between switch and NIC; flow-control storms from a misbehaving peer.</td>
+      </tr>
+      <tr>
+          <td><strong>DMA + Ring Buffers</strong></td>
+          <td>Transmit and receive descriptor rings; the NIC writes frames straight into a kernel-allocated <code>skb</code> (Linux) or <code>mbuf</code> (BSD). MSI-X interrupts wake the right CPU core.</td>
+          <td>Ring overflow (<code>ifconfig RX-DRP</code>) when a single core can&rsquo;t drain fast enough — fix with RSS multi-queue.</td>
+      </tr>
+  </tbody>
+</table>
+<p>Above that sit the <strong>offload engines</strong> that make 25/40/100 GbE practical at all:</p>
+<ul>
+<li><strong>Checksum offload</strong> — TCP/IP checksums computed in hardware.</li>
+<li><strong>TSO / LRO</strong> — Transmit Segmentation Offload and Large Receive Offload move per-packet work into silicon. The CPU hands the NIC a 64 KB blob; the NIC produces 44 wire-sized frames.</li>
+<li><strong>RSS</strong> (Receive Side Scaling) — distributes incoming flows across multiple CPU cores via a Toeplitz hash. Without this, a single 25 GbE flow can saturate one core and stall the whole machine.</li>
+<li><strong>VLAN tagging</strong> and <strong>SR-IOV</strong> — the latter exposes a single physical NIC as many virtual functions, one per VM, bypassing the hypervisor&rsquo;s software switch.</li>
+</ul>
+<h2 id="the-cat5-vs-cat5e-gotcha">The CAT5 vs CAT5e gotcha</h2>
+<p>The most common &ldquo;gigabit only runs at 100 Mbps&rdquo; cause is cabling, not configuration. Gigabit Ethernet (1000BASE-T) needs all four pairs in the cable; the older CAT5 spec only guaranteed two. Patch leads sold cheap on marketplaces often quietly downgrade. The fix is mechanical, not in software:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Linux — confirm the negotiated speed</span>
+</span></span><span class="line"><span class="cl">ethtool eth0 <span class="p">|</span> grep -E <span class="s2">&#34;Speed|Duplex&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Speed: 100Mb/s    &lt;-- your cable is the problem</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Duplex: Full</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Force renegotiation after replacing the cable</span>
+</span></span><span class="line"><span class="cl">ethtool -r eth0
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="wired-nic-standards-2024-reality">Wired NIC standards (2024 reality)</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Standard</th>
+          <th>Line rate</th>
+          <th>Real throughput</th>
+          <th>Where you find it</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>100 Mbps</strong> (Fast Ethernet)</td>
+          <td>100 Mb/s</td>
+          <td>~12 MB/s</td>
+          <td>Legacy IoT, old switches</td>
+      </tr>
+      <tr>
+          <td><strong>1 Gbps</strong> (Gigabit)</td>
+          <td>1 Gb/s</td>
+          <td>~118 MB/s</td>
+          <td>The default everywhere</td>
+      </tr>
+      <tr>
+          <td><strong>2.5 Gbps</strong></td>
+          <td>2.5 Gb/s</td>
+          <td>~295 MB/s</td>
+          <td>High-end consumer boards, Wi-Fi 6 backhaul</td>
+      </tr>
+      <tr>
+          <td><strong>10 Gbps</strong> (10GBASE-T / SFP+)</td>
+          <td>10 Gb/s</td>
+          <td>~1.18 GB/s</td>
+          <td>NAS, workstations, server access ports</td>
+      </tr>
+      <tr>
+          <td><strong>25/40/100 Gbps</strong></td>
+          <td>up to 100 Gb/s</td>
+          <td>up to 12.5 GB/s</td>
+          <td>Datacenter spine and leaf, all SFP28/QSFP28 fiber</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="wi-fi-standards">Wi-Fi standards</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Standard</th>
+          <th>Bands</th>
+          <th>Theoretical max</th>
+          <th>Year</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Wi-Fi 4 (802.11n)</td>
+          <td>2.4 / 5 GHz</td>
+          <td>600 Mb/s</td>
+          <td>2009</td>
+      </tr>
+      <tr>
+          <td>Wi-Fi 5 (802.11ac)</td>
+          <td>5 GHz</td>
+          <td>3.5 Gb/s</td>
+          <td>2013</td>
+      </tr>
+      <tr>
+          <td><strong>Wi-Fi 6 (802.11ax)</strong></td>
+          <td>2.4 / 5 GHz</td>
+          <td>9.6 Gb/s</td>
+          <td>2019</td>
+      </tr>
+      <tr>
+          <td>Wi-Fi 6E</td>
+          <td>2.4 / 5 / 6 GHz</td>
+          <td>9.6 Gb/s, less congested 6 GHz</td>
+          <td>2021</td>
+      </tr>
+      <tr>
+          <td>Wi-Fi 7 (802.11be)</td>
+          <td>2.4 / 5 / 6 GHz</td>
+          <td>46 Gb/s, MLO</td>
+          <td>2024</td>
+      </tr>
+  </tbody>
+</table>
+<p>For a 2024 build, <strong>Wi-Fi 6 or 6E</strong> is the sweet spot: most APs and clients support it, and the 6 GHz band is still relatively quiet.</p>
+<h1 id="part-2-tcp-the-conversation-you-never-see">Part 2: TCP, the Conversation You Never See</h1>
+<p>Every web request, every SSH session, every database query begins with a tiny, three-message ritual. Understanding it is the difference between guessing and diagnosing when a connection times out.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig2_tcp_handshake.png" alt="TCP three-way handshake with state transitions" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="why-three-messages-not-two">Why three messages, not two?</h2>
+<p>You might think &ldquo;client says hello, server says hello back, done&rdquo;. The reason TCP needs a third message is that it must confirm <strong>bidirectional</strong> capability:</p>
+<ol>
+<li><strong>SYN</strong> (client → server): &ldquo;I want to talk; my starting sequence number is <code>x</code>.&rdquo;</li>
+<li><strong>SYN-ACK</strong> (server → client): &ldquo;I heard you (<code>ack = x+1</code>); my starting sequence number is <code>y</code>.&rdquo;</li>
+<li><strong>ACK</strong> (client → server): &ldquo;I heard you too (<code>ack = y+1</code>); we are connected.&rdquo;</li>
+</ol>
+<p>After step 2, the <strong>server</strong> knows the client can send. After step 3, both ends know both directions work. Drop step 3 and the server is stuck in the <code>SYN_RCVD</code> state — exactly the half-open condition exploited by the classic SYN-flood DoS.</p>
+<h2 id="watching-it-happen">Watching it happen</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Capture a single handshake on port 443</span>
+</span></span><span class="line"><span class="cl">sudo tcpdump -ni any <span class="s1">&#39;tcp port 443 and (tcp-syn|tcp-ack) != 0&#39;</span> -c <span class="m">3</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The three flags-only packets between your machine and the destination are the handshake. After that the conversation switches to a stream of data segments, each carrying its own sequence number for in-order delivery and retransmission.</p>
+<h2 id="connection-establishment-cost">Connection-establishment cost</h2>
+<p>Every new TCP connection spends one round-trip time (RTT) on the handshake before any payload moves. For a server in the same datacenter (RTT = 0.5 ms) that is invisible. For a transatlantic API call (RTT = 100 ms) it is the dominant latency cost. This is why HTTP/2 multiplexes many requests over one connection, and why HTTP/3 (QUIC) folds the TLS handshake into the same round trip.</p>
+<h1 id="part-3-network-topologies--cost-vs-resilience">Part 3: Network Topologies — Cost vs Resilience</h1>
+<p>How do you wire 4, 40, or 4000 nodes together? Six classic answers, each with its own bandwidth and failure properties:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig3_network_topologies.png" alt="Bus, ring, star, mesh, tree, fat-tree topologies" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<table>
+  <thead>
+      <tr>
+          <th>Topology</th>
+          <th>Wires</th>
+          <th>Failure behavior</th>
+          <th>Where used today</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Bus</strong></td>
+          <td>One shared backbone</td>
+          <td>One break = total outage</td>
+          <td>Historical (10BASE2 coax); industrial CAN bus</td>
+      </tr>
+      <tr>
+          <td><strong>Ring</strong></td>
+          <td>One per neighbor</td>
+          <td>Token can route around a single break</td>
+          <td>Token Ring (legacy), SONET, FDDI</td>
+      </tr>
+      <tr>
+          <td><strong>Star</strong></td>
+          <td>One per node to a hub</td>
+          <td>Hub failure = total outage</td>
+          <td><strong>Today&rsquo;s LAN standard</strong> — every Ethernet switch is a star core</td>
+      </tr>
+      <tr>
+          <td><strong>Full Mesh</strong></td>
+          <td>n*(n-1)/2</td>
+          <td>Maximum redundancy</td>
+          <td>Small core router groups; rarely used at scale</td>
+      </tr>
+      <tr>
+          <td><strong>Tree</strong></td>
+          <td>Hierarchical</td>
+          <td>Upper-layer failure = whole subtree gone</td>
+          <td>Classic enterprise three-tier (core / aggregation / access)</td>
+      </tr>
+      <tr>
+          <td><strong>Fat-Tree</strong> (Clos)</td>
+          <td>Equal bandwidth at every layer</td>
+          <td>Many parallel paths; ECMP load balancing</td>
+          <td><strong>Hyperscale datacenters</strong> — AWS, Google, Azure all use this</td>
+      </tr>
+  </tbody>
+</table>
+<p>The fat-tree is the architectural insight that makes hyperscale possible. In a classic tree, the top of the hierarchy is <em>oversubscribed</em>: 48 servers feeding into a single 10 Gb uplink contend for 1/48 of their nominal bandwidth. A fat-tree fixes this by making every layer have the same aggregate capacity — you scale by adding more spines, not by buying ever-fatter individual switches.</p>
+<h1 id="part-4-network-addressing--the-concepts-that-actually-matter">Part 4: Network Addressing — The Concepts That Actually Matter</h1>
+<h2 id="127001--the-loopback-address">127.0.0.1 — the loopback address</h2>
+<p>127.0.0.1 is the address your machine uses to talk to itself. Packets sent here never touch a physical NIC; they short-circuit inside the kernel&rsquo;s network stack. This is what makes <code>curl http://localhost:8080</code> work even with the cable unplugged. The whole <code>127.0.0.0/8</code> range is loopback — <code>127.0.0.1</code>, <code>127.5.6.7</code>, all of it.</p>
+<h2 id="0000--any-interface">0.0.0.0 — &ldquo;any interface&rdquo;</h2>
+<p>0.0.0.0 has two roles depending on context:</p>
+<ul>
+<li>As a <strong>bind address</strong> (server side): &ldquo;listen on every interface I have — eth0, wlan0, lo, all of them.&rdquo; This is what <code>app.run(host='0.0.0.0')</code> means in Flask.</li>
+<li>As a <strong>route target</strong>: &ldquo;the default route&rdquo;, written <code>0.0.0.0/0</code> in routing tables.</li>
+</ul>
+<p>The classic mistake is treating 0.0.0.0 as something you can <code>curl</code> or <code>ping</code>. You cannot — it is not a destination, only a wildcard meaning &ldquo;anywhere&rdquo;.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Bind to</th>
+          <th>Reachable from</th>
+          <th>Typical use</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>127.0.0.1</code></td>
+          <td>Same machine only</td>
+          <td>Local development, security-sensitive services</td>
+      </tr>
+      <tr>
+          <td><code>192.168.1.100</code> (specific IP)</td>
+          <td>That NIC only</td>
+          <td>Multi-homed host serving different content per interface</td>
+      </tr>
+      <tr>
+          <td><code>0.0.0.0</code></td>
+          <td>Any interface</td>
+          <td>Production servers</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="ports--service-multiplexing">Ports — service multiplexing</h2>
+<p>A single IP address can host thousands of services simultaneously because the <strong>port number</strong> (16 bits, 0–65535) selects which one. The first 1024 are &ldquo;well-known&rdquo;:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Port</th>
+          <th>Protocol</th>
+          <th>Service</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>22</td>
+          <td>TCP</td>
+          <td>SSH</td>
+      </tr>
+      <tr>
+          <td>53</td>
+          <td>UDP</td>
+          <td>DNS</td>
+      </tr>
+      <tr>
+          <td>80</td>
+          <td>TCP</td>
+          <td>HTTP</td>
+      </tr>
+      <tr>
+          <td>443</td>
+          <td>TCP</td>
+          <td>HTTPS</td>
+      </tr>
+      <tr>
+          <td>3306</td>
+          <td>TCP</td>
+          <td>MySQL</td>
+      </tr>
+      <tr>
+          <td>6379</td>
+          <td>TCP</td>
+          <td>Redis</td>
+      </tr>
+      <tr>
+          <td>27017</td>
+          <td>TCP</td>
+          <td>MongoDB</td>
+      </tr>
+  </tbody>
+</table>
+<p>The classic puzzle &ldquo;ping works but the website doesn&rsquo;t&rdquo; is solved by remembering that <code>ping</code> uses <strong>ICMP</strong> (no ports involved), while HTTP needs a process actively bound to TCP/80. The host is reachable; the service simply is not running, or is bound to <code>127.0.0.1</code> instead of <code>0.0.0.0</code>.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Check which port the service is listening on</span>
+</span></span><span class="line"><span class="cl">ss -tnlp <span class="p">|</span> grep nginx
+</span></span><span class="line"><span class="cl"><span class="c1"># LISTEN 0  511   0.0.0.0:80   ...   &lt;-- correct</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># LISTEN 0  511   127.0.0.1:80 ...   &lt;-- only local can reach it</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="nat--how-4-billion-addresses-serve-30-billion-devices">NAT — how 4 billion addresses serve 30 billion devices</h2>
+<p>IPv4 has roughly 4.2 billion addresses. There are far more devices than that. <strong>Network Address Translation</strong> is the trick that makes the math work: every device in your home shares a single public IP, with the router rewriting source addresses on the way out and reverse-mapping responses on the way back.</p>
+<pre tabindex="0"><code>Internal: 192.168.1.100:54321  --SNAT--&gt;  PublicIP:60001  --&gt;  8.8.8.8:53
+Internal: 192.168.1.101:33333  --SNAT--&gt;  PublicIP:60002  --&gt;  1.1.1.1:443
+</code></pre><p>The router keeps a translation table in memory; entries time out after a few minutes of inactivity. This is why long-idle SSH sessions sometimes silently die — the NAT table forgot them.</p>
+<h2 id="dns--the-address-book">DNS — the address book</h2>
+<p>Computers route by IP, but humans remember names. DNS is the recursive lookup chain that resolves <code>www.example.com</code> to <code>93.184.216.34</code>:</p>
+<ol>
+<li>Browser cache → 2. OS cache (<code>/etc/hosts</code> first) → 3. Recursive resolver (your ISP, or <code>1.1.1.1</code>) → 4. Root → <code>.com</code> TLD → <code>example.com</code> authoritative → returns the A record.</li>
+</ol>
+<p>CDNs exploit this by returning <strong>different IPs for the same name</strong> depending on the resolver&rsquo;s geography — that is why <code>www.netflix.com</code> resolves to a server in your city, not in California.</p>
+<h1 id="part-5-virtual-machine-network-modes">Part 5: Virtual Machine Network Modes</h1>
+<p>When you run a VM under VMware, VirtualBox, or KVM, the hypervisor has to decide how the guest&rsquo;s virtual NIC plugs into the rest of the world. There are three classic options.</p>
+<h2 id="bridged--vm-is-a-first-class-citizen-on-the-lan">Bridged — VM is a first-class citizen on the LAN</h2>
+<p>The hypervisor exposes a virtual switch that bridges the guest&rsquo;s NIC directly onto the physical network. The VM gets a DHCP lease from your home router (<code>192.168.1.x</code>), the same as the host. Other LAN devices can ping it directly.</p>
+<p>Use when: you are running a test web server that colleagues on the same network need to reach.</p>
+<h2 id="nat--vm-lives-behind-a-private-virtual-router">NAT — VM lives behind a private virtual router</h2>
+<p>The hypervisor itself acts as a small router. The VM gets an address in a separate subnet (<code>192.168.182.x</code> for VMware), and outbound traffic is double-NAT&rsquo;d: first by the hypervisor to the host&rsquo;s IP, then by the home router to the public IP.</p>
+<p>Use when: you want isolation but still need internet access. <strong>This is the right default for almost every dev VM.</strong></p>
+<h2 id="host-only--total-isolation">Host-only — total isolation</h2>
+<p>A virtual cable between guest and host with nothing else attached. No internet, no LAN. Useful for malware analysis, air-gapped testing, or running a database that should literally never accept outside connections.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Feature</th>
+          <th>Bridged</th>
+          <th>NAT</th>
+          <th>Host-only</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>VM IP subnet</td>
+          <td>Same as host</td>
+          <td>Separate virtual subnet</td>
+          <td>Isolated</td>
+      </tr>
+      <tr>
+          <td>Reachable from LAN</td>
+          <td>Yes</td>
+          <td>No (needs port forward)</td>
+          <td>No</td>
+      </tr>
+      <tr>
+          <td>Internet access</td>
+          <td>Yes</td>
+          <td>Yes</td>
+          <td>No</td>
+      </tr>
+      <tr>
+          <td>Consumes a LAN IP</td>
+          <td>Yes</td>
+          <td>No</td>
+          <td>No</td>
+      </tr>
+      <tr>
+          <td>Typical use</td>
+          <td>Test servers</td>
+          <td>Daily development</td>
+          <td>Malware sandbox</td>
+      </tr>
+  </tbody>
+</table>
+<h1 id="part-6-network-troubleshooting--bottom-up">Part 6: Network Troubleshooting — Bottom Up</h1>
+<p>Network problems break down into seven layers, but you debug them in the opposite order from how they&rsquo;re drawn: start at the bottom (cables, link, IP) and work up (TCP, TLS, application).</p>
+<pre tabindex="0"><code>Layer 7  Application      curl works? wrong URL? auth?
+Layer 6  Presentation     TLS cert valid? SNI right?
+Layer 4  Transport        port open? firewall? service bound to 0.0.0.0?
+Layer 3  Network          can I ping the gateway? routing table sane?
+Layer 2  Data link        link light on the switch? duplex correct?
+Layer 1  Physical         cable plugged in? CAT5e? not crushed?
+</code></pre><h2 id="case-1-ping-works-the-website-does-not">Case 1: ping works, the website does not</h2>
+<p>The host responds to ICMP, so layers 1–3 are fine. The break is at layer 4 or above.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Is anything bound to port 80?</span>
+</span></span><span class="line"><span class="cl">ss -tnlp <span class="p">|</span> grep <span class="s1">&#39;:80 &#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Can I reach it from the network?</span>
+</span></span><span class="line"><span class="cl">nc -zv example.com <span class="m">80</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># What does the service log say?</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx -n <span class="m">50</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Most common causes: nginx isn&rsquo;t running; nginx is running but bound to <code>127.0.0.1</code>; a firewall rule blocks port 80; the AWS security group hasn&rsquo;t allowed inbound HTTP.</p>
+<h2 id="case-2-domain-does-not-resolve">Case 2: domain does not resolve</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ping 8.8.8.8                  <span class="c1"># confirms IP-level connectivity</span>
+</span></span><span class="line"><span class="cl">dig www.example.com           <span class="c1"># try DNS directly</span>
+</span></span><span class="line"><span class="cl">cat /etc/resolv.conf          <span class="c1"># is the resolver list sane?</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If <code>8.8.8.8</code> works but DNS does not, your configured resolver is broken. Drop in <code>1.1.1.1</code> or <code>8.8.8.8</code> and try again.</p>
+<h2 id="case-3-vm-has-no-internet-nat-mode">Case 3: VM has no internet (NAT mode)</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ip addr           <span class="c1"># did DHCP assign an IP in the virtual subnet?</span>
+</span></span><span class="line"><span class="cl">ip route          <span class="c1"># is the default route the virtual gateway (e.g. .2)?</span>
+</span></span><span class="line"><span class="cl">ping 192.168.182.2  <span class="c1"># virtual NAT gateway</span>
+</span></span><span class="line"><span class="cl">ping 8.8.8.8        <span class="c1"># external by IP — bypasses DNS</span>
+</span></span><span class="line"><span class="cl">ping example.com    <span class="c1"># if this fails but the line above works -&gt; DNS</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The most common fixes are: restart the VMware NAT service on the host, or replace <code>/etc/resolv.conf</code> with <code>nameserver 8.8.8.8</code>.</p>
+<h2 id="the-hosts-file--local-dns-override">The hosts file — local DNS override</h2>
+<p><code>/etc/hosts</code> (or <code>C:\Windows\System32\drivers\etc\hosts</code>) is checked <strong>before</strong> any DNS query. It is a flat text file mapping IPs to names:</p>
+<pre tabindex="0"><code>127.0.0.1     dev.example.com
+127.0.0.1     api.example.com
+0.0.0.0       ads.tracker.example
+</code></pre><p>The first two lines route local development domains to your machine. The third is the simplest ad-blocker: requests to those names go to <code>0.0.0.0</code> and silently fail. After editing, flush the OS DNS cache:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># macOS</span>
+</span></span><span class="line"><span class="cl">sudo dscacheutil -flushcache <span class="o">&amp;&amp;</span> sudo killall -HUP mDNSResponder
+</span></span><span class="line"><span class="cl"><span class="c1"># Windows</span>
+</span></span><span class="line"><span class="cl">ipconfig /flushdns
+</span></span><span class="line"><span class="cl"><span class="c1"># Linux (systemd-resolved)</span>
+</span></span><span class="line"><span class="cl">sudo systemd-resolve --flush-caches
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="part-7-psu--the-most-underestimated-component">Part 7: PSU — The Most Underestimated Component</h1>
+<p>The power supply is the only component that touches every other component. A flaky PSU produces symptoms that look like RAM faults, GPU faults, motherboard faults — anything but power. And yet most build guides treat it as a wattage number.</p>
+<h2 id="what-80-plus-actually-measures">What &ldquo;80 PLUS&rdquo; actually measures</h2>
+<p>A PSU&rsquo;s nameplate wattage tells you what it can deliver to the system. Its <strong>efficiency</strong> tells you how much it wastes converting wall AC to the 12 V / 5 V / 3.3 V rails. The &ldquo;80 PLUS&rdquo; certification grades that conversion at four load points.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig4_psu_efficiency.png" alt="80 PLUS efficiency curves across certification levels" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A few non-obvious things fall out of these curves:</p>
+<ul>
+<li><strong>Efficiency peaks at 40–70 % load.</strong> Run a 200 W system on a 1000 W PSU and you sit at 20 % load — the inefficient end of the curve. Sizing too big costs you money, not just the upfront price.</li>
+<li><strong>Titanium is only meaningfully better at the extremes.</strong> At 50 % load Gold (90 %) and Titanium (94 %) differ by 4 percentage points. At 10 % load — typical for a server idle overnight — Titanium pulls ahead.</li>
+<li><strong>The dollar value is real but bounded.</strong> A 400 W PC running 8 h/day with $0.12/kWh electricity wastes about 56 W more on a "white" 80 PLUS than on Gold. That is roughly $50/year. Gold typically costs $20–30 more, and lasts 7–10 years; the math is easy.</li>
+</ul>
+<h2 id="sizing-a-psu--the-right-way">Sizing a PSU — the right way</h2>
+<p>The standard rule of thumb is <strong>(CPU TDP + GPU TDP + 100 W) × 1.3</strong>. The 1.3 multiplier covers transient spikes (modern GPUs can briefly draw 30 % above their nominal TDP), efficiency loss, and headroom for landing in the sweet-spot region of the curve.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Build class</th>
+          <th>Typical sustained draw</th>
+          <th>Recommended PSU</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Office (no dGPU)</td>
+          <td>80–120 W</td>
+          <td>350–450 W, Bronze</td>
+      </tr>
+      <tr>
+          <td>Light gaming (RTX 3050)</td>
+          <td>200–280 W</td>
+          <td>500 W, Gold</td>
+      </tr>
+      <tr>
+          <td>Mainstream (i5-13600K + RTX 4070)</td>
+          <td>350–450 W</td>
+          <td><strong>650 W, Gold</strong> ✅</td>
+      </tr>
+      <tr>
+          <td>High-end (i9 + RTX 4080)</td>
+          <td>550–700 W</td>
+          <td>850 W, Gold/Platinum</td>
+      </tr>
+      <tr>
+          <td>Workstation (i9 + RTX 4090)</td>
+          <td>800–1100 W</td>
+          <td>1200 W, Platinum</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="modular-vs-non-modular">Modular vs non-modular</h2>
+<p>Three flavors:</p>
+<ul>
+<li><strong>Non-modular</strong> — all cables permanently attached. Cheapest, ugliest cable management.</li>
+<li><strong>Semi-modular</strong> — the always-needed 24-pin and CPU 8-pin are fixed; PCIe and SATA cables detach. <strong>Best balance for most builds.</strong></li>
+<li><strong>Fully modular</strong> — every cable detaches. Pay $20–30 more for cleaner SFF builds and easier replacements.</li>
+</ul>
+<p>A safety note that comes up often: <strong>never mix modular cables between PSU brands or models.</strong> The PSU-side connector pinout is not standardized; using an EVGA cable on a Corsair PSU can short the 12 V rail through the 5 V circuit and destroy the entire system.</p>
+<h1 id="part-8-component-power-hierarchy">Part 8: Component Power Hierarchy</h1>
+<p>When you understand which components actually dominate the power budget, sizing decisions become obvious.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig6_power_hierarchy.png" alt="Idle vs full-load power for each component" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The two takeaways:</p>
+<ol>
+<li><strong>The CPU and GPU together are 80–95 % of peak draw.</strong> Everything else — RAM, SSDs, motherboard, fans — is rounding error. Size the PSU around CPU TDP + GPU TDP and add 100 W for the rest.</li>
+<li><strong>Idle vs load ratio is enormous, especially for GPUs.</strong> An RTX 4090 idles at ~18 W and peaks at 450 W — a 25× swing. This is why fan noise correlates with workload, and why undervolting a GPU has a much bigger impact than undervolting a CPU.</li>
+</ol>
+<p>A useful diagnostic when a system reboots under load: if it always happens during specific game scenes or rendering, suspect the PSU&rsquo;s transient response, not its average wattage. Modern GPUs spike to 1.3–1.5× TDP for milliseconds; a borderline PSU can hold the average but trip the over-current protection on the spike.</p>
+<h1 id="part-9-datacenter-pue--where-every-watt-goes">Part 9: Datacenter PUE — Where Every Watt Goes</h1>
+<p>A single server room is just a bigger version of the same problem: how much of the power going through the meter actually reaches the silicon? The industry metric is <strong>PUE</strong> (Power Usage Effectiveness):</p>
+$$ \text{PUE} = \frac{\text{Total facility power}}{\text{IT equipment power}} $$<p>A PUE of 1.0 is the theoretical perfect: every watt drawn from the grid ends up doing computation. Reality looks like this:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig5_datacenter_pue.png" alt="Datacenter PUE breakdown and operator comparison" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The breakdown of a typical PUE = 1.5 datacenter:</p>
+<ul>
+<li><strong>67 %</strong> to IT equipment — servers, storage, networking. The thing you actually wanted.</li>
+<li><strong>25 %</strong> to cooling — chillers, CRAC units, fans. The bigger the heat load, the bigger this slice.</li>
+<li><strong>5 %</strong> to power conversion — UPS losses, PDU losses, transformer losses.</li>
+<li><strong>3 %</strong> to lighting, security, and miscellaneous building load.</li>
+</ul>
+<p>Hyperscalers have driven this dramatically lower. Google&rsquo;s 2024 fleet-wide trailing-12-month PUE is <strong>1.10</strong>, and the best-in-class facilities (immersion cooling, no chillers) approach <strong>1.03</strong>. The improvements come from:</p>
+<ul>
+<li><strong>Higher inlet temperatures</strong> — running the cold aisle at 27 °C instead of 18 °C halves the cooling load.</li>
+<li><strong>Free cooling</strong> — using outside air (or seawater, in northern facilities) instead of compression chillers most of the year.</li>
+<li><strong>Better airflow management</strong> — hot/cold aisle containment, blanking panels, sealed floor tiles.</li>
+<li><strong>Higher-voltage distribution</strong> — 415 V three-phase to the rack instead of 208 V cuts conversion losses.</li>
+<li><strong>Liquid and immersion cooling</strong> — eliminating air as a heat-transfer medium for the densest GPU racks.</li>
+</ul>
+<p>PUE is also why the geographic location of a hyperscale datacenter matters: Iceland, Oregon, and northern Sweden enable nearly free cooling for most of the year.</p>
+<h1 id="part-10-ups--keeping-the-lights-on">Part 10: UPS — Keeping the Lights On</h1>
+<p>A single grid blink — even 30 milliseconds — is enough to crash an unprotected server. The Uninterruptible Power Supply is the energy buffer that bridges the gap between grid failure and the diesel generator coming online.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/fig7_ups_backup.png" alt="Online UPS architecture with bypass, battery, and generator paths" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="three-ups-topologies">Three UPS topologies</h2>
+<ul>
+<li><strong>Standby (offline)</strong> — load is normally fed straight from the wall. On a sag or outage, a relay flips to the inverter. Transfer time: 4–10 ms. Cheap; OK for a single home PC.</li>
+<li><strong>Line-interactive</strong> — adds an autotransformer that can correct moderate sag/swell without going to battery. Transfer time: 2–4 ms. Common in small server rooms.</li>
+<li><strong>Online (double-conversion)</strong> — load is <em>always</em> on the inverter. AC → DC (rectifier) → DC bus → DC → AC (inverter). Battery floats on the DC bus. <strong>Transfer time: 0 ms</strong> — the load never even notices the grid is gone. Standard for datacenters.</li>
+</ul>
+<h2 id="the-full-power-chain-in-a-real-datacenter">The full power chain in a real datacenter</h2>
+<ol>
+<li><strong>Utility AC</strong> comes in from the grid (with a backup feed from a separate substation if you are paranoid).</li>
+<li><strong>ATS</strong> (Automatic Transfer Switch) sits between utility and generator.</li>
+<li><strong>Diesel generator</strong> spins up in 10–30 seconds when the ATS senses utility loss.</li>
+<li><strong>Online UPS</strong> carries the load during those 10–30 seconds. Modern designs use lithium-ion (3× the cycle life of VRLA, half the footprint).</li>
+<li><strong>PDU</strong> (Power Distribution Unit) splits a high-current feed into per-rack circuits.</li>
+<li><strong>Server PSUs</strong> — usually two, on independent feeds (A side / B side), so a single UPS or PDU failure does not take the rack down.</li>
+</ol>
+<p>This is why a hyperscale site has <strong>multiple layers of N+1 redundancy</strong>: utility, generator, UPS, PDU, server PSU. A single failure at any layer is invisible. Two simultaneous failures at the same layer are survivable. The only true outages happen when the failures cascade across layers — almost always due to operator error, not equipment failure.</p>
+<h2 id="how-long-does-the-battery-last">How long does the battery last?</h2>
+<p>Runtime is a function of <strong>load</strong> and <strong>battery bank size</strong>, not of UPS rating:</p>
+<ul>
+<li>5 kVA UPS at full 5 kW load with a small internal battery: 5–10 minutes.</li>
+<li>The same UPS at half load: ~25 minutes (battery discharge is non-linear).</li>
+<li>External battery cabinets can extend this to hours, but are usually sized only for &ldquo;long enough for the generator to start and stabilize&rdquo; — typically 15 minutes is the design target.</li>
+</ul>
+<h1 id="part-11-common-hardware-faults--a-triage-guide">Part 11: Common Hardware Faults — A Triage Guide</h1>
+<p>After ten years of fixing other people&rsquo;s machines, the same handful of failure modes account for nearly every problem.</p>
+<h2 id="boot-failures">Boot failures</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Symptom</th>
+          <th>First thing to try</th>
+          <th>If that fails</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>No power at all</td>
+          <td>Wall outlet, PSU rocker switch, 24-pin seated</td>
+          <td>Paperclip-test the PSU (jump green to any black)</td>
+      </tr>
+      <tr>
+          <td>Fans spin, no display</td>
+          <td><strong>Reseat the RAM</strong> — fixes ~80 % of these</td>
+          <td>Clear CMOS, try one stick at a time, try integrated graphics</td>
+      </tr>
+      <tr>
+          <td>POST beeps</td>
+          <td>Look up the beep code in the motherboard manual</td>
+          <td>Different boards mean different codes</td>
+      </tr>
+      <tr>
+          <td>Boots, then BSOD/kernel panic immediately</td>
+          <td>Check CPU temperature (could be an unmounted cooler)</td>
+          <td>MemTest86 overnight, SMART check on the boot drive</td>
+      </tr>
+      <tr>
+          <td>Boots, then reboots under load</td>
+          <td>PSU undersized or aging; GPU power spikes</td>
+          <td>Test with a known-good higher-wattage PSU</td>
+      </tr>
+  </tbody>
+</table>
+<p>The &ldquo;reseat the RAM&rdquo; reflex feels superstitious but is grounded in real physics: thermal cycling slowly walks DIMMs out of their slots, and the gold contacts oxidize. Removing and reinserting wipes the contact patch and restores a low-resistance connection.</p>
+<h2 id="storage-and-gpu">Storage and GPU</h2>
+<ul>
+<li><strong>SSD suddenly slow</strong> — check free space (under 10 % free triggers garbage-collection thrashing on most consumer drives), confirm TRIM is active, look at the SMART &ldquo;Wear Leveling Count&rdquo; attribute.</li>
+<li><strong>GPU artifacts</strong> — usually overheating or power-delivery instability. Reseat the PCIe power connectors; underclock the memory by 200 MHz to test.</li>
+<li><strong>GPU not detected</strong> — wrong PCIe slot (use the top x16, not a chipset-attached slot), missing power connector, or a dead riser cable in fancy cases.</li>
+<li><strong>M.2 NVMe missing</strong> — motherboard&rsquo;s M.2 slot may share lanes with a SATA port; check the manual for &ldquo;shared lane&rdquo; warnings.</li>
+</ul>
+<h2 id="network">Network</h2>
+<ul>
+<li><strong>Disconnects</strong> — check link partner, replace the patch cable, update the NIC driver.</li>
+<li><strong>Wi-Fi slow</strong> — switch from 2.4 GHz to 5 GHz, change channel (use a Wi-Fi analyzer to find a quiet one), check for microwave/Bluetooth interference.</li>
+<li><strong>Cannot get DHCP</strong> — confirm the link light, check <code>ip addr</code> for an APIPA address (<code>169.254.x.x</code>), restart the DHCP client.</li>
+</ul>
+<h1 id="series-recap">Series Recap</h1>
+<p>What this series covered, in five sentences:</p>
+<ol>
+<li>The CPU is the bottleneck for serial work; the GPU for parallel work; everything else is feeding them.</li>
+<li>Memory hierarchy (registers → L1/L2/L3 → DRAM → NVMe → HDD) spans seven orders of magnitude in latency, and good code respects locality.</li>
+<li>Storage is bandwidth and IOPS <em>and</em> endurance — the right answer depends on the workload.</li>
+<li>Buses (PCIe), interfaces (USB, Thunderbolt), and the motherboard&rsquo;s VRM define what the silicon can actually deliver.</li>
+<li>Networking and power are the two systems most builders never look at, and the two that produce the weirdest failure modes.</li>
+</ol>
+<p>If you take one thing away: <strong>the bottleneck is rarely where you first look</strong>. Profile, measure, and trust the numbers — not the spec sheet.</p>
+<p>The deep-dive part (Part 6) returns to the questions this series only sketched: cache-coherence protocols, NUMA, virtualization at the silicon level, and the energy-efficiency frontier.</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/computer-fundamentals/04-motherboard-gpu/"><span class="title">Computer Fundamentals: Motherboard, Graphics, and Expansion</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/computer-fundamentals/06-deep-dive/"><span class="title">Computer Fundamentals: Deep Dive and System Integration</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-three-layers-inside-the-silicon">The three layers inside the silicon</a></li>
+    <li><a href="#the-cat5-vs-cat5e-gotcha">The CAT5 vs CAT5e gotcha</a></li>
+    <li><a href="#wired-nic-standards-2024-reality">Wired NIC standards (2024 reality)</a></li>
+    <li><a href="#wi-fi-standards">Wi-Fi standards</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#why-three-messages-not-two">Why three messages, not two?</a></li>
+    <li><a href="#watching-it-happen">Watching it happen</a></li>
+    <li><a href="#connection-establishment-cost">Connection-establishment cost</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#127001--the-loopback-address">127.0.0.1 — the loopback address</a></li>
+    <li><a href="#0000--any-interface">0.0.0.0 — &ldquo;any interface&rdquo;</a></li>
+    <li><a href="#ports--service-multiplexing">Ports — service multiplexing</a></li>
+    <li><a href="#nat--how-4-billion-addresses-serve-30-billion-devices">NAT — how 4 billion addresses serve 30 billion devices</a></li>
+    <li><a href="#dns--the-address-book">DNS — the address book</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#bridged--vm-is-a-first-class-citizen-on-the-lan">Bridged — VM is a first-class citizen on the LAN</a></li>
+    <li><a href="#nat--vm-lives-behind-a-private-virtual-router">NAT — VM lives behind a private virtual router</a></li>
+    <li><a href="#host-only--total-isolation">Host-only — total isolation</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#case-1-ping-works-the-website-does-not">Case 1: ping works, the website does not</a></li>
+    <li><a href="#case-2-domain-does-not-resolve">Case 2: domain does not resolve</a></li>
+    <li><a href="#case-3-vm-has-no-internet-nat-mode">Case 3: VM has no internet (NAT mode)</a></li>
+    <li><a href="#the-hosts-file--local-dns-override">The hosts file — local DNS override</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#what-80-plus-actually-measures">What &ldquo;80 PLUS&rdquo; actually measures</a></li>
+    <li><a href="#sizing-a-psu--the-right-way">Sizing a PSU — the right way</a></li>
+    <li><a href="#modular-vs-non-modular">Modular vs non-modular</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#three-ups-topologies">Three UPS topologies</a></li>
+    <li><a href="#the-full-power-chain-in-a-real-datacenter">The full power chain in a real datacenter</a></li>
+    <li><a href="#how-long-does-the-battery-last">How long does the battery last?</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#boot-failures">Boot failures</a></li>
+    <li><a href="#storage-and-gpu">Storage and GPU</a></li>
+    <li><a href="#network">Network</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Computer Fundamentals</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>20 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4200</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

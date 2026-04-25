@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>paper2repo: GitHub Repository Recommendation for Academic Papers · Chen Kai Blog</title>
+<meta name="description" content="paper2repo aligns academic papers with GitHub repositories in a shared embedding space using a constrained GCN. Covers the joint heterogeneous graph, the WARP ranking loss, the cosine alignment constraint, and the full inference path.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/standalone/paper2repo-github-repository-recommendation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/paper2repo-github-repository-recommendation/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="paper2repo: GitHub Repository Recommendation for Academic Papers">
+<meta property="og:description" content="paper2repo aligns academic papers with GitHub repositories in a shared embedding space using a constrained GCN. Covers the joint heterogeneous graph, the WARP ranking loss, the cosine alignment constraint, and the full inference path.">
+<meta property="og:url" content="https://www.chenk.top/en/standalone/paper2repo-github-repository-recommendation/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
+        
+      </div>
+      <h1>paper2repo: GitHub Repository Recommendation for Academic Papers</h1>
+      <p class="deck">paper2repo aligns academic papers with GitHub repositories in a shared embedding space using a constrained GCN. Covers the joint heterogeneous graph, the WARP ranking loss, the cosine alignment constraint, and the full inference path.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2023-08-22">August 22, 2023</time> · 10 min read · 2200 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/recommender-systems/" class="tag">#Recommender Systems</a><a href="/en/tags/gnn/" class="tag">#GNN</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>You read a paper, want the code, and the &ldquo;code available at&rdquo; link is dead, missing, or points to a stub. Search engines fall back to keyword matching over the README, which works for popular repos with descriptive names and dies on everything else. paper2repo (WWW 2020) frames this as a cross-platform recommendation problem: learn one embedding space in which a paper abstract and a GitHub repository are directly comparable by dot product, then rank.</p>
+<p>The trick is not the text encoder - any reasonable CNN or transformer would do. The trick is that papers and repositories sit on two different graphs (citations on the paper side, co-star and tag overlap on the repo side), and naively running a GCN on each yields embeddings in two unrelated spaces. paper2repo bridges them with a small set of paper-repo pairs that we already know match, and a constraint that pulls those bridged embeddings together. Everything else in the model exists to make that constraint trainable.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>How the joint heterogeneous graph is assembled from three asymmetric signals (citations, co-stars, tag overlap)</li>
+<li>Why two GCNs that never see each other&rsquo;s data still need a shared metric, and how the cosine constraint enforces one</li>
+<li>The WARP ranking loss and why it pairs naturally with normalized embeddings</li>
+<li>The Lagrangian-to-multiplicative trick that removes the constraint hyperparameter</li>
+<li>How the model is queried at inference time and what the reported HR@10 / MAP@10 / MRR@10 numbers actually mean</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>GCN basics: layer-wise propagation $H^{(l+1)} = \sigma(\tilde D^{-1/2}\tilde A\tilde D^{-1/2}H^{(l)}W^{(l)})$</li>
+<li>Standard recommendation metrics: HR@K, MAP@K, MRR@K</li>
+<li>Cosine similarity, hinge loss, and the idea behind margin-based ranking losses</li>
+</ul>
+<h2 id="system-overview">System overview</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation/fig1_system_architecture.png" alt="paper2repo system architecture" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Read Figure 1 left-to-right and top-to-bottom. There are two parallel towers. The left tower turns paper abstracts into vectors, runs a GCN over the citation graph, and emits paper embeddings $h^p$. The right tower does the same with repository descriptions and tags, runs a GCN over the repository association graph, and emits $h^r$. The towers never share weights, but they are tied at training time by two cross-tower forces: the cosine alignment constraint on bridged pairs, and the WARP ranking loss that uses paper-repo pairs as positives. At inference time the towers run independently; ranking is just a dot product against a precomputed repo index.</p>
+<h2 id="the-joint-heterogeneous-graph">The joint heterogeneous graph</h2>
+<p>The first non-trivial design choice is what graph you actually feed into each tower. Papers have a clean signal - citations - that is directional, sparse, and semantic. Repositories have nothing comparable. paper2repo manufactures a repo graph from two implicit signals.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation/fig2_heterogeneous_graph.png" alt="Heterogeneous graph: papers, repos, users, bridged pairs" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>Paper citation graph.</strong> Nodes are papers; edges are citations, treated as undirected. Node features come from a CNN over the abstract.</p>
+<p><strong>Repo association graph.</strong> Nodes are repositories; edges come from two sources:</p>
+<ul>
+<li><em>Co-star edges.</em> Two repos starred by the same user are connected. This is a noisy but cheap &ldquo;people who liked X also liked Y&rdquo; signal. Users do not appear as nodes in the repo graph itself - they exist only to induce co-star edges (the dotted amber lines in Figure 2).</li>
+<li><em>Tag-overlap edges.</em> Two repos that share a tag whose TF-IDF score is above a threshold (the paper uses 0.3) are connected. This filters out generic tags like &ldquo;python&rdquo; and keeps the topical ones.</li>
+</ul>
+<p>Node features on the repo side fuse the CNN-encoded description with an averaged tag embedding, projected to the same dimension.</p>
+<p><strong>Bridged pairs.</strong> A small set of paper-repo pairs is already labeled - papers that explicitly cite their own GitHub URL. These are the only supervision the alignment ever sees. Of 7,571 repos in the dataset, 2,107 are bridged. Everything else has to be reached transitively through the two graphs.</p>
+<h2 id="text-encoders">Text encoders</h2>
+<p>Both towers use the same CNN-over-words recipe.</p>
+<ol>
+<li><strong>Tokenize</strong> the description, abstract, or tag list to a sequence $\{x_1, \dots, x_n\}$, then map each token to a $d$-dimensional pretrained vector (GloVe in the paper).</li>
+<li><strong>Convolve</strong> with multiple window sizes $h \in \{2, 3, 4\}$ and $k$ filters per width:
+$$c_i = \sigma(W \cdot x_{i:i+h-1} + b)$$</li>
+<li><strong>Max-over-time pool</strong> each filter to a scalar, concatenate to a fixed-size feature vector.</li>
+<li><strong>Tags</strong> are unordered, so average their word vectors and project through a fully-connected layer to the same dimension as the description features.</li>
+<li><strong>Fuse</strong> the description and tag features (sum or concatenate) to obtain the repository representation.</li>
+</ol>
+<p>Paper abstracts go through the same encoder with the tag branch disabled. Both encoders&rsquo; outputs become the input node features $H^{(0)}$ to their respective GCNs.</p>
+<h2 id="constrained-gcn">Constrained GCN</h2>
+$$H^{(l+1)} = \sigma\!\left(\tilde D^{-1/2}\tilde A\tilde D^{-1/2}\,H^{(l)}\,W^{(l)}\right)$$<p>
+where $\tilde A = A + I$ adds self-loops and $\tilde D$ is its degree matrix. Run this $L$ times on each graph and you get paper embeddings $h^p$ and repo embeddings $h^r$. They are useful for in-graph tasks (citation prediction on the paper side, co-star prediction on the repo side), but they live in two unrelated $d$-dimensional spaces - dot products across towers are meaningless.</p>
+$$h^{p}_{i}\!\cdot h^{r}_{i} \;\geq\; 1 - \delta, \qquad \delta \approx 10^{-3}.$$<p>
+With both embeddings $\ell_2$-normalized, the dot product is the cosine similarity, and the constraint says: bridged paper-repo pairs should be near-identical in direction. Since the two towers share no parameters, the only way to satisfy this is for the GCNs and encoders to learn aligned axes.</p>
+<h2 id="two-training-forces">Two training forces</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation/fig3_embedding_objectives.png" alt="WARP ranking &#43; cosine alignment constraint" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Figure 3(a) shows the ranking force. Embeddings live on the unit sphere. For a paper-positive-repo pair $(p, r^+)$ the loss pulls $h^{r^+}$ toward $h^p$ and pushes any negative $r^-$ that lands within margin $\gamma$ of the positive away. Figure 3(b) shows the alignment force. Without the cross-tower constraint the two GCNs would produce ellipsoidal &ldquo;paper&rdquo; and &ldquo;repo&rdquo; clouds floating in unrelated regions of $\mathbb{R}^d$. The constraint ties bridged pairs together, dragging the whole repo cloud into the paper cloud&rsquo;s frame.</p>
+<h3 id="warp-ranking-loss">WARP ranking loss</h3>
+$$\ell(p, r^+, r^-) = L\!\left(\mathrm{rank}(p, r^+)\right) \cdot \big[\gamma - h^p\!\cdot h^{r^+} + h^p\!\cdot h^{r^-}\big]_+$$<p>
+where $[\cdot]_+ = \max(0, \cdot)$ is the hinge and $L(k) = \sum_{j=1}^{k} 1/j$ is a non-decreasing weight that grows when the positive is ranked far down. The rank is estimated by sampling negatives until one violates the margin and counting how many were tried.</p>
+<p>Two practical points. First, WARP needs many negatives per positive - the original paper uses sampling-without-replacement until a margin violator is found. Second, on normalized embeddings the dot product is cosine in $[-1, 1]$, so the margin $\gamma$ is naturally interpretable (typical values are around 0.1).</p>
+<h3 id="removing-the-lagrangian-hyperparameter">Removing the Lagrangian hyperparameter</h3>
+$$\min \sum_{(p,r^+,r^-)} \ell(p, r^+, r^-) \;+\; \lambda \cdot C_e$$$$C_e = \frac{1}{|B|}\sum_{i \in B} \big[(1 - \delta) - h^{p}_{i}\!\cdot h^{r}_{i}\big]_+,$$$$\mathcal{L} = \left(\sum_{(p,r^+,r^-)} \ell(p, r^+, r^-)\right) \cdot (1 + C_e).$$<p>
+Because $h^p$ and $h^r$ are normalized, $C_e \in [0, 2]$ is bounded and on the same scale as a multiplicative factor. When the constraint is satisfied ($C_e \to 0$) the multiplier collapses to 1 and the loss is pure WARP. When the constraint is violated the entire ranking loss is amplified, which forces the optimizer to fix alignment first. There is no $\lambda$ to tune.</p>
+<h2 id="training-procedure">Training procedure</h2>
+<p><strong>Positives.</strong> Each bridged paper-repo pair is a positive. To grow the positive set, the paper also adds repo pairs $(r, r')$ that are co-starred frequently by the same users - if many users star both, treat $r'$ as a &ldquo;related&rdquo; positive of $r$. This expansion is symmetric and feeds into the repo-side ranking loss.</p>
+<p><strong>Negatives.</strong> Sample uniformly from the full repository pool. WARP samples until a margin violation is found, so the effective negative count adapts to how hard the positive currently is.</p>
+<p><strong>Optimizer.</strong> Adam over the union of CNN encoder weights, GCN weights, and the projection layers. The GCN is shallow (2 layers in the paper) - depth tends to over-smooth on these graphs.</p>
+<p><strong>Outputs.</strong> Aligned paper and repo embeddings, plus a precomputed repo index for fast inference.</p>
+<h2 id="inference">Inference</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation/fig4_recommendation_flow.png" alt="Recommendation flow at query time" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>At query time the paper-side tower runs once on the new abstract: CNN encoder, then a GCN propagation step using the citation neighborhood of the new node (or just the encoder output if it has no citations yet). The result is a single vector $h^p$. Ranking is then a dense matrix-vector product against the precomputed repo embedding matrix; top-K is an argpartition. There is no reranker, no second-stage filter - a deliberate choice that keeps the system serving-friendly and makes ablations clean.</p>
+<p>The illustrative shortlist in Figure 4 shows the typical pattern: the top of the list is dominated by repos that are both topically close (high text similarity) and well-connected in the association graph (high GCN smoothness). The two signals reinforce each other when the paper has a clear topic and a popular reference implementation; they disagree on niche papers, where the repo association graph dominates and the model degrades to &ldquo;what does the community usually star alongside this kind of work.&rdquo;</p>
+<h2 id="experiments">Experiments</h2>
+<p><strong>Data.</strong> 32,029 papers from Microsoft Academic (top venues, 2010-2018) and 7,571 GitHub repositories, of which 2,107 are bridged. The paper splits bridged pairs into train / validation / test for the alignment supervision and uses the rest of the graph for unsupervised structure.</p>
+<p><strong>Metrics.</strong> HR@K (does any relevant repo appear in the top-K), MAP@K (precision averaged over ranks of relevant repos), MRR@K (reciprocal rank of the first relevant repo). All evaluated at K = 10.</p>
+<p><strong>Baselines.</strong> Seven cross-domain or graph-aware recommenders: BPR, MF, LINE, NCF, CDL, KGCN, NSCR. None of them have an explicit cross-tower alignment objective.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/paper2repo-github-repository-recommendation/fig5_evaluation_results.png" alt="paper2repo vs seven baselines on HR@10, MAP@10, MRR@10" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The pattern in Figure 5 is what you would expect if the alignment constraint is doing real work. Methods that ignore graph structure (BPR, MF) sit at the bottom. Methods that use one side&rsquo;s structure but not the other (LINE, NCF) move up. Methods that use both sides plus an external knowledge graph (CDL, KGCN, NSCR) get within striking distance. paper2repo opens a clear gap, and the gap is largest on HR@10 - the metric that rewards &ldquo;the right repo is somewhere in the shortlist&rdquo; rather than &ldquo;the right repo is at the very top.&rdquo; That is consistent with the alignment constraint pulling bridged repos into the right region of the embedding space without necessarily resolving fine-grained ranking inside that region.</p>
+<h2 id="limitations">Limitations</h2>
+<p><strong>Cold-start repos.</strong> A new repo with no stars and one or two tags has almost no edges in the association graph. The GCN smooths it toward isolated text features, which is roughly what TF-IDF would give you. The constraint cannot help unless someone hand-labels a bridged pair for it.</p>
+<p><strong>Bridged-pair scarcity.</strong> The whole alignment depends on a thin layer of supervised pairs. In domains where paper-to-code linkage is rare (e.g., older papers, applied ML in industry) there is simply not enough supervision to align the two towers.</p>
+<p><strong>GCN cost on the full graph.</strong> Two-layer GCNs are tractable at this scale (~40K nodes total) but do not obviously extend to the millions of papers and tens of millions of repos that exist in the wild. Sampling-based GNNs (GraphSAGE, ClusterGCN) would be the natural next step.</p>
+<p><strong>Static snapshot.</strong> The graph is treated as static. In reality citations appear monthly and stars appear daily; a temporal GNN or a streaming index would be a better match for the deployed setting.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>The interesting idea in paper2repo is not the GCN, the WARP loss, or the CNN encoder - all of which were standard by 2020. It is the <em>constrained</em> GCN: the recognition that two independent towers can be tied together by a small set of bridged pairs and a single multiplicative term in the loss. That same recipe transfers cleanly to other cross-platform problems where you have abundant structure on each side and a small bridge between them: paper-to-dataset, paper-to-author, product-to-review, query-to-document with click logs as the bridge. The text encoders and graph types change; the constraint stays.</p>
+<p>Three concrete extensions would matter most. Add author / venue / institution nodes to the paper side and contributor / organization nodes to the repo side, turning each tower&rsquo;s graph into a richer heterogeneous one. Replace the full-batch GCN with a sampled GNN to scale past the 40K-node regime. And replace the static bridged set with a self-training loop that mines new bridged pairs from high-confidence top-1 predictions.</p>
+<h2 id="references">References</h2>
+<p>[1] Shao, H., Sun, D., Wu, J., Zhang, Z., Zhang, A., Yao, S., Liu, S., Wang, T., Zhang, C., &amp; Abdelzaher, T. (2020). paper2repo: GitHub Repository Recommendation for Academic Papers. <em>Proceedings of The Web Conference 2020</em>, 580-590.</p>
+<p>[2] Kipf, T. N., &amp; Welling, M. (2017). Semi-Supervised Classification with Graph Convolutional Networks. <em>International Conference on Learning Representations (ICLR)</em>.</p>
+<p>[3] Weston, J., Bengio, S., &amp; Usunier, N. (2011). WSABIE: Scaling Up to Large Vocabulary Image Annotation. <em>Proceedings of the International Joint Conference on Artificial Intelligence (IJCAI)</em>, 2764-2770.</p>
+<p>[4] Hamilton, W. L., Ying, R., &amp; Leskovec, J. (2017). Inductive Representation Learning on Large Graphs. <em>Advances in Neural Information Processing Systems (NeurIPS)</em>.</p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#system-overview">System overview</a></li>
+    <li><a href="#the-joint-heterogeneous-graph">The joint heterogeneous graph</a></li>
+    <li><a href="#text-encoders">Text encoders</a></li>
+    <li><a href="#constrained-gcn">Constrained GCN</a></li>
+    <li><a href="#two-training-forces">Two training forces</a>
+      <ul>
+        <li><a href="#warp-ranking-loss">WARP ranking loss</a></li>
+        <li><a href="#removing-the-lagrangian-hyperparameter">Removing the Lagrangian hyperparameter</a></li>
+      </ul>
+    </li>
+    <li><a href="#training-procedure">Training procedure</a></li>
+    <li><a href="#inference">Inference</a></li>
+    <li><a href="#experiments">Experiments</a></li>
+    <li><a href="#limitations">Limitations</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2200</strong></div>
+      <div class="row"><span>Published</span><strong>Aug 2023</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

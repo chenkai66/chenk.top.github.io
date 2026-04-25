@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Prefix-Tuning：为生成任务优化连续提示 · Chen Kai Blog</title>
+<meta name="description" content="Prefix-Tuning 冻结整个语言模型，只学习一组注入到注意力层的连续向量来引导生成。本文从注意力公式、重参数化、KV cache 机制到 GPT-2 上的实验，把这套方法和 Adapter、Prompt Tuning、LoRA 的边界讲清楚。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/standalone/prefix-tuning-optimizing-continuous-prompts-for-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/prefix-tuning-optimizing-continuous-prompts-for-generation/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Prefix-Tuning：为生成任务优化连续提示">
+<meta property="og:description" content="Prefix-Tuning 冻结整个语言模型，只学习一组注入到注意力层的连续向量来引导生成。本文从注意力公式、重参数化、KV cache 机制到 GPT-2 上的实验，把这套方法和 Adapter、Prompt Tuning、LoRA 的边界讲清楚。">
+<meta property="og:url" content="https://www.chenk.top/zh/standalone/prefix-tuning-optimizing-continuous-prompts-for-generation/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+        
+      </div>
+      <h1>Prefix-Tuning：为生成任务优化连续提示</h1>
+      <p class="deck">Prefix-Tuning 冻结整个语言模型，只学习一组注入到注意力层的连续向量来引导生成。本文从注意力公式、重参数化、KV cache 机制到 GPT-2 上的实验，把这套方法和 Adapter、Prompt Tuning、LoRA 的边界讲清楚。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-04-20">April 20, 2024</time> · 9 min read · 4300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/peft/" class="tag">#PEFT</a><a href="/zh/tags/%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/" class="tag">#参数高效微调</a><a href="/zh/tags/prefix-tuning/" class="tag">#Prefix-Tuning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>把 GPT-2 微调到一个具体任务上，意味着要再多存一份 1.5B 参数的权重。换十几个任务，存储和上线成本就能直接劝退一个团队，更别提&quot;一份基模 + 多任务共享&quot;这种工程上很想要的架构。<strong>Prefix-Tuning</strong>（Li &amp; Liang, 2021）走了一条相反的路：模型权重一个不动，只学一小段连续向量——也就是论文里所说的&quot;前缀&quot;——在每一层注意力里被当作&quot;已经在那里的上下文&quot;喂进去。模型本身没变，换一段前缀就等于换了一种&quot;任务人格&quot;。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>前缀到底是什么、为什么把它注入到每一层的 K/V 比只在输入端拼软提示要强</li>
+<li>完整的注意力公式、参数量推导，以及那个用于稳定训练的重参数化 MLP 的作用</li>
+<li>在自回归解码时，前缀如何与 KV cache 协同工作</li>
+<li>Prefix-Tuning 与 Prompt Tuning、Adapter、LoRA 各自的边界</li>
+<li>关于前缀长度、多任务部署、常见踩坑的工程经验</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>Transformer 注意力的 Q/K/V 投影，以及多头结构</li>
+<li>PEFT（参数高效微调）想解决什么问题</li>
+<li>自回归语言模型的基本概念</li>
+</ul>
+<hr>
+<h2 id="1-动机在不动权重的前提下让大模型适配新任务">1. 动机：在不动权重的前提下让大模型适配新任务</h2>
+<p>全量微调要更新模型的全部参数。这件事在算力上贵、在存储上更贵——任务一多，你会发现绝大部分硬盘其实都是同一个基模的近似副本。PEFT 的核心目标可以浓缩成三条：</p>
+<ul>
+<li>减少可训练参数（也就减少了优化器状态的显存占用）</li>
+<li>把每个任务的&quot;补丁&quot;从 GB 级压到 MB 级</li>
+<li>让一份冻结的基模能同时服务很多任务</li>
+</ul>
+<p>Prefix-Tuning 是最早专门针对<strong>生成任务</strong>（table-to-text、摘要、对话）设计的 PEFT 方法之一，到今天它仍然是讲 PEFT 时一个非常干净的入门基线。</p>
+<h2 id="2-prefix-tuning-里的前缀到底是什么">2. Prefix-Tuning 里的&quot;前缀&quot;到底是什么</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/prefix-tuning-optimizing-continuous-prompts-for-generation/fig1_architecture.png" alt="Prefix-Tuning 架构：可学习的 K/V 前缀注入到每一层冻结的注意力" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Transformer 是堆叠的&quot;注意力 + MLP&quot;块。每一层的注意力把隐藏状态投影成查询、键、值 $Q, K, V \in \mathbb{R}^{n \times d}$，再算</p>
+$$
+\text{Attn}(Q, K, V) = \mathrm{softmax}\!\left(\frac{Q K^\top}{\sqrt{d}}\right) V .
+$$<p>如果想给模型添一段&quot;看起来像上下文&quot;的可学习参数，自然有两个位置：</p>
+<ul>
+<li><strong>输入前缀</strong>。在词嵌入前面拼一段可学习的向量，这是 <em>Prompt Tuning</em>（Lester et al., 2021）的做法。只有第一层直接看到它，深层只能间接受影响。</li>
+<li><strong>逐层 K/V 前缀</strong>。在每一层都把可学习的键/值向量直接拼到 $K$ 和 $V$ 前面。这就是 <em>Prefix-Tuning</em>。每一层都拥有自己专属的&quot;旋钮&quot;。</li>
+</ul>
+<p>第二种方案表达力更强：它在每一层都加了容量，而不是只在最入口处。在生成任务上，这种&quot;深进去&quot;的注入也确实更管用。</p>
+<h2 id="3-注意力前缀的公式">3. 注意力前缀的公式</h2>
+<p>设第 $\ell$ 层的可学习前缀矩阵为 $P^{(\ell)} \in \mathbb{R}^{L_{\text{prefix}} \times 2 d}$，沿最后一维劈成键和值两半：</p>
+$$
+P^{(\ell)} = \big[\, P^{(\ell)}_K \;\Vert\; P^{(\ell)}_V \,\big],
+\quad P^{(\ell)}_K, P^{(\ell)}_V \in \mathbb{R}^{L_{\text{prefix}} \times d}.
+$$<p>在每次前向传播里，把它和冻结模型本来产生的真 K/V 拼起来：</p>
+$$
+\tilde{K}^{(\ell)} = \big[\, P^{(\ell)}_K \;;\; K^{(\ell)} \,\big],
+\qquad
+\tilde{V}^{(\ell)} = \big[\, P^{(\ell)}_V \;;\; V^{(\ell)} \,\big],
+$$<p>再把标准注意力替换成</p>
+$$
+\text{Attn}\!\big(Q^{(\ell)},\, \tilde{K}^{(\ell)},\, \tilde{V}^{(\ell)}\big).
+$$<p>有两点细节值得点出来：</p>
+<ol>
+<li>查询 $Q^{(\ell)}$ 没有被扩。前缀只出现在注意力的&quot;被看&quot;那一侧——别的位置可以读它，但它不会自己产出输出 token。</li>
+<li>因为每一层的 K 和 V 都被加长了，每一个被生成的 token 在每一层都能&quot;看到&quot;前缀。整段前缀就像一条贯穿整个 Transformer 栈、可微的工作记忆。</li>
+</ol>
+<h2 id="4-参数量为什么说它轻">4. 参数量：为什么说它&quot;轻&quot;</h2>
+<p>设层数为 $L$，隐藏维度为 $d$，前缀长度为 $L_{\text{prefix}}$，可训练参数量是</p>
+$$
+| \theta_{\text{prefix}} | = 2 \cdot L \cdot d \cdot L_{\text{prefix}} .
+$$<p>代入 GPT-2 medium（$L = 24$，$d = 1024$）和典型的 $L_{\text{prefix}} = 10$，大约是 <strong>0.5 M</strong> 参数，对比模型本身的 <strong>355 M</strong> 参数，差不多缩小了 700 倍。换成 GPT-2 XL，比例还会更夸张。</p>
+<p>每个任务的&quot;权重&quot;从 GB 级掉到了几百 KB。这是工程上的关键卖点：你可以发一份基模加一个装满小前缀文件的目录，每个文件对应一个任务。</p>
+<h2 id="5-重参数化为什么有用">5. 重参数化为什么有用</h2>
+<p>如果你直接把 $P$ 当成参数去训，会发现训练相当脆弱——尤其当前缀稍微长一点，loss 容易抖、最终质量也低于这个参数量&quot;应有&quot;的水平。Li &amp; Liang 的处理是给前缀套一个小 MLP 做<strong>重参数化</strong>：</p>
+$$
+P^{(\ell)}_K, P^{(\ell)}_V = \text{MLP}_\phi\!\big( P'^{(\ell)} \big),
+$$<p>其中 $P'^{(\ell)} \in \mathbb{R}^{L_{\text{prefix}} \times d'}$ 是一个更小维度的潜在前缀，$d' \ll d$。这步为什么有用：</p>
+<ul>
+<li>MLP 把优化曲面磨光滑了。梯度回传到一个低维潜变量上，比直接打在又宽又高的 $L_{\text{prefix}} \times 2d$ 矩阵上要好优化。</li>
+<li>非线性提供了纯靠前缀矩阵无法表达的额外容量——而且不需要解冻骨干网络。</li>
+<li>一个共享的小 MLP 让你在层之间获得部分参数共享，同时仍能输出每层不同的前缀。</li>
+</ul>
+<p>训练完之后，这个 MLP 可以<strong>直接扔掉</strong>：只保留实例化好的 $P^{(\ell)}_K, P^{(\ell)}_V$ 张量供推理用。也就是说&quot;额外容量&quot;在部署阶段是免费的。</p>
+<h2 id="6-一图比清楚三种适配冻结大模型的方式">6. 一图比清楚：三种适配冻结大模型的方式</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/prefix-tuning-optimizing-continuous-prompts-for-generation/fig2_method_comparison.png" alt="全量微调、Prefix-Tuning 与 Prompt Tuning 的对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>这三种方法可以放到同一条谱系上看：</p>
+<ul>
+<li><strong>全量微调</strong>：什么都更新。容量最大、成本最贵、模型无法共享。</li>
+<li><strong>Prefix-Tuning</strong>：只更新逐层的 K/V 张量。约 0.1% 的参数量，在生成任务上很强，骨干模型保持冻结。</li>
+<li><strong>Prompt Tuning</strong>：只更新输入端的软提示。约 0.01% 的参数量，实现最简单；在小模型上通常弱于 Prefix-Tuning，但模型规模大了之后差距会显著缩小（Lester et al., 2021）。</li>
+</ul>
+<p>LoRA（Hu et al., 2021）是结构上很不一样的第四种思路：它不动激活，而是在权重矩阵上加一个低秩增量 $W \mapsto W + \alpha BA$，其中 $A, B$ 都是低秩矩阵。LoRA 后来在指令微调场景里几乎成了默认选择，主要因为：（a）推理时它可以<strong>合并进权重</strong>，几乎零额外延迟；（b）&ldquo;秩&quot;这个超参对大多数用户来说比&quot;前缀长度&quot;更直观。Prefix-Tuning 仍然有不可替代的位置——当你必须保证基模权重一比特都不动、当你要在解码阶段按请求热切换 adapter、或者当任务本身就是&quot;靠上下文驱动&quot;的生成型任务时，它是更自然的选择。</p>
+<h2 id="7-前缀长度是甜点而不是越大越好">7. 前缀长度：是甜点而不是越大越好</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/prefix-tuning-optimizing-continuous-prompts-for-generation/fig3_prefix_length_sweep.png" alt="前缀长度与质量、参数成本的关系" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>经验上，E2E table-to-text 上的 BLEU 从 $L_{\text{prefix}} = 1$ 涨到 $L_{\text{prefix}} \approx 10$ 时增长很快，之后基本拉平，长到 200 以上反而会<strong>轻微回落</strong>——这更像是优化层面的问题而非容量瓶颈，但结论是一样的：单纯把前缀加长不是免费午餐。一个还算实用的起点：</p>
+<ul>
+<li><strong>分类型或短生成</strong>：$L_{\text{prefix}} \in [5, 10]$</li>
+<li><strong>长文本生成、少样本场景</strong>：$L_{\text{prefix}} \in [10, 20]$</li>
+<li><strong>超过 100</strong>：很少能赚回它带来的参数和推理序列长度成本</li>
+</ul>
+<h2 id="8-自回归解码时-kv-cache-的机制">8. 自回归解码时 KV cache 的机制</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/prefix-tuning-optimizing-continuous-prompts-for-generation/fig4_kv_cache_prepend.png" alt="解码过程中前缀 K/V 在 KV cache 中的位置" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Prefix-Tuning 与自回归解码标配的 KV cache 配合得相当自然。每一层都维护一份缓存，里面是模型已经&quot;看过&quot;的所有 $(K, V)$。加上 Prefix-Tuning 之后：</p>
+<ol>
+<li><strong>$t = 0$ 时</strong>，缓存先<strong>用前缀 K/V 初始化</strong>（这些张量在请求加载时一次性从硬盘读出来），然后把 prompt 编码成的 K/V 也追加进去。</li>
+<li><strong>每一个解码步 $t$</strong>，新生成 token 的 K/V 像普通解码一样追加到缓存末尾。</li>
+<li><strong>每一步的注意力</strong>都跑在完整的扩展缓存上：前缀 + prompt + 已经生成的内容。</li>
+</ol>
+<p>所以前缀对每步注意力多带来的开销是一个加性的 $O(L_{\text{prefix}})$，对每个活跃请求多占的内存是固定的 $2 \cdot L \cdot d \cdot L_{\text{prefix}}$ 个浮点数。$L_{\text{prefix}} = 10$ 时基本可以忽略；如果你真用了 200，那就相当于解码时多带了 200 个 token 的上下文，这个成本是值得测一下的。</p>
+<p>这套机制顺便让&quot;按请求切换任务&quot;变得很便宜：换一份前缀文件、清掉缓存，同一个基模就立刻表现得像另一种微调结果。</p>
+<h2 id="9-应用gpt-2-上的两个生成任务">9. 应用：GPT-2 上的两个生成任务</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/prefix-tuning-optimizing-continuous-prompts-for-generation/fig5_gpt2_application.png" alt="Prefix-Tuning vs 全量微调 vs Adapter 在 E2E 和 XSum 上的对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>原论文跑的两个核心实验是 GPT-2 medium 上的：</p>
+<ul>
+<li><strong>E2E</strong>（table-to-text）：Prefix-Tuning 用 0.1% 的参数量做到与全量微调相当甚至略优的 BLEU。</li>
+<li><strong>XSum</strong>（抽象摘要）：随着数据增多，全量微调慢慢追上来；但在<strong>少数据场景</strong>下 Prefix-Tuning 优势明显——5% 训练数据以下时，&ldquo;你只能拧一个低维上下文旋钮&quot;这个归纳偏置反而压住了全量微调常见的过拟合。</li>
+</ul>
+<p>少数据上的这个观察后来被反复印证。LoRA 在指令微调上的少数据表现也是同样的故事：当任务数据不多时，把假设空间收窄到一个低维 adapter 本身就是一种正则，而这个正则的收益通常比全量微调多出来的容量更值钱。</p>
+<h2 id="10-工程实践注记">10. 工程实践注记</h2>
+<p><strong>前缀加在哪里。</strong> 在 decoder-only 模型里，每一层的 self-attention 都加前缀是默认配方。在 encoder-decoder 模型里你得做选择：encoder self-attention、decoder self-attention、decoder cross-attention，或者三个一起。论文在条件生成任务上发现 cross-attention 前缀最关键。</p>
+<p><strong>初始化技巧。</strong> 随机初始化能用，但收敛慢。用一段<strong>真实的提示句</strong>（比如 &ldquo;summarize the following article:&quot;）的词嵌入去初始化前缀，能在同样的任务上明显加快收敛。一个小动作，但效果是真的。</p>
+<p><strong>多任务部署。</strong> 一个任务存一份前缀张量。30 个 GPT-2 medium 任务的前缀加起来也就是几 MB，对比 30 份全量微调的 ~10 GB 是数量级的差距。线上切任务的逻辑就是&quot;重新加载小前缀文件&rdquo;，不用重载模型。</p>
+<p><strong>常见踩坑。</strong></p>
+<ul>
+<li><em>训练了很久毫无起色</em>：通常是 $L_{\text{prefix}}$ 太小、学习率太低，或者在需要重参数化的任务上漏掉了 MLP。</li>
+<li><em>loss 看起来稳但生成是乱码</em>：检查拼接维度是不是错了，以及前缀是否<strong>只</strong>出现在 K/V 一侧。一个出乎意料常见的 bug 是把它也拼到了 $Q$ 上。</li>
+<li><em>前缀很长时质量崩盘</em>：基本上是优化问题。降学习率、加强重参数化，或者干脆缩短前缀。</li>
+</ul>
+<h2 id="11-什么时候选-prefix-tuning">11. 什么时候选 Prefix-Tuning</h2>
+<p>适合 Prefix-Tuning 的场景：</p>
+<ul>
+<li>必须保证基模权重逐比特不变（合规或共享需求）。</li>
+<li>一份基模背后挂多个任务，需要按请求热切换 adapter。</li>
+<li>任务本身偏生成、且数据预算中等。</li>
+</ul>
+<p>更适合用 LoRA 的场景：</p>
+<ul>
+<li>追求极致的推理延迟（LoRA 可以<strong>合并</strong>进权重）。</li>
+<li>需要在指令微调那种宽分布数据上的整体表现。</li>
+<li>偏好用&quot;秩&quot;这个超参来思考问题。</li>
+</ul>
+<p>更适合做全量微调的场景：</p>
+<ul>
+<li>数据真的很多、并且对每一个点的指标都很在意。</li>
+<li>不在乎每个任务都得多存一份完整模型。</li>
+</ul>
+<h2 id="一句话收束">一句话收束</h2>
+<p>Prefix-Tuning 把&quot;适配新任务&quot;重新表述为：<strong>学习一段贯穿全栈、按层注入的小型上下文记忆</strong>，而模型本身保持冻结。结构干净，参数量在亚百分点级别，少数据上的归纳偏置实打实有用。即便后来 LoRA 在 PEFT 实战里几乎一统江湖，Prefix-Tuning 仍然是讲清楚&quot;通过给模型喂可学上下文来适配它&quot;这个想法时最干净的心智模型，也仍然是一些真实部署场景下更自然的选择。</p>
+<h2 id="参考资料">参考资料</h2>
+<ul>
+<li>Li, X. L., &amp; Liang, P. (2021). <a href="https://arxiv.org/abs/2101.00190" target="_blank" rel="noopener noreferrer">Prefix-Tuning: Optimizing Continuous Prompts for Generation <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>ACL 2021</em>. 原始论文。</li>
+<li>Lester, B., Al-Rfou, R., &amp; Constant, N. (2021). <a href="https://arxiv.org/abs/2104.08691" target="_blank" rel="noopener noreferrer">The Power of Scale for Parameter-Efficient Prompt Tuning <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>EMNLP 2021</em>. Prompt Tuning 的代表作。</li>
+<li>Houlsby, N., et al. (2019). <a href="https://arxiv.org/abs/1902.00751" target="_blank" rel="noopener noreferrer">Parameter-Efficient Transfer Learning for NLP <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>ICML 2019</em>. Adapter 的奠基性论文。</li>
+<li>Hu, E. J., et al. (2021). <a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener noreferrer">LoRA: Low-Rank Adaptation of Large Language Models <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>ICLR 2022</em>. PEFT 实战上的现任默认选项。</li>
+<li>He, J., et al. (2022). <a href="https://arxiv.org/abs/2110.04366" target="_blank" rel="noopener noreferrer">Towards a Unified View of Parameter-Efficient Transfer Learning <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. <em>ICLR 2022</em>. 把 Adapter / Prefix / LoRA 放进一个统一框架。</li>
+<li>Yang, Z., et al. (2022). <a href="https://thumtblog.github.io/2022/04/05/robust-prefix-tuning/" target="_blank" rel="noopener noreferrer">Robust Prefix-Tuning for Text Classification <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. 关于前缀对对抗扰动鲁棒性的分析。</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#1-动机在不动权重的前提下让大模型适配新任务">1. 动机：在不动权重的前提下让大模型适配新任务</a></li>
+    <li><a href="#2-prefix-tuning-里的前缀到底是什么">2. Prefix-Tuning 里的&quot;前缀&quot;到底是什么</a></li>
+    <li><a href="#3-注意力前缀的公式">3. 注意力前缀的公式</a></li>
+    <li><a href="#4-参数量为什么说它轻">4. 参数量：为什么说它&quot;轻&quot;</a></li>
+    <li><a href="#5-重参数化为什么有用">5. 重参数化为什么有用</a></li>
+    <li><a href="#6-一图比清楚三种适配冻结大模型的方式">6. 一图比清楚：三种适配冻结大模型的方式</a></li>
+    <li><a href="#7-前缀长度是甜点而不是越大越好">7. 前缀长度：是甜点而不是越大越好</a></li>
+    <li><a href="#8-自回归解码时-kv-cache-的机制">8. 自回归解码时 KV cache 的机制</a></li>
+    <li><a href="#9-应用gpt-2-上的两个生成任务">9. 应用：GPT-2 上的两个生成任务</a></li>
+    <li><a href="#10-工程实践注记">10. 工程实践注记</a></li>
+    <li><a href="#11-什么时候选-prefix-tuning">11. 什么时候选 Prefix-Tuning</a></li>
+    <li><a href="#一句话收束">一句话收束</a></li>
+    <li><a href="#参考资料">参考资料</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>9 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4300</strong></div>
+      <div class="row"><span>Published</span><strong>Apr 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning · Chen Kai Blog</title>
+<meta name="description" content="A practitioner&#39;s guide to contrastive learning for recommendations: InfoNCE and the role of temperature, SimCLR vs MoCo negatives, SGL graph augmentations, CL4SRec sequence augmentations, XSimGCL&#39;s noise-only trick, with intuition, math, and clean PyTorch.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/recommendation-systems/11-contrastive-learning/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/recommendation-systems/11-contrastive-learning/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning">
+<meta property="og:description" content="A practitioner&#39;s guide to contrastive learning for recommendations: InfoNCE and the role of temperature, SimCLR vs MoCo negatives, SGL graph augmentations, CL4SRec sequence augmentations, XSimGCL&#39;s noise-only trick, with intuition, math, and clean PyTorch.">
+<meta property="og:url" content="https://www.chenk.top/en/recommendation-systems/11-contrastive-learning/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-2);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Recommendation Systems</a>
+         · Chapter 11
+      </div>
+      <h1>Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning</h1>
+      <p class="deck">A practitioner&#39;s guide to contrastive learning for recommendations: InfoNCE and the role of temperature, SimCLR vs MoCo negatives, SGL graph augmentations, CL4SRec sequence augmentations, XSimGCL&#39;s noise-only trick, with intuition, math, and clean PyTorch.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-12-31">December 31, 2025</time> · 16 min read · 3400 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/recommendation-systems/" class="tag">#Recommendation Systems</a><a href="/en/tags/contrastive-learning/" class="tag">#Contrastive Learning</a><a href="/en/tags/self-supervised/" class="tag">#Self-Supervised</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Classical recommenders learn from one signal: did a user click, watch, or buy? That signal is precious, but it is also brutally sparse. Most users touch fewer than 1% of the catalogue, most items are touched by fewer than 0.1% of users, and a brand-new item or user has nothing at all. Optimising a model directly against such sparse labels almost guarantees overfitting on the head and silence on the tail.</p>
+<p>Contrastive learning offers a different bargain. Instead of asking &ldquo;what label should this example have?&rdquo;, it asks &ldquo;which two examples should look alike, and which two should look different?&rdquo;. That question is cheap to answer — you can derive it from the data itself by perturbing the same user/item/sequence in two ways and declaring the two perturbations a positive pair. Every other example in the batch is a negative. The model learns geometry: similar things end up close, dissimilar things end up far. Once the geometry is good, the supervised recommendation head only needs a small nudge.</p>
+<p>This article walks through the core machinery (InfoNCE, temperature, augmentations) and the four families that matter in practice for recommendations: <strong>SimCLR-style</strong> in-batch contrast, <strong>MoCo-style</strong> queue-based contrast, <strong>SGL</strong> graph augmentations, and <strong>CL4SRec</strong> sequence augmentations. We finish with <strong>XSimGCL</strong>, the surprising result that you can throw the augmentations away entirely and just inject noise.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li><strong>Why</strong> contrastive learning attacks the sparsity, cold-start, and popularity-bias problems from a different angle than &ldquo;more data&rdquo;</li>
+<li><strong>InfoNCE in detail</strong>: where the loss comes from, why temperature $\tau$ matters more than you&rsquo;d think, and how it shapes gradients</li>
+<li><strong>SimCLR vs MoCo</strong>: in-batch negatives vs a momentum-encoder queue, and when each wins</li>
+<li><strong>SGL</strong> (Wu et al., SIGIR 2021): node dropout, edge dropout, random-walk subgraphs as graph views</li>
+<li><strong>CL4SRec</strong> (Xie et al., ICDE 2022): crop, mask, reorder for sequential recommenders</li>
+<li><strong>SimGCL / XSimGCL</strong> (Yu et al., 2022/2023): why a tiny embedding-noise trick beats elaborate graph augmentation</li>
+<li>Working <strong>PyTorch</strong> for each piece</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>PyTorch fundamentals (modules, autograd, loss functions)</li>
+<li>Graph neural networks, especially LightGCN (<a href="/en/recommendation-systems-7-graph-neural-networks/">Part 7</a>
+)</li>
+<li>Embedding spaces and similarity (<a href="/en/recommendation-systems-5-embedding-techniques/">Part 5</a>
+)</li>
+</ul>
+<hr>
+<h2 id="why-contrastive-learning-for-recommendations">Why contrastive learning for recommendations?</h2>
+<h3 id="the-data-sparsity-problem-restated">The data sparsity problem, restated</h3>
+<p>Sparsity is not just &ldquo;we have few labels&rdquo;. It is structural:</p>
+<ol>
+<li><strong>Cold start.</strong> New users and new items have <em>zero</em> interactions, so any model that depends on them as features (matrix factorisation, two-tower, GNN) cannot place them anywhere meaningful in the embedding space.</li>
+<li><strong>Overfitting on the head.</strong> With a long-tailed click distribution, the loss is dominated by a handful of popular items. A model that memorises them looks fine on training metrics and useless on the tail.</li>
+<li><strong>Popularity bias.</strong> Even when you serve diverse candidates, the scoring head will rank popular items higher because that is what minimised the training loss. The system collapses toward sameness.</li>
+</ol>
+<h3 id="the-contrastive-bargain">The contrastive bargain</h3>
+<p>Contrastive learning trades one expensive signal (labels) for a much cheaper one (consistency under perturbation). Suppose you take a user&rsquo;s behaviour graph, drop 20% of the edges, encode it, then drop a different 20% of the edges and encode again. Two views, same user. The bargain is simple: <strong>the two embeddings should be nearly identical</strong>, while embeddings for <em>different</em> users in the batch should be different.</p>
+<p>That single objective gives you three things at once:</p>
+<ul>
+<li><strong>A free training signal</strong>, available in unlimited quantity (any user can be perturbed any number of times).</li>
+<li><strong>A representation prior</strong>: the model learns features that survive perturbation, which by construction are the <em>robust</em> ones — exactly what you want for cold-start and tail items.</li>
+<li><strong>A regulariser</strong> against collapse onto popular items: the loss explicitly forces different users apart.</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/fig1_contrastive_pairs.png" alt="Anchor user pulled toward two augmented views (positives) and pushed away from other users in the batch (negatives)" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The figure above captures the entire intuition. The blue anchor is one user. The two green points are augmented views of <em>that same user</em>, and we pull them in. The amber points are other users from the same training batch, and we push them out. Doing this for every user, every batch, shapes a geometry where semantic similarity equals embedding similarity.</p>
+<hr>
+<h2 id="infonce-the-loss-that-does-the-work">InfoNCE: the loss that does the work</h2>
+<p>Almost every contrastive recommender uses some variant of the <strong>InfoNCE</strong> loss (van den Oord et al., 2018). Given an anchor $x$, a positive $x^+$, and a set of negatives $\{x_i^-\}$, with encoder $f$ and similarity $\mathrm{sim}(\cdot,\cdot) = z\cdot z'$ on $\ell_2$-normalised embeddings:</p>
+$$
+\mathcal{L}_{\text{InfoNCE}} = -\log \frac{\exp\!\big(\mathrm{sim}(f(x), f(x^+)) / \tau\big)}{\exp\!\big(\mathrm{sim}(f(x), f(x^+)) / \tau\big) + \sum_{i} \exp\!\big(\mathrm{sim}(f(x), f(x_i^-)) / \tau\big)}
+$$<p>This is exactly the cross-entropy of an $(N+1)$-way classifier whose correct class is &ldquo;the positive&rdquo;. The numerator says &ldquo;make the positive likely&rdquo;; the denominator forces the model to <em>rank</em> the positive above every negative. That ranking pressure is what prevents the trivial solution where all embeddings collapse to the same vector.</p>
+<h3 id="temperature-the-most-under-appreciated-knob">Temperature: the most under-appreciated knob</h3>
+<p>The temperature $\tau$ controls how sharply the softmax distinguishes positives from negatives. It is not a cosmetic hyperparameter; it changes what the loss optimises.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/fig2_contrastive_loss.png" alt="Left: InfoNCE loss vs positive similarity at different temperatures. Right: gradient with respect to positive similarity at the same temperatures" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Two things to read off the right-hand panel:</p>
+<ul>
+<li><strong>Low $\tau$ (0.05)</strong> makes the gradient very sharp around the decision boundary. The model focuses essentially all of its capacity on the <em>hardest</em> negatives — the ones nearly as similar as the positive. This is great for fine-grained discrimination but unstable if those hard negatives are actually mislabelled (e.g. a missing-not-at-random click).</li>
+<li><strong>High $\tau$ (1.0)</strong> spreads gradient mass across all negatives, even easy ones. The optimisation is smoother but the resulting embeddings cluster less tightly.</li>
+<li><strong>The sweet spot for recommendations is roughly $\tau \in [0.1, 0.2]$</strong> — sharp enough for useful contrast, soft enough not to chase noise.</li>
+</ul>
+<p>A useful mental model: $1/\tau$ is a &ldquo;magnification&rdquo;. Halving $\tau$ doubles every similarity gap, which doubles the gradient pressure to separate near-positives from near-negatives.</p>
+<h3 id="why-we-need-negatives-at-all">Why we need negatives at all</h3>
+<p>If you trained only the numerator — pull positives together — every embedding would collapse to a constant vector and the loss would happily drop to zero. Negatives are not a side dish; they are the load-bearing constraint. This is why <strong>batch size matters so much in SimCLR-style setups</strong>: a batch of 256 gives you 510 negatives per anchor, a batch of 4096 gives you 8190. More negatives means a denser, more informative denominator.</p>
+<hr>
+<h2 id="simclr-vs-moco-where-do-the-negatives-come-from">SimCLR vs MoCo: where do the negatives come from?</h2>
+<p>Two paradigms dominate self-supervised vision and have been carried over wholesale into recommendations.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/fig3_simclr_vs_moco.png" alt="SimCLR uses every other view in the batch as a negative (single shared encoder); MoCo maintains a momentum-updated key encoder and a FIFO queue of cached negatives" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>SimCLR</strong> (Chen et al., ICML 2020) keeps things simple: one encoder, one projection head, two augmentations per example, and <strong>every other view in the same minibatch is a negative</strong>. The drawback is the obvious one — your number of negatives is bounded by the GPU memory budget for the batch.</p>
+<p><strong>MoCo</strong> (He et al., CVPR 2020) decouples the two: a query encoder updated by SGD, a <em>momentum</em> key encoder updated as an exponential moving average of the query encoder $\xi \leftarrow m\xi + (1-m)\theta$, and a FIFO queue holding the last $K$ encoded keys (typically $K = 65{,}536$). Negatives come from the queue, so $K$ is independent of batch size.</p>
+<p>In recommendation systems, the SimCLR pattern wins more often: minibatches in CTR/CVR training are large anyway, the encoder is usually a GNN whose forward cost is dominated by graph traversal rather than embedding lookup, and a queue of millions of <em>user</em> keys ages quickly because the embedding table itself is being updated. MoCo-style queues do reappear in long-sequence retrieval models, where the encoder is heavy and you genuinely want to amortise its cost across many anchors.</p>
+<h3 id="a-reference-simclr-loss-in-pytorch">A reference SimCLR loss in PyTorch</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">info_nce</span><span class="p">(</span><span class="n">z1</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">z2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Symmetric SimCLR-style InfoNCE on two views.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    z1, z2 are L2-normalised embeddings of shape (B, D). The positive
+</span></span></span><span class="line"><span class="cl"><span class="s2">    for z1[i] is z2[i] (and vice-versa); every other entry in the
+</span></span></span><span class="line"><span class="cl"><span class="s2">    concatenated 2B batch is a negative.
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">B</span> <span class="o">=</span> <span class="n">z1</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>                  <span class="c1"># (2B, D)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sim</span> <span class="o">=</span> <span class="n">z</span> <span class="o">@</span> <span class="n">z</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="n">tau</span>                             <span class="c1"># (2B, 2B)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">sim</span><span class="o">.</span><span class="n">fill_diagonal_</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">&#34;-inf&#34;</span><span class="p">))</span>               <span class="c1"># exclude self-similarity</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Positive of row i in [0..B-1] is at column i+B; row i in [B..2B-1] at column i-B.</span>
+</span></span><span class="line"><span class="cl">    <span class="n">targets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">B</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">B</span><span class="p">)])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Three things worth highlighting in this 10-line implementation:</p>
+<ol>
+<li>The embeddings are assumed pre-normalised. The cosine similarity then is just the dot product, and the temperature $\tau$ has the geometric meaning above.</li>
+<li>We mask the diagonal with $-\infty$, <em>not</em> zero. With <code>cross_entropy</code> working in log-softmax space, $-\infty$ disappears from the partition function; zero would silently shift gradients.</li>
+<li>The loss is symmetric: each of the $2B$ rows contributes one cross-entropy term. Half the rows treat the second view as the target, half treat the first view.</li>
+</ol>
+<hr>
+<h2 id="sgl-contrastive-learning-on-the-user-item-graph">SGL: contrastive learning on the user-item graph</h2>
+<p>SGL (Wu et al., SIGIR 2021, <em>Self-supervised Graph Learning for Recommendation</em>) was the paper that brought contrastive learning into the recommendation mainstream. The idea is to bolt an InfoNCE head onto a LightGCN backbone and treat <strong>two perturbed copies of the user-item graph</strong> as positive pairs of every node.</p>
+<h3 id="three-ways-to-perturb-a-graph">Three ways to perturb a graph</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/fig4_sgl_augmentations.png" alt="Original user-item bipartite graph and three SGL augmentations: edge dropout, node dropout, random-walk subgraph" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>Edge dropout (ED)</strong>: each edge survives independently with probability $1-p$. Cheap, structure-preserving, the most-used variant.</li>
+<li><strong>Node dropout (ND)</strong>: each node (and all of its incident edges) is dropped with probability $p$. Stronger augmentation; can destabilise small-degree nodes.</li>
+<li><strong>Random-walk subgraph (RW)</strong>: sample a subgraph by a length-$L$ random walk from each anchor. Different walks give different views.</li>
+</ul>
+<p>In the original SGL ablations, edge dropout consistently matches or beats the other two while being trivial to implement. Use ED unless you have a specific reason not to.</p>
+<h3 id="the-full-sgl-training-step">The full SGL training step</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">edge_dropout</span><span class="p">(</span><span class="n">edge_index</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">keep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">edge_index</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">edge_index</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">p</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">edge_index</span><span class="p">[:,</span> <span class="n">keep</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SGL</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;LightGCN backbone + node-level InfoNCE on two edge-dropout views.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_users</span><span class="p">,</span> <span class="n">n_items</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">n_layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">drop_p</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">lam</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_users</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items</span> <span class="o">=</span> <span class="n">n_users</span><span class="p">,</span> <span class="n">n_items</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">=</span> <span class="n">n_layers</span><span class="p">,</span> <span class="n">drop_p</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">lam</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">n_users</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_propagate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Symmetric-normalised LightGCN propagation, layer-averaged.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="n">edge_index</span>
+</span></span><span class="line"><span class="cl">        <span class="n">deg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">norm</span> <span class="o">=</span> <span class="n">deg</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">msg</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">norm</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="o">*</span> <span class="n">norm</span><span class="p">[</span><span class="n">col</span><span class="p">])</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">agg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">index_add_</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">agg</span>
+</span></span><span class="line"><span class="cl">            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">layers</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span><span class="o">.</span><span class="n">weight</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_propagate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">cl_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z1</span><span class="p">,</span> <span class="n">z2</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">z1</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">z2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sim</span> <span class="o">=</span> <span class="n">z1</span> <span class="o">@</span> <span class="n">z2</span><span class="o">.</span><span class="n">T</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span>
+</span></span><span class="line"><span class="cl">        <span class="n">targets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">z1</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">z1</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">bpr_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">users</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">neg</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">u</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">users</span><span class="p">],</span> <span class="n">z</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_users</span> <span class="o">+</span> <span class="n">pos</span><span class="p">],</span> <span class="n">z</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_users</span> <span class="o">+</span> <span class="n">neg</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">-</span><span class="n">F</span><span class="o">.</span><span class="n">logsigmoid</span><span class="p">((</span><span class="n">u</span> <span class="o">*</span> <span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">,</span> <span class="n">users</span><span class="p">,</span> <span class="n">pos_items</span><span class="p">,</span> <span class="n">neg_items</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Two augmented views for the contrastive signal</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">edge_dropout</span><span class="p">(</span><span class="n">edge_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_p</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">edge_dropout</span><span class="p">(</span><span class="n">edge_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_p</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># One clean pass for the recommendation signal</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">edge_index</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bpr_loss</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">users</span><span class="p">,</span> <span class="n">pos_items</span><span class="p">,</span> <span class="n">neg_items</span><span class="p">)</span> \
+</span></span><span class="line"><span class="cl">             <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cl_loss</span><span class="p">(</span><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A few non-obvious implementation details:</p>
+<ul>
+<li><strong>Three forward passes, not two.</strong> The contrastive views are dropped <em>separately</em> from the clean graph used for BPR. Sharing the dropped graph with the recommendation loss biases the supervised signal toward the lucky surviving edges.</li>
+<li><strong>The contrastive loss is computed at the node level</strong>, on the concatenation of user and item embeddings. This is what gives both sides of the bipartite graph a self-supervised signal.</li>
+<li><strong>Loss weight $\lambda$ matters.</strong> Too small ($<10^{-2}$) and the contrastive signal disappears; too large ($>1$) and BPR loses its grip. The SGL paper sweeps $\lambda \in \{0.005, 0.05, 0.1, 0.5, 1.0\}$ and reports $0.1$ as a robust default — start there.</li>
+</ul>
+<hr>
+<h2 id="cl4srec-contrastive-learning-for-sequential-recommenders">CL4SRec: contrastive learning for sequential recommenders</h2>
+<p>For sequence-based recommenders (SASRec, BERT4Rec, GRU4Rec&hellip;), the analogous question is &ldquo;how do I create two views of <em>the same behaviour sequence</em>?&rdquo;. CL4SRec (Xie et al., ICDE 2022) proposed three augmentations that have become the defaults.</p>
+<p><figure>
+  <img src="./11-contrastive-learning/fig5_cl4srec_augmentations.png" alt="Three augmentations on a behaviour sequence: crop a contiguous span, mask a random fraction with [M], reorder a contiguous chunk" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>Crop</strong>: keep a contiguous subsequence of length $\eta L$. Preserves local order; teaches invariance to &ldquo;starting later&rdquo; or &ldquo;stopping earlier&rdquo;.</li>
+<li><strong>Mask</strong>: replace a random $\gamma$ fraction of items with a special <code>[M]</code> token. The same idea as masked language modelling — the encoder must infer hidden items from context.</li>
+<li><strong>Reorder</strong>: shuffle a contiguous chunk of length $\beta L$. Teaches the model that <em>exact</em> positions inside a session matter less than the bag of items themselves.</li>
+</ul>
+<p>CL4SRec randomly samples <em>one</em> of the three augmentations per view, giving nine possible (view A, view B) pairs. This stochastic mixture is itself a regulariser: the encoder cannot overfit to any single augmentation policy.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">random</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SeqAugment</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;The three CL4SRec augmentations. Sequences are LongTensors of item IDs;
+</span></span></span><span class="line"><span class="cl"><span class="s2">    item id 0 is reserved for padding/mask.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">crop_eta</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">mask_gamma</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">reorder_beta</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">mask_id</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">crop_eta</span> <span class="o">=</span> <span class="n">crop_eta</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mask_gamma</span> <span class="o">=</span> <span class="n">mask_gamma</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">reorder_beta</span> <span class="o">=</span> <span class="n">reorder_beta</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mask_id</span> <span class="o">=</span> <span class="n">mask_id</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">op</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="s2">&#34;crop&#34;</span><span class="p">,</span> <span class="s2">&#34;mask&#34;</span><span class="p">,</span> <span class="s2">&#34;reorder&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">L</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&#34;crop&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">k</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">L</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_eta</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">s</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">seq</span><span class="p">[</span><span class="n">s</span><span class="p">:</span><span class="n">s</span> <span class="o">+</span> <span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">&#34;mask&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">n</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">L</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_gamma</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">L</span><span class="p">)[:</span><span class="n">n</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_id</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">out</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># reorder</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">k</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">L</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">reorder_beta</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="n">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">chunk</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">s</span><span class="p">:</span><span class="n">s</span> <span class="o">+</span> <span class="n">k</span><span class="p">][</span><span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">[</span><span class="n">s</span><span class="p">:</span><span class="n">s</span> <span class="o">+</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunk</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The encoder is whatever sequence model you already have (Transformer, GRU, &hellip;). Pool the final hidden state, project, normalise, drop into the same <code>info_nce</code> we wrote earlier — and add it as an auxiliary loss to your usual next-item prediction.</p>
+<hr>
+<h2 id="xsimgcl-when-the-augmentations-themselves-dont-matter">XSimGCL: when the augmentations themselves don&rsquo;t matter</h2>
+<p>A surprising empirical result from Yu et al. (2022/2023) deserves its own section. They asked: how much of SGL&rsquo;s gain actually comes from the <em>graph augmentations</em>, and how much from the contrastive loss itself? Their answer: almost all of it comes from the loss. Replacing graph dropout with <strong>a tiny amount of uniform noise added to the propagated embeddings</strong> matches or beats SGL, while removing all the bookkeeping around graph perturbation.</p>
+<p>The trick (SimGCL / XSimGCL, the latter being the streamlined variant) is roughly:</p>
+<ol>
+<li>Run LightGCN propagation as usual.</li>
+<li>At each layer, add a small noise $\Delta$ to the embeddings, where $\Delta$ is a unit-norm random direction scaled by a small $\epsilon$ (e.g. 0.1) and pointing in the <em>same hemisphere</em> as the embedding (so it perturbs but does not flip).</li>
+<li>Run the propagation a <em>second</em> time with a different noise sample to get the second view. No graph dropout.</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">add_noise</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Same-hemisphere uniform noise on the unit sphere (SimGCL).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">noise</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">noise</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">epsilon</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">noise</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The deeper lesson, articulated in the SimGCL analysis, is that the contrastive loss is doing two things simultaneously:</p>
+<ul>
+<li><strong>Alignment</strong>: pulling positive pairs together (the numerator).</li>
+<li><strong>Uniformity</strong>: pushing all embeddings to spread evenly over the unit hypersphere (the denominator).</li>
+</ul>
+<p>Uniformity is the regulariser that breaks popularity bias, and it is <strong>the dominant effect</strong>. Once you have uniformity, the exact mechanism that produces the second view (graph dropout, embedding noise, anything reasonable) hardly matters.</p>
+<hr>
+<h2 id="does-this-actually-help-reported-gains">Does this actually help? Reported gains.</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/fig6_performance_gain.png" alt="Recall@20 and NDCG@20 on four standard benchmarks: LightGCN baseline vs &#43;SGL vs &#43;XSimGCL" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The numbers above are illustrative of magnitudes reported in the SGL (Wu et al., 2021) and SimGCL/XSimGCL (Yu et al., 2022/2023) papers on Yelp2018, Amazon-Book, Alibaba-iFashion, and Gowalla. The pattern is consistent: <strong>a contrastive auxiliary loss adds 5–20% to Recall@20 and NDCG@20</strong> over the same backbone with no contrastive signal, and the gains are concentrated on tail items and cold users — exactly where you cared.</p>
+<p>What that gain looks like in the embedding space:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/fig7_embedding_space.png" alt="Item embeddings before vs after contrastive training, projected with t-SNE: from entangled blob to well-separated interest clusters" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Before contrastive training, the item embeddings cluster weakly — the dominant axis of variation is popularity, and most semantic structure is buried. After contrastive training, the items separate into tight, well-spaced groups corresponding to interest categories. The downstream scoring head then has a much easier job: a near-linear boundary suffices.</p>
+<hr>
+<h2 id="frequently-asked-questions">Frequently asked questions</h2>
+<h3 id="why-not-just-use-more-data-instead-of-contrastive-learning">Why not just use more data instead of contrastive learning?</h3>
+<p>You can&rsquo;t get &ldquo;more data&rdquo; for cold users — they are cold by definition. You can&rsquo;t get &ldquo;more data&rdquo; for tail items — they are tail because almost no one interacts with them. Contrastive learning manufactures a training signal that does not require new interactions, only new perturbations of the interactions you already have. It is doing something <em>categorically different</em> from collecting more clicks.</p>
+<h3 id="how-do-i-choose-between-graph-augmentations-and-embedding-noise">How do I choose between graph augmentations and embedding noise?</h3>
+<p>Default to embedding noise (XSimGCL): it is faster, simpler, and the recent literature consistently finds it competitive with or superior to graph augmentation. Reach for graph augmentations (SGL) when you want to <em>also</em> regularise the GNN&rsquo;s structural inductive bias, or when you have a good prior on which edges/nodes are most informative.</p>
+<h3 id="how-do-i-set-the-temperature">How do I set the temperature?</h3>
+<p>Start at $\tau = 0.2$. If your hardest negatives are reliably real negatives (e.g. you have explicit dwell-time signals), drop $\tau$ to 0.05–0.1 to sharpen. If your negatives are noisy (e.g. random in-batch users in a high-dimensional catalogue), keep $\tau \geq 0.2$ to avoid overfitting to false negatives. Tune on a small grid; the loss landscape is smooth in $\tau$.</p>
+<h3 id="do-i-need-a-projection-head">Do I need a projection head?</h3>
+<p>For SimCLR / SGL on top of a GNN, yes — discard it after pretraining. The projection head lets the encoder&rsquo;s intermediate representation stay general while the head specialises for the contrastive metric. XSimGCL is the notable exception: it contrasts the propagated GNN embeddings directly without a projection head, and works fine.</p>
+<h3 id="how-do-i-combine-contrastive-and-recommendation-losses">How do I combine contrastive and recommendation losses?</h3>
+$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{rec}} + \lambda \cdot \mathcal{L}_{\text{CL}}$$<p>Start with $\lambda = 0.1$. Sweep $\{0.01, 0.05, 0.1, 0.5, 1.0\}$ on validation if results matter. Sensitivity to $\lambda$ is much lower than sensitivity to $\tau$ — don&rsquo;t burn your hyperparameter budget here.</p>
+<h3 id="does-this-work-with-implicit-feedback">Does this work with implicit feedback?</h3>
+<p>Yes, and arguably <em>better</em> than with explicit feedback. The whole framework treats every interaction as a positive label and lets the InfoNCE structure handle negatives implicitly. SGL, SimGCL, XSimGCL, and CL4SRec are all designed for implicit feedback (clicks, plays, purchases).</p>
+<h3 id="how-small-can-my-dataset-be">How small can my dataset be?</h3>
+<p>Contrastive learning helps most precisely when supervised signal is scarce. SGL&rsquo;s reported gains on Yelp2018 (sparsity ~99.87%) are larger than on denser datasets. Below ~10K interactions the variance from random augmentation dominates and you may need stronger priors (cross-domain transfer, content features); above ~100K interactions you should expect clean improvements.</p>
+<h3 id="how-do-i-evaluate-contrastive-recommenders">How do I evaluate contrastive recommenders?</h3>
+<p>Standard top-K metrics (Recall@K, NDCG@K, HR@K) for parity with baselines, then <em>additionally</em>:</p>
+<ul>
+<li><strong>Cold-start slice</strong>: bucket users/items by interaction count and report metrics per bucket.</li>
+<li><strong>Tail coverage</strong>: fraction of recommended items in the long tail (often defined as the bottom 80% by popularity).</li>
+<li><strong>Embedding diagnostics</strong>: visualise with t-SNE/UMAP, or compute uniformity ($\log \mathbb{E}\,e^{-2\|z_i - z_j\|^2}$) and alignment ($\mathbb{E}\,\|z - z^+\|^2$) per Wang &amp; Isola (2020). High uniformity + low alignment = healthy.</li>
+</ul>
+<hr>
+<h2 id="conclusion">Conclusion</h2>
+<p>Contrastive learning solves a problem that more data cannot: it gives a model a way to learn <em>geometry</em> from sparse interactions, by demanding consistency under perturbation. The recipe in 2024 is well-understood:</p>
+<ol>
+<li><strong>Pick an augmentation</strong>, or none at all (XSimGCL noise).</li>
+<li><strong>Apply InfoNCE</strong> with $\tau \approx 0.2$.</li>
+<li><strong>Add it as an auxiliary loss</strong> with weight $\lambda \approx 0.1$ on top of your existing supervised objective.</li>
+</ol>
+<p>For graph-based recommenders, start with XSimGCL — it is the simplest thing that works. If you want a more interpretable baseline, SGL with edge dropout is still a strong choice. For sequence recommenders, CL4SRec&rsquo;s three-way augmentation menu is the standard. In every case, expect the largest wins on the cold and the tail.</p>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<p>This article is <strong>Part 11</strong> of the 16-part Recommendation Systems series.</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: left">Previous</th>
+          <th style="text-align: center"></th>
+          <th style="text-align: right">Next</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left"><a href="/en/recommendation-systems-10-deep-interest-networks/">Part 10: Deep Interest Networks</a>
+</td>
+          <td style="text-align: center"><a href="/tags/Recommendation-Systems/">All Parts</a>
+</td>
+          <td style="text-align: right"><a href="/en/recommendation-systems-12-llm-recommendation/">Part 12: LLM-Based Recommendation</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#why-contrastive-learning-for-recommendations">Why contrastive learning for recommendations?</a>
+      <ul>
+        <li><a href="#the-data-sparsity-problem-restated">The data sparsity problem, restated</a></li>
+        <li><a href="#the-contrastive-bargain">The contrastive bargain</a></li>
+      </ul>
+    </li>
+    <li><a href="#infonce-the-loss-that-does-the-work">InfoNCE: the loss that does the work</a>
+      <ul>
+        <li><a href="#temperature-the-most-under-appreciated-knob">Temperature: the most under-appreciated knob</a></li>
+        <li><a href="#why-we-need-negatives-at-all">Why we need negatives at all</a></li>
+      </ul>
+    </li>
+    <li><a href="#simclr-vs-moco-where-do-the-negatives-come-from">SimCLR vs MoCo: where do the negatives come from?</a>
+      <ul>
+        <li><a href="#a-reference-simclr-loss-in-pytorch">A reference SimCLR loss in PyTorch</a></li>
+      </ul>
+    </li>
+    <li><a href="#sgl-contrastive-learning-on-the-user-item-graph">SGL: contrastive learning on the user-item graph</a>
+      <ul>
+        <li><a href="#three-ways-to-perturb-a-graph">Three ways to perturb a graph</a></li>
+        <li><a href="#the-full-sgl-training-step">The full SGL training step</a></li>
+      </ul>
+    </li>
+    <li><a href="#cl4srec-contrastive-learning-for-sequential-recommenders">CL4SRec: contrastive learning for sequential recommenders</a></li>
+    <li><a href="#xsimgcl-when-the-augmentations-themselves-dont-matter">XSimGCL: when the augmentations themselves don&rsquo;t matter</a></li>
+    <li><a href="#does-this-actually-help-reported-gains">Does this actually help? Reported gains.</a></li>
+    <li><a href="#frequently-asked-questions">Frequently asked questions</a>
+      <ul>
+        <li><a href="#why-not-just-use-more-data-instead-of-contrastive-learning">Why not just use more data instead of contrastive learning?</a></li>
+        <li><a href="#how-do-i-choose-between-graph-augmentations-and-embedding-noise">How do I choose between graph augmentations and embedding noise?</a></li>
+        <li><a href="#how-do-i-set-the-temperature">How do I set the temperature?</a></li>
+        <li><a href="#do-i-need-a-projection-head">Do I need a projection head?</a></li>
+        <li><a href="#how-do-i-combine-contrastive-and-recommendation-losses">How do I combine contrastive and recommendation losses?</a></li>
+        <li><a href="#does-this-work-with-implicit-feedback">Does this work with implicit feedback?</a></li>
+        <li><a href="#how-small-can-my-dataset-be">How small can my dataset be?</a></li>
+        <li><a href="#how-do-i-evaluate-contrastive-recommenders">How do I evaluate contrastive recommenders?</a></li>
+      </ul>
+    </li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Recommendation Systems</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>16 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3400</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

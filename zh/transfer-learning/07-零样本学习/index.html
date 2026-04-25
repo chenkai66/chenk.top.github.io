@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>迁移学习（七）：零样本学习 · Chen Kai Blog</title>
+<meta name="description" content="从第一性原理推导零样本学习：DAP 属性原型、双线性与深度兼容性函数、DeViSE、生成式 ZSL 的 f-CLSWGAN、广义 ZSL 的偏置问题与校准方法，以及 CLIP 这种视觉-语言预训练带来的范式跃迁，附 PyTorch 核心实现。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="迁移学习（七）：零样本学习">
+<meta property="og:description" content="从第一性原理推导零样本学习：DAP 属性原型、双线性与深度兼容性函数、DeViSE、生成式 ZSL 的 f-CLSWGAN、广义 ZSL 的偏置问题与校准方法，以及 CLIP 这种视觉-语言预训练带来的范式跃迁，附 PyTorch 核心实现。">
+<meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">迁移学习</a>
+         · Chapter 7
+      </div>
+      <h1>迁移学习（七）：零样本学习</h1>
+      <p class="deck">从第一性原理推导零样本学习：DAP 属性原型、双线性与深度兼容性函数、DeViSE、生成式 ZSL 的 f-CLSWGAN、广义 ZSL 的偏置问题与校准方法，以及 CLIP 这种视觉-语言预训练带来的范式跃迁，附 PyTorch 核心实现。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-06-06">June 6, 2025</time> · 12 min read · 5600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E5%B1%9E%E6%80%A7%E8%A1%A8%E7%A4%BA/" class="tag">#属性表示</a><a href="/zh/tags/%E7%94%9F%E6%88%90%E5%BC%8Fzsl/" class="tag">#生成式ZSL</a><a href="/zh/tags/%E8%AF%AD%E4%B9%89%E5%B5%8C%E5%85%A5/" class="tag">#语义嵌入</a><a href="/zh/tags/clip/" class="tag">#CLIP</a><a href="/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/" class="tag">#迁移学习</a><a href="/zh/tags/%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/" class="tag">#零样本学习</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>你这辈子没见过斑马。但我告诉你它&quot;长得像马，身上画了黑白条纹&quot;，下次走进动物园你一眼就能认出来。没标注样本、没有微调，只有一座<strong>语义桥梁</strong>把你已知的概念（马、条纹）和未知的物种连了起来。</p>
+<p><strong>零样本学习（Zero-Shot Learning, ZSL）</strong> 就是把这个本事教给机器。在一批<strong>已见类（seen classes）</strong> 上做有监督训练，测试时却要识别一组完全不重叠的<strong>未见类（unseen classes）</strong> —— 模型对未见类的唯一线索，是它们的语义描述：一组属性、类别名的词嵌入、一段文字、或者一句 CLIP 风格的提示语。模型能不能成功，全看它在共享的视觉-语义空间里学到了什么样的几何结构。</p>
+<p>本文从一个公式出发 —— 图像与类别描述之间的<strong>兼容性函数</strong> $F(x, c)$ —— 把过去十五年里出现的主流方法依次串起来：属性原型、双线性和深度兼容性、生成式特征合成、广义零样本学习的校准方法，以及 CLIP 这种把整个 ZSL 问题&quot;用规模化&quot;几乎吞掉的范式。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>ZSL 的形式化定义、已见 / 未见类划分</li>
+<li>属性表示与<strong>直接属性预测（DAP）</strong></li>
+<li>兼容性函数：双线性、深度、排序损失（DeViSE、ALE）</li>
+<li><strong>生成式 ZSL</strong>（f-CLSWGAN、f-VAEGAN-D2）：把 ZSL 重新变回有监督学习</li>
+<li><strong>广义零样本学习（GZSL）</strong> 为什么离开校准就崩溃，以及三类修法</li>
+<li><strong>CLIP</strong>：当今最有效、最易扩展的答案</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>本系列第 1–6 部分（尤其第 4 部分小样本学习、第 6 部分多任务学习）</li>
+<li>PyTorch、softmax / 交叉熵训练</li>
+<li>Word2Vec / GloVe 等词嵌入，以及对 GAN 的基本印象</li>
+</ul>
+<hr>
+<h2 id="1-问题定义">1. 问题定义</h2>
+<p>记 $\mathcal{C}^s$ 为<strong>已见类</strong>集合（有标注训练数据），$\mathcal{C}^u$ 为<strong>未见类</strong>集合（一张标注图都没有）。ZSL 的标志性约束是</p>
+$$
+\mathcal{C}^s \cap \mathcal{C}^u = \emptyset.
+$$<p>每个类别 $c$ —— 不管见过没见过 —— 都对应一个<strong>语义描述向量</strong> $a_c \in \mathbb{R}^M$。这是已见类的信息能够&quot;渗透&quot;到未见类的唯一通道。它可以是：</p>
+<ul>
+<li><strong>二值或连续的属性向量</strong>（如 <em>有条纹</em>、<em>有翅膀</em>、<em>水生</em>）；</li>
+<li>类别名的<strong>词嵌入</strong>（Word2Vec、GloVe）；</li>
+<li>一段百科文字的<strong>句嵌入</strong>（BERT [CLS]）；</li>
+<li>视觉-语言模型里的<strong>提示语嵌入</strong>（CLIP）。</li>
+</ul>
+<p>随后再分两种任务设定：</p>
+<table>
+  <thead>
+      <tr>
+          <th>设定</th>
+          <th>测试标签空间</th>
+          <th>现实程度</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>经典 ZSL</strong></td>
+          <td>$y \in \mathcal{C}^u$</td>
+          <td>简单基准；事先就知道测试图属于未见类。</td>
+      </tr>
+      <tr>
+          <td><strong>广义 ZSL（GZSL）</strong></td>
+          <td>$y \in \mathcal{C}^s \cup \mathcal{C}^u$</td>
+          <td>真实部署场景；难度高得多，因为模型天然偏向已见类。</td>
+      </tr>
+  </tbody>
+</table>
+<p>把后面所有方法贯穿起来的就一个公式 —— <strong>兼容性函数</strong>：</p>
+$$
+F: \mathcal{X} \times \mathcal{C} \to \mathbb{R},
+\qquad
+\hat{y} = \arg\max_{c \in \mathcal{C}_{\text{test}}} F(x, c; \theta).
+$$<p>我们在已见类上学这个函数，然后<strong>指望</strong>语义空间的几何关系把它延拓到未见类。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/fig1_zsl_vs_fsl_vs_supervised.png" alt="有监督、小样本、零样本三种监督方式对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<hr>
+<h2 id="2-属性表示与-dap">2. 属性表示与 DAP</h2>
+<p>属性是最具可解释性的语义描述方式。每个属性都是人类定义的简短谓词，比如 <em>有条纹</em>、<em>四条腿</em>、<em>有翅膀</em>、<em>水生</em>。常用的 <strong>AwA2（Animals with Attributes 2）</strong> 给 50 类动物各分配了 85 维属性向量；细粒度鸟类数据集 <strong>CUB-200-2011</strong> 用了 312 维属性。</p>
+<p>把所有类别的属性向量堆起来，就得到一个 $|\mathcal{C}| \times M$ 的<strong>属性原型矩阵</strong>。例如：</p>
+$$
+a_{\text{斑马}} = (\underbrace{1}_{\text{条纹}}, \underbrace{1}_{\text{四条腿}}, \underbrace{0}_{\text{翅膀}}, \underbrace{1}_{\text{蹄子}}, \ldots).
+$$<h3 id="直接属性预测dap">直接属性预测（DAP）</h3>
+<p>Lampert 等人 2009 年的工作 —— 也就是把现代 ZSL 这个问题正式立起来的那篇 —— 提出了一个非常清爽的两阶段流程：</p>
+<p><strong>阶段一</strong>：在已见类图像上，为每个属性单独训练一个二分类器：</p>
+$$
+\hat{a}_m(x) = P(\text{属性 } m \mid x), \qquad m = 1, \ldots, M.
+$$<p><strong>阶段二</strong>：测试时把 $M$ 个属性分类器全跑一遍得到 $\hat{a}(x)$，再选与之最近的未见类原型：</p>
+$$
+\hat{y} = \arg\min_{c \in \mathcal{C}^u} d\bigl(\hat{a}(x),\, a_c\bigr).
+$$<p>举个例子：查询是一张斑马图。属性分类器在 <em>有条纹</em>、<em>四条腿</em>、<em>有蹄子</em>、<em>有鬃毛</em> 上输出高分，在 <em>翅膀</em>、<em>水生</em> 上输出低分。把 $\hat{a}(x)$ 跟原型矩阵做余弦相似度，<em>斑马</em> 排第一，<em>马</em> 和 <em>老虎</em> 紧随其后。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/fig2_attribute_classification.png" alt="基于属性的零样本流程（DAP）" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>为什么能 work：</strong> 属性分类器之所以能迁移，是因为属性本身在不同类别之间是<strong>共享</strong>的。&ldquo;条纹&quot;这个谓词，对斑马（未见类）和老虎（已见类）来说是同一件事。</p>
+<p><strong>为什么不够好：</strong></p>
+<ol>
+<li><strong>误差累积</strong>。属性分类器哪怕 90% 准确，$\hat{a}(x)$ 也是有噪声的，最近邻搜索还会把噪声放大。</li>
+<li><strong>属性独立性假设</strong>。DAP 默认在给定类别后属性互相独立，但 <em>有翅膀</em> 和 <em>会飞</em> 显然高度相关。</li>
+<li><strong>标注成本</strong>。属性体系本身要专家定义、专家标注。</li>
+</ol>
+<p>变体 <strong>IAP（Indirect Attribute Prediction）</strong> 反过来先预测已见类的概率分布、再通过属性矩阵转到未见类，但结构性局限依旧。</p>
+<hr>
+<h2 id="3-兼容性函数一个统一视角">3. 兼容性函数：一个统一视角</h2>
+<p>不再把&quot;预测属性&quot;作为中间步骤，而是端到端地学 $F(x, c)$。</p>
+<h3 id="双线性ale--sje">双线性（ALE / SJE）</h3>
+<p>最简单的形式是双线性：</p>
+$$
+F(x, c) = \phi(x)^\top W\, a_c,
+$$<p>其中 $\phi(\cdot)$ 是 CNN 主干输出的 $d$ 维视觉特征，唯一的可训练参数是 $W \in \mathbb{R}^{d \times M}$。在已见类上用标准的 softmax 交叉熵训练：</p>
+$$
+\mathcal{L}(x, y) = -\log \frac{\exp F(x, y)}{\sum_{c \in \mathcal{C}^s} \exp F(x, c)}.
+$$<p>Akata 等人的 <strong>ALE</strong>（2013）和 <strong>SJE</strong>（2015）把交叉熵换成了<strong>结构化排序损失</strong> —— 要求正确类别的得分比每个错误类别至少高一个间隔 —— 实测上对未见类的泛化要明显好于普通 softmax。</p>
+<h3 id="深度兼容性--双塔">深度兼容性 / 双塔</h3>
+<p>为捕获非线性的视觉-语义关系，用两个小 MLP 把两边都投到 $d$ 维共享空间：</p>
+$$
+F(x, c) = \frac{f_v(\phi(x))^\top f_s(a_c)}{\|f_v(\phi(x))\|\, \|f_s(a_c)\|} \cdot \tau,
+$$<p>其中 $\tau$ 是可学习的温度。这种<strong>双塔</strong>结构，正是 DeViSE、CLIP、以及现代稠密检索的同一套骨架，区别只在数据规模。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/fig3_semantic_embedding_space.png" alt="共享语义嵌入空间" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>几何图景就是整个 ZSL 的全部直觉。训练时已见类的视觉特征围着对应的语义原型聚拢（<em>马</em>、<em>猫</em>、<em>狗</em>）；未见类的原型（<em>斑马</em>、<em>狮子</em>、<em>熊猫</em>）<strong>纯靠语义自己摆位置</strong>。一张查询图投到同一个空间里，落在最接近自己语义内容的未见类原型旁边 —— 那就是预测。</p>
+<h3 id="devise用词嵌入做语义侧">DeViSE：用词嵌入做语义侧</h3>
+<p>Frome 等人（2013）提出的 <strong>DeViSE</strong>（Deep Visual-Semantic Embedding）把人工属性换成了<strong>类别名的词嵌入</strong>（Word2Vec / GloVe）。架构是双塔，损失是 hinge 排序：</p>
+$$
+\mathcal{L} = \sum_{c' \neq y} \max\bigl(0,\; m - F(x, y) + F(x, c')\bigr),
+$$<p>推断时与<strong>所有</strong>类别嵌入算分，包括从没看过任何图像的类别。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/fig4_devise_visual_text_embedding.png" alt="DeViSE：视觉编码器 &#43; Word2Vec 文本编码器，共享嵌入空间" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>DeViSE 第一次证明了 ZSL 是可以扩展的：在 ImageNet 上训出的模型，能对 WordNet 里数万个零样本类别给出像样的预测。它的弱点是词嵌入编码的是<strong>语言相似性</strong>（<em>猫</em>、<em>狗</em>、<em>宠物</em> 聚一起），而不是<strong>视觉相似性</strong>（按视觉应当聚成一堆的 <em>斑马</em>、<em>老虎</em>、<em>美洲豹</em> —— 都有条纹 —— 在词向量里反而散开）。这种<strong>模态鸿沟（modality gap）</strong> 直接催生了后面所有的工作。</p>
+<hr>
+<h2 id="4-生成式-zsl直接合成未见类的视觉特征">4. 生成式 ZSL：直接合成未见类的视觉特征</h2>
+<p>判别式 ZSL 学一个固定的兼容性函数，然后<strong>指望</strong>它能延拓。生成式 ZSL 反过来想：<strong>直接用语义描述合成未见类的视觉特征</strong>，再用合成特征 + 真实已见特征训一个完全普通的有监督分类器。ZSL 又变回了有监督学习。</p>
+<h3 id="f-clswganxian-et-al-2018">f-CLSWGAN（Xian et al., 2018）</h3>
+<p>一个带分类器引导的条件 Wasserstein GAN：</p>
+<ul>
+<li><strong>生成器</strong> $G(z, a_c) \to \tilde{x}$。输入：噪声 $z \sim \mathcal{N}(0, I)$ 和类别语义 $a_c$；输出：合成的 CNN 特征。</li>
+<li><strong>评论家</strong> $D(x)$ 给真实 / 合成特征打分（无 sigmoid，Wasserstein 损失）。</li>
+<li><strong>辅助分类器</strong> $\mathrm{cls}$ 接在生成特征上，由真实已见类特征训练得到。</li>
+</ul>
+<p>总目标是</p>
+$$
+\mathcal{L} = \underbrace{\mathbb{E}[D(\tilde{x})] - \mathbb{E}[D(x)] + \lambda\,\mathrm{GP}}_{\text{WGAN-GP}}
+\;+\; \beta \cdot \underbrace{\mathbb{E}\bigl[-\log P(y \mid \tilde{x})\bigr]}_{\text{分类损失}},
+$$<p>其中 $\mathrm{GP}$ 是标准的梯度惩罚 $\mathbb{E}[(\|\nabla_{\hat{x}} D(\hat{x})\|_2 - 1)^2]$。分类损失是关键 —— 它逼着合成特征不仅&quot;像真&rdquo;，还要<strong>类别可分</strong>。</p>
+<p><strong>测试时</strong>：对每个未见类采样 $\tilde{x}^{(u)} \sim G(z, a_u)$，把 $\{(x, y) : y \in \mathcal{C}^s\} \cup \{(\tilde{x}^{(u)}, u)\}$ 喂进 softmax 训一个普通分类器即可。仅这一步，AwA2 上 GZSL 的调和平均 $H$ 就能从约 22 跳到约 58。</p>
+<h3 id="f-vaegan-d2">f-VAEGAN-D2</h3>
+<p>Xian 等人（2019）在前者基础上加了一个 VAE 编码器稳定训练，又加了第二个判别器利用<strong>未标注的测试图像</strong>（transductive）。&ldquo;VAE 稳训练 + GAN 提质量 + 分类器保可分&quot;这套配方，目前已经是特征生成式 ZSL 的标配。</p>
+<hr>
+<h2 id="5-广义零样本学习偏置问题">5. 广义零样本学习：偏置问题</h2>
+<p>经典 ZSL 基准把测试标签空间限制在 $\mathcal{C}^u$ 内，等于偷偷绕开了真正的难点：实际部署时，你根本不知道一张图属于已见类还是未见类。</p>
+<p>把标签空间放开到 $\mathcal{C}^s \cup \mathcal{C}^u$ 后，所有只在已见类图像上训出来的模型都会出现严重的<strong>已见类偏置</strong>。已见类的视觉特征落在 $F$ 已经熟悉的区域里；未见类的特征略显分布外，几乎一定输掉 argmax。</p>
+<p>标准评估指标是已见准确率与未见准确率的<strong>调和平均数</strong>：</p>
+$$
+H = \frac{2 \cdot S \cdot U}{S + U}.
+$$<p>它会惩罚任何&quot;赢了一边、输了另一边&quot;的方法。一个 $S=88, U=12$ 的模型，$H$ 只有 21 —— 极差。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/fig6_gzsl_vs_zsl.png" alt="GZSL 偏置问题与三种修法" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>三类修法：</p>
+<p><strong>1. 校准堆叠（Chao et al., 2016）。</strong> 把所有已见类的得分整体减去一个常数：</p>
+$$
+F_{\text{cal}}(x, c) = F(x, c) - \gamma \cdot \mathbb{1}[c \in \mathcal{C}^s].
+$$<p>$\gamma$ 在验证集上搜一下就行。便宜、有效，是最先该尝试的强基线。</p>
+<p><strong>2. 生成式特征合成</strong>（见第 4 节）。一旦能合成未见类特征，GZSL 就退化成了一个数据均衡的有监督分类问题。</p>
+<p><strong>3. OOD 门控。</strong> 训一个二分类检测器判断&quot;这张图到底属于已见还是未见&rdquo;，再路由到对应的子分类器。整体性能受限于这个 OOD 检测器本身。</p>
+<hr>
+<h2 id="6-clip-与视觉-语言预训练时代">6. CLIP 与视觉-语言预训练时代</h2>
+<p>回过头看，<strong>CLIP</strong>（Radford et al., 2021）就是第 3 节那种深度双塔兼容性函数 —— 只不过训练数据是<strong>从网络爬来的 4 亿张图文对</strong>，损失是双向对比交叉熵：</p>
+$$
+\mathcal{L} = -\sum_i \log \frac{\exp\bigl(I_i \cdot T_i / \tau\bigr)}{\sum_j \exp\bigl(I_i \cdot T_j / \tau\bigr)} \;+\; (\text{在文本一侧对称地再来一遍}).
+$$<p>零样本推断时，<strong>用文字现场搭分类器</strong>。给定 $K$ 类问题，写一个提示模板（如 <code>&quot;a photo of a {class}&quot;</code>），把 $K$ 个提示喂给文本塔得到 $K$ 个文本向量，新图像走视觉塔得到一个图像向量，谁的余弦相似度最高就预测谁。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/fig5_clip_zero_shot.png" alt="CLIP 零样本分类流程" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>两点值得记住的影响：</p>
+<ol>
+<li><strong>不再需要语义工程</strong>。类别用自然语言描述。要新增一个类？写一句话就行。</li>
+<li><strong>GZSL 不再是独立问题</strong>。CLIP 在它&quot;训过&quot;和&quot;没训过&quot;的类别上准确率相当，因为它从一开始就不是按类别判别的方式训练出来的。</li>
+</ol>
+<p>基准曲线印证了这条主线：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/07-%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%AD%A6%E4%B9%A0/fig7_benchmark_results.png" alt="AwA2 与 CUB 零样本基准的演进" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>DAP（2009）→ ALE / DeViSE（2013）：双线性与排序兼容性；SAE（2017）：语义自编码器；f-CLSWGAN（2018）→ CADA-VAE（2019）：生成式特征合成关闭了 GZSL 的差距；CLIP（2021）：大规模对比预训练把上限推向了新的高度。</p>
+<hr>
+<h2 id="7-实现">7. 实现</h2>
+<p>下面是深度兼容性模型和特征生成 GAN 的精简 PyTorch 骨架，足够看清楚结构。完整训练脚手架（AwA2 数据加载、ZSL 与 GZSL 评估）在文末参考实现里。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DeepCompatibility</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;DeViSE / ALE / CLIP 共用的视觉-语义双塔兼容性。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">visual_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">semantic_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">vis</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">visual_dim</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">sem</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">semantic_dim</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">=</span> <span class="n">temperature</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;对每张图像、每个类别打分，返回 [B, C] logits。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vis</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># [B, d]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sem</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># [C, d]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">*</span> <span class="n">v</span> <span class="o">@</span> <span class="n">s</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FeatureGenerator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;f-CLSWGAN 风格的条件特征生成器。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noise_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">semantic_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">feature_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">noise_dim</span> <span class="o">+</span> <span class="n">semantic_dim</span><span class="p">,</span> <span class="mi">4096</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">4096</span><span class="p">,</span> <span class="n">feature_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">z</span><span class="p">,</span> <span class="n">a</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">gzsl_evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">DeepCompatibility</span><span class="p">,</span> <span class="n">features</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">attrs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">seen_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">unseen_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;在 GZSL 测试集上计算 (S, U, H)，可选校准堆叠。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">attrs</span><span class="p">)</span>                 <span class="c1"># [N, C]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span><span class="p">[:,</span> <span class="n">seen_ids</span><span class="p">]</span> <span class="o">-=</span> <span class="n">gamma</span>                    <span class="c1"># 已见类整体降权</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pred</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seen_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">seen_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">S</span> <span class="o">=</span> <span class="p">(</span><span class="n">pred</span><span class="p">[</span><span class="n">seen_mask</span><span class="p">]</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="n">seen_mask</span><span class="p">])</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">U</span> <span class="o">=</span> <span class="p">(</span><span class="n">pred</span><span class="p">[</span><span class="o">~</span><span class="n">seen_mask</span><span class="p">]</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="o">~</span><span class="n">seen_mask</span><span class="p">])</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">H</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">S</span> <span class="o">*</span> <span class="n">U</span> <span class="o">/</span> <span class="p">(</span><span class="n">S</span> <span class="o">+</span> <span class="n">U</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">S</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">H</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>gzsl_evaluate</code> 里的 <code>gamma</code> 就是校准堆叠 —— GZSL 上首先该试的最简修法。</p>
+<hr>
+<h2 id="8-qa">8. Q&amp;A</h2>
+<p><strong>Q1：什么时候选 ZSL，而不是小样本或主动学习？</strong>
+满足以下任一条件就可以考虑：(a) 长尾类别又宽又不稳定，新类来得比标注还快；(b) 你已经有现成的丰富语义资源，比如属性体系、商品目录、文字描述；(c) 你能直接用上预训练的视觉-语言模型（CLIP、SigLIP、OpenCLIP），那干脆跳过 ZSL 专用机器，直接用 CLIP 推断。</p>
+<p><strong>Q2：属性、词嵌入、句嵌入、CLIP 提示，到底用哪个？</strong>
+属性单维信息量最大但需要专家设计；词嵌入扩展性好但编码的是语言相似而非视觉相似；句嵌入是个折中；CLIP 提示在大多数自然图像基准上压倒所有低层方法 —— 因为它的视觉、文本编码器是联合训练的。</p>
+<p><strong>Q3：GZSL 为什么不校准就崩？</strong>
+训练目标只奖励已见类的正确预测，已见和未见 logit 之间没有任何尺度对齐。测试时已见类得分系统性更高，几乎每次都抢走 argmax。校准堆叠、生成合成、OOD 门控本质上都在攻这个不平衡。</p>
+<p><strong>Q4：CLIP 之后，传统 ZSL 研究还有意义吗？</strong>
+对自然图像：基本没有了。但对开源数据稀缺的领域 —— 医学影像、工业缺陷、遥感图 —— 老一套属性 / 语义机制仍然是数据效率最高的冷启动方式。而且 CLIP 本身就是一个深度双塔兼容性模型，本文搭建的概念框架仍然完全适用。</p>
+<p><strong>Q5：怎么避开 Hubness 问题？</strong>
+Hubness 是高维空间的病态：少数&quot;枢纽&quot;原型成了太多查询的最近邻。常见做法：打分前在两侧都做 L2 归一化（上面代码里已有）；用基于排名的相似度（CSLS、ZestNorm）；或对每个类别的得分做标准化。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>Lampert, C. H., Nickisch, H., &amp; Harmeling, S. (2009). <em>Learning to detect unseen object classes by between-class attribute transfer.</em> CVPR. —— DAP，AwA 数据集。</li>
+<li>Frome, A., et al. (2013). <em>DeViSE: A deep visual-semantic embedding model.</em> NeurIPS.</li>
+<li>Akata, Z., Perronnin, F., Harchaoui, Z., &amp; Schmid, C. (2013). <em>Label-embedding for attribute-based classification.</em> CVPR. —— ALE。</li>
+<li>Chao, W.-L., et al. (2016). <em>An empirical study and analysis of generalized zero-shot learning for object recognition in the wild.</em> ECCV. —— GZSL 与校准堆叠。</li>
+<li>Xian, Y., Lampert, C. H., Schiele, B., &amp; Akata, Z. (2019). <em>Zero-shot learning — A comprehensive evaluation of the good, the bad and the ugly.</em> TPAMI.</li>
+<li>Xian, Y., Lorenz, T., Schiele, B., &amp; Akata, Z. (2018). <em>Feature generating networks for zero-shot learning.</em> CVPR. —— f-CLSWGAN。</li>
+<li>Xian, Y., Sharma, S., Schiele, B., &amp; Akata, Z. (2019). <em>f-VAEGAN-D2: A feature generating framework for any-shot learning.</em> CVPR.</li>
+<li>Schönfeld, E., et al. (2019). <em>Generalized zero- and few-shot learning via aligned variational autoencoders.</em> CVPR. —— CADA-VAE。</li>
+<li>Radford, A., et al. (2021). <em>Learning transferable visual models from natural language supervision.</em> ICML. —— CLIP。</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">1</a>
+</td>
+          <td>基础与核心概念</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/">2</a>
+</td>
+          <td>预训练与微调</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%9f%9f%e9%80%82%e5%ba%94%e6%96%b9%e6%b3%95/">3</a>
+</td>
+          <td>域适应</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/">4</a>
+</td>
+          <td>小样本学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e7%9f%a5%e8%af%86%e8%92%b8%e9%a6%8f/">5</a>
+</td>
+          <td>知识蒸馏</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0/">6</a>
+</td>
+          <td>多任务学习</td>
+      </tr>
+      <tr>
+          <td><strong>7</strong></td>
+          <td><strong>零样本学习（本文）</strong></td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%a4%9a%e6%a8%a1%e6%80%81%e8%bf%81%e7%a7%bb/">8</a>
+</td>
+          <td>多模态迁移</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b9%9d-%e5%8f%82%e6%95%b0%e9%ab%98%e6%95%88%e5%be%ae%e8%b0%83/">9</a>
+</td>
+          <td>参数高效微调</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e6%8c%81%e7%bb%ad%e5%ad%a6%e4%b9%a0/">10</a>
+</td>
+          <td>持续学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%b8%80-%e8%b7%a8%e8%af%ad%e8%a8%80%e8%bf%81%e7%a7%bb/">11</a>
+</td>
+          <td>跨语言迁移</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-%e5%b7%a5%e4%b8%9a%e5%ba%94%e7%94%a8%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/">12</a>
+</td>
+          <td>工业应用与最佳实践</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#1-问题定义">1. 问题定义</a></li>
+    <li><a href="#2-属性表示与-dap">2. 属性表示与 DAP</a>
+      <ul>
+        <li><a href="#直接属性预测dap">直接属性预测（DAP）</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-兼容性函数一个统一视角">3. 兼容性函数：一个统一视角</a>
+      <ul>
+        <li><a href="#双线性ale--sje">双线性（ALE / SJE）</a></li>
+        <li><a href="#深度兼容性--双塔">深度兼容性 / 双塔</a></li>
+        <li><a href="#devise用词嵌入做语义侧">DeViSE：用词嵌入做语义侧</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-生成式-zsl直接合成未见类的视觉特征">4. 生成式 ZSL：直接合成未见类的视觉特征</a>
+      <ul>
+        <li><a href="#f-clswganxian-et-al-2018">f-CLSWGAN（Xian et al., 2018）</a></li>
+        <li><a href="#f-vaegan-d2">f-VAEGAN-D2</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-广义零样本学习偏置问题">5. 广义零样本学习：偏置问题</a></li>
+    <li><a href="#6-clip-与视觉-语言预训练时代">6. CLIP 与视觉-语言预训练时代</a></li>
+    <li><a href="#7-实现">7. 实现</a></li>
+    <li><a href="#8-qa">8. Q&amp;A</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">迁移学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5600</strong></div>
+      <div class="row"><span>Published</span><strong>Jun 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

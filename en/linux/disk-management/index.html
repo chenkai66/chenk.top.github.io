@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux Disk Management: Partitions, Filesystems, LVM, and the Mount Stack · Chen Kai Blog</title>
+<meta name="description" content="End-to-end disk workflow on Linux: identify block devices with lsblk, partition with GPT, format with ext4 / xfs, mount persistently through /etc/fstab, expand capacity online with LVM, and debug the classic &#39;disk full but du can&#39;t find it&#39; incidents.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/linux/disk-management/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/linux/disk-management/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux Disk Management: Partitions, Filesystems, LVM, and the Mount Stack">
+<meta property="og:description" content="End-to-end disk workflow on Linux: identify block devices with lsblk, partition with GPT, format with ext4 / xfs, mount persistently through /etc/fstab, expand capacity online with LVM, and debug the classic &#39;disk full but du can&#39;t find it&#39; incidents.">
+<meta property="og:url" content="https://www.chenk.top/en/linux/disk-management/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Linux</a>
+         · Chapter 3
+      </div>
+      <h1>Linux Disk Management: Partitions, Filesystems, LVM, and the Mount Stack</h1>
+      <p class="deck">End-to-end disk workflow on Linux: identify block devices with lsblk, partition with GPT, format with ext4 / xfs, mount persistently through /etc/fstab, expand capacity online with LVM, and debug the classic &#39;disk full but du can&#39;t find it&#39; incidents.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-01-27">January 27, 2022</time> · 18 min read · 3800 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/linux/" class="tag">#Linux</a><a href="/en/tags/cloud/" class="tag">#Cloud</a><a href="/en/tags/system-administration/" class="tag">#System Administration</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Disk problems in production almost never have a one-line fix. You are
+usually navigating a layered stack: the <strong>block device</strong> (a physical
+or virtual disk), the <strong>partition table</strong> (MBR or GPT), an optional
+<strong>LVM</strong> layer that decouples filesystems from disks, the
+<strong>filesystem driver</strong> (ext4, xfs, btrfs) that gives meaning to the
+raw bytes, and finally the <strong>mount point</strong> in the directory tree that
+applications actually open files through. Most outages I have seen
+become tractable the moment you can name which layer is misbehaving.</p>
+<p>This post walks the end-to-end workflow — identify a new disk,
+partition it, format it, mount it persistently, expand it online with
+LVM, and debug the recurring failure modes — while explaining the
+underlying mechanism so you can reason about what the kernel is
+doing rather than memorising commands.</p>
+<h2 id="the-filesystem-hierarchy-where-things-live">The filesystem hierarchy: where things live</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig1_filesystem_hierarchy.png" alt="Linux filesystem hierarchy" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Linux follows the <strong>Filesystem Hierarchy Standard (FHS)</strong>. Every
+top-level directory under <code>/</code> has a documented purpose, and once you
+internalise that, deciding <em>which</em> directory should sit on its own
+volume becomes obvious.</p>
+<table>
+  <thead>
+      <tr>
+          <th>Directory</th>
+          <th>What lives here</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>/</code></td>
+          <td>Root of the entire tree; the OS itself.</td>
+      </tr>
+      <tr>
+          <td><code>/bin</code>, <code>/sbin</code></td>
+          <td>Essential binaries needed to bring the system up.</td>
+      </tr>
+      <tr>
+          <td><code>/etc</code></td>
+          <td>System-wide configuration (text files).</td>
+      </tr>
+      <tr>
+          <td><code>/home</code></td>
+          <td>Per-user home directories.</td>
+      </tr>
+      <tr>
+          <td><code>/usr</code></td>
+          <td>Installed software and libraries (<code>/usr/bin</code>, <code>/usr/lib</code>).</td>
+      </tr>
+      <tr>
+          <td><code>/var</code></td>
+          <td>Variable data: logs, mail spools, package caches, some DBs.</td>
+      </tr>
+      <tr>
+          <td><code>/tmp</code></td>
+          <td>Temporary files; on most distros this is a <code>tmpfs</code> in RAM.</td>
+      </tr>
+      <tr>
+          <td><code>/dev</code></td>
+          <td>Device nodes (<code>/dev/sda</code>, <code>/dev/null</code>, &hellip;).</td>
+      </tr>
+      <tr>
+          <td><code>/proc</code>, <code>/sys</code></td>
+          <td>Kernel-exposed virtual filesystems.</td>
+      </tr>
+      <tr>
+          <td><code>/mnt</code>, <code>/media</code></td>
+          <td>Conventional places to mount removable / extra storage.</td>
+      </tr>
+  </tbody>
+</table>
+<p>A very common production layout is <code>/</code> + <code>/var</code> + <code>/home</code> + <code>/data</code>
+on <strong>separate block devices</strong>. The reasoning is operational: if a
+runaway log fills <code>/var</code>, the root filesystem still has space for
+login and recovery; if <code>/data</code> needs to grow, you can extend just that
+volume without touching the OS.</p>
+<h2 id="how-disks-show-up-in-linux-block-devices-and-naming">How disks show up in Linux: block devices and naming</h2>
+<p>Every disk attached to the kernel becomes a <strong>block device</strong> under
+<code>/dev</code>. The naming convention encodes the bus type:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Device path</th>
+          <th>What it is</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>/dev/sda</code>, <code>/dev/sdb</code></td>
+          <td>SATA / SAS / USB disks (SCSI subsystem)</td>
+      </tr>
+      <tr>
+          <td><code>/dev/nvme0n1</code></td>
+          <td>NVMe SSD, namespace 1</td>
+      </tr>
+      <tr>
+          <td><code>/dev/vda</code></td>
+          <td>virtio disk (KVM / cloud VMs)</td>
+      </tr>
+      <tr>
+          <td><code>/dev/xvda</code></td>
+          <td>Xen virtual disk (older AWS instances)</td>
+      </tr>
+      <tr>
+          <td><code>/dev/sr0</code></td>
+          <td>Optical drive</td>
+      </tr>
+  </tbody>
+</table>
+<p>Partitions append a number; for NVMe an extra <code>p</code> separates them:
+<code>/dev/sda1</code>, <code>/dev/nvme0n1p1</code>.</p>
+<p>The three commands you run before touching anything destructive:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsblk -f                    <span class="c1"># tree of devices, with FS type and UUID</span>
+</span></span><span class="line"><span class="cl">sudo fdisk -l               <span class="c1"># detailed partition tables</span>
+</span></span><span class="line"><span class="cl">sudo blkid                  <span class="c1"># UUIDs of every formatted partition</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>lsblk -f</code> is the single most useful command in this article — it
+prints the block-device tree, the filesystem on each partition, the
+mount point if any, and the UUID. If you remember nothing else,
+remember this one.</p>
+<h3 id="the-naming-pitfall-why-devsdb-can-change">The naming pitfall: why /dev/sdb can change</h3>
+<p>Disk names are assigned in the order the kernel enumerates them at
+boot. Add or remove a disk, swap the order in which the SCSI HBA
+finds them, or live-migrate a VM, and <code>/dev/sdb</code> may suddenly be
+<code>/dev/sdc</code>. <strong>Never put <code>/dev/sdX</code> in <code>/etc/fstab</code>.</strong> Mount by stable
+identifier instead:</p>
+<ul>
+<li><strong>UUID</strong> — assigned at format time, stable for the life of the
+filesystem (<code>UUID=8f1c-...</code>).</li>
+<li><code>/dev/disk/by-id/...</code> — vendor + serial number; useful when you
+want to know <em>which physical disk</em> you are talking about.</li>
+<li><code>/dev/disk/by-label/...</code> — human-readable label set at format time.</li>
+</ul>
+<h2 id="partition-tables-mbr-vs-gpt">Partition tables: MBR vs GPT</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig2_partition_layout.png" alt="MBR vs GPT partition layout" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A partition table sits at the start of the disk and tells the OS how
+the disk is carved up. Linux supports two formats.</p>
+<p><strong>MBR (Master Boot Record)</strong> is the legacy format, born with the IBM
+PC. It stores the partition table inside a single 512-byte sector at
+the very beginning of the disk. The constraints follow directly from
+that:</p>
+<ul>
+<li>32-bit LBA addresses, so the maximum addressable size is <strong>2 TiB</strong>.</li>
+<li>A maximum of <strong>4 primary partitions</strong>. Beyond that you have to
+carve an &ldquo;extended&rdquo; partition that contains &ldquo;logical&rdquo; partitions —
+a workaround that has always felt awkward.</li>
+<li>A single copy of the table. If the first sector is corrupted, the
+partitioning is gone.</li>
+</ul>
+<p><strong>GPT (GUID Partition Table)</strong> is the modern replacement, defined by
+the UEFI spec. It addresses every limitation of MBR:</p>
+<ul>
+<li>64-bit LBA — practically unlimited capacity (zettabytes).</li>
+<li>Up to 128 partitions by default, each named with a GUID.</li>
+<li>A <strong>primary header at the start and a backup at the end</strong> of the
+disk; CRC32 checksums on both, so corruption is detectable and
+recoverable.</li>
+<li>A &ldquo;protective MBR&rdquo; in the first sector so legacy tools that don&rsquo;t
+know about GPT see one giant unknown partition rather than free
+space they might overwrite.</li>
+</ul>
+<p><strong>Use GPT</strong> unless you have a specific reason not to (very old BIOS
+that can only boot from MBR, or a dual-boot with a 32-bit Windows
+install). All modern distributions and clouds default to GPT.</p>
+<h3 id="tools-fdisk-gdisk-parted">Tools: fdisk, gdisk, parted</h3>
+<ul>
+<li><code>fdisk</code> — historically MBR-only; modern versions handle GPT too.</li>
+<li><code>gdisk</code> — GPT-focused, slightly more explicit.</li>
+<li><code>parted</code> — supports both, has a non-interactive batch mode that&rsquo;s
+handy in scripts.</li>
+</ul>
+<p>A typical interactive flow with <code>fdisk</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo fdisk /dev/sdb
+</span></span><span class="line"><span class="cl"><span class="c1"># p   print the current table</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># g   create a new empty GPT table</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># n   new partition (accept defaults to use the whole disk)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># w   write the table to disk and exit</span>
+</span></span><span class="line"><span class="cl">sudo partprobe /dev/sdb     <span class="c1"># ask the kernel to re-read the table</span>
+</span></span><span class="line"><span class="cl">lsblk -f /dev/sdb           <span class="c1"># verify the new partition appeared</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A non-interactive equivalent with <code>parted</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo parted -s /dev/sdb mklabel gpt
+</span></span><span class="line"><span class="cl">sudo parted -s /dev/sdb mkpart primary ext4 1MiB 100%
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The <code>1MiB</code> start is not cosmetic — it ensures the partition is
+<strong>aligned to a 1 MiB boundary</strong>, which matches the 4 KiB physical
+sector size of modern disks. Misaligned partitions turn one logical
+4 KiB write into two physical reads + writes, which is a silent and
+infuriating performance killer. Modern tools do this by default, but
+it is worth knowing.</p>
+<h2 id="filesystems-turning-a-partition-into-something-you-can-use">Filesystems: turning a partition into something you can use</h2>
+<p>A partition is just a contiguous range of bytes. To store named files
+in it you need to <strong>format</strong> it with a filesystem — install on-disk
+data structures (superblock, inode table, free-space bitmap, journal,
+&hellip;) that the kernel filesystem driver knows how to interpret.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig5_filesystem_comparison.png" alt="ext4 vs xfs vs btrfs comparison" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The three filesystems you will actually meet on Linux servers:</p>
+<ul>
+<li><strong>ext4</strong> — the default on Debian / Ubuntu and the safe pick for
+general-purpose workloads. Mature tooling (<code>fsck</code>, <code>tune2fs</code>,
+<code>e2label</code>), well-understood failure modes, predictable
+performance.</li>
+<li><strong>xfs</strong> — the default on RHEL 7+ and derivatives. Designed for
+large files, high parallelism, and very large filesystems.
+<strong>Cannot be shrunk</strong> — you grow or you migrate.</li>
+<li><strong>btrfs</strong> — copy-on-write, with native snapshots, checksums on data
+<em>and</em> metadata, and built-in RAID 0/1/10. Default on openSUSE and
+Fedora Workstation. The complexity is higher and some configurations
+have a chequered history; in production it is most often used for
+the snapshot story.</li>
+</ul>
+<h3 id="format">Format</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkfs.ext4 -L data /dev/sdb1     <span class="c1"># ext4 with the label &#34;data&#34;</span>
+</span></span><span class="line"><span class="cl">sudo mkfs.xfs  -L data /dev/sdb1     <span class="c1"># xfs equivalent</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>After formatting, <code>lsblk -f</code> will show the filesystem type, label and
+UUID. Take note of the UUID — you will use it in <code>/etc/fstab</code>.</p>
+<h3 id="mount-it-once">Mount it once</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir -p /mnt/data
+</span></span><span class="line"><span class="cl">sudo mount /dev/sdb1 /mnt/data
+</span></span><span class="line"><span class="cl">df -h /mnt/data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Mounting is purely a runtime operation. It does not change anything
+on the disk; it just tells the kernel &ldquo;from now on, paths under
+<code>/mnt/data</code> should be served by the filesystem on <code>/dev/sdb1</code>.&rdquo; When
+you reboot, the mount is gone.</p>
+<h3 id="make-it-persistent-etcfstab">Make it persistent: /etc/fstab</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig4_mount_table.png" alt="Mount points and the mount table" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>/etc/fstab</code> is the persistent mount table — at boot, <code>systemd</code> (or
+<code>mount -a</code> from an init script) reads it and mounts everything
+listed.</p>
+<p>Always mount by <strong>UUID</strong>, never by <code>/dev/sdX</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo blkid /dev/sdb1
+</span></span><span class="line"><span class="cl"><span class="c1"># /dev/sdb1: LABEL=&#34;data&#34; UUID=&#34;8f1c-...-3a&#34; TYPE=&#34;ext4&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Add a line to <code>/etc/fstab</code>:</p>
+<pre tabindex="0"><code># &lt;device&gt;             &lt;mount&gt;   &lt;fs&gt;   &lt;options&gt;           &lt;dump&gt; &lt;pass&gt;
+UUID=8f1c-...-3a       /mnt/data ext4   defaults,noatime    0      2
+</code></pre><p>The six columns:</p>
+<ol>
+<li><strong>Source</strong> — UUID, label, or device path.</li>
+<li><strong>Mount point</strong> — must already exist as an empty directory.</li>
+<li><strong>Filesystem type</strong> — <code>ext4</code>, <code>xfs</code>, <code>tmpfs</code>, <code>nfs</code>, &hellip;</li>
+<li><strong>Mount options</strong> — <code>defaults</code>, plus things like <code>noatime</code> (skip
+access-time updates, big win for read-heavy workloads), <code>ro</code>,
+<code>nosuid</code>, <code>nodev</code>, <code>discard</code>, <code>_netdev</code>.</li>
+<li><strong>Dump</strong> — <code>0</code> always (the legacy <code>dump</code> backup tool is gone).</li>
+<li><strong>fsck pass</strong> — <code>1</code> for <code>/</code>, <code>2</code> for other filesystems, <code>0</code> to
+skip.</li>
+</ol>
+<p><strong>Always test before you reboot.</strong> If you make <code>fstab</code> unbootable, you
+get a system that drops to emergency mode. The safe pattern:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mount -a       <span class="c1"># apply everything in fstab now</span>
+</span></span><span class="line"><span class="cl">mount <span class="p">|</span> grep data   <span class="c1"># confirm the new mount is active</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If <code>mount -a</code> errors, fix <code>fstab</code> <em>before</em> rebooting.</p>
+<h3 id="unmounting-and-target-is-busy">Unmounting and &ldquo;target is busy&rdquo;</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo umount /mnt/data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The most common failure is <code>umount: target is busy</code>. Some process
+still holds an open file descriptor under that mount, or has its
+working directory there. Find the culprit:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lsof +D /mnt/data       <span class="c1"># files open under the mount</span>
+</span></span><span class="line"><span class="cl">sudo fuser -vm /mnt/data     <span class="c1"># processes touching it, with PIDs</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Kill or restart whatever is holding it. As a last resort,
+<code>umount -l /mnt/data</code> does a &ldquo;lazy&rdquo; unmount — the mount disappears
+from the namespace immediately and is fully released when the last
+file descriptor is closed. Use sparingly; it can mask real bugs.</p>
+<h2 id="lvm-decouple-filesystems-from-physical-disks">LVM: decouple filesystems from physical disks</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/fig3_lvm_stack.png" alt="LVM stack: PV to VG to LV" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Without LVM, a filesystem lives directly on a partition, so growing
+the filesystem means growing the partition, which means there must
+be free space <em>immediately after</em> it on the same disk. In production
+that is rarely true.</p>
+<p><strong>LVM (Logical Volume Manager)</strong> inserts a layer of indirection
+between physical disks and filesystems. It has three concepts:</p>
+<ul>
+<li><strong>PV — Physical Volume.</strong> A whole disk or a partition that has
+been &ldquo;claimed&rdquo; by LVM. (<code>pvcreate</code>)</li>
+<li><strong>VG — Volume Group.</strong> A pool of capacity built from one or more
+PVs. The VG is divided into fixed-size <strong>physical extents</strong>
+(default 4 MiB). (<code>vgcreate</code>, <code>vgextend</code>)</li>
+<li><strong>LV — Logical Volume.</strong> A virtual block device carved out of a
+VG. From the kernel&rsquo;s perspective an LV looks just like a
+partition, and you put a filesystem on it. (<code>lvcreate</code>)</li>
+</ul>
+<p>The key insight: an LV does not have to be contiguous on the
+underlying disks. Extending an LV just allocates more extents from
+the VG, which can come from any PV. <strong>You can grow without
+re-partitioning.</strong></p>
+<h3 id="create-the-stack">Create the stack</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo pvcreate /dev/sdb /dev/sdc                    <span class="c1"># claim two disks</span>
+</span></span><span class="line"><span class="cl">sudo vgcreate vg_data /dev/sdb /dev/sdc            <span class="c1"># pool them</span>
+</span></span><span class="line"><span class="cl">sudo lvcreate -n lv_app -L 100G vg_data            <span class="c1"># carve a 100G LV</span>
+</span></span><span class="line"><span class="cl">sudo mkfs.ext4 /dev/vg_data/lv_app
+</span></span><span class="line"><span class="cl">sudo mount /dev/vg_data/lv_app /data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Inspect the stack at any time:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo pvs        <span class="c1"># physical volumes summary</span>
+</span></span><span class="line"><span class="cl">sudo vgs        <span class="c1"># volume groups summary</span>
+</span></span><span class="line"><span class="cl">sudo lvs        <span class="c1"># logical volumes summary</span>
+</span></span><span class="line"><span class="cl">sudo pvdisplay  <span class="c1"># detailed view, useful when things look wrong</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="online-expansion-the-minimal-downtime-playbook">Online expansion: the minimal-downtime playbook</h3>
+<p>You are at 80% on <code>/data</code> and the alerts are getting noisier. With
+LVM the expansion is online and takes seconds:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. Attach a new disk and enrol it as a PV.</span>
+</span></span><span class="line"><span class="cl">sudo pvcreate /dev/sdd
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. Add it to the existing VG.</span>
+</span></span><span class="line"><span class="cl">sudo vgextend vg_data /dev/sdd
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. Extend the LV. Use +SIZE for an absolute increase,</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#    or +100%FREE to consume everything available.</span>
+</span></span><span class="line"><span class="cl">sudo lvextend -L +200G /dev/vg_data/lv_app
+</span></span><span class="line"><span class="cl"><span class="c1"># or:  sudo lvextend -l +100%FREE /dev/vg_data/lv_app</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. Grow the filesystem on top.</span>
+</span></span><span class="line"><span class="cl">sudo resize2fs /dev/vg_data/lv_app   <span class="c1"># ext4 (online)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># or:  sudo xfs_growfs /data         # xfs (must be mounted)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>There is no service restart and no data movement. The filesystem
+just sees more blocks underneath it.</p>
+<h3 id="shrinking-is-the-hard-direction">Shrinking is the hard direction</h3>
+<ul>
+<li>ext4 <strong>can</strong> be shrunk, but only <strong>offline</strong>: <code>umount</code>, <code>e2fsck -f</code>, <code>resize2fs &lt;new-size&gt;</code>, <code>lvreduce</code>. Get the order wrong and
+you truncate the filesystem.</li>
+<li>xfs <strong>cannot be shrunk at all</strong>. The supported workflow is
+&ldquo;create a smaller LV, copy data with <code>rsync -aHAX</code>, switch the
+mount point.&rdquo;</li>
+</ul>
+<p>The pragmatic rule: <strong>plan to grow, never to shrink.</strong> Start small,
+extend on demand.</p>
+<h3 id="snapshots">Snapshots</h3>
+<p>LVM can create a copy-on-write snapshot of an LV. The snapshot is
+itself an LV that initially shares all extents with the original; as
+blocks change in the original, the <em>old</em> contents are copied into the
+snapshot&rsquo;s reserved space.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lvcreate -L 10G -s -n lv_app_snap /dev/vg_data/lv_app
+</span></span><span class="line"><span class="cl"><span class="c1"># do something risky on /data, e.g. an upgrade</span>
+</span></span><span class="line"><span class="cl">sudo lvremove /dev/vg_data/lv_app_snap   <span class="c1"># discard the snapshot</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Snapshots are useful for short-lived consistency points (back up
+from the snapshot while the live filesystem keeps changing) and for
+quick rollback windows. They are <strong>not a backup</strong> — if the snapshot&rsquo;s
+reserved space fills up, the snapshot becomes invalid; if the
+underlying VG dies, both copies die together.</p>
+<h2 id="inspecting-usage-df-vs-du-and-why-they-disagree">Inspecting usage: df vs du, and why they disagree</h2>
+<p>Two commands that ought to give the same answer routinely don&rsquo;t.</p>
+<p><code>df</code> asks the <strong>filesystem</strong> how full it is:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">df -h          <span class="c1"># capacity per mounted filesystem, human-readable</span>
+</span></span><span class="line"><span class="cl">df -i          <span class="c1"># inode usage, in case you ran out of inodes not bytes</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>du</code> walks <strong>directories</strong> and sums up the size of every file it
+sees:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo du -h -d <span class="m">1</span> /var <span class="p">|</span> sort -h    <span class="c1"># 1-level summary, sorted</span>
+</span></span><span class="line"><span class="cl">sudo du -sh /var/log              <span class="c1"># single total for one path</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>There are three classic reasons <code>df</code> says &ldquo;100% full&rdquo; but <code>du</code> can&rsquo;t
+find the missing space.</p>
+<h3 id="1-a-process-still-has-a-deleted-file-open">1. A process still has a deleted file open</h3>
+<p>A process opens <code>/var/log/app.log</code> and writes to it for weeks.
+Someone deletes the file. The directory entry is gone — <code>du</code> doesn&rsquo;t
+see it, <code>ls</code> doesn&rsquo;t see it — but the inode and its data blocks are
+<strong>not freed until the last file descriptor closes</strong>. The process
+keeps writing. The disk fills.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lsof <span class="p">|</span> grep <span class="s1">&#39;(deleted)&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The fix is to make the holding process close the file: restart the
+service, send <code>SIGHUP</code> if it supports log re-opening, or use
+<code>logrotate</code>&rsquo;s <code>copytruncate</code> mode for processes that don&rsquo;t.</p>
+<h3 id="2-mount-confusion">2. Mount confusion</h3>
+<p>You think you are looking at the data volume, but actually nothing
+is mounted there and you are filling up the parent filesystem.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">findmnt /data       <span class="c1"># shows the source device + filesystem type</span>
+</span></span><span class="line"><span class="cl">mount <span class="p">|</span> grep data
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If <code>findmnt</code> returns nothing, <code>/data</code> is just a directory on <code>/</code>.</p>
+<h3 id="3-ext4-reserved-blocks">3. ext4 reserved blocks</h3>
+<p>ext4 reserves <strong>5%</strong> of the filesystem for <code>root</code> by default. The
+intent is that essential daemons can still write even when users
+have filled the disk. On large data volumes that 5% is a lot, and
+it makes <code>df</code> report &ldquo;full&rdquo; before unprivileged users can write.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo tune2fs -l /dev/sdb1 <span class="p">|</span> grep -i <span class="s1">&#39;reserved&#39;</span>
+</span></span><span class="line"><span class="cl">sudo tune2fs -m <span class="m">1</span> /dev/sdb1     <span class="c1"># reduce reserved to 1% (carefully)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Only do this on volumes that don&rsquo;t host the OS itself.</p>
+<h3 id="inode-exhaustion">Inode exhaustion</h3>
+<p>A filesystem can be empty by bytes and full by <strong>inodes</strong> if a
+workload creates millions of tiny files (caches, mail queues, build
+artefacts). <code>df -i</code> will show 100% on <code>IUse%</code> while <code>df -h</code> shows
+plenty of free space. The only fix is to delete files or reformat
+with a higher inode density (<code>mkfs.ext4 -N &lt;count&gt;</code>); xfs allocates
+inodes dynamically and rarely hits this.</p>
+<h2 id="inodes-hard-links-symlinks-why-filesystems-behave-the-way-they-do">Inodes, hard links, symlinks: why filesystems behave the way they do</h2>
+<p>The data structure behind every Unix filesystem is the <strong>inode</strong>. An
+inode stores all the metadata for one file: type, owner, permissions,
+size, timestamps, link count, and pointers to the data blocks. It
+does <strong>not</strong> store the file&rsquo;s name. Names live in directories, which
+are themselves files containing a list of <code>(name -&gt; inode number)</code>
+mappings.</p>
+<p>This decoupling explains a lot of behaviour:</p>
+<ul>
+<li><strong>Hard link.</strong> A second directory entry pointing to the same inode
+(<code>ln src dst</code>). The two names are equally first-class — neither is
+the &ldquo;original&rdquo;. Deleting one decrements the inode&rsquo;s link count;
+the data is freed only when the count reaches zero. Hard links
+cannot cross filesystems and (by convention) cannot be made to
+directories.</li>
+<li><strong>Symbolic link.</strong> A tiny file whose contents are a <em>path</em>
+(<code>ln -s src dst</code>). Has its own inode. Can cross filesystems. Can
+become &ldquo;dangling&rdquo; if the target is removed.</li>
+<li><strong>Renaming a file</strong> within a filesystem is just rewriting one
+directory entry — it doesn&rsquo;t touch the inode or the data blocks,
+which is why it&rsquo;s atomic and instant.</li>
+<li><strong>&ldquo;I deleted the file but the disk didn&rsquo;t free up&rdquo;</strong> — the link
+count went to zero from the directory side, but a process still
+holds an open file descriptor (which counts as a reference to the
+inode). The data lives until that descriptor closes. This is the
+same mechanism as the <code>df</code>/<code>du</code> discrepancy above.</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">stat /etc/passwd       <span class="c1"># inode number, link count, sizes, timestamps</span>
+</span></span><span class="line"><span class="cl">ls -li                 <span class="c1"># first column is the inode number</span>
+</span></span><span class="line"><span class="cl">df -i                  <span class="c1"># inode usage per filesystem</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="special-files-in-dev">Special files in /dev</h2>
+<p>Not every device node corresponds to hardware. A few are pure kernel
+abstractions you will use constantly:</p>
+<ul>
+<li><code>/dev/null</code> — discards everything written to it; reads return EOF.
+Use to silence output: <code>command &gt; /dev/null 2&gt;&amp;1</code>.</li>
+<li><code>/dev/zero</code> — produces an infinite stream of zero bytes. Use to
+preallocate or wipe: <code>dd if=/dev/zero of=test.bin bs=1M count=1024</code>.</li>
+<li><code>/dev/random</code>, <code>/dev/urandom</code> — entropy sources. <code>urandom</code> is the
+one you almost always want; the historical &ldquo;blocking&rdquo; behaviour of
+<code>/dev/random</code> is a quirk of older kernels and not relevant for
+modern crypto on Linux.</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Quick 1 GiB write benchmark (rough, ignores cache, but useful)</span>
+</span></span><span class="line"><span class="cl">dd <span class="k">if</span><span class="o">=</span>/dev/zero <span class="nv">of</span><span class="o">=</span>/data/test.bin <span class="nv">bs</span><span class="o">=</span>1M <span class="nv">count</span><span class="o">=</span><span class="m">1024</span> <span class="nv">oflag</span><span class="o">=</span>direct
+</span></span><span class="line"><span class="cl">rm /data/test.bin
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="end-to-end-checklist-new-disk-to-mounted-filesystem">End-to-end checklist: new disk to mounted filesystem</h2>
+<p>The path that turns a freshly attached disk into usable space:</p>
+<ol>
+<li><strong>Identify</strong> the new device. <code>lsblk -f</code> should show an empty
+<code>/dev/sdb</code> (or <code>/dev/nvme1n1</code>, &hellip;) with no children and no
+filesystem.</li>
+<li><strong>Decide on LVM or not.</strong> If you expect to grow this volume,
+put it under LVM from day one. Retrofitting LVM later requires
+downtime.</li>
+<li><strong>Partition</strong> with GPT (<code>fdisk</code> or <code>parted</code>). For LVM you can
+skip partitioning entirely and <code>pvcreate</code> the whole disk —
+simpler, and avoids the partition layer.</li>
+<li><strong>Format</strong> with ext4 (general purpose) or xfs (large files /
+parallel I/O).</li>
+<li><strong>Mount</strong> to verify: <code>mount /dev/sdb1 /mnt/data &amp;&amp; df -h /mnt/data</code>.</li>
+<li><strong>Persist</strong> by adding a UUID-based entry to <code>/etc/fstab</code> and
+testing with <code>sudo mount -a</code>.</li>
+<li><strong>Verify after reboot.</strong> Do this once, in a maintenance window,
+<em>before</em> you depend on the volume in production.</li>
+</ol>
+<p>If you can run that checklist confidently, most disk incidents
+become systematic rather than stressful — and the troubleshooting
+sections below become a reference rather than a panic.</p>
+<h2 id="troubleshooting-playbook">Troubleshooting playbook</h2>
+<h3 id="disk-full-but-i-just-deleted-gigabytes-of-logs">&ldquo;Disk full&rdquo; but I just deleted gigabytes of logs</h3>
+<p>Almost always a process holding a deleted file open.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lsof <span class="p">|</span> grep <span class="s1">&#39;(deleted)&#39;</span> <span class="p">|</span> sort -k7 -h
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Restart the holding process or signal it to reopen its log files.</p>
+<h3 id="mount-fails-after-reboot">&ldquo;Mount fails after reboot&rdquo;</h3>
+<p>Common causes, in order of frequency:</p>
+<ol>
+<li>Wrong UUID in <code>/etc/fstab</code>. Verify with <code>blkid</code>.</li>
+<li>Filesystem driver missing from the initramfs (rare, but happens
+with btrfs / zfs / xfs on minimal installs).</li>
+<li>Boot ordering: you tried to mount a path that depends on LVM /
+RAID / network before that subsystem is ready. Use the
+<code>_netdev</code> mount option for network filesystems; LVM and software
+RAID are usually handled by the initramfs automatically.</li>
+</ol>
+<p><code>sudo mount -a</code> reproduces the boot-time mount sequence, and <code>journalctl -b | grep -i mount</code> shows what failed.</p>
+<h3 id="performance-suddenly-got-worse">&ldquo;Performance suddenly got worse&rdquo;</h3>
+<p>Move down the layers, not up:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">iostat -x <span class="m">1</span>        <span class="c1"># disk-level utilisation, await, IOPS</span>
+</span></span><span class="line"><span class="cl">vmstat <span class="m">1</span>           <span class="c1"># %wa column = CPU time spent waiting on I/O</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> tail -50   <span class="c1"># kernel-level I/O errors, SMART warnings</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>High <code>await</code> with low <code>%util</code> typically means the storage backend
+itself is slow (network-attached disk, congested cloud volume).
+High <code>%util</code> with low queue depth often means a single-threaded
+fsync workload. High <code>%wa</code> in <code>vmstat</code> with healthy disks usually
+means swapping — check <code>free -h</code> and <code>swapon --show</code>.</p>
+<h3 id="read-only-filesystem-suddenly">&ldquo;Read-only filesystem&rdquo; suddenly</h3>
+<p>The kernel remounts a filesystem read-only when it detects
+corruption it cannot safely write through. First, look at the kernel
+log:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dmesg <span class="p">|</span> tail -200
+</span></span><span class="line"><span class="cl">journalctl -k --since <span class="s2">&#34;1 hour ago&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If the underlying disk is failing (<code>smartctl -a /dev/sda</code> shows
+reallocated sectors or media errors), replace it. If the filesystem
+itself is damaged, <code>umount</code> it and run the offline repair tool —
+<code>e2fsck -fy /dev/sdb1</code> for ext4, <code>xfs_repair /dev/sdb1</code> for xfs.
+<strong>Take a snapshot or a <code>dd</code> image first</strong> if the data matters.</p>
+<h2 id="command-appendix">Command appendix</h2>
+<p>A compact reference you can keep open during an incident.</p>
+<h3 id="discover-and-inspect">Discover and inspect</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsblk -f                   <span class="c1"># tree of devices + filesystems + mounts + UUIDs</span>
+</span></span><span class="line"><span class="cl">findmnt                    <span class="c1"># tree of every mount in the system</span>
+</span></span><span class="line"><span class="cl">mount <span class="p">|</span> column -t          <span class="c1"># all currently active mounts</span>
+</span></span><span class="line"><span class="cl">df -h                      <span class="c1"># filesystem usage by bytes</span>
+</span></span><span class="line"><span class="cl">df -i                      <span class="c1"># filesystem usage by inodes</span>
+</span></span><span class="line"><span class="cl">sudo blkid                 <span class="c1"># UUID and TYPE for every formatted partition</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="partitioning">Partitioning</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo fdisk -l              <span class="c1"># list partition tables on every disk</span>
+</span></span><span class="line"><span class="cl">sudo fdisk /dev/sdb        <span class="c1"># interactive editor (handles GPT too)</span>
+</span></span><span class="line"><span class="cl">sudo parted -s /dev/sdb mklabel gpt
+</span></span><span class="line"><span class="cl">sudo parted -s /dev/sdb mkpart primary ext4 1MiB 100%
+</span></span><span class="line"><span class="cl">sudo partprobe /dev/sdb    <span class="c1"># ask the kernel to re-read the partition table</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="format-and-inspect-filesystems">Format and inspect filesystems</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkfs.ext4 -L data /dev/sdb1
+</span></span><span class="line"><span class="cl">sudo mkfs.xfs  -L data /dev/sdb1
+</span></span><span class="line"><span class="cl">sudo tune2fs -l /dev/sdb1  <span class="p">|</span> head        <span class="c1"># ext4 superblock dump</span>
+</span></span><span class="line"><span class="cl">sudo xfs_info /data                      <span class="c1"># xfs geometry and options</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="mount-and-persist">Mount and persist</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mount /dev/sdb1 /mnt/data
+</span></span><span class="line"><span class="cl">sudo mount -o remount,noatime /mnt/data  <span class="c1"># change options live</span>
+</span></span><span class="line"><span class="cl">sudo umount /mnt/data
+</span></span><span class="line"><span class="cl">sudo mount -a                            <span class="c1"># apply /etc/fstab now</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="lvm">LVM</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo pvs <span class="p">;</span> sudo vgs <span class="p">;</span> sudo lvs           <span class="c1"># one-line summaries</span>
+</span></span><span class="line"><span class="cl">sudo pvcreate /dev/sdb
+</span></span><span class="line"><span class="cl">sudo vgcreate vg_data /dev/sdb
+</span></span><span class="line"><span class="cl">sudo vgextend vg_data /dev/sdc           <span class="c1"># add another disk to the pool</span>
+</span></span><span class="line"><span class="cl">sudo lvcreate -L 100G -n lv_app vg_data
+</span></span><span class="line"><span class="cl">sudo lvextend -L +50G /dev/vg_data/lv_app
+</span></span><span class="line"><span class="cl">sudo resize2fs /dev/vg_data/lv_app       <span class="c1"># ext4 grow</span>
+</span></span><span class="line"><span class="cl">sudo xfs_growfs /data                    <span class="c1"># xfs grow (path, not device)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="diagnose">Diagnose</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo lsof <span class="p">|</span> grep <span class="s1">&#39;(deleted)&#39;</span>             <span class="c1"># files held open after delete</span>
+</span></span><span class="line"><span class="cl">sudo fuser -vm /mnt/data                 <span class="c1"># who is using a mount</span>
+</span></span><span class="line"><span class="cl">iostat -x <span class="m">1</span>                              <span class="c1"># per-disk I/O metrics</span>
+</span></span><span class="line"><span class="cl">vmstat <span class="m">1</span>                                 <span class="c1"># I/O wait, swap, context switches</span>
+</span></span><span class="line"><span class="cl">dmesg <span class="p">|</span> tail -200                        <span class="c1"># recent kernel messages</span>
+</span></span><span class="line"><span class="cl">sudo smartctl -a /dev/sda                <span class="c1"># disk health (SMART)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="two-reminders-that-will-save-you-at-3-am">Two reminders that will save you at 3 a.m.</h3>
+<ul>
+<li><strong>Re-run <code>lsblk -f</code> before any destructive command.</strong> It takes
+one second and prevents the &ldquo;I formatted the wrong disk&rdquo; disaster.</li>
+<li><strong>After every change, verify the layer you just touched is
+visible at the next layer up</strong> before you continue. Block -&gt;
+partition -&gt; LVM -&gt; filesystem -&gt; mount. If a layer disappears,
+stop and find out why; do not try to power through.</li>
+</ul>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/linux/file-permissions/"><span class="title">Linux File Permissions: rwx, chmod, chown, and Beyond</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/linux/package-management/"><span class="title">Linux Package Management: apt, dnf, pacman, and Building from Source</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-filesystem-hierarchy-where-things-live">The filesystem hierarchy: where things live</a></li>
+    <li><a href="#how-disks-show-up-in-linux-block-devices-and-naming">How disks show up in Linux: block devices and naming</a>
+      <ul>
+        <li><a href="#the-naming-pitfall-why-devsdb-can-change">The naming pitfall: why /dev/sdb can change</a></li>
+      </ul>
+    </li>
+    <li><a href="#partition-tables-mbr-vs-gpt">Partition tables: MBR vs GPT</a>
+      <ul>
+        <li><a href="#tools-fdisk-gdisk-parted">Tools: fdisk, gdisk, parted</a></li>
+      </ul>
+    </li>
+    <li><a href="#filesystems-turning-a-partition-into-something-you-can-use">Filesystems: turning a partition into something you can use</a>
+      <ul>
+        <li><a href="#format">Format</a></li>
+        <li><a href="#mount-it-once">Mount it once</a></li>
+        <li><a href="#make-it-persistent-etcfstab">Make it persistent: /etc/fstab</a></li>
+        <li><a href="#unmounting-and-target-is-busy">Unmounting and &ldquo;target is busy&rdquo;</a></li>
+      </ul>
+    </li>
+    <li><a href="#lvm-decouple-filesystems-from-physical-disks">LVM: decouple filesystems from physical disks</a>
+      <ul>
+        <li><a href="#create-the-stack">Create the stack</a></li>
+        <li><a href="#online-expansion-the-minimal-downtime-playbook">Online expansion: the minimal-downtime playbook</a></li>
+        <li><a href="#shrinking-is-the-hard-direction">Shrinking is the hard direction</a></li>
+        <li><a href="#snapshots">Snapshots</a></li>
+      </ul>
+    </li>
+    <li><a href="#inspecting-usage-df-vs-du-and-why-they-disagree">Inspecting usage: df vs du, and why they disagree</a>
+      <ul>
+        <li><a href="#1-a-process-still-has-a-deleted-file-open">1. A process still has a deleted file open</a></li>
+        <li><a href="#2-mount-confusion">2. Mount confusion</a></li>
+        <li><a href="#3-ext4-reserved-blocks">3. ext4 reserved blocks</a></li>
+        <li><a href="#inode-exhaustion">Inode exhaustion</a></li>
+      </ul>
+    </li>
+    <li><a href="#inodes-hard-links-symlinks-why-filesystems-behave-the-way-they-do">Inodes, hard links, symlinks: why filesystems behave the way they do</a></li>
+    <li><a href="#special-files-in-dev">Special files in /dev</a></li>
+    <li><a href="#end-to-end-checklist-new-disk-to-mounted-filesystem">End-to-end checklist: new disk to mounted filesystem</a></li>
+    <li><a href="#troubleshooting-playbook">Troubleshooting playbook</a>
+      <ul>
+        <li><a href="#disk-full-but-i-just-deleted-gigabytes-of-logs">&ldquo;Disk full&rdquo; but I just deleted gigabytes of logs</a></li>
+        <li><a href="#mount-fails-after-reboot">&ldquo;Mount fails after reboot&rdquo;</a></li>
+        <li><a href="#performance-suddenly-got-worse">&ldquo;Performance suddenly got worse&rdquo;</a></li>
+        <li><a href="#read-only-filesystem-suddenly">&ldquo;Read-only filesystem&rdquo; suddenly</a></li>
+      </ul>
+    </li>
+    <li><a href="#command-appendix">Command appendix</a>
+      <ul>
+        <li><a href="#discover-and-inspect">Discover and inspect</a></li>
+        <li><a href="#partitioning">Partitioning</a></li>
+        <li><a href="#format-and-inspect-filesystems">Format and inspect filesystems</a></li>
+        <li><a href="#mount-and-persist">Mount and persist</a></li>
+        <li><a href="#lvm">LVM</a></li>
+        <li><a href="#diagnose">Diagnose</a></li>
+        <li><a href="#two-reminders-that-will-save-you-at-3-am">Two reminders that will save you at 3 a.m.</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Linux</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>18 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3800</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

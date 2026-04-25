@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux Service Management: systemd, systemctl, and journald · Chen Kai Blog</title>
+<meta name="description" content="A working model of systemd: PID 1, units and targets, the service lifecycle, writing your own unit files, journalctl filtering, timers as a cron replacement, and a disciplined troubleshooting workflow.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/linux/service-management/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/linux/service-management/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux Service Management: systemd, systemctl, and journald">
+<meta property="og:description" content="A working model of systemd: PID 1, units and targets, the service lifecycle, writing your own unit files, journalctl filtering, timers as a cron replacement, and a disciplined troubleshooting workflow.">
+<meta property="og:url" content="https://www.chenk.top/en/linux/service-management/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Linux</a>
+         · Chapter 6
+      </div>
+      <h1>Linux Service Management: systemd, systemctl, and journald</h1>
+      <p class="deck">A working model of systemd: PID 1, units and targets, the service lifecycle, writing your own unit files, journalctl filtering, timers as a cron replacement, and a disciplined troubleshooting workflow.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-03-07">March 7, 2022</time> · 19 min read · 4000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/linux/" class="tag">#Linux</a><a href="/en/tags/cloud/" class="tag">#Cloud</a><a href="/en/tags/system-administration/" class="tag">#System Administration</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>A &ldquo;service&rdquo; on Linux is a long-running background process whose
+job is to be there when something needs it: synchronise the clock,
+listen for SSH connections, accept HTTP requests, run a backup at 3 AM.
+You almost never start one of these by hand. Something has to start
+them at boot, restart them when they crash, capture their logs, decide
+what depends on what, and shut everything down cleanly when the machine
+powers off. On every modern distribution that something is
+<strong>systemd</strong>.</p>
+<p>This article is the working model I wish someone had handed me when I
+first got dropped into a production server. We start from why a
+dedicated service manager exists at all, build up the unit/target
+mental model, walk through the <code>systemctl</code> commands you actually use
+day to day, dissect a unit file line by line, and then cover the
+adjacent surfaces: <code>journalctl</code> for logs, <code>.timer</code> units as the modern
+cron, and a step-by-step playbook for &ldquo;the service won&rsquo;t start.&rdquo;</p>
+<h1 id="1-why-a-service-manager-exists">1. Why a service manager exists</h1>
+<h2 id="the-problem-before-systemd">The problem before systemd</h2>
+<p>A bare Linux kernel knows how to load drivers, mount the root
+filesystem, and execute exactly one program (PID 1). Everything else
+is somebody else&rsquo;s problem. Historically that &ldquo;somebody&rdquo; was
+<strong>SysV init</strong>: a small program that read scripts out of <code>/etc/init.d/</code>
+and ran them, in alphabetical order, one after another. Each script
+was a hand-rolled shell program responsible for forking the daemon
+into the background, writing a PID file, and pretending to know
+whether the service was actually up.</p>
+<p>That approach worked, but it accumulated three structural problems:</p>
+<ol>
+<li><strong>Serial startup is slow.</strong> Running 80 init scripts sequentially
+on a modern server wastes most of a multi-core CPU just waiting on
+I/O.</li>
+<li><strong>Dependencies live in the scripts themselves.</strong> If <code>nginx</code> needs
+the network up first, you encode that by hoping the alphabet
+cooperates (<code>S20network</code> before <code>S80nginx</code>) and by sprinkling
+<code>sleep</code> calls through the scripts. It is exactly as fragile as it
+sounds.</li>
+<li><strong>There is no shared concept of state.</strong> Each daemon decides for
+itself how to background, where to write its PID, how to log, how
+to restart on crash. The init system has no way to ask &ldquo;is sshd
+actually running?&rdquo; beyond &ldquo;did this script exit 0?&rdquo;</li>
+</ol>
+<p>systemd replaces all of that with a uniform supervisor that knows the
+difference between &ldquo;the start command returned&rdquo; and &ldquo;the service is
+ready,&rdquo; parallelises whatever it can, and keeps a structured log of
+everything that happens.</p>
+<h2 id="the-systemd-model-in-one-picture">The systemd model in one picture</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/service-management/fig1_systemd_architecture.png" alt="systemd architecture: PID 1, units, and targets" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Three layers, top to bottom:</p>
+<ul>
+<li><strong>PID 1</strong> — <code>systemd</code> itself, started by the kernel as the first
+user-space process. It never exits while the system is running.</li>
+<li><strong>Units</strong> — every manageable thing on the system is a <em>unit</em>: a
+daemon (<code>.service</code>), a socket waiting for connections (<code>.socket</code>), a
+scheduled job (<code>.timer</code>), a mount point (<code>.mount</code>), and so on.
+systemd reads unit files, tracks each unit&rsquo;s state, and drives it
+between states.</li>
+<li><strong>Targets</strong> — synchronisation points that group units together.
+<code>multi-user.target</code> is the classic &ldquo;the box is up and serving&rdquo;
+state; <code>graphical.target</code> adds a desktop on top of it. Targets
+replace the SysV <code>runlevel</code> concept with something more flexible
+(any unit can pull in any target).</li>
+</ul>
+<p>Concretely, when you type <code>systemctl restart nginx</code> you are asking
+PID 1 to drive the <code>nginx.service</code> unit through its state machine —
+stop the current process group, wait for it to exit, run <code>ExecStart</code>
+again, watch for readiness, update the cached state. Every other
+command in this article is a variation on that theme.</p>
+<h2 id="unit-types-worth-knowing">Unit types worth knowing</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Unit type</th>
+          <th>What it manages</th>
+          <th>Example</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>.service</code></td>
+          <td>A long-running process (the 90% case)</td>
+          <td><code>sshd.service</code>, <code>nginx.service</code></td>
+      </tr>
+      <tr>
+          <td><code>.socket</code></td>
+          <td>A listening socket; starts a service on first connection</td>
+          <td><code>sshd.socket</code>, <code>docker.socket</code></td>
+      </tr>
+      <tr>
+          <td><code>.target</code></td>
+          <td>A named group of units (a synchronisation point)</td>
+          <td><code>multi-user.target</code>, <code>network-online.target</code></td>
+      </tr>
+      <tr>
+          <td><code>.timer</code></td>
+          <td>A scheduled trigger for another unit (cron replacement)</td>
+          <td><code>logrotate.timer</code>, <code>apt-daily.timer</code></td>
+      </tr>
+      <tr>
+          <td><code>.mount</code></td>
+          <td>A filesystem mount, derived from <code>/etc/fstab</code> or a unit file</td>
+          <td><code>home.mount</code>, <code>var-log.mount</code></td>
+      </tr>
+      <tr>
+          <td><code>.path</code></td>
+          <td>Watches a file or directory; activates a unit on change</td>
+          <td><code>systemd-tmpfiles-clean.path</code></td>
+      </tr>
+      <tr>
+          <td><code>.slice</code></td>
+          <td>A cgroup container used to apply resource limits to a group of units</td>
+          <td><code>system.slice</code>, <code>user.slice</code></td>
+      </tr>
+  </tbody>
+</table>
+<p>For most of this article &ldquo;service&rdquo; means a <code>.service</code> unit. The other
+types share the same lifecycle and the same management commands, so
+once you understand services the rest comes for free.</p>
+<h1 id="2-systemctl-the-day-to-day-commands">2. systemctl: the day-to-day commands</h1>
+<p><code>systemctl</code> is your one entry point. It is worth memorising the
+common subcommands until they become muscle memory — you will type
+them dozens of times a day on a busy server.</p>
+<h2 id="start-stop-restart-reload">Start, stop, restart, reload</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl start  nginx       <span class="c1"># take effect now, do not persist across reboot</span>
+</span></span><span class="line"><span class="cl">sudo systemctl stop   nginx
+</span></span><span class="line"><span class="cl">sudo systemctl restart nginx      <span class="c1"># stop then start (drops connections)</span>
+</span></span><span class="line"><span class="cl">sudo systemctl reload  nginx      <span class="c1"># ask the daemon to re-read its config</span>
+</span></span><span class="line"><span class="cl">                                  <span class="c1"># (only works if the unit file defines ExecReload)</span>
+</span></span><span class="line"><span class="cl">sudo systemctl status  nginx      <span class="c1"># current state + last 10 log lines</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The split between <code>restart</code> and <code>reload</code> matters in production.
+<code>restart</code> always works but tears down whatever the service was doing
+mid-flight. <code>reload</code> is graceful — for nginx it spawns new workers
+with the new config and lets the old ones drain — but only the
+service author can implement it. <code>systemctl cat nginx.service</code> tells
+you whether <code>ExecReload=</code> is defined.</p>
+<h2 id="boot-time-enablement">Boot-time enablement</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span>  nginx      <span class="c1"># auto-start at next boot (creates a .wants/ symlink)</span>
+</span></span><span class="line"><span class="cl">sudo systemctl disable nginx      <span class="c1"># remove the symlink</span>
+</span></span><span class="line"><span class="cl">sudo systemctl is-enabled nginx   <span class="c1"># prints: enabled / disabled / static / masked</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span>  --now nginx   <span class="c1"># enable + start in one step</span>
+</span></span><span class="line"><span class="cl">sudo systemctl disable --now nginx   <span class="c1"># disable + stop in one step</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>enable</code> and <code>start</code> are independent. A freshly installed package is
+usually started but not enabled — it will run until the next reboot
+and then disappear. The <code>--now</code> flag fuses the two so you don&rsquo;t
+forget.</p>
+<p>A subtle one: <strong><code>mask</code></strong> is &ldquo;stronger than disable.&rdquo; It points the
+unit at <code>/dev/null</code>, which makes it impossible to start even by
+accident or as a dependency of something else. Use it when you really
+want a service gone (<code>sudo systemctl mask firewalld</code>); reverse with
+<code>unmask</code>.</p>
+<h2 id="listing-and-inspecting">Listing and inspecting</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl list-units --type<span class="o">=</span>service --state<span class="o">=</span>running     <span class="c1"># what&#39;s up right now</span>
+</span></span><span class="line"><span class="cl">systemctl list-units --type<span class="o">=</span>service --all               <span class="c1"># everything systemd knows about</span>
+</span></span><span class="line"><span class="cl">systemctl list-units --type<span class="o">=</span>service --state<span class="o">=</span>failed      <span class="c1"># the troubleshooting starting point</span>
+</span></span><span class="line"><span class="cl">systemctl list-unit-files --type<span class="o">=</span>service                <span class="c1"># all units on disk, enabled or not</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl cat   sshd.service                            <span class="c1"># the unit file (with all drop-ins)</span>
+</span></span><span class="line"><span class="cl">systemctl show  sshd.service                            <span class="c1"># every property systemd tracks</span>
+</span></span><span class="line"><span class="cl">systemctl list-dependencies sshd.service                <span class="c1"># tree of After=/Requires=/Wants=</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Two are particularly underused. <code>systemctl cat</code> is how you read a
+unit file <em>correctly</em> — it concatenates the base file in
+<code>/usr/lib/systemd/system/</code> with any drop-in overrides under
+<code>/etc/systemd/system/&lt;unit&gt;.d/</code>, which is exactly what systemd itself
+sees. And <code>systemctl list-dependencies</code> makes the ordering graph
+visible, which is invaluable when something refuses to start because
+something else hasn&rsquo;t.</p>
+<h1 id="3-the-service-lifecycle">3. The service lifecycle</h1>
+<p>Once you have started a service, it lives inside a small state
+machine. Every line <code>systemctl status</code> prints is just a label on one
+of these states.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/service-management/fig2_service_lifecycle.png" alt="Service lifecycle: states reported by systemctl status" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>inactive</strong> — the unit exists but no process is running for it.</li>
+<li><strong>activating</strong> — <code>ExecStart=</code> is in flight. For <code>Type=simple</code> this
+state is essentially instantaneous; for <code>Type=notify</code> the service
+stays here until it calls <code>sd_notify(READY=1)</code>.</li>
+<li><strong>active</strong> — the service is running. For most services this means
+the main process is alive; for <code>oneshot</code> units it means the command
+succeeded.</li>
+<li><strong>deactivating</strong> — <code>ExecStop=</code> is in flight, or systemd is sending
+signals (SIGTERM, then SIGKILL after <code>TimeoutStopSec</code>).</li>
+<li><strong>failed</strong> — the service exited non-zero, was killed by a signal,
+or its watchdog tripped. The unit stays in this state until you
+restart or reset it (<code>systemctl reset-failed</code>).</li>
+</ul>
+<p>The crucial transition is the dashed loop on the diagram:
+<code>failed → activating</code>. With <code>Restart=on-failure</code> (or <code>Restart=always</code>)
+systemd treats <code>failed</code> as transient, waits <code>RestartSec</code> seconds, and
+runs <code>ExecStart=</code> again. This is the entire reason you don&rsquo;t need
+something like Monit on top of systemd — the supervisor is already
+there.</p>
+<h1 id="4-writing-your-own-service">4. Writing your own service</h1>
+<p>The path from &ldquo;I have a script&rdquo; to &ldquo;it survives reboots and crashes&rdquo;
+is a single unit file. Suppose you have an HTTP server at
+<code>/usr/local/bin/myapp</code> and you want it to behave like a real service.</p>
+<h2 id="a-minimal-unit-file">A minimal unit file</h2>
+<p>Create <code>/etc/systemd/system/myapp.service</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">My Custom Application</span>
+</span></span><span class="line"><span class="cl"><span class="na">After</span><span class="o">=</span><span class="s">network-online.target</span>
+</span></span><span class="line"><span class="cl"><span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Service]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Type</span><span class="o">=</span><span class="s">simple</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/myapp --port 8080</span>
+</span></span><span class="line"><span class="cl"><span class="na">Restart</span><span class="o">=</span><span class="s">on-failure</span>
+</span></span><span class="line"><span class="cl"><span class="na">RestartSec</span><span class="o">=</span><span class="s">5</span>
+</span></span><span class="line"><span class="cl"><span class="na">User</span><span class="o">=</span><span class="s">myapp</span>
+</span></span><span class="line"><span class="cl"><span class="na">Group</span><span class="o">=</span><span class="s">myapp</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Install]</span>
+</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Then make systemd notice it, start it, and enable it:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl daemon-reload          <span class="c1"># re-read unit files from disk</span>
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now myapp     <span class="c1"># start now and on every boot</span>
+</span></span><span class="line"><span class="cl">sudo systemctl status myapp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>That&rsquo;s it. The service now restarts automatically on crash, comes back
+after reboot, runs as a non-root user, and its stdout/stderr land in
+the journal where you can query them with <code>journalctl -u myapp</code>.</p>
+<h2 id="anatomy-of-the-unit-file">Anatomy of the unit file</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/service-management/fig3_unit_file_anatomy.png" alt="Anatomy of a .service unit file" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The file has three sections, and each one answers a different
+question.</p>
+<h3 id="unit--what-is-this-thing-and-what-depends-on-what"><code>[Unit]</code> — what is this thing and what depends on what</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">My Custom Application      # one-line human description</span>
+</span></span><span class="line"><span class="cl"><span class="na">Documentation</span><span class="o">=</span><span class="s">https://example.com/docs  # shown in `systemctl status`</span>
+</span></span><span class="line"><span class="cl"><span class="na">After</span><span class="o">=</span><span class="s">network-online.target             # ordering: start AFTER this is up</span>
+</span></span><span class="line"><span class="cl"><span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target             # weak dependency: pull it in, don&#39;t fail if it dies</span>
+</span></span><span class="line"><span class="cl"><span class="na">Requires</span><span class="o">=</span><span class="s">postgresql.service             # strong dependency: stop us if it stops</span>
+</span></span><span class="line"><span class="cl"><span class="na">ConditionPathExists</span><span class="o">=</span><span class="s">/etc/myapp.conf     # skip activation if the path is missing</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The pair to understand here is <strong>ordering</strong> vs <strong>requirement</strong>.
+<code>After=</code> and <code>Before=</code> only say <em>when</em> — they don&rsquo;t pull anything in.
+<code>Wants=</code> and <code>Requires=</code> only say <em>what</em> needs to also be running —
+they don&rsquo;t say in which order. You almost always want both:
+<code>Wants=network-online.target</code> <em>and</em> <code>After=network-online.target</code>,
+otherwise systemd may correctly start your service &ldquo;after&rdquo; a target
+that wasn&rsquo;t requested and therefore was never started.</p>
+<h3 id="service--how-to-actually-run-the-process"><code>[Service]</code> — how to actually run the process</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Service]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Type</span><span class="o">=</span><span class="s">simple                                    # see the table below</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/myapp --port 8080     # MUST be an absolute path</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecReload</span><span class="o">=</span><span class="s">/bin/kill -HUP $MAINPID             # optional; enables `systemctl reload`</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStop</span><span class="o">=</span><span class="s">/usr/local/bin/myapp --shutdown       # optional; default is SIGTERM</span>
+</span></span><span class="line"><span class="cl"><span class="na">Restart</span><span class="o">=</span><span class="s">on-failure                             # no | on-failure | on-abnormal | always</span>
+</span></span><span class="line"><span class="cl"><span class="na">RestartSec</span><span class="o">=</span><span class="s">5                                   # delay before restart (avoids crash loops)</span>
+</span></span><span class="line"><span class="cl"><span class="na">User</span><span class="o">=</span><span class="s">myapp                                     # never run network services as root</span>
+</span></span><span class="line"><span class="cl"><span class="na">Group</span><span class="o">=</span><span class="s">myapp</span>
+</span></span><span class="line"><span class="cl"><span class="na">WorkingDirectory</span><span class="o">=</span><span class="s">/var/lib/myapp</span>
+</span></span><span class="line"><span class="cl"><span class="na">Environment</span><span class="o">=</span><span class="s">LOG_LEVEL=info</span>
+</span></span><span class="line"><span class="cl"><span class="na">EnvironmentFile</span><span class="o">=</span><span class="s">/etc/myapp/myapp.env           # one KEY=VALUE per line</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># resource limits via cgroups</span>
+</span></span><span class="line"><span class="cl"><span class="na">MemoryMax</span><span class="o">=</span><span class="s">512M</span>
+</span></span><span class="line"><span class="cl"><span class="na">CPUQuota</span><span class="o">=</span><span class="s">50%</span>
+</span></span><span class="line"><span class="cl"><span class="na">TasksMax</span><span class="o">=</span><span class="s">4096</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># hardening (cheap, high value)</span>
+</span></span><span class="line"><span class="cl"><span class="na">NoNewPrivileges</span><span class="o">=</span><span class="s">true</span>
+</span></span><span class="line"><span class="cl"><span class="na">ProtectSystem</span><span class="o">=</span><span class="s">strict</span>
+</span></span><span class="line"><span class="cl"><span class="na">ProtectHome</span><span class="o">=</span><span class="s">true</span>
+</span></span><span class="line"><span class="cl"><span class="na">PrivateTmp</span><span class="o">=</span><span class="s">true</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The <code>Type=</code> knob is worth spelling out:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Type</th>
+          <th>When systemd considers the service &ldquo;started&rdquo;</th>
+          <th>Use it for</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>simple</code> (default)</td>
+          <td>Immediately after <code>ExecStart=</code> runs.</td>
+          <td>Foreground processes — most modern daemons, scripts, anything you&rsquo;d run in a container.</td>
+      </tr>
+      <tr>
+          <td><code>exec</code></td>
+          <td>After the binary has been <code>exec()</code>&rsquo;d but before any code runs.</td>
+          <td>Like <code>simple</code>, slightly stricter readiness.</td>
+      </tr>
+      <tr>
+          <td><code>forking</code></td>
+          <td>After the parent process exits and a child remains.</td>
+          <td>Old-school daemons that double-fork.</td>
+      </tr>
+      <tr>
+          <td><code>oneshot</code></td>
+          <td>When <code>ExecStart=</code> returns 0. The unit can be <code>active</code> without any process running.</td>
+          <td>Setup tasks, mount helpers, idempotent scripts. Often paired with <code>RemainAfterExit=yes</code>.</td>
+      </tr>
+      <tr>
+          <td><code>notify</code></td>
+          <td>When the service calls <code>sd_notify(READY=1)</code>.</td>
+          <td>Anything that wants accurate readiness — DBs, schedulers, anything else that depends on it.</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="install--when-to-enable-it"><code>[Install]</code> — when to enable it</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Install]</span>
+</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Alias=myapp-alt.service   (optional second name)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>[Install]</code> is read <em>only</em> by <code>systemctl enable</code> / <code>disable</code>. It tells
+systemd which target should pull this unit in when it&rsquo;s enabled — for
+99% of server services that&rsquo;s <code>multi-user.target</code>. Without an
+<code>[Install]</code> section the unit is &ldquo;static&rdquo; and <code>enable</code> will refuse to
+do anything.</p>
+<h2 id="editing-units-the-right-way">Editing units the right way</h2>
+<p>Distribution packages ship unit files under <code>/usr/lib/systemd/system/</code>.
+<strong>Don&rsquo;t edit those.</strong> Instead, create a drop-in:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl edit nginx.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>This opens an empty file at
+<code>/etc/systemd/system/nginx.service.d/override.conf</code>. Anything you put
+there is merged on top of the vendor unit. To completely replace the
+vendor unit (rare), use <code>systemctl edit --full</code>. After any edit:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl daemon-reload          <span class="c1"># pick up the file change</span>
+</span></span><span class="line"><span class="cl">sudo systemctl restart nginx          <span class="c1"># apply it to the running process</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>daemon-reload</code> only re-reads unit files; it does not restart anything.
+Forgetting it is the single most common reason &ldquo;my edit had no effect.&rdquo;</p>
+<h1 id="5-journalctl-the-logs-are-already-there">5. journalctl: the logs are already there</h1>
+<p>systemd ships with <strong>journald</strong>, a logging daemon that captures
+stdout/stderr from every service plus everything written to syslog.
+Nothing extra to configure — your service prints to stdout, the
+journal records it.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/service-management/fig4_journalctl_filters.png" alt="journalctl filters: one journal, many filters" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="the-filters-you-need">The filters you need</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">journalctl -u nginx                        <span class="c1"># logs of one unit</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx -f                     <span class="c1"># follow new entries (like tail -f)</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx -n <span class="m">100</span>                 <span class="c1"># last 100 lines</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx --since <span class="s2">&#34;10 min ago&#34;</span>   <span class="c1"># human time expressions work</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx --since <span class="s2">&#34;2025-02-01&#34;</span> --until <span class="s2">&#34;2025-02-02&#34;</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx -p err                 <span class="c1"># priority err and worse</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx -o json-pretty         <span class="c1"># full structured record</span>
+</span></span><span class="line"><span class="cl">journalctl -b                              <span class="c1"># this boot only</span>
+</span></span><span class="line"><span class="cl">journalctl -b -1                           <span class="c1"># the previous boot</span>
+</span></span><span class="line"><span class="cl">journalctl -k                              <span class="c1"># kernel messages only (dmesg-equivalent)</span>
+</span></span><span class="line"><span class="cl">journalctl <span class="nv">_PID</span><span class="o">=</span><span class="m">1234</span>                       <span class="c1"># records from a specific PID</span>
+</span></span><span class="line"><span class="cl">journalctl <span class="nv">_UID</span><span class="o">=</span><span class="m">1000</span> <span class="nv">_COMM</span><span class="o">=</span>python3         <span class="c1"># combine arbitrary fields</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Two of these are load-bearing in incident response. <code>journalctl -u &lt;svc&gt; -p err -b</code> (&ldquo;errors from this unit, this boot&rdquo;) is usually the
+first command I run when investigating a failure. <code>journalctl -b -1</code>
+is how you find out what happened just before a reboot you didn&rsquo;t
+expect — those messages would otherwise be gone.</p>
+<p>The priority levels are the syslog ones, numbered 0 (most severe) to
+7 (debug): <code>emerg</code>, <code>alert</code>, <code>crit</code>, <code>err</code>, <code>warning</code>, <code>notice</code>,
+<code>info</code>, <code>debug</code>. <code>-p err</code> means &ldquo;level <code>err</code> and worse&rdquo; — i.e.
+levels 0 through 3.</p>
+<h2 id="persisting-the-journal-across-reboots">Persisting the journal across reboots</h2>
+<p>By default many distributions store the journal in <code>/run/log/journal/</code>
+— in a <code>tmpfs</code>, which is wiped on reboot. That is fine until you
+need the logs from before the crash. Make it persistent:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir -p /var/log/journal
+</span></span><span class="line"><span class="cl">sudo systemd-tmpfiles --create --prefix /var/log/journal
+</span></span><span class="line"><span class="cl">sudo systemctl restart systemd-journald
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>You can also cap the disk it uses by editing
+<code>/etc/systemd/journald.conf</code> (<code>SystemMaxUse=2G</code>, <code>MaxRetentionSec=30day</code>,
+etc.) and reloading <code>systemd-journald</code>.</p>
+<h2 id="cleaning-up">Cleaning up</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo journalctl --disk-usage                 <span class="c1"># how much space is the journal eating</span>
+</span></span><span class="line"><span class="cl">sudo journalctl --vacuum-time<span class="o">=</span>7d             <span class="c1"># keep last 7 days</span>
+</span></span><span class="line"><span class="cl">sudo journalctl --vacuum-size<span class="o">=</span>1G             <span class="c1"># cap at 1 GiB</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="6-timers-the-modern-cron">6. Timers: the modern cron</h1>
+<p><code>cron</code> still works on every Linux system. But on a systemd box,
+<code>.timer</code> units are usually a better choice — they share the journal
+with everything else, run as proper units (so they get restart
+policies, resource limits, dependencies) and they survive missed
+runs (<code>Persistent=true</code>).</p>
+<p>A timer is always a pair: a <code>.timer</code> that fires on a schedule, and a
+<code>.service</code> that does the work.</p>
+<p><code>/etc/systemd/system/backup.service</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">Nightly database backup</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Service]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Type</span><span class="o">=</span><span class="s">oneshot</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/backup.sh</span>
+</span></span><span class="line"><span class="cl"><span class="na">User</span><span class="o">=</span><span class="s">backup</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>/etc/systemd/system/backup.timer</code>:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">Run database backup nightly</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Timer]</span>
+</span></span><span class="line"><span class="cl"><span class="na">OnCalendar</span><span class="o">=</span><span class="s">*-*-* 02:30:00       # every day at 02:30 local time</span>
+</span></span><span class="line"><span class="cl"><span class="na">RandomizedDelaySec</span><span class="o">=</span><span class="s">10min        # smear across a window so a fleet doesn&#39;t stampede</span>
+</span></span><span class="line"><span class="cl"><span class="na">Persistent</span><span class="o">=</span><span class="s">true                 # run on next boot if we missed the slot (laptop / VM)</span>
+</span></span><span class="line"><span class="cl"><span class="na">Unit</span><span class="o">=</span><span class="s">backup.service             # which unit to trigger (defaults to same name)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Install]</span>
+</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">timers.target</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Enable the <em>timer</em>, not the service:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl daemon-reload
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now backup.timer
+</span></span><span class="line"><span class="cl">systemctl list-timers --all     <span class="c1"># when does each timer next fire?</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>OnCalendar=</code> syntax is rich — <code>Mon..Fri 09:00</code>, <code>hourly</code>, <code>weekly</code>,
+<code>*-*-1 04:00:00</code> for the first of every month, and so on.
+<code>systemd-analyze calendar 'Mon..Fri 09:00'</code> will tell you exactly
+when an expression resolves to.</p>
+<p>Compared to cron, the wins are: failures show up in
+<code>systemctl --failed</code> and in the journal next to the rest of the
+service&rsquo;s logs; the job inherits all of <code>[Service]</code>&rsquo;s
+hardening/limit knobs; and <code>Persistent=true</code> solves the laptop
+problem (the cron job that &ldquo;should have run at 03:00&rdquo; while the
+laptop was asleep simply doesn&rsquo;t, ever).</p>
+<h1 id="7-the-boot-timeline">7. The boot timeline</h1>
+<p>Knowing roughly what happens between power-on and your login prompt
+makes &ldquo;why did boot take 90 seconds&rdquo; tractable.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/service-management/fig5_boot_timeline.png" alt="Boot timeline: firmware to multi-user.target" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ol>
+<li><strong>Firmware (BIOS/UEFI)</strong> runs POST and picks a boot device.</li>
+<li><strong>Bootloader</strong> (typically GRUB) loads the kernel and the
+<code>initramfs</code> into memory, hands control to the kernel.</li>
+<li><strong>Kernel</strong> initialises hardware, mounts the root filesystem
+read-only, then starts <code>/sbin/init</code> — which is a symlink to
+systemd. From here on, PID 1 is in charge.</li>
+<li><strong>systemd</strong> parses unit files and starts walking the dependency
+graph, in parallel wherever it can.</li>
+<li><strong>Targets</strong> activate in order: <code>sysinit.target</code> (early mounts,
+swap, udev) → <code>basic.target</code> (sockets, timers, paths armed) →
+<code>multi-user.target</code> (every enabled service is up, login prompt
+ready). On a desktop, <code>graphical.target</code> follows.</li>
+</ol>
+<p>Three diagnostic commands earn their keep here:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemd-analyze                                  <span class="c1"># total boot time, broken into kernel / userspace</span>
+</span></span><span class="line"><span class="cl">systemd-analyze blame                            <span class="c1"># services sorted by activation time</span>
+</span></span><span class="line"><span class="cl">systemd-analyze critical-chain                   <span class="c1"># the longest dependency chain (the one that matters)</span>
+</span></span><span class="line"><span class="cl">systemd-analyze critical-chain nginx.service     <span class="c1"># the chain leading to one specific unit</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>blame</code> is misleading on its own — a service can take 5 seconds to
+start without delaying boot at all, if nothing was waiting on it.
+<code>critical-chain</code> is what tells you which slow service is actually on
+the critical path. Optimise that one first.</p>
+<h1 id="8-common-services-in-60-seconds">8. Common services in 60 seconds</h1>
+<p>This section is a reference card for the four services you will touch
+most often.</p>
+<h2 id="time-synchronisation">Time synchronisation</h2>
+<p>Time skew breaks everything sooner or later — TLS handshakes, log
+correlation, Kerberos, distributed-database replication. On a
+systemd box the simplest answer is the built-in client:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo timedatectl set-ntp <span class="nb">true</span>
+</span></span><span class="line"><span class="cl">sudo timedatectl set-timezone Asia/Shanghai
+</span></span><span class="line"><span class="cl">timedatectl                                <span class="c1"># current state, including &#34;System clock synchronized: yes&#34;</span>
+</span></span><span class="line"><span class="cl">timedatectl list-timezones <span class="p">|</span> grep Shanghai
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>timedatectl</code> enables <code>systemd-timesyncd</code>, which is a small SNTP
+client adequate for clients and most servers. If you need a real NTP
+implementation (high-accuracy clusters, serving time to other hosts),
+install <strong>chrony</strong> and disable timesyncd.</p>
+<p>Avoid <code>ntpdate</code>. It steps the clock instantly, which can break
+anything that assumed time only moves forwards (cron, journald
+ordering, replication). Real NTP clients slew the clock smoothly.</p>
+<h2 id="firewall-firewalld">Firewall (firewalld)</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now firewalld
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --get-default-zone
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --list-all                       <span class="c1"># what&#39;s open right now</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># add and persist a rule</span>
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-service<span class="o">=</span>http
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-port<span class="o">=</span>8080/tcp
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --reload                         <span class="c1"># without --reload, --permanent rules don&#39;t apply</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Without <code>--permanent</code> the rule lasts until the next reload; with
+<code>--permanent</code> but without <code>--reload</code> it lasts until the next reload
+but doesn&rsquo;t apply now. In practice you use both.</p>
+<p>Zones (<code>public</code>, <code>work</code>, <code>home</code>, <code>internal</code>, <code>dmz</code>, <code>trusted</code>,
+<code>drop</code>, <code>block</code>) are firewalld&rsquo;s way of saying &ldquo;depending on which
+network this interface is on, apply this ruleset.&rdquo; On a single-homed
+server you usually leave everything in <code>public</code> and just open ports
+there.</p>
+<h2 id="ssh-hardening">SSH hardening</h2>
+<p>The defaults in <code>/etc/ssh/sshd_config</code> are conservative on Debian and
+Ubuntu, less so elsewhere. The high-value changes:</p>
+<pre tabindex="0"><code>Port 22                          # change only if you understand the operational cost
+PermitRootLogin no               # log in as a user, then sudo
+PasswordAuthentication no        # keys only — eliminates the entire brute-force category
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+MaxAuthTries 3
+ClientAliveInterval 300
+ClientAliveCountMax 2
+</code></pre><p>Always validate before reloading — a bad config file can lock you out
+of a remote machine:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo sshd -t                            <span class="c1"># parse and exit</span>
+</span></span><span class="line"><span class="cl">sudo systemctl reload sshd              <span class="c1"># apply without dropping existing sessions</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Add <code>fail2ban</code> if your SSH port is on the public internet and you
+want IP-level rate limiting; otherwise key-only auth is already
+enough to make brute force pointless.</p>
+<h2 id="cron-when-timers-arent-an-option">Cron (when timers aren&rsquo;t an option)</h2>
+<p>If you&rsquo;re on a system that isn&rsquo;t fully systemd, or you&rsquo;re maintaining
+existing cron jobs:</p>
+<pre tabindex="0"><code># m  h  dom  mon  dow   command
+30 1   *    *    *    /usr/local/bin/backup.sh
+*/10 *  *    *    *    /usr/local/bin/health-check.sh
+0  3   *    *    0    /usr/local/bin/weekly-cleanup.sh
+</code></pre><p>Edit per-user crontabs with <code>crontab -e</code>, list with <code>crontab -l</code>.
+Always use absolute paths inside the command — cron runs with a
+near-empty <code>PATH</code>. Capture both streams (<code>&gt;&gt; /var/log/myjob.log 2&gt;&amp;1</code>)
+or you&rsquo;ll never know why the job stopped working.</p>
+<h1 id="9-troubleshooting-playbook-the-service-wont-start">9. Troubleshooting playbook: the service won&rsquo;t start</h1>
+<p>When a service refuses to come up, work the list in order. Most of
+the time you find the answer in the first two steps.</p>
+<p><strong>1. Read what systemctl is telling you.</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl status myapp.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Focus on <code>Active:</code> (the state and how long), <code>Main PID:</code> (zero means
+the process is gone), the <code>Process:</code> line (what command actually ran
+and what it exited with), and the last 10 log lines reproduced at the
+bottom. 80% of the time the answer is right there.</p>
+<p><strong>2. Get the full log for this boot.</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo journalctl -u myapp.service -b -p err -xe
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>-x</code> adds the explanation catalog when systemd has one; <code>-e</code> jumps to
+the end. If the service was restarted by <code>Restart=on-failure</code>, scroll
+back through the previous attempts — they often differ.</p>
+<p><strong>3. Validate the config before blaming the service.</strong></p>
+<p>Most daemons ship a config-check mode:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo nginx -t
+</span></span><span class="line"><span class="cl">sudo apachectl configtest
+</span></span><span class="line"><span class="cl">sudo sshd -t
+</span></span><span class="line"><span class="cl">sudo named-checkconf
+</span></span><span class="line"><span class="cl">sudo postfix check
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>For a custom service, run the <code>ExecStart=</code> command by hand as the
+target user:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo -u myapp /usr/local/bin/myapp --port <span class="m">8080</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>4. Look for port conflicts.</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ss -lntp <span class="p">|</span> grep <span class="m">8080</span>
+</span></span><span class="line"><span class="cl">sudo lsof -i :8080
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A common failure mode: the service crashed earlier, was restarted,
+and the new process can&rsquo;t bind because the old one is somehow still
+holding the port (or because something completely different took it).</p>
+<p><strong>5. Look for permission and path problems.</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls -ld /var/lib/myapp /var/log/myapp
+</span></span><span class="line"><span class="cl">namei -l /var/lib/myapp/data.db        <span class="c1"># walks every directory in the path and shows who owns it</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If the service runs as <code>myapp</code> but its working directory is owned by
+root with mode 700, it will fail to start in a way that often looks
+mysterious. <code>namei -l</code> makes the search-permission chain visible.</p>
+<p><strong>6. Consider the security layer.</strong></p>
+<p>On RHEL-family systems SELinux can block a service even when
+permissions look fine; on Ubuntu, AppArmor can do the same.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># RHEL/CentOS/Rocky</span>
+</span></span><span class="line"><span class="cl">sudo ausearch -m avc -ts recent          <span class="c1"># AVC denials in the audit log</span>
+</span></span><span class="line"><span class="cl">sudo setenforce <span class="m">0</span>                        <span class="c1"># temporarily switch to permissive (test only!)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Ubuntu/Debian</span>
+</span></span><span class="line"><span class="cl">sudo journalctl -k <span class="p">|</span> grep -i apparmor
+</span></span><span class="line"><span class="cl">sudo aa-status
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If switching to permissive makes the problem disappear, the fix is a
+proper SELinux policy or AppArmor profile, not leaving enforcement
+off.</p>
+<p><strong>7. Walk the dependency graph.</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl list-dependencies myapp.service
+</span></span><span class="line"><span class="cl">sudo systemctl --failed
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>If something the unit <code>Requires=</code> is itself failed, the symptom moves
+upstream. Fix that first.</p>
+<h1 id="10-where-to-go-next">10. Where to go next</h1>
+<p>You now have, I hope, a working model: PID 1 supervises units, units
+move through a state machine, unit files describe the supervision
+contract, journald records everything, and <code>systemctl</code> /
+<code>journalctl</code> are the two windows you look through. From here:</p>
+<ul>
+<li><strong><code>man systemd.service</code></strong> and <strong><code>man systemd.unit</code></strong> are the
+authoritative reference — short, dense, and worth reading once.</li>
+<li><strong><code>man systemd.exec</code></strong> documents every sandboxing/limit knob
+available in <code>[Service]</code>. Most of them are free hardening.</li>
+<li><strong>freedesktop.org/wiki/Software/systemd/</strong> — official docs and the
+excellent &ldquo;systemd for Administrators&rdquo; series by Lennart Poettering.</li>
+<li><strong><code>systemd-analyze security &lt;unit&gt;</code></strong> scores each running service
+on its sandboxing posture and tells you which knobs would tighten
+it.</li>
+</ul>
+<p>The next articles in this series cover <strong>package management</strong>
+(installing the daemons you&rsquo;ll then turn into services) and
+<strong>process and resource management</strong> (looking at what those services
+are actually doing once they&rsquo;re up). The mental model from this
+article — services as supervised units, with explicit dependencies
+and a structured log — carries straight through.</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/linux/user-management/"><span class="title">Linux User Management: Users, Groups, sudo, and Security</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/linux/process-resource-management/"><span class="title">Linux Process and Resource Management: From `top` to cgroups</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-problem-before-systemd">The problem before systemd</a></li>
+    <li><a href="#the-systemd-model-in-one-picture">The systemd model in one picture</a></li>
+    <li><a href="#unit-types-worth-knowing">Unit types worth knowing</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#start-stop-restart-reload">Start, stop, restart, reload</a></li>
+    <li><a href="#boot-time-enablement">Boot-time enablement</a></li>
+    <li><a href="#listing-and-inspecting">Listing and inspecting</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#a-minimal-unit-file">A minimal unit file</a></li>
+    <li><a href="#anatomy-of-the-unit-file">Anatomy of the unit file</a>
+      <ul>
+        <li><a href="#unit--what-is-this-thing-and-what-depends-on-what"><code>[Unit]</code> — what is this thing and what depends on what</a></li>
+        <li><a href="#service--how-to-actually-run-the-process"><code>[Service]</code> — how to actually run the process</a></li>
+        <li><a href="#install--when-to-enable-it"><code>[Install]</code> — when to enable it</a></li>
+      </ul>
+    </li>
+    <li><a href="#editing-units-the-right-way">Editing units the right way</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#the-filters-you-need">The filters you need</a></li>
+    <li><a href="#persisting-the-journal-across-reboots">Persisting the journal across reboots</a></li>
+    <li><a href="#cleaning-up">Cleaning up</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#time-synchronisation">Time synchronisation</a></li>
+    <li><a href="#firewall-firewalld">Firewall (firewalld)</a></li>
+    <li><a href="#ssh-hardening">SSH hardening</a></li>
+    <li><a href="#cron-when-timers-arent-an-option">Cron (when timers aren&rsquo;t an option)</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Linux</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>19 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4000</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

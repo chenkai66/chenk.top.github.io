@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>迁移学习（六）：多任务学习 · Chen Kai Blog</title>
+<meta name="description" content="多任务学习完全指南：硬/软参数共享、梯度冲突与 PCGrad/GradNorm/CAGrad、辅助任务设计，以及完整的多任务框架实现。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="迁移学习（六）：多任务学习">
+<meta property="og:description" content="多任务学习完全指南：硬/软参数共享、梯度冲突与 PCGrad/GradNorm/CAGrad、辅助任务设计，以及完整的多任务框架实现。">
+<meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">迁移学习</a>
+         · Chapter 6
+      </div>
+      <h1>迁移学习（六）：多任务学习</h1>
+      <p class="deck">多任务学习完全指南：硬/软参数共享、梯度冲突与 PCGrad/GradNorm/CAGrad、辅助任务设计，以及完整的多任务框架实现。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-05-31">May 31, 2025</time> · 15 min read · 7500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/gradnorm/" class="tag">#GradNorm</a><a href="/zh/tags/%E5%8F%82%E6%95%B0%E5%85%B1%E4%BA%AB/" class="tag">#参数共享</a><a href="/zh/tags/pcgrad/" class="tag">#PCGrad</a><a href="/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/" class="tag">#迁移学习</a><a href="/zh/tags/%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/" class="tag">#多任务学习</a><a href="/zh/tags/%E6%A2%AF%E5%BA%A6%E5%86%B2%E7%AA%81/" class="tag">#梯度冲突</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>一辆自动驾驶汽车透过同一个摄像头要同时干三件事：检测车辆和行人、分割车道和可行驶区域、估计每个像素的距离。你完全可以训练三个独立的网络。代价是参数量乘以三、推理时多跑两次前向、并且白白浪费一个最显然的事实——这三个任务都需要同样的底层特征（边缘、表面、遮挡线索）。</p>
+<p>多任务学习（Multi-Task Learning，MTL）走的是另一条路：一个共享主干、每个输出一个任务头，全部联合训练。做对了，参数减少 60% <strong>且</strong>每个任务的精度都提升，因为各任务之间互相起到了正则化作用；做砸了，三个任务里有两个反而退化，你会花一个礼拜苦想到底哪里出了问题。</p>
+<p>本文要讲的是怎么&quot;做对&quot;。难点不在架构——架构就是一张图。真正的难点是：(1) 交叉熵损失和 L2 深度损失之间几十倍上百倍的尺度差；(2) 两任务方向不一致时占到 30-50% 比例的梯度冲突；(3) 怎么判断哪些任务<strong>该不该</strong>放进同一个模型。我们会过一遍架构（硬共享 vs 软共享、Cross-Stitch、MTAN），过一遍能在真实损失曲面上活下来的优化器（不确定性加权、GradNorm、PCGrad、CAGrad），最后给一个把这些方法都串起来的可运行 PyTorch 框架。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>多任务学习为什么有效——正则化、数据增强和效率三个角度</li>
+<li>硬参数共享 vs 软参数共享，以及 Cross-Stitch / MTAN 的中间地带</li>
+<li><strong>动手做之前</strong>怎么先量化任务相关性</li>
+<li>什么是梯度冲突、出现得有多频繁、PCGrad 和 CAGrad 怎么消除它</li>
+<li>用不确定性加权（Kendall et al.）和 GradNorm 平衡损失尺度</li>
+<li>三种平衡方法的完整 PyTorch 实现</li>
+</ul>
+<p><strong>前置知识：</strong> 本系列前两篇，以及 PyTorch 训练模型的基础经验。</p>
+<hr>
+<h2 id="为什么要做多任务学习">为什么要做多任务学习</h2>
+<h3 id="共享结构需要相同特征的任务">共享结构：需要相同特征的任务</h3>
+<p>多任务学习最有说服力的场景，是几个任务都依赖同一套底层表示：</p>
+<table>
+  <thead>
+      <tr>
+          <th>任务</th>
+          <th>特征需要编码什么</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>目标检测</td>
+          <td>空间布局、物体边界、纹理</td>
+      </tr>
+      <tr>
+          <td>语义分割</td>
+          <td>空间布局、物体边界、纹理</td>
+      </tr>
+      <tr>
+          <td>深度估计</td>
+          <td>空间布局、纹理、几何线索</td>
+      </tr>
+  </tbody>
+</table>
+<p>三个任务，一套底层特征。三个独立编码器意味着每个都要从零开始学边缘、表面和形状先验。共享编码器则强迫这套特征<strong>只学一次</strong>，并且来自三个任务的监督信号都在同一个方向推它。</p>
+<h3 id="正则化视角">正则化视角</h3>
+<p>设有 $T$ 个任务，损失为 $\mathcal{L}_1, \ldots, \mathcal{L}_T$，共享参数 $\theta_{\text{sh}}$，任务专属参数 $\theta_t$，联合目标为：</p>
+$$
+\mathcal{L}_{\text{MTL}} \;=\; \sum_{t=1}^{T} w_t \cdot \mathcal{L}_t(\theta_{\text{sh}}, \theta_t).
+$$<p>共享参数 $\theta_{\text{sh}}$ 必须落在&quot;对每个任务都好&quot;的区域的<strong>交集</strong>里，而这个交集比任何单任务的可行区都小得多——这就相当于给 $\theta_{\text{sh}}$ 加了一个隐式先验。Caruana 1997 年的开山之作就用实验展示了这种正则化效应：模型对任何单一任务的噪声都更难过拟合。</p>
+<h3 id="数据增强视角">数据增强视角</h3>
+<p>当主任务数据不足时，相关的辅助任务可以通过共享参数为主任务提供额外的监督信号。</p>
+<p><strong>举个具体的例子：</strong> 低资源机器翻译（英文→斯瓦希里语，约 10 万句对）。引入英文→法语作为辅助任务（约 1000 万句对）。共享的英语编码器突然多看了 100 倍的英文句子。斯瓦希里语这一侧没有直接受益，但它依赖的编码器变好了——文献中报告的低资源任务 BLEU 提升通常在 5-20%。</p>
+<h3 id="计算效率">计算效率</h3>
+<table>
+  <thead>
+      <tr>
+          <th>方案</th>
+          <th>参数量</th>
+          <th>前向次数</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>三个独立 ResNet-50</td>
+          <td>75 M</td>
+          <td>3</td>
+      </tr>
+      <tr>
+          <td>一个共享编码器 + 三个轻量头部</td>
+          <td>31 M</td>
+          <td>1</td>
+      </tr>
+  </tbody>
+</table>
+<p>参数减少约 60%、单次前向就能拿到三个预测——这正是图 6 右边所展示的。对实时系统（自动驾驶、AR、端侧推理）来说，这往往是上多任务的<strong>首要</strong>理由。</p>
+<h3 id="风险负迁移">风险：负迁移</h3>
+<p>多任务学习不是免费午餐。当任务真正需要不同的特征时，联合训练会比分开训练更差。经典反例：</p>
+<ul>
+<li><strong>人脸识别</strong>需要面部内部细粒度的纹理细节。</li>
+<li><strong>场景分类</strong>需要全局粗粒度的布局。</li>
+</ul>
+<p>强行让两者共享同一个主干，结果是这个主干两边都干得平庸。解决办法不是放弃 MTL，而是：(a) 训练前先量化冲突（下一节），(b) 用软共享让两个任务可以分开走，或者 (c) 用梯度手术阻止一个任务主动去拖另一个的后腿。</p>
+<hr>
+<h2 id="参数共享策略">参数共享策略</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/fig1_hard_vs_soft_sharing.png" alt="硬参数共享与软参数共享" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="硬参数共享">硬参数共享</h3>
+<p>最常见、也仍然是最强的基线。所有任务共享同一套主干，每个任务带一个自己的头：</p>
+$$
+\text{features} \;=\; G_{\text{shared}}(x), \qquad
+\hat{y}_t \;=\; G_t^{\text{head}}(\text{features}) \quad \forall\, t.
+$$<p><strong>经验设计原则：</strong></p>
+<ul>
+<li>网络前 70-80% 的层共享（学通用特征）。</li>
+<li>后 20-30% 留给任务（每个头 1-3 层即可）。</li>
+<li>头部要给得够宽，让任务专属模式有地方放。</li>
+</ul>
+<p>硬共享拥有最强的正则化、最少的参数，而且基本不会配错。<strong>永远先从这里开始。</strong></p>
+<h3 id="软参数共享">软参数共享</h3>
+<p>每个任务有自己的主干，但通过一个耦合项鼓励同位置的参数保持相似：</p>
+$$
+\mathcal{L} \;=\; \sum_t \mathcal{L}_t(\theta_t) \;+\; \lambda \!\!\sum_{i \neq j} \! \lVert \theta_i - \theta_j \rVert^2.
+$$<p>图 1 右半边那些黄色虚线就是这些耦合项。模型可以一层一层地打破对称——当任务需要相似但不完全相同的特征时很有用。</p>
+<h3 id="cross-stitch-networks">Cross-Stitch Networks</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/fig2_cross_stitch.png" alt="Cross-Stitch 网络" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Cross-Stitch（Misra et al., 2016）介于硬共享和软共享之间。每个任务有自己的一列网络，但每一层都通过一个小小的 <strong>cross-stitch 单元</strong>让两路激活互相混合：</p>
+$$
+\tilde{x}_A^{\,l} \;=\; \alpha_{AA}\, x_A^{\,l} + \alpha_{AB}\, x_B^{\,l},
+\qquad
+\tilde{x}_B^{\,l} \;=\; \alpha_{BA}\, x_A^{\,l} + \alpha_{BB}\, x_B^{\,l}.
+$$<p>每层的四个标量 $\alpha_{\bullet\bullet}$ 是学出来的。它们的取值具有可解释性：在某一层 $\alpha_{AB}$ 很大，意味着任务 $A$ 在这个深度上严重依赖任务 $B$ 的特征——既能作为架构手段，也能当诊断工具用。</p>
+<h3 id="multi-task-attention-networkmtan">Multi-Task Attention Network（MTAN）</h3>
+<p>MTAN（Liu et al., 2019）共享一个主干，但让每个任务通过 sigmoid 注意力 mask 在共享特征里挑出自己想要的子集：</p>
+$$
+\text{mask}_t = \sigma(W_t \cdot F_{\text{shared}} + b_t), \qquad
+F_t = \text{mask}_t \odot F_{\text{shared}}.
+$$<p>mask 是按任务、按层独立的，所以每个任务可以在不同深度&quot;调谐&quot;到不同的通道。在视觉 MTL 里，MTAN 通常是软共享变体里最强的一个。</p>
+<h3 id="怎么选">怎么选</h3>
+<ul>
+<li><strong>硬共享。</strong> 默认。任务紧密相关（同模态、同抽象层级）。</li>
+<li><strong>Cross-Stitch / MTAN。</strong> 硬共享出现负迁移，但任务整体上仍有共性。</li>
+<li><strong>完全独立或纯软共享。</strong> 任务几乎没什么共性——这种情况要先反问一句：MTL 真的是合适的工具吗？</li>
+</ul>
+<hr>
+<h2 id="动手做之前先量化任务亲和性">动手做之前：先量化任务亲和性</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/fig7_task_affinity.png" alt="任务亲和矩阵和分组" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>不要凭直觉决定哪些任务塞进一个 MTL 模型。下面三个量化检验都很便宜，开工前值得做。</p>
+<ol>
+<li><strong>迁移实验亲和性</strong>（Taskonomy 风格）。先在任务 $A$ 上训，再迁到任务 $B$ 微调，与从零训练 $B$ 比较。提升越大，亲和性越高。</li>
+<li><strong>梯度余弦相似度。</strong> 联合训练一个小模型一个 epoch，记录每步的 $\cos(\nabla_\theta \mathcal{L}_A, \nabla_\theta \mathcal{L}_B)$。持续为负 = 任务在打架。</li>
+<li><strong>特征相似性（CKA）。</strong> 比较各任务学到的表示。CKA 高 = 同一个主干能同时服务两者。</li>
+</ol>
+<p>图 7 左边是七个视觉任务的典型亲和矩阵。注意 <code>Detect / Segment / Edges</code> 之间紧密成团（全部 0.78 以上），而 <code>Caption</code> 与其他任务联系松散得多。右边的树状图把这些数字翻译成了一个具体的分组建议：与其训一个巨型共享编码器，不如分组：</p>
+<pre tabindex="0"><code>组 1：Detect + Segment + Edges       -&gt; 共享编码器 A
+组 2：Depth + Normals                -&gt; 共享编码器 B
+组 3：Pose + Caption                 -&gt; 共享编码器 C
+</code></pre><p>Standley et al. (2020) 的实验表明，这种自动分组（强化学习或层次聚类得到的）在多个数据集上都稳定优于手工分组和单一全局编码器。</p>
+<hr>
+<h2 id="梯度冲突与任务平衡">梯度冲突与任务平衡</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/fig3_gradient_conflict.png" alt="梯度冲突与 PCGrad 投影" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>绝大多数 MTL 项目的性能就是在这里悄悄漏掉的。架构没毛病，但优化器在背后拿一个任务去伤另一个任务。</p>
+<h3 id="冲突到底是什么">&ldquo;冲突&quot;到底是什么</h3>
+<p>两个任务在共享参数上的梯度冲突，是指：</p>
+$$
+\nabla \mathcal{L}_1 \cdot \nabla \mathcal{L}_2 \;<\; 0.
+$$<p>图 3 左边把几何关系画得一目了然。任务 1 的梯度 $g_1$ 指向右上，任务 2 的 $g_2$ 指向左上。两者的平均 $\bar{g}$ 在 $g_1$ 方向上的分量几乎为零——也就是说<strong>朴素的&quot;损失求和&quot;梯度对任务 1 几乎毫无帮助</strong>。这个例子里，$g_1$ 与 $g_2$ 的余弦相似度是 $-0.43$。</p>
+<p>实际中冲突有多频繁？图 3 右边给了一个真实多任务训练里 $\cos$ 值分布的代表性例子：大约 <strong>45% 的更新存在冲突</strong>，而且常常会在多个 epoch 里持续存在。</p>
+<h3 id="静态权重基线">静态权重（基线）</h3>
+<p><strong>均匀</strong> ($w_t = 1$)：简单，偶尔够用，但损失尺度不一致时会崩。分类交叉熵 $\sim 1$ 和深度 MSE $\sim 100$ 直接相加，等于优化器基本只在做单任务深度学习。</p>
+<p><strong>手工调权重：</strong> 一两个任务、有一个礼拜空闲时还能玩。多了以后行不通。</p>
+<h3 id="不确定性加权kendall-et-al-2018">不确定性加权（Kendall et al., 2018）</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/fig5_uncertainty_weighting.png" alt="不确定性加权" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>把每个任务的输出建模成一个带可学习噪声 $\sigma_t$ 的高斯分布。负对数似然就变成：</p>
+$$
+\mathcal{L} \;=\; \sum_t \frac{1}{2\sigma_t^2}\, \mathcal{L}_t \;+\; \log \sigma_t.
+$$<p>图 5 里要看的有两点：</p>
+<ul>
+<li><strong>左图。</strong> 对一个固定的任务损失 $\mathcal{L}$，组合目标在 $\sigma^* = \sqrt{\mathcal{L}}$ 处有唯一极小值。如果没有 $\log \sigma$ 那一项，优化器会一路把 $\sigma_t$ 推到无穷大让加权损失趋零——正是这个正则项让整个把戏不至于退化。</li>
+<li><strong>右图。</strong> 三个任务的原始损失横跨两个数量级（<code>1</code>、<code>50</code>、<code>0.3</code>），经过学到的 $\sigma_t$ 一加权之后，贡献变得相当 (<code>1.4</code>、<code>2.8</code>、<code>0.15</code>)。</li>
+</ul>
+<p>相对均匀权重的典型增益：2-5%。代价：每个任务多 1 个标量参数。便宜，几乎一定值得开。</p>
+<h3 id="gradnorm按训练速度平衡梯度幅度">GradNorm：按训练速度平衡梯度幅度</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/fig4_gradnorm.png" alt="GradNorm 动态" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>不确定性加权平衡的是<strong>损失幅度</strong>。GradNorm（Chen et al., 2018）平衡的是<strong>梯度幅度</strong>，并且条件作用于每个任务的训练进度。</p>
+<p>定义任务的相对逆训练速度：</p>
+$$
+\tilde{r}_t \;=\; \frac{\mathcal{L}_t(t)\,/\,\mathcal{L}_t(0)}{\overline{\mathcal{L}(t)\,/\,\mathcal{L}(0)}}.
+$$<p>$\tilde{r}_t > 1$ 意味着任务 $t$ 的损失下降比平均要慢——它<strong>在掉队</strong>。GradNorm 调节 $w_t$ 让</p>
+$$
+\lVert w_t \nabla \mathcal{L}_t \rVert \;\approx\; \overline{G}\cdot \tilde{r}_t^{\,\alpha},
+$$<p>其中 $\overline{G}$ 是共享参数上的平均梯度范数，$\alpha \!\approx\! 1.5$ 控制再平衡的力度。</p>
+<p>图 4 模拟了一个 60 个 epoch 的过程：</p>
+<ul>
+<li><strong>左。</strong> 三个任务，损失尺度和收敛速度都差很多。</li>
+<li><strong>中。</strong> 它们的相对训练速度 $\tilde{r}_t$。慢的回归任务慢慢漂到 1 以上；快的辅助任务掉到 1 以下。</li>
+<li><strong>右。</strong> GradNorm 把掉队任务的权重<strong>抬上去</strong>，把领先任务的权重<strong>压下来</strong>——全程不需要人工干预。</li>
+</ul>
+<p>文献中相对均匀权重的增益：3-8%。</p>
+<h3 id="pcgrad把冲突分量投影掉">PCGrad：把冲突分量投影掉</h3>
+<p>PCGrad（Yu et al., 2020）解决的是方向问题，不是幅度问题。一旦两任务梯度冲突，把其中一个投影到另一个的<strong>法平面</strong>上，剔除主动伤害对方的那部分：</p>
+$$
+g_i' \;=\; g_i \;-\; \frac{g_i \cdot g_j}{\lVert g_j \rVert^2}\, g_j
+\qquad \text{当 } g_i \cdot g_j < 0.
+$$<p>投影之后 $g_i' \cdot g_j = 0$——冲突彻底消除。图 3 左边那条绿色 $g_1^{PC}$ 就是结果：保留了 $g_1$ 中不会伤害 $g_2$ 的那部分。</p>
+<p>伪代码：</p>
+<pre tabindex="0"><code>for each task i:
+    g_i = loss_i 的反向传播
+    for each other task j:
+        if g_i . g_j &lt; 0:                     # 冲突
+            g_i = g_i - proj(g_i, g_j)        # 去掉冲突分量
+final_gradient = 所有修改后梯度的均值
+</code></pre><p><strong>理论保证：</strong> 最终梯度在一阶意义上不会增加任何任务的损失。</p>
+<p>NYUv2 上的实测（语义分割 + 深度 + 表面法向）：</p>
+<ul>
+<li>均匀权重：mIoU 40.2%，深度误差 0.61</li>
+<li>PCGrad：  mIoU 42.7%，深度误差 0.58</li>
+</ul>
+<h3 id="cagrad全局最优的冲突解决">CAGrad：全局最优的冲突解决</h3>
+<p>CAGrad（Liu et al., 2021）把 PCGrad 推广为一个二次规划：找模长最小、且与所有任务梯度方向都对齐的更新向量：</p>
+$$
+g^{*} \;=\; \arg\min_g \lVert g \rVert^2 \quad \text{s.t.}\quad g \cdot g_t \geq 0 \;\; \forall t.
+$$<p>这就是<strong>帕累托最优</strong>的下降方向——保证不伤害任何任务，并且是全局而非两两处理。代价是每步 $\mathcal{O}(T^2)$。任务数 $T \leq 5$ 时直接上 CAGrad。</p>
+<h3 id="比较与组合">比较与组合</h3>
+<table>
+  <thead>
+      <tr>
+          <th>方法</th>
+          <th>控制什么</th>
+          <th>代价</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>均匀</td>
+          <td>什么也不控</td>
+          <td>免费</td>
+      </tr>
+      <tr>
+          <td>不确定性加权</td>
+          <td>损失幅度</td>
+          <td>$T$ 个参数</td>
+      </tr>
+      <tr>
+          <td>GradNorm</td>
+          <td>梯度幅度</td>
+          <td>$T$ 个参数 + 一次反向</td>
+      </tr>
+      <tr>
+          <td>PCGrad</td>
+          <td>梯度方向</td>
+          <td>$T$ 次反向</td>
+      </tr>
+      <tr>
+          <td>CAGrad</td>
+          <td>梯度方向（全局）</td>
+          <td>$T$ 次反向 + QP</td>
+      </tr>
+  </tbody>
+</table>
+<p>GradNorm（控幅度）和 PCGrad/CAGrad（控方向）是<strong>正交</strong>的。任务数 $\geq 3$ 且尺度差异大时，GradNorm + PCGrad 的组合是稳妥的默认配置。</p>
+<hr>
+<h2 id="这些方法到底能拿到多少收益">这些方法到底能拿到多少收益</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/06-%E5%A4%9A%E4%BB%BB%E5%8A%A1%E5%AD%A6%E4%B9%A0/fig6_mtl_vs_single_task.png" alt="MTL vs 单任务的精度与成本" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>图 6 把这些方法在 NYUv2 风格三任务基准上摆到一起：</p>
+<ul>
+<li><strong>左。</strong> 各任务相对单任务基线的提升。均匀 MTL 已经在每个任务上都赢了（正则化效应是真实的）。不确定性加权再加 1-2 个点。GradNorm 和 PCGrad 各再加 1-2 个点。CAGrad 排在最上面。</li>
+<li><strong>右。</strong> 成本/效率收益与平衡方法无关：共享编码器 + 3 个头把参数从 75M 砍到 31M，前向次数从 3 次砍到 1 次。</li>
+</ul>
+<p>实践要点：一个配置得当的 MTL（带 PCGrad 或 CAGrad）经常能给出一个<strong>更小、更快、更准</strong>的模型，同时取代它要替换的那一组单任务模型。这是工程和精度难得指向同一边的情形。</p>
+<hr>
+<h2 id="辅助任务设计">辅助任务设计</h2>
+<p>如果你真正在意的只有一个主任务，MTL 只是用作正则化手段，那么设计问题就变成：该添加哪些辅助任务？</p>
+<h3 id="自监督辅助任务免费监督">自监督辅助任务（免费监督）</h3>
+<ul>
+<li><strong>旋转预测。</strong> 把输入旋转 0 / 90 / 180 / 270 度，预测角度。强迫模型理解方向和物体结构。</li>
+<li><strong>拼图。</strong> 打乱图像 patch，预测正确排列。强迫模型理解空间布局。</li>
+<li><strong>对比学习（SimCLR / MoCo）。</strong> 把同一样本的两个增强版本拉近，不同样本推远。强迫模型学到对增广不变的表示。</li>
+</ul>
+<h3 id="领域特定的辅助任务">领域特定的辅助任务</h3>
+<table>
+  <thead>
+      <tr>
+          <th>主任务</th>
+          <th>有效的辅助任务</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>目标检测</td>
+          <td>边缘检测、深度估计</td>
+      </tr>
+      <tr>
+          <td>命名实体识别</td>
+          <td>词性标注、依存句法分析</td>
+      </tr>
+      <tr>
+          <td>点击率预测</td>
+          <td>转化率、停留时长、关注概率</td>
+      </tr>
+      <tr>
+          <td>语音识别</td>
+          <td>说话人识别、语音活动检测、噪声分类</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="加多少个辅助任务">加多少个辅助任务？</h3>
+<ul>
+<li>先从 1-2 个最相关的开始。</li>
+<li>只有在主任务验证集还在涨的时候才继续加。</li>
+<li>通常 2-4 个辅助任务就够了；超过 10 个就该改用任务聚类（图 7），而不是无脑往上叠。</li>
+</ul>
+<hr>
+<h2 id="完整代码实现">完整代码实现</h2>
+<p>一个自包含的 PyTorch 框架，支持硬参数共享 + 三种平衡方法（uniform / PCGrad / GradNorm）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span><span class="lnt">104
+</span><span class="lnt">105
+</span><span class="lnt">106
+</span><span class="lnt">107
+</span><span class="lnt">108
+</span><span class="lnt">109
+</span><span class="lnt">110
+</span><span class="lnt">111
+</span><span class="lnt">112
+</span><span class="lnt">113
+</span><span class="lnt">114
+</span><span class="lnt">115
+</span><span class="lnt">116
+</span><span class="lnt">117
+</span><span class="lnt">118
+</span><span class="lnt">119
+</span><span class="lnt">120
+</span><span class="lnt">121
+</span><span class="lnt">122
+</span><span class="lnt">123
+</span><span class="lnt">124
+</span><span class="lnt">125
+</span><span class="lnt">126
+</span><span class="lnt">127
+</span><span class="lnt">128
+</span><span class="lnt">129
+</span><span class="lnt">130
+</span><span class="lnt">131
+</span><span class="lnt">132
+</span><span class="lnt">133
+</span><span class="lnt">134
+</span><span class="lnt">135
+</span><span class="lnt">136
+</span><span class="lnt">137
+</span><span class="lnt">138
+</span><span class="lnt">139
+</span><span class="lnt">140
+</span><span class="lnt">141
+</span><span class="lnt">142
+</span><span class="lnt">143
+</span><span class="lnt">144
+</span><span class="lnt">145
+</span><span class="lnt">146
+</span><span class="lnt">147
+</span><span class="lnt">148
+</span><span class="lnt">149
+</span><span class="lnt">150
+</span><span class="lnt">151
+</span><span class="lnt">152
+</span><span class="lnt">153
+</span><span class="lnt">154
+</span><span class="lnt">155
+</span><span class="lnt">156
+</span><span class="lnt">157
+</span><span class="lnt">158
+</span><span class="lnt">159
+</span><span class="lnt">160
+</span><span class="lnt">161
+</span><span class="lnt">162
+</span><span class="lnt">163
+</span><span class="lnt">164
+</span><span class="lnt">165
+</span><span class="lnt">166
+</span><span class="lnt">167
+</span><span class="lnt">168
+</span><span class="lnt">169
+</span><span class="lnt">170
+</span><span class="lnt">171
+</span><span class="lnt">172
+</span><span class="lnt">173
+</span><span class="lnt">174
+</span><span class="lnt">175
+</span><span class="lnt">176
+</span><span class="lnt">177
+</span><span class="lnt">178
+</span><span class="lnt">179
+</span><span class="lnt">180
+</span><span class="lnt">181
+</span><span class="lnt">182
+</span><span class="lnt">183
+</span><span class="lnt">184
+</span><span class="lnt">185
+</span><span class="lnt">186
+</span><span class="lnt">187
+</span><span class="lnt">188
+</span><span class="lnt">189
+</span><span class="lnt">190
+</span><span class="lnt">191
+</span><span class="lnt">192
+</span><span class="lnt">193
+</span><span class="lnt">194
+</span><span class="lnt">195
+</span><span class="lnt">196
+</span><span class="lnt">197
+</span><span class="lnt">198
+</span><span class="lnt">199
+</span><span class="lnt">200
+</span><span class="lnt">201
+</span><span class="lnt">202
+</span><span class="lnt">203
+</span><span class="lnt">204
+</span><span class="lnt">205
+</span><span class="lnt">206
+</span><span class="lnt">207
+</span><span class="lnt">208
+</span><span class="lnt">209
+</span><span class="lnt">210
+</span><span class="lnt">211
+</span><span class="lnt">212
+</span><span class="lnt">213
+</span><span class="lnt">214
+</span><span class="lnt">215
+</span><span class="lnt">216
+</span><span class="lnt">217
+</span><span class="lnt">218
+</span><span class="lnt">219
+</span><span class="lnt">220
+</span><span class="lnt">221
+</span><span class="lnt">222
+</span><span class="lnt">223
+</span><span class="lnt">224
+</span><span class="lnt">225
+</span><span class="lnt">226
+</span><span class="lnt">227
+</span><span class="lnt">228
+</span><span class="lnt">229
+</span><span class="lnt">230
+</span><span class="lnt">231
+</span><span class="lnt">232
+</span><span class="lnt">233
+</span><span class="lnt">234
+</span><span class="lnt">235
+</span><span class="lnt">236
+</span><span class="lnt">237
+</span><span class="lnt">238
+</span><span class="lnt">239
+</span><span class="lnt">240
+</span><span class="lnt">241
+</span><span class="lnt">242
+</span><span class="lnt">243
+</span><span class="lnt">244
+</span><span class="lnt">245
+</span><span class="lnt">246
+</span><span class="lnt">247
+</span><span class="lnt">248
+</span><span class="lnt">249
+</span><span class="lnt">250
+</span><span class="lnt">251
+</span><span class="lnt">252
+</span><span class="lnt">253
+</span><span class="lnt">254
+</span><span class="lnt">255
+</span><span class="lnt">256
+</span><span class="lnt">257
+</span><span class="lnt">258
+</span><span class="lnt">259
+</span><span class="lnt">260
+</span><span class="lnt">261
+</span><span class="lnt">262
+</span><span class="lnt">263
+</span><span class="lnt">264
+</span><span class="lnt">265
+</span><span class="lnt">266
+</span><span class="lnt">267
+</span><span class="lnt">268
+</span><span class="lnt">269
+</span><span class="lnt">270
+</span><span class="lnt">271
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">Dataset</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torchvision</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== 网络架构 =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SharedEncoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;共享主干：ResNet-18 的前 3 个 block。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">resnet</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">resnet18</span><span class="p">(</span><span class="n">pretrained</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">stem</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">resnet</span><span class="o">.</span><span class="n">conv1</span><span class="p">,</span> <span class="n">resnet</span><span class="o">.</span><span class="n">bn1</span><span class="p">,</span> <span class="n">resnet</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span> <span class="n">resnet</span><span class="o">.</span><span class="n">maxpool</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span> <span class="o">=</span> <span class="n">resnet</span><span class="o">.</span><span class="n">layer1</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span> <span class="o">=</span> <span class="n">resnet</span><span class="o">.</span><span class="n">layer2</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span> <span class="o">=</span> <span class="n">resnet</span><span class="o">.</span><span class="n">layer3</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stem</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TaskHead</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;任务专属的分类或回归头。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">num_outputs</span><span class="p">,</span> <span class="n">task_type</span><span class="o">=</span><span class="s1">&#39;classification&#39;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_type</span> <span class="o">=</span> <span class="n">task_type</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">AdaptiveAvgPool2d</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">num_outputs</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultiTaskNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;硬参数共享：共享编码器 + 任务专属头部。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_configs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">SharedEncoder</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">heads</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">            <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span> <span class="n">TaskHead</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;num_classes&#39;</span><span class="p">],</span> <span class="n">cfg</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">task_configs</span>
+</span></span><span class="line"><span class="cl">        <span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">head</span><span class="p">(</span><span class="n">features</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">head</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">heads</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== PCGrad =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PCGrad</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;投影冲突梯度（Yu et al., NeurIPS 2020）。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">task_names</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span> <span class="o">=</span> <span class="n">task_names</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_project</span><span class="p">(</span><span class="n">g_i</span><span class="p">,</span> <span class="n">g_j</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">g_i</span><span class="p">,</span> <span class="n">g_j</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">dot</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">g_i</span> <span class="o">=</span> <span class="n">g_i</span> <span class="o">-</span> <span class="p">(</span><span class="n">dot</span> <span class="o">/</span> <span class="p">(</span><span class="n">g_j</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span> <span class="o">*</span> <span class="n">g_j</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">g_i</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">losses</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 1. 各任务在共享参数上的扁平化梯度。</span>
+</span></span><span class="line"><span class="cl">        <span class="n">grads</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">losses</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">grads</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">            <span class="p">])</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 2. 两两投影掉冲突分量。</span>
+</span></span><span class="line"><span class="cl">        <span class="n">modified</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ni</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">g</span> <span class="o">=</span> <span class="n">grads</span><span class="p">[</span><span class="n">ni</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">nj</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">grads</span><span class="p">[</span><span class="n">nj</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">modified</span><span class="p">[</span><span class="n">ni</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 3. 用修改后梯度的均值进行优化器步骤。</span>
+</span></span><span class="line"><span class="cl">        <span class="n">avg_grad</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">modified</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">modified</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;params&#39;</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">avg_grad</span><span class="p">[</span><span class="n">idx</span><span class="p">:</span><span class="n">idx</span> <span class="o">+</span> <span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">idx</span> <span class="o">+=</span> <span class="n">n</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== GradNorm =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GradNorm</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;梯度归一化以自适应平衡损失（Chen et al., ICML 2018）。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">task_names</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.025</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span> <span class="o">=</span> <span class="n">task_names</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">task_names</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight_optim</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">],</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span> <span class="o">=</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">losses</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">l</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">losses</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">weighted</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weighted</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 只在共享编码器上计算各任务的梯度范数。</span>
+</span></span><span class="line"><span class="cl">        <span class="n">shared_params</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="n">grad_norms</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">wl</span> <span class="ow">in</span> <span class="n">weighted</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">wl</span><span class="p">,</span> <span class="n">shared_params</span><span class="p">,</span> <span class="n">retain_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">grad_norms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">g</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">grads</span><span class="p">])))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">avg_norm</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">grad_norms</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">grad_norms</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">avg_ratio</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># GradNorm 损失：让 ||w_t * grad_t|| 趋向 avg_norm * r_t^alpha。</span>
+</span></span><span class="line"><span class="cl">        <span class="n">gn_loss</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">grad_norms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">avg_norm</span> <span class="o">*</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">                <span class="o">/</span> <span class="p">(</span><span class="n">avg_ratio</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight_optim</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">gn_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight_optim</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 重新归一化让权重之和等于任务数。</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">data</span> <span class="o">*=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">total</span><span class="p">,</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== 训练器 =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MTLTrainer</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;多任务训练器，支持 uniform / PCGrad / GradNorm。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">task_configs</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;uniform&#39;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_configs</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">task_configs</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">task_configs</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;pcgrad&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">pcgrad</span> <span class="o">=</span> <span class="n">PCGrad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;gradnorm&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">gradnorm</span> <span class="o">=</span> <span class="n">GradNorm</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_losses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">losses</span> <span class="o">=</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_configs</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">losses</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stats</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;total&#39;</span><span class="p">]}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">inputs</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">targets</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">batch</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">losses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_losses</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;uniform&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">losses</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;pcgrad&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">pcgrad</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">losses</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;gradnorm&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradnorm</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="n">total</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">stats</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                             <span class="k">else</span> <span class="n">losses</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;total&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">total</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                               <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">total</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nb</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="o">/</span> <span class="n">nb</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">correct</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">inputs</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">targets</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">batch</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">total</span> <span class="o">+=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_configs</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">correct</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">targets</span><span class="p">[</span><span class="n">n</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">correct</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">/</span> <span class="n">total</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># ===== 演示 =====</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DummyMTLDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s1">&#39;input&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s1">&#39;task1&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="p">())</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="s1">&#39;task2&#39;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="p">())</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="n">configs</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;task1&#39;</span><span class="p">,</span> <span class="s1">&#39;num_classes&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;classification&#39;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;task2&#39;</span><span class="p">,</span> <span class="s1">&#39;num_classes&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;classification&#39;</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;cuda&#39;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;cpu&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">DummyMTLDataset</span><span class="p">(</span><span class="mi">1000</span><span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">DummyMTLDataset</span><span class="p">(</span><span class="mi">200</span><span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;pcgrad&#39;</span><span class="p">,</span> <span class="s1">&#39;gradnorm&#39;</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="si">}</span><span class="se">\n</span><span class="s2">Method: </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span> <span class="o">=</span> <span class="n">MultiTaskNet</span><span class="p">(</span><span class="n">configs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">trainer</span> <span class="o">=</span> <span class="n">MTLTrainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">configs</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">stats</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train_epoch</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">metrics</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: &#34;</span>
+</span></span><span class="line"><span class="cl">                  <span class="o">+</span> <span class="s2">&#34; &#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">                  <span class="o">+</span> <span class="s2">&#34; | &#34;</span>
+</span></span><span class="line"><span class="cl">                  <span class="o">+</span> <span class="s2">&#34; &#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%&#34;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">main</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="代码架构">代码架构</h3>
+<table>
+  <thead>
+      <tr>
+          <th>组件</th>
+          <th>职责</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>SharedEncoder</code></td>
+          <td>ResNet-18 前 3 个 block 作为共享特征提取器。</td>
+      </tr>
+      <tr>
+          <td><code>TaskHead</code></td>
+          <td>每个任务的分类或回归头。</td>
+      </tr>
+      <tr>
+          <td><code>MultiTaskNet</code></td>
+          <td>硬参数共享：编码器 + <code>ModuleDict</code> 头部。</td>
+      </tr>
+      <tr>
+          <td><code>PCGrad</code></td>
+          <td>在求平均之前，两两投影掉冲突梯度。</td>
+      </tr>
+      <tr>
+          <td><code>GradNorm</code></td>
+          <td>学每个任务的权重，让梯度幅度跟随 $\tilde{r}_t^\alpha$。</td>
+      </tr>
+      <tr>
+          <td><code>MTLTrainer</code></td>
+          <td>一个统一接口包住 uniform / PCGrad / GradNorm 三种方法。</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="faq">FAQ</h2>
+<h3 id="到底什么时候才该上多任务学习">到底什么时候才该上多任务学习？</h3>
+<p>诚实的三个理由：(1) 任务共享底层特征，你想要正则化效应；(2) 主任务数据不足，希望辅助任务通过共享编码器把监督信号传过来；(3) 推理时需要便宜地同时输出多个预测。三条都不沾就别用 MTL。</p>
+<h3 id="怎么判断任务是不是在打架">怎么判断任务是不是在打架？</h3>
+<p>两个便宜的检查。(a) 在共享参数上记录 $\cos(\nabla \mathcal{L}_A, \nabla \mathcal{L}_B)$——持续为负就是冲突（图 3 右）。(b) 把多任务模型里每个任务的精度跟单任务基线比较——任何一个掉了，就发生了负迁移。</p>
+<h3 id="硬共享还是软共享">硬共享还是软共享？</h3>
+<p>先用硬共享——更简单、正则化更强、参数更少。只有当你观察到的负迁移在 PCGrad 和 GradNorm 之后还存在时，才换 Cross-Stitch / MTAN。</p>
+<h3 id="我的损失尺度差-100-倍怎么办">我的损失尺度差 100 倍，怎么办？</h3>
+<p>别手工调权重，永远调不出来。先用不确定性加权（图 5），这是成本最低的解决方案；如果还需要追踪任务间训练速度差异，再切到 GradNorm。</p>
+<h3 id="pcgrad-能和-gradnorm-一起用吗">PCGrad 能和 GradNorm 一起用吗？</h3>
+<p>能——两者正交。GradNorm 控幅度，PCGrad 控方向。标准组合是：(1) 用 GradNorm 算出 $w_t$，(2) 形成加权的任务梯度 $w_t g_t$，(3) 在这之上做 PCGrad。三个以上任务、尺度差异大时，这是合理的默认。</p>
+<h3 id="辅助任务该加多少个">辅助任务该加多少个？</h3>
+<p>开始 1-2 个，没量化过亲和矩阵之前不要超过 4 个。任务超过 10 个，就用图 7 的方式做聚类，每一组一个共享编码器。</p>
+<hr>
+<h2 id="总结">总结</h2>
+<p>多任务学习能让你训出一个又小又快、还经常比单任务更准的模型。架构本身是容易的部分——硬参数共享 + 任务头几乎打不过。难的是在训练循环里保持诚实：</p>
+<ul>
+<li><strong>损失尺度平衡</strong>——任务输出类型或量级不一样时，不确定性加权或 GradNorm 几乎是必选项。</li>
+<li><strong>梯度冲突</strong>会影响 30-50% 的更新——PCGrad（便宜）或 CAGrad（更优）能阻止它们悄悄拖累某些任务。</li>
+<li><strong>任务选择</strong>比任何优化器技巧都更重要——动手前先用梯度余弦或迁移实验量化亲和性。</li>
+<li><strong>先硬共享</strong>，只有在测量结果指向需要时才上软共享 / Cross-Stitch。</li>
+</ul>
+<p>下一篇是<strong>零样本学习</strong>——让模型分类训练时从未见过的类别，借助属性或语言描述跨越鸿沟。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ol>
+<li>Caruana, R. (1997). Multitask Learning. <em>Machine Learning</em>.</li>
+<li>Misra et al. (2016). Cross-Stitch Networks for Multi-task Learning. CVPR. <a href="https://arxiv.org/abs/1604.03539" target="_blank" rel="noopener noreferrer">arXiv:1604.03539 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Kendall et al. (2018). Multi-Task Learning Using Uncertainty to Weigh Losses. CVPR. <a href="https://arxiv.org/abs/1705.07115" target="_blank" rel="noopener noreferrer">arXiv:1705.07115 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Chen et al. (2018). GradNorm: Gradient Normalization for Adaptive Loss Balancing. ICML. <a href="https://arxiv.org/abs/1711.02257" target="_blank" rel="noopener noreferrer">arXiv:1711.02257 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Liu et al. (2019). End-to-End Multi-Task Learning with Attention (MTAN). CVPR. <a href="https://arxiv.org/abs/1803.10704" target="_blank" rel="noopener noreferrer">arXiv:1803.10704 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Standley et al. (2020). Which Tasks Should Be Learned Together in Multi-task Learning? ICML. <a href="https://arxiv.org/abs/1905.07553" target="_blank" rel="noopener noreferrer">arXiv:1905.07553 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Yu et al. (2020). Gradient Surgery for Multi-Task Learning (PCGrad). NeurIPS. <a href="https://arxiv.org/abs/2001.06782" target="_blank" rel="noopener noreferrer">arXiv:2001.06782 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Liu et al. (2021). Conflict-Averse Gradient Descent (CAGrad). NeurIPS. <a href="https://arxiv.org/abs/2110.14048" target="_blank" rel="noopener noreferrer">arXiv:2110.14048 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ol>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">1</a>
+</td>
+          <td>基础与核心概念</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/">2</a>
+</td>
+          <td>预训练与微调</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%9f%9f%e9%80%82%e5%ba%94%e6%96%b9%e6%b3%95/">3</a>
+</td>
+          <td>域适应</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/">4</a>
+</td>
+          <td>小样本学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e7%9f%a5%e8%af%86%e8%92%b8%e9%a6%8f/">5</a>
+</td>
+          <td>知识蒸馏</td>
+      </tr>
+      <tr>
+          <td><strong>6</strong></td>
+          <td><strong>多任务学习（本文）</strong></td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e9%9b%b6%e6%a0%b7%e6%9c%ac%e5%ad%a6%e4%b9%a0/">7</a>
+</td>
+          <td>零样本学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%a4%9a%e6%a8%a1%e6%80%81%e8%bf%81%e7%a7%bb/">8</a>
+</td>
+          <td>多模态迁移</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b9%9d-%e5%8f%82%e6%95%b0%e9%ab%98%e6%95%88%e5%be%ae%e8%b0%83/">9</a>
+</td>
+          <td>参数高效微调</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e6%8c%81%e7%bb%ad%e5%ad%a6%e4%b9%a0/">10</a>
+</td>
+          <td>持续学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%b8%80-%e8%b7%a8%e8%af%ad%e8%a8%80%e8%bf%81%e7%a7%bb/">11</a>
+</td>
+          <td>跨语言迁移</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-%e5%b7%a5%e4%b8%9a%e5%ba%94%e7%94%a8%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/">12</a>
+</td>
+          <td>工业应用与最佳实践</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#为什么要做多任务学习">为什么要做多任务学习</a>
+      <ul>
+        <li><a href="#共享结构需要相同特征的任务">共享结构：需要相同特征的任务</a></li>
+        <li><a href="#正则化视角">正则化视角</a></li>
+        <li><a href="#数据增强视角">数据增强视角</a></li>
+        <li><a href="#计算效率">计算效率</a></li>
+        <li><a href="#风险负迁移">风险：负迁移</a></li>
+      </ul>
+    </li>
+    <li><a href="#参数共享策略">参数共享策略</a>
+      <ul>
+        <li><a href="#硬参数共享">硬参数共享</a></li>
+        <li><a href="#软参数共享">软参数共享</a></li>
+        <li><a href="#cross-stitch-networks">Cross-Stitch Networks</a></li>
+        <li><a href="#multi-task-attention-networkmtan">Multi-Task Attention Network（MTAN）</a></li>
+        <li><a href="#怎么选">怎么选</a></li>
+      </ul>
+    </li>
+    <li><a href="#动手做之前先量化任务亲和性">动手做之前：先量化任务亲和性</a></li>
+    <li><a href="#梯度冲突与任务平衡">梯度冲突与任务平衡</a>
+      <ul>
+        <li><a href="#冲突到底是什么">&ldquo;冲突&quot;到底是什么</a></li>
+        <li><a href="#静态权重基线">静态权重（基线）</a></li>
+        <li><a href="#不确定性加权kendall-et-al-2018">不确定性加权（Kendall et al., 2018）</a></li>
+        <li><a href="#gradnorm按训练速度平衡梯度幅度">GradNorm：按训练速度平衡梯度幅度</a></li>
+        <li><a href="#pcgrad把冲突分量投影掉">PCGrad：把冲突分量投影掉</a></li>
+        <li><a href="#cagrad全局最优的冲突解决">CAGrad：全局最优的冲突解决</a></li>
+        <li><a href="#比较与组合">比较与组合</a></li>
+      </ul>
+    </li>
+    <li><a href="#这些方法到底能拿到多少收益">这些方法到底能拿到多少收益</a></li>
+    <li><a href="#辅助任务设计">辅助任务设计</a>
+      <ul>
+        <li><a href="#自监督辅助任务免费监督">自监督辅助任务（免费监督）</a></li>
+        <li><a href="#领域特定的辅助任务">领域特定的辅助任务</a></li>
+        <li><a href="#加多少个辅助任务">加多少个辅助任务？</a></li>
+      </ul>
+    </li>
+    <li><a href="#完整代码实现">完整代码实现</a>
+      <ul>
+        <li><a href="#代码架构">代码架构</a></li>
+      </ul>
+    </li>
+    <li><a href="#faq">FAQ</a>
+      <ul>
+        <li><a href="#到底什么时候才该上多任务学习">到底什么时候才该上多任务学习？</a></li>
+        <li><a href="#怎么判断任务是不是在打架">怎么判断任务是不是在打架？</a></li>
+        <li><a href="#硬共享还是软共享">硬共享还是软共享？</a></li>
+        <li><a href="#我的损失尺度差-100-倍怎么办">我的损失尺度差 100 倍，怎么办？</a></li>
+        <li><a href="#pcgrad-能和-gradnorm-一起用吗">PCGrad 能和 GradNorm 一起用吗？</a></li>
+        <li><a href="#辅助任务该加多少个">辅助任务该加多少个？</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">迁移学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
+      <div class="row"><span>Word count</span><strong>7500</strong></div>
+      <div class="row"><span>Published</span><strong>May 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

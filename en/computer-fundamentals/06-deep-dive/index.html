@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/computer-fundamentals/06-deep-dive/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Computer Fundamentals: Deep Dive and System Integration · Chen Kai Blog</title>
+<meta name="description" content="Series finale. We zoom out from individual components to the whole system: how CPU, cache, memory, storage, IO, and accelerators are wired together; how hardware-aware software wins by 100×; how to read performance counters; and where computing is heading next — chiplets, photonics, and quantum.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/computer-fundamentals/06-deep-dive/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/computer-fundamentals/06-deep-dive/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/computer-fundamentals/06-deep-dive/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/computer-fundamentals/06-deep-dive/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Computer Fundamentals: Deep Dive and System Integration">
+<meta property="og:description" content="Series finale. We zoom out from individual components to the whole system: how CPU, cache, memory, storage, IO, and accelerators are wired together; how hardware-aware software wins by 100×; how to read performance counters; and where computing is heading next — chiplets, photonics, and quantum.">
+<meta property="og:url" content="https://www.chenk.top/en/computer-fundamentals/06-deep-dive/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-3);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Computer Fundamentals</a>
+         · Chapter 6
+      </div>
+      <h1>Computer Fundamentals: Deep Dive and System Integration</h1>
+      <p class="deck">Series finale. We zoom out from individual components to the whole system: how CPU, cache, memory, storage, IO, and accelerators are wired together; how hardware-aware software wins by 100×; how to read performance counters; and where computing is heading next — chiplets, photonics, and quantum.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2023-01-14">January 14, 2023</time> · 14 min read · 3000 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/computer-hardware/" class="tag">#Computer Hardware</a><a href="/en/tags/system-architecture/" class="tag">#System Architecture</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/computer-fundamentals/06-deep-dive/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>We&rsquo;ve spent five chapters opening one box at a time — the CPU, the cache hierarchy, storage, the motherboard and GPU, the network and power supply. Each part is interesting on its own, but a computer is not its components. A computer is what happens when those components have to agree, every nanosecond, on what to do next.</p>
+<p>This finale is about that conversation. We&rsquo;ll wire everything together into a single picture, look at the system through the eyes of a profiler, revisit the 80-year-old design tension that still shapes every chip you buy, and end by looking forward — chiplets, photonic interconnects, and the quietly arriving quantum era.</p>
+<p>If you stick with one chapter from this series, make it this one. It&rsquo;s where the mental model finally locks in.</p>
+<h1 id="part-1--the-whole-machine-in-one-picture">Part 1 — The whole machine, in one picture</h1>
+<p>When you press the power button, a precisely choreographed dance starts and never stops until you shut down. The motherboard&rsquo;s BIOS/UEFI brings up power rails in order, the CPU starts fetching from a hardcoded reset vector, the memory controller trains the DRAM, the boot SSD streams the kernel, the GPU initialises its display engine, the NIC negotiates a link. Within a couple of seconds, billions of transistors are cooperating to show you a login screen.</p>
+<p>Here&rsquo;s what&rsquo;s actually inside that machine, drawn as one block diagram:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/fig1_full_system.png" alt="Full system architecture: CPU, memory, accelerators, storage, network" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A few things worth noticing in that picture:</p>
+<ul>
+<li><strong>The latency gradient runs left-to-right and top-to-bottom.</strong> Caches inside the CPU answer in nanoseconds. DRAM answers in tens of nanoseconds. The PCIe fabric and accelerators answer in hundreds of nanoseconds to microseconds. Storage and the network answer in microseconds to milliseconds. Five orders of magnitude live on one motherboard.</li>
+<li><strong>The PCIe fabric is the spine.</strong> Almost everything outside the CPU package — the GPU, the NVMe SSD, the NIC, USB controllers — talks through it. CXL is starting to extend that fabric with cache-coherent semantics, which is why &ldquo;memory pooling&rdquo; suddenly looks plausible at rack scale.</li>
+<li><strong>There is no single bus anymore.</strong> Inside the CPU package the cores talk over a ring or mesh. The memory controllers and IO die are separate tiles. The GPU has its own HBM. What used to be one shared highway is now a city of overlapping networks.</li>
+</ul>
+<p>Once you see the machine this way, a lot of folklore stops being mysterious. &ldquo;Why is my game faster after I move the SSD to the other M.2 slot?&rdquo; Because that slot wires straight to the CPU instead of through the chipset. &ldquo;Why does my AI workload love HBM?&rdquo; Because the GPU needs 3 TB/s and DDR5 can only give it 50 GB/s. &ldquo;Why is <code>mmap</code> so fast on small files?&rdquo; Because the file is already sitting in DRAM as page cache; you&rsquo;re paying nanoseconds, not microseconds.</p>
+<h1 id="part-2--hardware-aware-software-wins-by-100">Part 2 — Hardware-aware software wins by 100×</h1>
+<p>Hardware engineers have spent fifty years building staggering machines. Most software still treats them like a 1990s PC. Closing that gap is the single highest-leverage skill in performance engineering.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/fig2_cross_layer.png" alt="Cross-layer optimization and matmul speedups" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The left side of the figure is the stack you&rsquo;re already familiar with — application, framework, compiler, OS, driver, ISA, microarchitecture, silicon. The right side is what happens when you let information flow up and down that stack instead of treating it as a sealed pipe.</p>
+<p>The bars show a classic experiment: multiply two 1024×1024 matrices, single core, FP32. The naïve triple loop is the baseline. Reorder the loops so the inner stride is unit-stride and you pick up ~3× from cache friendliness. Block the matrix to fit L1 and you get to ~10×. Drop in AVX2 vector instructions: ~32×. Add fused multiply-add and unrolling so the out-of-order engine has work to chew on: ~58×. Spread across cores with OpenMP: ~400×. Same algorithm. Same FLOPs. The 400× came entirely from telling the hardware what you actually wanted.</p>
+<p>This is the punchline of the whole series. The CPU isn&rsquo;t slow. The memory isn&rsquo;t slow. Most software is just leaving the machine on idle.</p>
+<p>A few patterns are worth memorising because they show up everywhere:</p>
+<ul>
+<li><strong>Stride matters more than count.</strong> A loop that touches one byte per cache line is 64× more expensive than a loop that touches all 64.</li>
+<li><strong>Branches you can&rsquo;t predict are worse than work you don&rsquo;t do.</strong> Branchless code, or code with predictable branches, often beats &ldquo;smart&rdquo; code that shortcuts.</li>
+<li><strong>Allocation is a memory access too.</strong> A <code>malloc</code> deep in a hot loop can dominate the loop&rsquo;s actual work.</li>
+<li><strong>Concurrency is a bandwidth problem, not a CPU problem.</strong> Eight threads contending for one cache line are slower than one thread.</li>
+</ul>
+<p>The concrete tools are unglamorous: <code>perf</code>, <code>vtune</code>, <code>flamegraph</code>, <code>valgrind --tool=cachegrind</code>. They tell you which line of your code is actually the bottleneck. Which is almost never the line you guessed.</p>
+<h1 id="part-3--counters-how-the-machine-tells-you-what-its-doing">Part 3 — Counters: how the machine tells you what it&rsquo;s doing</h1>
+<p>Every modern CPU ships with a Performance Monitoring Unit (PMU) — a small bank of registers that count microarchitectural events. They are the difference between guessing and measuring.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/fig3_perf_counters.png" alt="PMU events and a simulated perf top" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The left panel shows the events you actually look at, normalised to events per 1000 instructions. The right panel is what <code>perf top</code> looks like on a typical hot workload — a live view of which symbols are burning CPU right now.</p>
+<p>A short field guide to the events:</p>
+<ul>
+<li><strong><code>cycles</code> and <code>instructions</code></strong> give you IPC (instructions per cycle). On a modern Intel/AMD core with no stalls you can hit 3–4 IPC. If you&rsquo;re seeing 0.3 IPC, the core is sitting idle and you have a problem.</li>
+<li><strong><code>branch-misses</code></strong> at more than ~5 per 1000 instructions usually means a hot, unpredictable branch. Sometimes the fix is <code>__builtin_expect</code>. More often it&rsquo;s restructuring the data so the branch goes the same way most of the time.</li>
+<li><strong><code>L1-dcache-load-misses</code></strong> and <strong><code>LLC-load-misses</code></strong> localise where your cache problem lives. L1 misses that hit L2 cost a few cycles. LLC misses that hit DRAM cost a few hundred. One LLC miss is roughly one thousand wasted instructions.</li>
+<li><strong><code>dTLB-load-misses</code></strong> point at working sets that don&rsquo;t fit your TLB reach. The fix is often huge pages — one 2 MB page covers what 512 4 KB pages would.</li>
+<li><strong><code>stalled-cycles-frontend</code></strong> vs <strong><code>stalled-cycles-backend</code></strong> tell you whether the core is waiting for instructions to arrive (frontend — usually I-cache or branch prediction) or for results to come back from memory (backend — almost always memory bandwidth).</li>
+</ul>
+<p>The simulated <code>perf top</code> panel illustrates the most common surprise of a first profile: the top symbol is almost never your business logic. It&rsquo;s <code>memcpy</code>, or a lock, or a page fault handler. <strong>Real programs are bandwidth-bound and synchronisation-bound long before they are compute-bound.</strong> That is not a failure of your code; it is the shape of modern hardware.</p>
+<p>A workflow that has never let me down:</p>
+<ol>
+<li>Reproduce the slow workload in a tight loop.</li>
+<li><code>perf stat -d ./app</code> — look at IPC, cache miss rate, branch miss rate.</li>
+<li><code>perf record -g ./app &amp;&amp; perf report</code> — find the hot symbol.</li>
+<li>Read the disassembly of that symbol with <code>perf annotate</code>. Look for the line where samples pile up.</li>
+<li>Form a hypothesis, change one thing, repeat from step 2.</li>
+</ol>
+<p>Most performance work is just refusing to skip step 4.</p>
+<h1 id="part-4--the-von-neumann-bottleneck-then-and-now">Part 4 — The Von Neumann bottleneck, then and now</h1>
+<p>In 1945, John von Neumann sketched the architecture that almost every computer still uses: a CPU, a memory, and a bus between them, with instructions and data living in the same address space. The design is brilliant and general — and it carries an inherent limitation that has shaped computing ever since.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/fig4_von_neumann.png" alt="Von Neumann bottleneck and modern mitigations" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The classic problem is on the left. There is one bus. Every instruction the CPU executes has to come down that bus. Every operand it loads has to come down that bus. Every result it writes has to go back up that bus. As CPU clock speeds raced ahead through the 1990s and 2000s and DRAM speeds did not, the gap between them — the <em>memory wall</em> — became the dominant cost. Today, a load that misses all caches and goes to DRAM costs the CPU about 300 instructions of wasted work.</p>
+<p>The right side shows what fifty years of mitigation looks like:</p>
+<ul>
+<li><strong>Multi-level caches</strong> put smaller, faster copies of memory inside the chip. L1 hits at &lt;1 ns. The whole hierarchy is what makes 3 GHz cores possible at all.</li>
+<li><strong>Hardware prefetchers</strong> notice you&rsquo;re walking through memory linearly and start loading ahead before you ask.</li>
+<li><strong>Out-of-order execution</strong> lets the core keep working on independent instructions while it waits for a slow load to finish.</li>
+<li><strong>SIMD</strong> does eight or sixteen FP operations per instruction, amortising the cost of going to memory.</li>
+<li><strong>SMT</strong> (hyper-threading) keeps the core busy by giving it two instruction streams to choose from.</li>
+<li><strong>Harvard split L1</strong> for instructions and data lets the front end and back end fetch in parallel.</li>
+<li><strong>HBM</strong> stacks DRAM dies directly on top of the compute and gets to terabytes per second of bandwidth.</li>
+<li><strong>Compute-in-memory</strong> is the most radical: do the arithmetic inside the memory array itself, so data never has to move.</li>
+</ul>
+<p>The combined effect is striking. The <em>raw</em> DRAM latency hasn&rsquo;t improved much in twenty years — it&rsquo;s still around 80 ns. But the <em>effective</em> latency a well-written program sees is closer to 2 ns, because almost everything is served from cache, prefetched ahead of time, or hidden behind out-of-order execution. We didn&rsquo;t break the memory wall. We routed around it.</p>
+<p>Knowing this changes how you write code. Algorithms that look optimal on paper can be slow on real hardware because they jump around memory; algorithms that look wasteful (extra arithmetic, redundant loads) can be fast because they stay inside the cache. Modern performance is a memory game disguised as a compute game.</p>
+<h1 id="part-5--heterogeneous-computing-the-right-tool-for-the-job">Part 5 — Heterogeneous computing: the right tool for the job</h1>
+<p>For decades, &ldquo;the computer&rdquo; meant the CPU. Every workload paid the same architectural tax. That era is ending. A 2026 laptop has a CPU, a GPU, an NPU, a video codec block, and a secure enclave on the same die. A datacenter rack has CPUs, GPUs, TPUs, FPGAs, and SmartNICs, and the interesting question is no longer &ldquo;how fast is your CPU&rdquo; but &ldquo;did you put the workload on the right thing&rdquo;.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/fig5_heterogeneous.png" alt="Heterogeneous SoC and throughput vs efficiency" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The left panel shows what a modern SoC actually looks like. Specialised tiles — CPU for control flow, GPU for dense floating point, TPU for INT8 matrix multiplies, NPU for low-power on-device AI — share a coherent fabric and a pool of HBM. The fabric is starting to extend across packages with CXL, so accelerators in different sockets can share memory without a software round-trip.</p>
+<p>The right panel makes the trade-off concrete. The x-axis is peak throughput, in TFLOPS or TOPS, log scale. The y-axis is energy efficiency, in TOPS per Watt, also log. A few takeaways:</p>
+<ul>
+<li><strong>A modern CPU with AVX-512 delivers a few TFLOPS at ~0.1 TOPS/W.</strong> Excellent for branchy, latency-sensitive code. Terrible for matmul.</li>
+<li><strong>A datacenter GPU like H100 delivers ~67 TFLOPS at 2.5 TOPS/W.</strong> General enough to train any neural net you can describe, fast enough to make it the default for training.</li>
+<li><strong>A TPU v5p is roughly 7× the throughput at 1.5× the efficiency</strong> — but only if your workload looks like a giant systolic matmul.</li>
+<li><strong>Mobile NPUs win on efficiency by 80×</strong> versus a CPU, which is why your phone can do real-time speech recognition without burning the battery.</li>
+<li><strong>Custom ASICs sit at the frontier</strong>: maximum throughput, maximum efficiency, near-zero flexibility. Bitcoin mining, video encoding, network packet processing.</li>
+</ul>
+<p>The dashed &ldquo;specialization frontier&rdquo; is a real curve. Every step toward more specialization buys you throughput and efficiency at the cost of generality. There is no free lunch — there&rsquo;s just a menu, and good engineering is choosing wisely.</p>
+<p>The practical advice is short: <strong>profile first, then choose hardware, then choose algorithm</strong>. Putting a branchy graph traversal on a GPU is just as wasteful as running BERT on a CPU.</p>
+<h1 id="part-6--the-journey-from-bits-to-system">Part 6 — The journey: from bits to system</h1>
+<p>Stepping back from the technical detail, here is the path this series has walked. Each chapter built one piece of the mental model. This finale wires them together.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/fig6_series_journey.png" alt="Six-chapter series journey map" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>Part 1 — Bits, Bytes, and the CPU.</strong> We started where everything starts: a bit is two states, a byte is eight bits, ASCII gives you English, UTF-8 gives you the world. From there we walked into the CPU itself: cores, threads, clock speed, the difference between Intel and AMD, why a 32-bit OS can&rsquo;t address 4 GB of RAM.</li>
+<li><strong>Part 2 — Memory and cache.</strong> DDR generations, dual-channel, the three-level cache hierarchy, hit rates, why doubling your channels matters more than doubling your frequency.</li>
+<li><strong>Part 3 — Storage.</strong> HDD platters and heads, NAND flash cells from SLC to QLC, SATA versus NVMe, RAID levels, the storage tiering pyramid that runs from DRAM down to Glacier.</li>
+<li><strong>Part 4 — Motherboard and GPU.</strong> Chipsets, PCIe lanes and generations, M.2 slot wiring, VRM phases, GPU memory hierarchy, the SM/CUDA-core architecture that makes massive parallelism possible.</li>
+<li><strong>Part 5 — Network, power, and cooling.</strong> NIC speeds and RDMA, the OSI model in practice, PSU wattage and 80 PLUS, fan curves and thermal throttling, the full assembly checklist.</li>
+<li><strong>Part 6 — This chapter.</strong> The whole picture. Cross-layer optimisation. Performance counters. The Von Neumann story. Heterogeneous computing. And what comes next.</li>
+</ul>
+<p>Each part is a building block; none of them is the building. The building is the system you&rsquo;re sitting in front of, and the moment you can see all six pieces at once is the moment hardware stops being mysterious.</p>
+<h1 id="part-7--what-comes-next-chiplets-photonics-quantum">Part 7 — What comes next: chiplets, photonics, quantum</h1>
+<p>Moore&rsquo;s Law as the press knew it — transistor count doubling every two years on the same monolithic die — is over. Transistors keep shrinking, but the economics, yields, and physics no longer support a single, ever-larger chip. The interesting question is what replaces it. Three threads are already visible.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/fig7_future_trends.png" alt="Future trends: chiplets, photonics, and quantum" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>Chiplets — disaggregated dies on a shared package.</strong> Instead of one giant die that has to yield perfectly, you build a package out of small <em>chiplets</em>, each fabbed on the process that suits it best. AMD&rsquo;s Zen 2 was the mainstream debut in 2019 — separate Core Complex Dies and an IO die, talking through Infinity Fabric. Apple&rsquo;s M1 Ultra glued two M1 Maxes together with the UltraFusion bridge. Intel&rsquo;s Meteor Lake mixes a CPU tile, a GPU tile, an SoC tile, and an IO tile on a single package. The benefit is brutal economics: a 600 mm² monolithic die yields badly; six 100 mm² chiplets yield well, can be mixed and matched, and let different parts ride different process nodes. The cost is interconnect — those chiplets have to talk to each other at low latency and high bandwidth, which is why standards like UCIe (Universal Chiplet Interconnect Express) have suddenly become urgent.</p>
+<p><strong>Photonic interconnects — light instead of copper.</strong> Copper traces hit a wall around a few tens of Gb/s per lane before signal integrity collapses. Light does not. Co-packaged optics put a tiny laser and a waveguide right next to the compute die, and wavelength-division multiplexing lets one fibre carry dozens of channels in parallel. The early use case is the <em>escape problem</em> — getting data off a GPU package fast enough to feed AI training fabrics that span thousands of accelerators. Lightmatter, Ayar Labs, and the hyperscalers are all building this; the first commercial deployments are landing in 2024–2026. By 2030 it&rsquo;s likely the default way data leaves a high-end chip.</p>
+<p><strong>Quantum — qubits, not bits.</strong> A qubit isn&rsquo;t a faster bit; it&rsquo;s a different kind of object. <em>n</em> qubits represent 2ⁿ amplitudes simultaneously, and a quantum algorithm steers those amplitudes through interference toward an answer. For a narrow set of problems — factoring (Shor), unstructured search (Grover), some chemistry and optimisation — that&rsquo;s an exponential or quadratic speedup. The current hardware is noisy, cryogenic, and small. The 2032-ish milestone everyone is racing toward is <em>fault-tolerant</em> quantum computing — enough qubits and enough error correction to run the famous algorithms on real-world inputs. It will not replace your laptop. It will replace specific compute jobs that are intractable today.</p>
+<p>The bottom of the figure ties these threads onto a single timeline. The big picture: the next fifteen years of computing won&rsquo;t be one big jump. They&rsquo;ll be many small ones, all in the direction of <em>specialisation</em> — custom silicon, custom interconnects, custom physics — held together by software that knows what&rsquo;s underneath it.</p>
+<h1 id="closing--what-to-do-with-all-this">Closing — what to do with all this</h1>
+<p>You&rsquo;ve now seen the machine end to end. A few habits will compound this knowledge for you for years:</p>
+<ol>
+<li><strong>When something is slow, measure before you guess.</strong> A <code>perf stat</code> and a flamegraph will save you days of wrong intuition.</li>
+<li><strong>Read the datasheet of the hardware you actually own.</strong> Cache sizes, memory channels, PCIe lane wiring — they&rsquo;re all in there, and they explain most of what you&rsquo;ll see.</li>
+<li><strong>Keep one mental model and refine it.</strong> Every new technology — CXL, photonic IO, MI300 chiplets — fits somewhere on the system diagram in Part 1. Find where, and you understand it.</li>
+<li><strong>Build something that pushes the hardware.</strong> A toy database, a small ray tracer, a profiler of your own. There is no substitute for the moment a counter goes from 0.3 IPC to 2.8 IPC because of a change you made.</li>
+</ol>
+<p>Computer hardware is not a shopping list. It&rsquo;s a system that has been refined for eighty years, by tens of thousands of engineers, into the most intricate machine humans have ever built. Knowing how it works is one of the highest-leverage things you can know.</p>
+<p>Thanks for reading this series. See you in the next one.</p>
+<p><strong>— End of the Computer Fundamentals series —</strong></p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/computer-fundamentals/05-network-power/"><span class="title">Computer Fundamentals: Network, Power, and Troubleshooting</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next</div>
+      <span class="title" style="color: var(--ink-faint)">—</span>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents"></nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Computer Fundamentals</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3000</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2023</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

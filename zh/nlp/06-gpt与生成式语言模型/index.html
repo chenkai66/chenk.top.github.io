@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>自然语言处理（六）：GPT与生成式语言模型 · Chen Kai Blog</title>
+<meta name="description" content="从GPT-1到GPT-4：理解自回归语言建模、解码策略（贪心、束搜索、top-k、top-p）、上下文学习，并用HuggingFace构建聊天机器人。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="自然语言处理（六）：GPT与生成式语言模型">
+<meta property="og:description" content="从GPT-1到GPT-4：理解自回归语言建模、解码策略（贪心、束搜索、top-k、top-p）、上下文学习，并用HuggingFace构建聊天机器人。">
+<meta property="og:url" content="https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">自然语言处理</a>
+         · Chapter 6
+      </div>
+      <h1>自然语言处理（六）：GPT与生成式语言模型</h1>
+      <p class="deck">从GPT-1到GPT-4：理解自回归语言建模、解码策略（贪心、束搜索、top-k、top-p）、上下文学习，并用HuggingFace构建聊天机器人。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-10-26">October 26, 2025</time> · 5 min read · 2500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/nlp/" class="tag">#NLP</a><a href="/zh/tags/gpt/" class="tag">#GPT</a><a href="/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a><a href="/zh/tags/%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/" class="tag">#语言模型</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>当你向 ChatGPT 提一个问题，看到一段流畅的多段回答一个 token 接一个 token 流式涌出时，你目睹的其实是一个朴素到惊人的循环：把&quot;目前为止的所有内容&quot;喂给一个 Transformer 解码器，看它输出的词表概率分布，挑一个 token，拼到末尾，再循环。这就是自回归语言模型干的全部事情。神奇的不是这个循环，而是当你把循环背后的网络放大到几千亿参数、用半个互联网训练时，会发生什么。</p>
+<p>如果说 BERT（第 5 篇）是&quot;理解之王&quot;，GPT 就是&quot;生成之王&quot;。本文会把 GPT 的整条家谱讲清楚，把自回归解码的机制掰开来看，让你对&quot;采样策略到底意味着什么&quot;有切身感受，最后落到一个能在你笔记本上跑起来的聊天机器人。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>一个<strong>仅解码器（decoder-only）</strong> 的 Transformer 是怎么把&quot;预测下一个 token&quot;变成通用 AI 的</li>
+<li><strong>因果（掩码）自注意力</strong>——把 GPT 和 BERT 区分开的那一处关键设计</li>
+<li>四种主流解码策略（贪心、束搜索、top-k、top-p）以及<strong>温度</strong>的作用</li>
+<li>为什么<strong>上下文学习</strong>（zero/few-shot）能在不更新任何参数的前提下生效</li>
+<li><strong>缩放定律</strong>与&quot;涌现能力&quot;这一奇怪现象</li>
+<li>如何评估生成文本（BLEU、ROUGE、困惑度），以及它们各自在哪里失灵</li>
+<li>用 HuggingFace 在 GPT-2 上搭一个能跑的多轮聊天机器人</li>
+</ul>
+<p><strong>前置阅读</strong>：第 4 篇（Transformer 架构）、第 5 篇（预训练与 BERT）。</p>
+<hr>
+<h2 id="1-仅解码器-transformer">1. 仅解码器 Transformer</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/06-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/fig1_decoder_only_arch.png" alt="Decoder-only 架构与因果掩码" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>最初的 Transformer（Vaswani 等，2017）由两半组成：编码器读源句子、解码器写目标句子。BERT 只保留了编码器；GPT 只保留<strong>解码器</strong>，并且做了一个关键改动——每一层自注意力都加上<strong>因果掩码</strong>，使得位置 $i$ 只能注意到 $1,2,\ldots,i$，永远看不到未来。</p>
+<p>为什么这一处设计如此重要？因为它让训练和推理变得<strong>完全一致</strong>。训练时模型一次性看到整段文本，但掩码屏蔽了未来，所以每个位置都被迫&quot;只用过去预测下一个&quot;——这正是它在生成时面临的处境。没有训练/推理的不匹配，也不需要单独的&quot;生成模式&quot;：训练时计算损失的那次前向传播，就是推理时计算下一个 token 分布的那次前向传播。</p>
+<h3 id="一口气讲完前向传播">一口气讲完前向传播</h3>
+<p>给定输入 $x_1,\ldots,x_t$：</p>
+<ol>
+<li><strong>嵌入</strong>：$h^0_i = E_{\text{tok}}(x_i) + E_{\text{pos}}(i)$</li>
+<li><strong>重复 $L$ 次</strong>（一个 Transformer block）：</li>
+</ol>
+$$
+\tilde h = h + \text{MaskedMHA}(\text{LN}(h)),\quad h \leftarrow \tilde h + \text{FFN}(\text{LN}(\tilde h))
+$$<ol start="3">
+<li><strong>投影</strong>：logits $z_i = W_o\,h^L_i$，再 $P(x_{i+1}\mid x_{\le i}) = \text{softmax}(z_i)$。</li>
+</ol>
+<h3 id="因果掩码具体长什么样">因果掩码，具体长什么样</h3>
+<p>掩码注意力跟普通的缩放点积一模一样，只不过在 softmax 之前给被禁止的位置加上 $-\infty$：</p>
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}} + M\right) V,
+\quad M_{ij} = \begin{cases} 0 & j \le i \\ -\infty & j > i \end{cases}
+$$<p>$-\infty$ 经过 softmax 变成 $0$，所以未来位置的贡献为零。上面右图把这件事可视化了：每一行是一个查询位置，每一列是被注意的位置，只有下三角（过去）是亮的。</p>
+<h3 id="训练目标">训练目标</h3>
+<p>最大化语料的对数似然——也就是把每个位置的交叉熵加起来：</p>
+$$
+\mathcal{L} = -\sum_{i=1}^{n} \log P(x_i \mid x_1, \ldots, x_{i-1})
+$$<p>把这一个损失函数应用到 TB 量级的文本上，就是 GPT 的全部训练故事。</p>
+<hr>
+<h2 id="2-自回归生成一步一步看">2. 自回归生成，一步一步看</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/06-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/fig2_autoregressive_step.png" alt="自回归生成：一次一个 token" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>推理时模型每次只生成一个 token，每一步发生三件事：</p>
+<ol>
+<li><strong>前向传播</strong>当前序列，只取<strong>最后一个位置</strong>的 logits。</li>
+<li><strong>把 logits 转成词表上的概率分布</strong>（可选地除以温度）。</li>
+<li><strong>挑一个 token</strong>（确定地或采样地），拼到末尾，重复直到撞上 <code>&lt;eos&gt;</code> 或长度上限。</li>
+</ol>
+<p>下面那张柱状图展示了 prompt <code>&quot;The cat sat on the&quot;</code> 之后的下一 token 分布：<code>mat</code> 以约 42% 的概率领先，但还有不少概率分散在合理的备选上（<code>floor</code>、<code>couch</code>、<code>sofa</code>…）。模型每次会输出同一句话还是会给你惊喜，<strong>完全取决于你怎么从这个分布里采样</strong>——这正是第 4 节要讲的。</p>
+<blockquote>
+<p><strong>一个关于速度的工程细节</strong>。朴素地生成 $T$ 个 token 意味着要跑 $T$ 次前向传播，每次的代价随序列长度二次增长——根本跑不起来。所有真实实现都会用 <strong>KV cache</strong>：过去 token 的 keys 和 values 算一次就缓存下来，新 token 只需要和缓存做注意力。这把生成的总 FLOPs 从 $O(T^3)$ 降到 $O(T^2)$，是真实系统能用的根本原因。</p>
+</blockquote>
+<hr>
+<h2 id="3-gpt-家族5-年约-10000-倍参数增长">3. GPT 家族：5 年，约 10000 倍参数增长</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/06-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/fig4_gpt_evolution.png" alt="GPT-1 到 GPT-4 的演进" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>GPT 系列讲的是一个故事：把一个小想法的&quot;规模&quot;旋钮拧到底会发生什么。</p>
+<h3 id="gpt-12018-年-6-月概念验证">GPT-1（2018 年 6 月）——概念验证</h3>
+<ul>
+<li>12 层解码器、<strong>1.17 亿</strong>参数，BooksCorpus（约 4.5 GB）。</li>
+<li>范式：先用语言建模目标预训练，再为每个下游任务微调一个小的任务头。</li>
+<li>结论：一个通用的 Transformer 解码器，在原始文本上预训练之后，能在一系列基准上击败手工设计的任务专用架构。</li>
+</ul>
+<h3 id="gpt-22019-年-2-月零样本能力浮现">GPT-2（2019 年 2 月）——零样本能力浮现</h3>
+<ul>
+<li><strong>15 亿</strong>参数，WebText（约 40 GB，从 Reddit 出站链接抓取）。</li>
+<li>新想法：干脆不微调。如果你只在 prompt 里<strong>描述</strong>任务，模型经常就能把它做出来。</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Translate to French:
+</span></span><span class="line"><span class="cl">English: The cat sat on the mat.
+</span></span><span class="line"><span class="cl">French:
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>GPT-2 能给出过得去的翻译，尽管它从未在平行语料上训练过——它在网上看过足够多的双语段落，把&quot;English: … / French: …&ldquo;这种<strong>模式</strong>吸收下来了。</p>
+<h3 id="gpt-32020-年-5-月规模改变游戏规则">GPT-3（2020 年 5 月）——规模改变游戏规则</h3>
+<ul>
+<li><strong>1750 亿</strong>参数（约为 GPT-2 的 100 倍），约 570 GB 精筛文本，约 $3.14\times 10^{23}$ FLOPs 的训练算力。</li>
+<li>标志性发现：<strong>少样本上下文学习</strong>——在 prompt 里塞几个输入-输出样例，模型就能即时学会任务，<strong>不更新一个参数</strong>。</li>
+<li>许多能力（三位数算术、代码补全、多步推理）在 GPT-2 规模上几乎是零，到 GPT-3 规模突然出现——这正是我们第 7 节要讲的<strong>涌现</strong>现象。</li>
+</ul>
+<h3 id="gpt-42023-年-3-月多模态--指令微调">GPT-4（2023 年 3 月）——多模态 + 指令微调</h3>
+<ul>
+<li>架构和参数量未公开（坊间猜测是万亿参数级别的 MoE）。</li>
+<li>同时接收文本和图像。</li>
+<li>用 <strong>RLHF</strong>（基于人类反馈的强化学习）大量打磨了安全性、有用性和指令遵循。</li>
+<li>律考能上 90 分位、AP 考试拿 5 分、能处理早期模型搞不定的长程推理。</li>
+</ul>
+<table>
+  <thead>
+      <tr>
+          <th>模型</th>
+          <th>参数量</th>
+          <th>训练数据</th>
+          <th>标志能力</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>GPT-1</td>
+          <td>1.17 亿</td>
+          <td>4.5 GB</td>
+          <td>预训练 + 微调跑通</td>
+      </tr>
+      <tr>
+          <td>GPT-2</td>
+          <td>15 亿</td>
+          <td>40 GB</td>
+          <td>从 prompt 做零样本</td>
+      </tr>
+      <tr>
+          <td>GPT-3</td>
+          <td>1750 亿</td>
+          <td>570 GB</td>
+          <td>少样本上下文学习</td>
+      </tr>
+      <tr>
+          <td>GPT-4</td>
+          <td>（未公开）</td>
+          <td>（未公开）</td>
+          <td>多模态、强推理、RLHF</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="4-解码策略">4. 解码策略</h2>
+<p>解码策略这一个旋钮，能让生成结果从&quot;机械重复、乏味&quot;变成&quot;出人意料、贴题&rdquo;——一个权重都不用改。下面我们用第 2 节那个<strong>同一个</strong>下一 token 分布，把四种主流策略并排可视化。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/06-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/fig5_sampling_strategies.png" alt="贪心、top-k、top-p 与温度对同一分布的效果" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="41-贪心解码">4.1 贪心解码</h3>
+<p>每一步选概率最高的那个：$x_t = \arg\max_w P(w \mid x_{<t})$。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">greedy_decode</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">max_new</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ids</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">input_ids</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_new</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nxt</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="n">nxt</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">nxt</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">break</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>优点</strong>：确定性、快。<strong>缺点</strong>：容易陷入退化循环（<code>&quot;the the the&quot;</code>），输出乏味、可预测。一般只在需要可复现的调试场景里用。</p>
+<h3 id="42-束搜索beam-search">4.2 束搜索（Beam Search）</h3>
+<p>每一步同时维护 $k$ 条最优部分序列，按<strong>累计</strong>对数概率排序（通常加一个长度惩罚，避免偏爱短序列）。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">beam_search</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">beam</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_new</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lp</span><span class="o">=</span><span class="mf">0.6</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ids</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">input_ids</span>
+</span></span><span class="line"><span class="cl">    <span class="n">beams</span> <span class="o">=</span> <span class="p">[(</span><span class="n">ids</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_new</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cands</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">seq</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">beams</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">seq</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">cands</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">seq</span><span class="p">,</span> <span class="n">score</span><span class="p">));</span> <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">top_lp</span><span class="p">,</span> <span class="n">top_id</span> <span class="o">=</span> <span class="n">logp</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">beam</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">top_lp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">top_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+</span></span><span class="line"><span class="cl">                <span class="n">new_seq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">seq</span><span class="p">,</span> <span class="n">idx</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="n">cands</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">new_seq</span><span class="p">,</span> <span class="n">score</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">item</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cands</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="n">lp</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">beams</span> <span class="o">=</span> <span class="n">cands</span><span class="p">[:</span><span class="n">beam</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">beams</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>优点</strong>：似然比贪心高，是机器翻译和摘要的主力。<strong>缺点</strong>：在开放式生成里容易给出<strong>平淡、保守</strong>的句子——这一现象叫&quot;束搜索诅咒&quot;（似然最高的句子往往是最无趣的）。</p>
+<h3 id="43-top-k-采样">4.3 Top-$k$ 采样</h3>
+<p>只从概率最高的 $k$ 个 token 里采样（采样前对它们的概率重新归一化）：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">top_k_sample</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">max_new</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ids</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">input_ids</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_new</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">T</span>
+</span></span><span class="line"><span class="cl">        <span class="n">top_logits</span><span class="p">,</span> <span class="n">top_ids</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">top_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nxt</span> <span class="o">=</span> <span class="n">top_ids</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="n">nxt</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">nxt</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">break</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>问题</strong>：$k$ 是固定的。模型很自信时（一个 token 占了 95% 的概率），top-$k$ 还是会考虑 $k$ 个候选，可能采到傻东西；模型在几百个 token 上都不确定时，$k=50$ 又太苛刻。</p>
+<h3 id="44-top-p核采样">4.4 Top-$p$（核采样）</h3>
+<p>挑出累计概率 $\ge p$ 的最小 token 集合——也就是<strong>核（nucleus）</strong>——然后从中采样。核的大小<strong>自适应</strong>地随模型置信度变化。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">top_p_sample</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">max_new</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ids</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">input_ids</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_new</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">T</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sorted_logits</span><span class="p">,</span> <span class="n">sorted_ids</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sorted_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cum</span> <span class="o">=</span> <span class="n">probs</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">keep</span> <span class="o">=</span> <span class="n">cum</span> <span class="o">&lt;=</span> <span class="n">p</span>
+</span></span><span class="line"><span class="cl">        <span class="n">keep</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>               <span class="c1"># 至少保留 top-1</span>
+</span></span><span class="line"><span class="cl">        <span class="n">keep</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">keep</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="o">|</span> <span class="p">(</span><span class="n">cum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sorted_logits</span><span class="p">[</span><span class="o">~</span><span class="n">keep</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nucleus_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sorted_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">nucleus_probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">nxt</span> <span class="o">=</span> <span class="n">sorted_ids</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="n">nxt</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">nxt</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">break</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>上图的 (c) 子图里，核里有 5 个 token，因为前 5 个就覆盖了 85% 的概率。换一个分布，核可能只有 1 个 token（模型非常自信）或 200 个（分布很平）。这种自适应性是 top-$p$ 成为开放式生成默认选择的根本原因。</p>
+<h3 id="45-温度">4.5 温度</h3>
+<p>温度 $T$ 在 softmax <strong>之前</strong>对 logits 做缩放：</p>
+$$
+P_T(w) = \text{softmax}(z / T)
+$$<p>上图的 (d) 子图把 $T = 0.5$ 和 $T = 1.5$ 在同一组 logits 上画在一起。直觉上，$T$ 控制分布的&quot;尖锐程度&quot;：</p>
+<ul>
+<li>$T \to 0$：分布塌缩到 argmax 上的 one-hot（等价于贪心）。</li>
+<li>$T = 1$：原始分布（不变）。</li>
+<li>$T \to \infty$：分布趋向均匀。</li>
+</ul>
+<p>经验法则：<strong>top-$p = 0.9$ 配合 $T = 0.7$–$0.9$</strong> 是大多数对话和创意写作场景的默认配置。</p>
+<h3 id="策略速查表">策略速查表</h3>
+<table>
+  <thead>
+      <tr>
+          <th>策略</th>
+          <th>多样性</th>
+          <th>质量</th>
+          <th>速度</th>
+          <th>最佳场景</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>贪心</td>
+          <td>无</td>
+          <td>低</td>
+          <td>快</td>
+          <td>可复现调试</td>
+      </tr>
+      <tr>
+          <td>束搜索</td>
+          <td>低</td>
+          <td>似然高</td>
+          <td>慢</td>
+          <td>翻译、摘要</td>
+      </tr>
+      <tr>
+          <td>Top-$k$</td>
+          <td>中</td>
+          <td>中-高</td>
+          <td>中</td>
+          <td>通用生成</td>
+      </tr>
+      <tr>
+          <td>Top-$p$</td>
+          <td>中-高</td>
+          <td>高</td>
+          <td>中</td>
+          <td>对话、故事、创意写作</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="5-缩放定律涌现之前的可预测性">5. 缩放定律：涌现之前的可预测性</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/06-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/fig3_scaling_laws.png" alt="缩放定律：损失随规模幂律下降" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>2020 年 Kaplan 等发现，测试损失随三个量呈<strong>干净的幂律</strong>下降——模型参数 $N$、数据集规模 $D$、训练算力 $C$——只要三者都不是瓶颈：</p>
+$$
+L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha_N},\quad L(C) \approx \left(\frac{C_c}{C}\right)^{\alpha_C}
+$$<p>经验指数小得吓人（$\alpha_N \approx 0.076$、$\alpha_C \approx 0.050$）。在对数-对数坐标上这就是直线，所以上图两个面板都是线性的。两个推论：</p>
+<ol>
+<li><strong>可预测性</strong>。你可以从 $\le 1$ B 参数的实验外推出 1750 亿参数模型的损失。这正是当年敢押注 GPT-3 的经济基础——团队在烧掉几百万美元 GPU 费用<strong>之前</strong>就大致知道损失曲线会落在哪。</li>
+<li><strong>存在不可约损失下限</strong>（图中虚线）——也就是数据自身的熵。再怎么放大也跨不过去。</li>
+</ol>
+<p>2022 年的 <strong>Chinchilla</strong> 论文又把这幅图修正了一次：在固定算力预算下，GPT-3 其实<strong>训练量严重不足</strong>。算力最优的配比大约是<strong>每个参数对应 20 个 token</strong>——所以一个 70 B 模型用 1.4 T tokens 训练（Chinchilla），在同等算力下能打过用 300 B tokens 训练的 175 B 模型（GPT-3）。今天的开源主流模型（LLaMA、Mistral、Qwen）都遵循 Chinchilla 风格的配比。</p>
+<hr>
+<h2 id="6-涌现能力">6. 涌现能力</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/06-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/fig6_emergent_capabilities.png" alt="涌现能力：随规模出现的尖锐相变" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>缩放定律说<strong>整体损失</strong>平滑下降，但很多<strong>单个任务</strong>并不平滑——它们在好几个数量级的规模上停在随机水平，然后突然蹿到高准确率。</p>
+<p>上图给了定性形状：情感分类（蓝）从小规模就平滑提升；少样本上下文学习、三位数算术、思维链推理（紫、橙、绿）在临界规模之前几乎是随机水平，到了临界点忽然起飞。Wei 等（2022）在 <strong>BIG-Bench</strong> 基准上整理了 137 个这样的任务。</p>
+<p>涌现到底&quot;真存在&quot;还是测量方式（用离散任务的精确匹配准确率）造成的假象，学界仍有争议——Schaeffer 等（2023）证明换成连续指标后，部分涌现曲线会变平滑。但操作层面上的事实没变：小规模时模型<strong>做不到</strong>这件事，参数规模到了 $10^{10}$–$10^{11}$ 之间的某处时它<strong>能</strong>了。规划路线图时务必把这点考虑进去。</p>
+<hr>
+<h2 id="7-上下文学习">7. 上下文学习</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/06-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/fig7_in_context_learning.png" alt="少样本上下文学习" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>GPT 类大模型最让人吃惊的性质大概是：你能<strong>只在 prompt 里给几个例子</strong>就教会它新任务。没有反向传播、没有优化器、没有参数更新——模型纯粹通过&quot;读到的内容&quot;来适应。</p>
+<h3 id="零样本-vs-少样本">零样本 vs. 少样本</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl"># 零样本
+</span></span><span class="line"><span class="cl">请把下面这句英文翻译成法语：
+</span></span><span class="line"><span class="cl">The bird flew in the sky.
+</span></span><span class="line"><span class="cl">法语：
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"># 少样本
+</span></span><span class="line"><span class="cl">英译法。
+</span></span><span class="line"><span class="cl">English: The cat sat on the mat. -&gt; French: Le chat s&#39;est assis sur le tapis.
+</span></span><span class="line"><span class="cl">English: The dog ran in the park. -&gt; French: Le chien a couru dans le parc.
+</span></span><span class="line"><span class="cl">English: The bird flew in the sky. -&gt; French:
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>少样本 prompt 给了模型一个<strong>格式</strong>去模仿。经验上，2–5 个例子对大多数任务足够；超过 8 个之后收益就平了。</p>
+<h3 id="它为什么能-work">它为什么能 work？</h3>
+<p>机制目前仍是活跃研究方向，主流解释有：</p>
+<ul>
+<li><strong>大规模模式匹配</strong>。互联网预训练让模型见过无数种输入-输出格式，prompt 激活了对应的模板。</li>
+<li><strong>隐式梯度下降</strong>。Garg 等（2022）证明，在线性回归这类玩具场景下，Transformer 在前向传播中可以对 in-context 示例<strong>实现一步梯度下降</strong>。模型越大，能模拟的步数越多。</li>
+<li><strong>贝叶斯隐任务推断</strong>。Xie 等（2022）把 ICL 解释为先从示例里推断出一个隐藏的&quot;任务变量&quot;，再以它为条件做生成。</li>
+<li><strong>规模相变</strong>。ICL 只在几十亿参数以上才稳定生效——和涌现的故事是一致的。</li>
+</ul>
+<h3 id="实战-prompt-工程">实战 prompt 工程</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">few_shot_prompt</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">examples</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">task</span><span class="p">,</span> <span class="s2">&#34;&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">inp</span><span class="p">,</span> <span class="n">out</span> <span class="ow">in</span> <span class="n">examples</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Input: </span><span class="si">{</span><span class="n">inp</span><span class="si">}</span><span class="se">\n</span><span class="s2">Output: </span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Input: </span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="se">\n</span><span class="s2">Output:&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>几条经常奏效的经验：</p>
+<ol>
+<li><strong>明确</strong>。在最上面用一句大白话说清任务。</li>
+<li><strong>挑有代表性的样例</strong>。覆盖你预期会遇到的输入分布。</li>
+<li><strong>格式严格一致</strong>。同样的分隔符、同样的大小写、同样的标签。</li>
+<li><strong>推理类任务上用思维链</strong>。让模型&quot;一步一步想&quot;，或在少样本示例里直接写出推理过程。这在数学、逻辑类基准上常常带来巨幅提升。</li>
+</ol>
+<hr>
+<h2 id="8-评估生成文本">8. 评估生成文本</h2>
+<p>没有完美的指标——但知道在什么场景该用哪个近似指标、它会漏掉什么，是必备能力。</p>
+<h3 id="bleu翻译">BLEU（翻译）</h3>
+<p>衡量生成相对参考的 n-gram 精确率，外加一个长度惩罚：</p>
+$$
+\text{BLEU} = \text{BP}\cdot\exp\!\left(\sum_{n=1}^{N} w_n \log p_n\right)
+$$<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.translate.bleu_score</span> <span class="kn">import</span> <span class="n">sentence_bleu</span><span class="p">,</span> <span class="n">SmoothingFunction</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">bleu</span><span class="p">(</span><span class="n">generated</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">sentence_bleu</span><span class="p">([</span><span class="n">reference</span><span class="o">.</span><span class="n">split</span><span class="p">()],</span> <span class="n">generated</span><span class="o">.</span><span class="n">split</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                         <span class="n">smoothing_function</span><span class="o">=</span><span class="n">SmoothingFunction</span><span class="p">()</span><span class="o">.</span><span class="n">method1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>在<strong>翻译</strong>上和人工评分相关性强；在开放式生成上则相关性较弱。</p>
+<h3 id="rouge摘要">ROUGE（摘要）</h3>
+<p>衡量 n-gram <strong>召回率</strong>——参考里有多少出现在了生成里：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">rouge_score</span> <span class="kn">import</span> <span class="n">rouge_scorer</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">rouge</span><span class="p">(</span><span class="n">generated</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">scorer</span> <span class="o">=</span> <span class="n">rouge_scorer</span><span class="o">.</span><span class="n">RougeScorer</span><span class="p">([</span><span class="s2">&#34;rouge1&#34;</span><span class="p">,</span> <span class="s2">&#34;rouge2&#34;</span><span class="p">,</span> <span class="s2">&#34;rougeL&#34;</span><span class="p">],</span> <span class="n">use_stemmer</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">s</span> <span class="o">=</span> <span class="n">scorer</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">generated</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">fmeasure</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="困惑度内在指标">困惑度（内在指标）</h3>
+<p>模型对留出文本&quot;有多惊讶&quot;，越低越好：</p>
+$$
+\text{PPL} = \exp\!\left(-\frac{1}{N}\sum_{i=1}^{N}\log P(w_i\mid w_{<i})\right)
+$$<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">perplexity</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">enc</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">enc</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">enc</span><span class="o">.</span><span class="n">input_ids</span><span class="p">)</span><span class="o">.</span><span class="n">loss</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>困惑度是训练期间有用的<strong>内在</strong>信号，但<strong>低困惑度 ≠ 好的聊天机器人</strong>——模型可能只是擅长预测常见模式，照样会胡说八道。</p>
+<h3 id="哪个任务用哪个指标">哪个任务用哪个指标？</h3>
+<table>
+  <thead>
+      <tr>
+          <th>任务</th>
+          <th>推荐指标</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>机器翻译</td>
+          <td>BLEU、chrF、COMET（学习式）</td>
+      </tr>
+      <tr>
+          <td>文本摘要</td>
+          <td>ROUGE、BERTScore</td>
+      </tr>
+      <tr>
+          <td>开放式对话</td>
+          <td>人工评估 + 多样性（distinct-n）</td>
+      </tr>
+      <tr>
+          <td>指令遵循</td>
+          <td>LLM-as-judge + 人工评估</td>
+      </tr>
+      <tr>
+          <td>语言建模</td>
+          <td>困惑度</td>
+      </tr>
+  </tbody>
+</table>
+<p>任何面向真实用户的场景，<strong>人工评估仍是金标准</strong>。</p>
+<hr>
+<h2 id="9-用-gpt-2-搭一个聊天机器人">9. 用 GPT-2 搭一个聊天机器人</h2>
+<p>GPT-2 小到能在 CPU 上跑，又大到足够有趣。HuggingFace 的 <code>transformers</code> 库把几乎所有样板代码都藏起来了。</p>
+<h3 id="单轮版">单轮版</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">GPT2LMHeadModel</span><span class="p">,</span> <span class="n">GPT2Tokenizer</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ChatBot</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;gpt2&#34;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">GPT2Tokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">GPT2LMHeadModel</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">respond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_new</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">top_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;User: </span><span class="si">{</span><span class="n">user</span><span class="si">}</span><span class="se">\n</span><span class="s2">Assistant:&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">ids</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">max_new_tokens</span><span class="o">=</span><span class="n">max_new</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">do_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">top_p</span><span class="o">=</span><span class="n">top_p</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">no_repeat_ngram_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">pad_token_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;Assistant:&#34;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">ChatBot</span><span class="p">()</span><span class="o">.</span><span class="n">respond</span><span class="p">(</span><span class="s2">&#34;What is machine learning?&#34;</span><span class="p">))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="多轮版带滚动历史">多轮版（带滚动历史）</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultiTurnBot</span><span class="p">(</span><span class="n">ChatBot</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;gpt2&#34;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">respond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_turns</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="o">**</span><span class="n">gen_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># 只保留最近 N 轮，以免超过 1024 token 的上下文窗口</span>
+</span></span><span class="line"><span class="cl">        <span class="n">recent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">max_turns</span><span class="p">:]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">prompt</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">recent</span> <span class="o">+</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&#34;User: </span><span class="si">{</span><span class="n">user</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span> <span class="s2">&#34;Assistant:&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">ids</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">max_new_tokens</span><span class="o">=</span><span class="n">gen_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;max_new&#34;</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="n">do_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">temperature</span><span class="o">=</span><span class="n">gen_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;temperature&#34;</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="n">top_p</span><span class="o">=</span><span class="n">gen_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;top_p&#34;</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="n">no_repeat_ngram_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">pad_token_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">reply</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">reply</span> <span class="o">=</span> <span class="n">reply</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;Assistant:&#34;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;User:&#34;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">+=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&#34;User: </span><span class="si">{</span><span class="n">user</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&#34;Assistant: </span><span class="si">{</span><span class="n">reply</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">reply</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="一行版pipeline-api">一行版（pipeline API）</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">pipeline</span>
+</span></span><span class="line"><span class="cl"><span class="n">gen</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">&#34;text-generation&#34;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&#34;gpt2&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">gen</span><span class="p">(</span><span class="s2">&#34;User: What is deep learning?</span><span class="se">\n</span><span class="s2">Assistant:&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">          <span class="n">max_new_tokens</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">do_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">top_p</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&#34;generated_text&#34;</span><span class="p">])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p>GPT-2 的回答<strong>不会</strong>像 ChatGPT——它既没有指令微调，也没有 RLHF。要拿到接近 ChatGPT 的体验，要么换一个开源指令模型（如 <code>meta-llama/Llama-3-8B-Instruct</code>、<code>Qwen/Qwen2.5-7B-Instruct</code>），要么自己在指令数据集上把 GPT-2 微调一遍。</p>
+</blockquote>
+<hr>
+<h2 id="10-gpt-vs-bert一表对照">10. GPT vs. BERT，一表对照</h2>
+<table>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>BERT</th>
+          <th>GPT</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>架构</td>
+          <td>编码器，双向自注意力</td>
+          <td>解码器，<strong>因果</strong>自注意力</td>
+      </tr>
+      <tr>
+          <td>预训练</td>
+          <td>Masked LM + Next Sentence Prediction</td>
+          <td>因果语言建模</td>
+      </tr>
+      <tr>
+          <td>上下文</td>
+          <td>双向（看左右）</td>
+          <td>单向（只看左侧）</td>
+      </tr>
+      <tr>
+          <td>拿手</td>
+          <td>分类、NER、问答、检索</td>
+          <td>生成、对话、代码、创作</td>
+      </tr>
+      <tr>
+          <td>适配方式</td>
+          <td>加任务头微调</td>
+          <td>Prompt（zero/few-shot）或微调</td>
+      </tr>
+      <tr>
+          <td>规模故事</td>
+          <td>约 1 B 参数后收益递减</td>
+          <td>收益持续，并伴随能力涌现</td>
+      </tr>
+  </tbody>
+</table>
+<p>一个有用的心智模型：<strong>BERT 像搜索引擎、GPT 像写作者</strong>。需要把输入压成向量时用 BERT 系；需要产出文本时用 GPT 系。</p>
+<hr>
+<h2 id="11-必须诚实承认的局限">11. 必须诚实承认的局限</h2>
+<ul>
+<li><strong>幻觉</strong>。对自己不知道的东西，生成流畅但事实错误的内容是模型的默认行为。缓解手段：检索增强（第 10 篇）、工具调用、校准过的拒答训练。</li>
+<li><strong>上下文长度</strong>。GPT-2 1024、GPT-3 2048、GPT-4 32K 又扩到 128K，今天 1M 也开始普及。但长上下文成本高，而且<strong>中段内容</strong>的召回会下降（&ldquo;lost in the middle&rdquo;）。</li>
+<li><strong>算力成本</strong>。1750 亿参数模型一次前向传播就要几百 GB GPU 显存，推理总成本在模型生命周期里远超训练成本。</li>
+<li><strong>训练数据偏见</strong>。模型会照搬训练数据里的统计模式，包括刻板印象。</li>
+<li><strong>可控性有限</strong>。要硬性约束风格、格式或事实性，必须叠加额外机制（system prompt、约束解码、RLHF、后置过滤）。</li>
+</ul>
+<hr>
+<h2 id="12-核心要点">12. 核心要点</h2>
+<ul>
+<li>GPT 模型本质就是一个<strong>带因果掩码的仅解码器 Transformer</strong>，被训练来&quot;预测下一个 token&quot;。这种朴素本身就是 point。</li>
+<li><strong>规模是放大器</strong>：参数、数据、算力联手让损失幂律下降，并在此之上叠加突如其来的能力跃迁。</li>
+<li><strong>上下文学习</strong>让一个固定模型靠 prompt 就能处理上千种任务——大多数场景都不需要微调。</li>
+<li><strong>解码策略</strong>是免费的杠杆：对话和创作首选 <strong>top-$p$ + 温度 0.7–0.9</strong>；翻译和可复现性场景选贪心或束搜索。</li>
+<li><strong>BERT 理解、GPT 生成</strong>——两者合起来覆盖了现代 NLP 的全部光谱。第 7–12 篇会继续深入 GPT 类模型的实战玩法（提示工程、微调、RAG、多模态…）。</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+          <th>链接</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td>NLP 入门与文本预处理</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%b8%80-NLP%e5%85%a5%e9%97%a8%e4%b8%8e%e6%96%87%e6%9c%ac%e9%a2%84%e5%a4%84%e7%90%86/">阅读</a>
+</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td>词向量与语言模型</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%ba%8c-%e8%af%8d%e5%90%91%e9%87%8f%e4%b8%8e%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b/">阅读</a>
+</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td>RNN 与序列建模</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%b8%89-RNN%e4%b8%8e%e5%ba%8f%e5%88%97%e5%bb%ba%e6%a8%a1/">阅读</a>
+</td>
+      </tr>
+      <tr>
+          <td>4</td>
+          <td>注意力机制与 Transformer</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%9b%9b-%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e4%b8%8eTransformer/">阅读</a>
+</td>
+      </tr>
+      <tr>
+          <td>5</td>
+          <td>BERT 与预训练模型</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%ba%94-BERT%e4%b8%8e%e9%a2%84%e8%ae%ad%e7%bb%83%e6%a8%a1%e5%9e%8b/">上一篇</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>6</strong></td>
+          <td><strong>GPT 与生成式语言模型（本文）</strong></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td>7</td>
+          <td>提示工程与 In-Context Learning</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e4%b8%83-%e6%8f%90%e7%a4%ba%e5%b7%a5%e7%a8%8b%e4%b8%8eIn-Context-Learning/">下一篇</a>
+</td>
+      </tr>
+      <tr>
+          <td>8</td>
+          <td>模型微调与 PEFT</td>
+          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%85%ab-%e6%a8%a1%e5%9e%8b%e5%be%ae%e8%b0%83%e4%b8%8ePEFT/">阅读</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#1-仅解码器-transformer">1. 仅解码器 Transformer</a>
+      <ul>
+        <li><a href="#一口气讲完前向传播">一口气讲完前向传播</a></li>
+        <li><a href="#因果掩码具体长什么样">因果掩码，具体长什么样</a></li>
+        <li><a href="#训练目标">训练目标</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-自回归生成一步一步看">2. 自回归生成，一步一步看</a></li>
+    <li><a href="#3-gpt-家族5-年约-10000-倍参数增长">3. GPT 家族：5 年，约 10000 倍参数增长</a>
+      <ul>
+        <li><a href="#gpt-12018-年-6-月概念验证">GPT-1（2018 年 6 月）——概念验证</a></li>
+        <li><a href="#gpt-22019-年-2-月零样本能力浮现">GPT-2（2019 年 2 月）——零样本能力浮现</a></li>
+        <li><a href="#gpt-32020-年-5-月规模改变游戏规则">GPT-3（2020 年 5 月）——规模改变游戏规则</a></li>
+        <li><a href="#gpt-42023-年-3-月多模态--指令微调">GPT-4（2023 年 3 月）——多模态 + 指令微调</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-解码策略">4. 解码策略</a>
+      <ul>
+        <li><a href="#41-贪心解码">4.1 贪心解码</a></li>
+        <li><a href="#42-束搜索beam-search">4.2 束搜索（Beam Search）</a></li>
+        <li><a href="#43-top-k-采样">4.3 Top- 采样</a></li>
+        <li><a href="#44-top-p核采样">4.4 Top-（核采样）</a></li>
+        <li><a href="#45-温度">4.5 温度</a></li>
+        <li><a href="#策略速查表">策略速查表</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-缩放定律涌现之前的可预测性">5. 缩放定律：涌现之前的可预测性</a></li>
+    <li><a href="#6-涌现能力">6. 涌现能力</a></li>
+    <li><a href="#7-上下文学习">7. 上下文学习</a>
+      <ul>
+        <li><a href="#零样本-vs-少样本">零样本 vs. 少样本</a></li>
+        <li><a href="#它为什么能-work">它为什么能 work？</a></li>
+        <li><a href="#实战-prompt-工程">实战 prompt 工程</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-评估生成文本">8. 评估生成文本</a>
+      <ul>
+        <li><a href="#bleu翻译">BLEU（翻译）</a></li>
+        <li><a href="#rouge摘要">ROUGE（摘要）</a></li>
+        <li><a href="#困惑度内在指标">困惑度（内在指标）</a></li>
+        <li><a href="#哪个任务用哪个指标">哪个任务用哪个指标？</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-用-gpt-2-搭一个聊天机器人">9. 用 GPT-2 搭一个聊天机器人</a>
+      <ul>
+        <li><a href="#单轮版">单轮版</a></li>
+        <li><a href="#多轮版带滚动历史">多轮版（带滚动历史）</a></li>
+        <li><a href="#一行版pipeline-api">一行版（pipeline API）</a></li>
+      </ul>
+    </li>
+    <li><a href="#10-gpt-vs-bert一表对照">10. GPT vs. BERT，一表对照</a></li>
+    <li><a href="#11-必须诚实承认的局限">11. 必须诚实承认的局限</a></li>
+    <li><a href="#12-核心要点">12. 核心要点</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">自然语言处理</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>5 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2500</strong></div>
+      <div class="row"><span>Published</span><strong>Oct 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>迁移学习（十）：持续学习 · Chen Kai Blog</title>
+<meta name="description" content="从梯度干扰和 Fisher 信息出发推导灾难性遗忘的成因，系统讲解 EWC、MAS、SI、LwF 四种正则化方法，Replay/A-GEM 重放方法，动态架构与三大 CL 场景的差异，并附 Permuted MNIST 上的 EWC 从零实现。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="迁移学习（十）：持续学习">
+<meta property="og:description" content="从梯度干扰和 Fisher 信息出发推导灾难性遗忘的成因，系统讲解 EWC、MAS、SI、LwF 四种正则化方法，Replay/A-GEM 重放方法，动态架构与三大 CL 场景的差异，并附 Permuted MNIST 上的 EWC 从零实现。">
+<meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">迁移学习</a>
+         · Chapter 10
+      </div>
+      <h1>迁移学习（十）：持续学习</h1>
+      <p class="deck">从梯度干扰和 Fisher 信息出发推导灾难性遗忘的成因，系统讲解 EWC、MAS、SI、LwF 四种正则化方法，Replay/A-GEM 重放方法，动态架构与三大 CL 场景的差异，并附 Permuted MNIST 上的 EWC 从零实现。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-06-24">June 24, 2025</time> · 2 min read · 700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E5%A2%9E%E9%87%8F%E5%AD%A6%E4%B9%A0/" class="tag">#增量学习</a><a href="/zh/tags/%E7%BB%88%E8%BA%AB%E5%AD%A6%E4%B9%A0/" class="tag">#终身学习</a><a href="/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/" class="tag">#迁移学习</a><a href="/zh/tags/%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/" class="tag">#持续学习</a><a href="/zh/tags/%E7%81%BE%E9%9A%BE%E6%80%A7%E9%81%97%E5%BF%98/" class="tag">#灾难性遗忘</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>人去年学会了弹吉他，今天还能骑自行车。神经网络做不到。让一个视觉模型先在 CIFAR-10 上微调，再拿同一个模型去微调 SVHN，回过头测 CIFAR-10——准确率会跌到接近随机猜的水平。这就是<strong>灾难性遗忘（catastrophic forgetting）</strong>。如何让模型像人一样在源源不断到来的任务流 $\mathcal{T}_1, \mathcal{T}_2, \ldots$ 中持续吸收新知识，又不丢掉旧本事，正是**持续学习（continual learning，CL）**这个领域要回答的问题——而且要在&quot;看不到过去数据&quot;这个硬约束下回答。</p>
+<p>本文不打算停留在&quot;列方法清单&quot;。我们先从 SGD 在过参数化网络上的几何结构出发，推导遗忘为什么是结构性的、而不是工程 bug；再依次走过四类解法——正则化、重放、动态架构、元学习——把数学推导、几何直觉和工程权衡讲清楚；最后给出一份能直接跑在 Permuted MNIST 上的 EWC 实现。</p>
+<h2 id="你将学到">你将学到</h2>
+<ul>
+<li>持续学习的问题定义和三种场景（Task-IL、Domain-IL、Class-IL）</li>
+<li>SGD 在新任务上为什么必然破坏旧任务知识：梯度干扰与损失曲面视角</li>
+<li>Fisher 信息为什么是衡量&quot;参数重要性&quot;的自然选择</li>
+<li>正则化方法 EWC、MAS、SI、LwF 的推导与差别</li>
+<li>重放方法 ER、GEM、A-GEM 的几何含义</li>
+<li>动态架构 Progressive Networks、PackNet 的取舍</li>
+<li>标准评估指标：平均准确率、平均遗忘度、前向/后向迁移</li>
+<li>一份从零写出的、可直接复现的 EWC 实现</li>
+</ul>
+<h2 id="预备知识">预备知识</h2>
+<ul>
+<li>神经网络训练、梯度、交叉熵</li>
+<li>Fisher 信息矩阵的基本概念</li>
+<li>迁移学习基础（本系列前 6 篇）</li>
+</ul>
+<hr>
+<h2 id="问题设定">问题设定</h2>
+<p>任务按顺序到达：$\mathcal{T}_1, \mathcal{T}_2, \ldots, \mathcal{T}_T$。学习 $\mathcal{T}_t$ 时只能看到 $\mathcal{D}_t = \{(x_i, y_i)\}$，<strong>不能</strong>回访 $\mathcal{D}_{<t}$。所有任务训完后，模型要在见过的每一个任务上接受测试。</p>
+<p>van de Ven 和 Tolias（2019）把&quot;难度&quot;拆成三档，理解 CL 必先理解这三种场景：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/fig4_cl_scenarios.png" alt="持续学习的三种场景：Task-IL、Domain-IL、Class-IL" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>Task-IL（任务增量）</strong>。测试时知道任务 ID，每个任务用独立输出头，主干共享。竞争只发生在主干。</li>
+<li><strong>Domain-IL（领域增量）</strong>。标签空间不变，输入分布漂移（干净 → 旋转 → 加噪 MNIST）。单一输出头，测试时不知道是哪个任务。</li>
+<li><strong>Class-IL（类别增量）</strong>。每个新任务带来<strong>新的类别</strong>，测试时模型要在迄今为止见过的<strong>所有</strong>类里做选择，且不知道样本来自哪一阶段。这是最难的设定，也是工业部署最关心的设定。</li>
+</ul>
+<p><strong>评估指标。</strong> 记 $R_{i,j}$ 为&quot;训完任务 $i$ 后在任务 $j$ 上的准确率&quot;。$T$ 个任务全部训完后：</p>
+$$
+\mathrm{Avg} \;=\; \frac{1}{T}\sum_{j=1}^{T} R_{T,j}, \qquad
+\mathrm{Forgetting} \;=\; \frac{1}{T-1}\sum_{j=1}^{T-1}\!\left(\max_{t \le T} R_{t,j} - R_{T,j}\right).
+$$<p>Lopez-Paz 和 Ranzato（2017）又补了两个，专门衡量&quot;任务之间的迁移&quot;而非&quot;是否记得住&quot;：</p>
+$$
+\mathrm{BWT} \;=\; \frac{1}{T-1}\sum_{j=1}^{T-1} (R_{T,j} - R_{j,j}),
+\qquad
+\mathrm{FWT} \;=\; \frac{1}{T-1}\sum_{j=2}^{T} (R_{j-1,j} - b_j),
+$$<p>其中 $b_j$ 是任务 $j$ 的随机/未训练基线。<strong>BWT &lt; 0</strong> 是遗忘；<strong>BWT &gt; 0</strong> 是少见且珍贵的&quot;正向后向迁移&quot;——学新任务反而提升了旧任务表现。<strong>FWT &gt; 0</strong> 则说明早期任务塑造的表征对后续任务有零样本帮助。</p>
+<p><figure>
+  <img src="./10-%e6%8c%81%e7%bb%ad%e5%ad%a6%e4%b9%a0/fig6_transfer_matrix.png" alt="迁移矩阵 R[i,j] 与 FWT/BWT 区域" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<hr>
+<h2 id="遗忘是怎么发生的">遗忘是怎么发生的</h2>
+<h3 id="梯度干扰">梯度干扰</h3>
+<p>写出两个任务的梯度 $\mathbf{g}_1 = \nabla_\theta \mathcal{L}_1$，$\mathbf{g}_2 = \nabla_\theta \mathcal{L}_2$。在任务 2 上做一步 SGD，对任务 1 损失的一阶变化是</p>
+$$
+\Delta \mathcal{L}_1 \approx -\eta\, \mathbf{g}_1 \cdot \mathbf{g}_2.
+$$<p>只要 $\mathbf{g}_1 \cdot \mathbf{g}_2 < 0$，每一步都在<strong>抬高</strong>任务 1 的损失。在高维网络里两个无关任务的梯度往往近似正交，但只要&quot;夹角钝&quot;的方向占比不可忽略，几千步下去旧任务就被推出低损区。</p>
+<h3 id="损失曲面视角">损失曲面视角</h3>
+<p>任务 1 的最优点 $\theta_1^{*}$ 和任务 2 的最优点 $\theta_2^{*}$ 通常分属不同的低损盆地。从 $\theta_1^{*}$ 出发对任务 2 做 SGD，如果没有任何机制把参数往任务 1 的盆地里拉，参数就会径直走出去。下面这张图就是典型现象：朴素基线把所有旧任务的准确率都拖了下去，而 EWC 和重放则各以不同方式扛住了。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/fig1_catastrophic_forgetting.png" alt="5 任务序列上的灾难性遗忘：Baseline / EWC / Replay 对比" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="fisher-信息--参数重要性">Fisher 信息 = 参数重要性</h3>
+<p>模型预测分布 $p_\theta(y \mid x)$ 的 Fisher 信息矩阵是</p>
+$$
+F(\theta) \;=\; \mathbb{E}_{x \sim \mathcal{D},\, y \sim p_\theta(\cdot \mid x)}\!\left[\nabla_\theta \log p_\theta(y \mid x)\, \nabla_\theta \log p_\theta(y \mid x)^{\top}\right].
+$$<p>在局部最优点，Fisher 等于负对数似然的（半正定）Hessian，所以对角元 $F_i$ 衡量的是&quot;扰动 $\theta_i$ 时损失上升得多陡&quot;。$F_i$ 大 ⇒ 参数 $\theta_i$ 是任务的承重墙，要保护；$F_i$ 小 ⇒ 损失在这个方向是平的，可以安心改去服务新任务。后面所有正则化方法的差异，本质上都是&quot;如何挑出该保护的参数&quot;这个问题的不同回答。</p>
+<hr>
+<h2 id="正则化方法">正则化方法</h2>
+<h3 id="elastic-weight-consolidationewc">Elastic Weight Consolidation（EWC）</h3>
+<p>Kirkpatrick 等（2017）用一个高斯近似任务 A 训完后的参数后验：均值是 $\theta_A^{*}$，精度（precision）正比于 Fisher 对角。把任务 A 的负对数似然在 $\theta_A^{*}$ 处展开到二阶：</p>
+$$
+\mathcal{L}_A(\theta) \;\approx\; \mathcal{L}_A(\theta_A^{*}) + \tfrac{1}{2} (\theta - \theta_A^{*})^{\top} F_A\, (\theta - \theta_A^{*}).
+$$<p>把这个二次项作为正则加到任务 B 的目标上，就得到 EWC：</p>
+$$
+\boxed{\;\mathcal{L}(\theta) \;=\; \mathcal{L}_B(\theta) \;+\; \frac{\lambda}{2} \sum_i F_{A,i}\, (\theta_i - \theta_{A,i}^{*})^{2}\;}
+$$<p>几何上，EWC 在旧最优点 $\theta_A^{*}$ 周围挖了一口二次井，井底曲率正好等于旧任务损失的真实曲率：在 $F_i$ 小的方向（旧损失本来就平），更新便宜；在 $F_i$ 大的方向（旧损失敏感），更新昂贵。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/fig2_ewc_penalty.png" alt="EWC 惩罚项：参数空间中以 θA* 为中心的二次井" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>多任务情形下有两种做法：要么把历次 Fisher 累加 $F_{1:t} = \sum_{k \le t} F_k$；要么用 <strong>Online EWC</strong>（Schwarz 等，2018），用一个折扣因子 $\gamma \in (0, 1)$ 让旧 Fisher 指数衰减：</p>
+$$
+\tilde F_t \;=\; \gamma\, \tilde F_{t-1} + F_t, \qquad \theta^{*}_{1:t} = \theta^{*}_t.
+$$<p>$\lambda$ 怎么选很关键。太小，遗忘照旧；太大，模型变得&quot;过分稳重&quot;——任何新任务都学不进去（rigidity）。Permuted MNIST 量级的任务一般取 $\lambda \in [10^2, 10^4]$，Split CIFAR 这种更难的任务则在 $\lambda \in [1, 10]$ 量级。</p>
+<h3 id="memory-aware-synapsesmas">Memory Aware Synapses（MAS）</h3>
+<p>EWC 需要标签（出现在对数似然里）。Aljundi 等（2018）改用模型输出范数平方对参数的梯度的绝对值：</p>
+$$
+\Omega_i \;=\; \mathbb{E}_{x}\!\left[\, \left| \frac{\partial \, \tfrac{1}{2}\|f(x;\theta)\|_2^{2}}{\partial \theta_i} \right| \, \right].
+$$<p>这个量<strong>完全无监督</strong>——可以在无标签数据甚至线上测试流上算。在已部署系统里这是真实的工程优势。</p>
+<h3 id="synaptic-intelligencesi">Synaptic Intelligence（SI）</h3>
+<p>Zenke 等（2017）干脆把&quot;重要性&quot;沿 SGD 轨迹做路径积分 $-g_i \cdot \dot\theta_i$，一边训练一边累加。无需第二遍数据，开销折在优化器里就行。</p>
+<h3 id="learning-without-forgettinglwf">Learning without Forgetting（LwF）</h3>
+<p>Li 和 Hoiem（2017）换了思路：与其约束参数不漂，不如约束<strong>输出</strong>不漂。在开始新任务前先把旧模型 $f_{\text{old}}$ 拍快照存下来。新任务训练时，对每个新任务样本 $x$ 让旧模型给出软目标 $\sigma(z^{\text{old}}/T)$，然后在新模型的&quot;旧任务输出头&quot;上用 KL 蒸馏过去；新输出头按常规交叉熵学新任务标签：</p>
+$$
+\mathcal{L} \;=\; \underbrace{\mathcal{L}_{\text{CE}}\bigl(y,\, z^{\text{new}}_{\text{new heads}}\bigr)}_{\text{学新任务}} \;+\; \alpha\, \underbrace{T^{2}\, \mathrm{KL}\!\bigl(\sigma(z^{\text{old}}/T)\,\Vert\,\sigma(z^{\text{new}}_{\text{old heads}}/T)\bigr)}_{\text{别动旧输出}}.
+$$<p>LwF 不需要旧数据、不需要 Fisher，只需要旧模型快照。温度 $T$（通常 2-4）软化两边分布，让蒸馏信号承载比 argmax 更多的形状信息。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/fig5_lwf_distillation.png" alt="LwF：来自冻结旧模型的知识蒸馏" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<hr>
+<h2 id="重放方法">重放方法</h2>
+<p>另一种哲学：<strong>留</strong>一点过去的样本在身边。哪怕只存一小撮旧样本，把它们拌进每个 mini-batch，至今仍是 CL 中最强的单技。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/fig3_replay_buffer.png" alt="Experience Replay 流水线" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="experience-replayer">Experience Replay（ER）</h3>
+<p>维护大小为 $N$ 的记忆缓冲 $\mathcal{M}$。每步从新流采 $B_{\text{new}}$、从 $\mathcal{M}$ 采 $B_{\text{mem}}$，优化</p>
+$$
+\mathcal{L} \;=\; \mathcal{L}_{\text{new}}(B_{\text{new}}) \;+\; \alpha\, \mathcal{L}_{\text{mem}}(B_{\text{mem}}),
+$$<p>之后再把部分新样本写回 $\mathcal{M}$。**蓄水池采样（reservoir sampling，Vitter 1985）**用固定大小缓冲在整条流上保持均匀采样；<strong>类别均衡采样</strong>则保证每个类都被覆盖到。经验上，只要 $|B_{\text{mem}}| = |B_{\text{new}}|$，Split-CIFAR 量级的基准上就能拿回大部分联合训练（Joint）的准确率。</p>
+<h3 id="gem-与-a-gem">GEM 与 A-GEM</h3>
+<p>Lopez-Paz 和 Ranzato（2017）把&quot;梯度更新&quot;本身写成约束优化问题：在所有&quot;不会让任何旧任务损失上升&quot;的方向中，挑一个离 $\mathbf{g}_{\text{new}}$ 最近的：</p>
+$$
+\min_{\tilde{\mathbf{g}}} \tfrac{1}{2}\|\tilde{\mathbf{g}} - \mathbf{g}_{\text{new}}\|^{2}
+\quad \text{s.t.} \quad \tilde{\mathbf{g}} \cdot \mathbf{g}_{k} \;\ge\; 0 \quad \forall k = 1, \ldots, t-1.
+$$<p>这是个二次规划，每个旧任务一个约束——任务一多就跑不动。<strong>A-GEM</strong>（Chaudhry 等，2019）把它简化成&quot;只检查一个均值参考梯度&quot;$\mathbf{g}_{\text{ref}}$（在 $\mathcal{M}$ 上随机一批的平均梯度），仅当夹角为钝时投影：</p>
+$$
+\tilde{\mathbf{g}} \;=\; \mathbf{g}_{\text{new}} \;-\; \frac{\mathbf{g}_{\text{new}} \cdot \mathbf{g}_{\text{ref}}}{\|\mathbf{g}_{\text{ref}}\|^{2}}\, \mathbf{g}_{\text{ref}} \quad \text{当 } \mathbf{g}_{\text{new}} \cdot \mathbf{g}_{\text{ref}} < 0,
+$$<p>否则 $\tilde{\mathbf{g}} = \mathbf{g}_{\text{new}}$。代价只是一次额外前后向加一次点积——比 GEM 便宜约一千倍，效果却几乎不掉。</p>
+<h3 id="der-与-der">DER 与 DER++</h3>
+<p>Buzzega 等（2020）不仅存输入，还把样本入库时模型的 logits 一并存下。重放损失变成 logit 匹配的 MSE，可与原始标签的交叉熵叠加。DER++ 是目前单模型基线里在大多数 CL 基准上最强的之一。</p>
+<hr>
+<h2 id="动态架构">动态架构</h2>
+<p>与其在固定参数预算里塞下所有任务，不如让模型本身长大。</p>
+<ul>
+<li><strong>Progressive Networks</strong>（Rusu 等，2016）：每个任务训完冻住，再添一个新&quot;列&quot;，新列通过侧向连接读取旧列特征。<strong>结构上零遗忘</strong>，但参数和推理代价都随 $T$ 线性增长。</li>
+<li><strong>PackNet</strong>（Mallya 和 Lazebnik，2018）：每个任务训完做一次剪枝，把保留下来的稀疏权重冻住；后续任务只用未剪掉的部分。模型大小固定，但可用容量越来越少——任务多了之后必然崩盘。</li>
+<li><strong>Supermasks in Superposition</strong>（Wortsman 等，2020）：参数随机初始化后冻住，每个任务只学一个二值掩码。每任务存储成本是&quot;每参数一比特&quot;，效果却出乎意料地能与训练基线掰手腕。</li>
+</ul>
+<p>权衡是普适的：<strong>零遗忘必然意味着要么参数膨胀，要么容量收缩</strong>。真正能上线的方案，几乎都是&quot;固定主干 + 每任务轻量适配器&quot;（参考第 9 篇 PEFT）这种混合形态。</p>
+<hr>
+<h2 id="实现从零写一遍-ewc">实现：从零写一遍 EWC</h2>
+<p>下面这份 PyTorch 实现做了三件事：（1）每个任务训完时计算经验 Fisher 对角；（2）连同 $\theta^{*}$ 一起存档；（3）后续任务训练时把 EWC 惩罚加进损失里。直接能跑 Permuted MNIST。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span><span class="lnt">88
+</span><span class="lnt">89
+</span><span class="lnt">90
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">EWC</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Elastic Weight Consolidation.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    每完成一个任务，调一次 `consolidate(dataloader)` 来快照 theta* 和
+</span></span></span><span class="line"><span class="cl"><span class="s2">    经验 Fisher 对角；后续任务训练时在损失上加 `lambda * ewc.penalty()`。
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;cpu&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt_params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@torch.enable_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_empirical_fisher</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataloader</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span>
+</span></span><span class="line"><span class="cl">                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Diagonal Fisher: E[(d log p(y|x; theta) / d theta)^2].&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fisher</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">                  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">seen</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dataloader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># 从模型预测分布里采样 y -- 这是&#34;真 Fisher&#34;；若直接用真实标签，</span>
+</span></span><span class="line"><span class="cl">            <span class="c1"># 得到的是&#34;经验 Fisher&#34;。两者实践中都能用。</span>
+</span></span><span class="line"><span class="cl">            <span class="n">probs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">fisher</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">seen</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">seen</span> <span class="o">&gt;=</span> <span class="n">n_samples</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">break</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">fisher</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">fisher</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">/=</span> <span class="nb">max</span><span class="p">(</span><span class="n">seen</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">fisher</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">consolidate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataloader</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;在每个任务训完之后调用。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_empirical_fisher</span><span class="p">(</span><span class="n">dataloader</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">             <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">penalty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Sum_t Sum_i F_{t,i} * (theta_i - theta*_{t,i})^2.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">F_t</span><span class="p">,</span> <span class="n">theta_t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_params</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">F_t</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="p">(</span><span class="n">F_t</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">theta_t</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">loss</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_task</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ewc</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">optimiser</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ewc_lambda</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">               <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="n">ewc_lambda</span> <span class="o">*</span> <span class="n">ewc</span><span class="o">.</span><span class="n">penalty</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">optimiser</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">optimiser</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">correct</span> <span class="o">=</span> <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">correct</span> <span class="o">+=</span> <span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">+=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">correct</span> <span class="o">/</span> <span class="n">total</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>调用方式</strong>（Permuted MNIST）：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">ewc</span> <span class="o">=</span> <span class="n">EWC</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="n">train_loader</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">train_task</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ewc</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">               <span class="n">ewc_lambda</span><span class="o">=</span><span class="mf">400.0</span> <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">               <span class="n">epochs</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ewc</span><span class="o">.</span><span class="n">consolidate</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>               <span class="c1"># 快照 theta* 与 F</span>
+</span></span><span class="line"><span class="cl">    <span class="n">accs</span> <span class="o">=</span> <span class="p">[</span><span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">t_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>   <span class="c1"># 检查所有已学任务</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">t_loader</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">[:</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;After task </span><span class="si">{</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">accs</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两个真正影响效果的工程细节：</p>
+<ol>
+<li><strong>真 Fisher vs 经验 Fisher</strong>。从 $p_\theta(\cdot \mid x)$ 采样 $y$（如上）得到的是 EWC 推导用到的&quot;真 Fisher&quot;；直接用真实标签得到的是&quot;经验 Fisher&quot;。在标签干净的场景下经验 Fisher 略强一点，工程上也更简单。</li>
+<li><strong>Fisher 在哪里算</strong>。一定要在<strong>任务训练结束后</strong>算——这时 $\theta \approx \theta_t^{*}$，二阶近似才准。</li>
+</ol>
+<hr>
+<h2 id="实证对比">实证对比</h2>
+<p>下图是两个经典 CL 基准上的代表性数字。结论很明确：有内存预算时，重放方法压倒所有正则化方法；没有内存时，EWC 和 LwF 仍能把朴素 SGD 拉开一大截；但都还差联合训练的上界一段距离。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/10-%E6%8C%81%E7%BB%AD%E5%AD%A6%E4%B9%A0/fig7_benchmarks.png" alt="CL 基准：Permuted MNIST 与 Split CIFAR" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>三个要带走的判断：</p>
+<ul>
+<li><strong>重放是当前最强的单技</strong>。每任务存 200 个样本，已经能在 class-IL 上吊打所有&quot;只动正则项&quot;的方法。</li>
+<li><strong>Class-IL 比 Task-IL 难得多</strong>。Permuted MNIST 上能跑到 80% 的方法，到了 Split CIFAR-100 上常常只有 40-50%。</li>
+<li><strong>不要二选一，要叠加</strong>。生产系统普遍是 ER + LwF（或 ER + DER）外加一点 EWC，因为它们各自堵的失败模式不同。</li>
+</ul>
+<hr>
+<h2 id="常见问题">常见问题</h2>
+<h3 id="ewc-的-lambda-怎么选">EWC 的 $\lambda$ 怎么选？</h3>
+<p>MNIST 量级的任务从 100 起步，CIFAR 量级从 1-10 起步。在验证集上同时看 Avg 和 Forgetting 两条曲线，选&quot;在你能接受的遗忘度上限下让 Avg 最高&quot;的 $\lambda$。</p>
+<h3 id="为什么我用了-ewc跑了几十个任务后整个模型像被冻住了">为什么我用了 EWC，跑了几十个任务后整个模型像被冻住了？</h3>
+<p>Fisher 在累加，每个参数迟早都背着很大的 $\sum_t F_{t,i}$。换 <strong>Online EWC</strong>，$\gamma \approx 0.95$，让旧 Fisher 指数衰减就行。</p>
+<h3 id="ewcmassi-实际怎么选">EWC、MAS、SI 实际怎么选？</h3>
+<p>有干净标签的监督任务用 EWC；面对无标签流式数据用 MAS（不需要标签）；如果连&quot;任务结束后再扫一遍数据算 Fisher&quot;这一步都嫌贵，就用 SI——它在训练过程中顺手就把重要性算好了。</p>
+<h3 id="重放缓冲应该多大">重放缓冲应该多大？</h3>
+<p>Split-CIFAR 量级的曲线通常在每任务 200-500 样本附近开始饱和。真正有趣的区间是&quot;你能存多少就存多少&quot;——只要还能加，重放就还在赢。</p>
+<h3 id="持续学习和多任务学习不就是一回事吗">持续学习和多任务学习不就是一回事吗？</h3>
+<p>不是。多任务<strong>所有数据同时可见</strong>，挑战只是任务之间的平衡；CL 任务<strong>逐个到达且不能回访旧数据</strong>，挑战是遗忘。CL 在&quot;无限内存 + 无序约束&quot;下退化成多任务——这恰好就是基准图里 Joint 上界的含义。</p>
+<h3 id="重放会不会泄漏数据">重放会不会泄漏数据？</h3>
+<p>会——缓冲里就是真实训练样本。隐私敏感的部署用 <strong>生成式重放</strong>（先训一个生成器学旧数据分布，再从生成器采样）或 <strong>dark experience</strong>（只存 logits 不存输入）。</p>
+<h3 id="class-il-为什么比-task-il-难那么多">Class-IL 为什么比 Task-IL 难那么多？</h3>
+<p>Class-IL 在推理时要在<strong>跨任务</strong>的全部类别中做选择。即使每个任务都没怎么遗忘，每任务的 softmax 头之间从未一起被训练过，logits 量级互不校准——新类输出常常压过旧类。iCaRL（Rebuffi 等，2017）就是为这个问题设计的：它在学到的特征上套一个最近类均值分类器，绕开 softmax 校准问题。</p>
+<hr>
+<h2 id="小结">小结</h2>
+<p>灾难性遗忘不是工程缺陷，而是&quot;在共享参数向量上做 SGD&quot;这个范式的结构性后果，可以从梯度干扰和高维损失曲面几何里推导出来。解法分四类：</p>
+<table>
+  <thead>
+      <tr>
+          <th>流派</th>
+          <th>机制</th>
+          <th>代表</th>
+          <th>取舍</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>正则化</td>
+          <td>锚定重要参数</td>
+          <td>EWC、MAS、SI、LwF</td>
+          <td>不耗内存，但在 class-IL 上偏弱</td>
+      </tr>
+      <tr>
+          <td>重放</td>
+          <td>用旧样本继续训练</td>
+          <td>ER、A-GEM、DER++</td>
+          <td>实战最强；需要存储</td>
+      </tr>
+      <tr>
+          <td>动态架构</td>
+          <td>每任务加容量</td>
+          <td>Progressive Net、PackNet、SupSup</td>
+          <td>零遗忘；模型膨胀</td>
+      </tr>
+      <tr>
+          <td>元学习</td>
+          <td>学会&quot;如何继续学习&quot;</td>
+          <td>OML、MER</td>
+          <td>强，但元训练昂贵</td>
+      </tr>
+  </tbody>
+</table>
+<p>落到工程上结论很直接：<strong>只要还能存任何数据，就跑一个小蓄水池缓冲做经验重放</strong>；再叠一个 LwF（不需要任何额外存储，旧模型快照已经够用）；只有在内存绝对不允许时才退而求其次用 EWC/MAS。下一篇讲跨语言迁移——&ldquo;任务&quot;换成&quot;语言&rdquo;，但&quot;小心共享、小心保护&quot;这套思路完全适用。</p>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<ul>
+<li>Kirkpatrick, J., et al. (2017). Overcoming catastrophic forgetting in neural networks. <em>PNAS</em>, 114(13), 3521-3526.</li>
+<li>Schwarz, J., et al. (2018). Progress &amp; Compress: A scalable framework for continual learning. <em>ICML</em>.</li>
+<li>Aljundi, R., et al. (2018). Memory Aware Synapses: Learning what (not) to forget. <em>ECCV</em>.</li>
+<li>Zenke, F., Poole, B., &amp; Ganguli, S. (2017). Continual learning through synaptic intelligence. <em>ICML</em>.</li>
+<li>Li, Z., &amp; Hoiem, D. (2017). Learning without forgetting. <em>TPAMI</em>, 40(12), 2935-2947.</li>
+<li>Lopez-Paz, D., &amp; Ranzato, M. (2017). Gradient episodic memory for continual learning. <em>NeurIPS</em>.</li>
+<li>Chaudhry, A., et al. (2019). Efficient lifelong learning with A-GEM. <em>ICLR</em>.</li>
+<li>Buzzega, P., et al. (2020). Dark experience for general continual learning. <em>NeurIPS</em>.</li>
+<li>Rusu, A. A., et al. (2016). Progressive neural networks. <em>arXiv:1606.04671</em>.</li>
+<li>Mallya, A., &amp; Lazebnik, S. (2018). PackNet: Adding multiple tasks to a single network by iterative pruning. <em>CVPR</em>.</li>
+<li>Wortsman, M., et al. (2020). Supermasks in superposition. <em>NeurIPS</em>.</li>
+<li>Rebuffi, S.-A., et al. (2017). iCaRL: Incremental classifier and representation learning. <em>CVPR</em>.</li>
+<li>van de Ven, G. M., &amp; Tolias, A. S. (2019). Three scenarios for continual learning. <em>arXiv:1904.07734</em>.</li>
+<li>Vitter, J. S. (1985). Random sampling with a reservoir. <em>ACM TOMS</em>, 11(1), 37-57.</li>
+</ul>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">1</a>
+</td>
+          <td>基础与核心概念</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/">2</a>
+</td>
+          <td>预训练与微调</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%9f%9f%e9%80%82%e5%ba%94%e6%96%b9%e6%b3%95/">3</a>
+</td>
+          <td>域适应</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/">4</a>
+</td>
+          <td>小样本学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e7%9f%a5%e8%af%86%e8%92%b8%e9%a6%8f/">5</a>
+</td>
+          <td>知识蒸馏</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0/">6</a>
+</td>
+          <td>多任务学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e9%9b%b6%e6%a0%b7%e6%9c%ac%e5%ad%a6%e4%b9%a0/">7</a>
+</td>
+          <td>零样本学习</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%a4%9a%e6%a8%a1%e6%80%81%e8%bf%81%e7%a7%bb/">8</a>
+</td>
+          <td>多模态迁移</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b9%9d-%e5%8f%82%e6%95%b0%e9%ab%98%e6%95%88%e5%be%ae%e8%b0%83/">9</a>
+</td>
+          <td>参数高效微调</td>
+      </tr>
+      <tr>
+          <td><strong>10</strong></td>
+          <td><strong>持续学习（本文）</strong></td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%b8%80-%e8%b7%a8%e8%af%ad%e8%a8%80%e8%bf%81%e7%a7%bb/">11</a>
+</td>
+          <td>跨语言迁移</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-%e5%b7%a5%e4%b8%9a%e5%ba%94%e7%94%a8%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/">12</a>
+</td>
+          <td>工业应用与最佳实践</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到">你将学到</a></li>
+    <li><a href="#预备知识">预备知识</a></li>
+    <li><a href="#问题设定">问题设定</a></li>
+    <li><a href="#遗忘是怎么发生的">遗忘是怎么发生的</a>
+      <ul>
+        <li><a href="#梯度干扰">梯度干扰</a></li>
+        <li><a href="#损失曲面视角">损失曲面视角</a></li>
+        <li><a href="#fisher-信息--参数重要性">Fisher 信息 = 参数重要性</a></li>
+      </ul>
+    </li>
+    <li><a href="#正则化方法">正则化方法</a>
+      <ul>
+        <li><a href="#elastic-weight-consolidationewc">Elastic Weight Consolidation（EWC）</a></li>
+        <li><a href="#memory-aware-synapsesmas">Memory Aware Synapses（MAS）</a></li>
+        <li><a href="#synaptic-intelligencesi">Synaptic Intelligence（SI）</a></li>
+        <li><a href="#learning-without-forgettinglwf">Learning without Forgetting（LwF）</a></li>
+      </ul>
+    </li>
+    <li><a href="#重放方法">重放方法</a>
+      <ul>
+        <li><a href="#experience-replayer">Experience Replay（ER）</a></li>
+        <li><a href="#gem-与-a-gem">GEM 与 A-GEM</a></li>
+        <li><a href="#der-与-der">DER 与 DER++</a></li>
+      </ul>
+    </li>
+    <li><a href="#动态架构">动态架构</a></li>
+    <li><a href="#实现从零写一遍-ewc">实现：从零写一遍 EWC</a></li>
+    <li><a href="#实证对比">实证对比</a></li>
+    <li><a href="#常见问题">常见问题</a>
+      <ul>
+        <li><a href="#ewc-的-lambda-怎么选">EWC 的  怎么选？</a></li>
+        <li><a href="#为什么我用了-ewc跑了几十个任务后整个模型像被冻住了">为什么我用了 EWC，跑了几十个任务后整个模型像被冻住了？</a></li>
+        <li><a href="#ewcmassi-实际怎么选">EWC、MAS、SI 实际怎么选？</a></li>
+        <li><a href="#重放缓冲应该多大">重放缓冲应该多大？</a></li>
+        <li><a href="#持续学习和多任务学习不就是一回事吗">持续学习和多任务学习不就是一回事吗？</a></li>
+        <li><a href="#重放会不会泄漏数据">重放会不会泄漏数据？</a></li>
+        <li><a href="#class-il-为什么比-task-il-难那么多">Class-IL 为什么比 Task-IL 难那么多？</a></li>
+      </ul>
+    </li>
+    <li><a href="#小结">小结</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">迁移学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>2 min</strong></div>
+      <div class="row"><span>Word count</span><strong>700</strong></div>
+      <div class="row"><span>Published</span><strong>Jun 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

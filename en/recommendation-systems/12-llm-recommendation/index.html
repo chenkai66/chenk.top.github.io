@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Recommendation Systems (12): Large Language Models and Recommendation · Chen Kai Blog</title>
+<meta name="description" content="How LLMs reshape recommendation: enhancers (P5, M6Rec), predictors (TallRec, GenRec), and agents (LlamaRec, ChatREC). Hybrid pipelines, cold-start wins, prompt design, and the cost/quality Pareto frontier.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/recommendation-systems/12-llm-recommendation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/recommendation-systems/12-llm-recommendation/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Recommendation Systems (12): Large Language Models and Recommendation">
+<meta property="og:description" content="How LLMs reshape recommendation: enhancers (P5, M6Rec), predictors (TallRec, GenRec), and agents (LlamaRec, ChatREC). Hybrid pipelines, cold-start wins, prompt design, and the cost/quality Pareto frontier.">
+<meta property="og:url" content="https://www.chenk.top/en/recommendation-systems/12-llm-recommendation/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-2);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Recommendation Systems</a>
+         · Chapter 12
+      </div>
+      <h1>Recommendation Systems (12): Large Language Models and Recommendation</h1>
+      <p class="deck">How LLMs reshape recommendation: enhancers (P5, M6Rec), predictors (TallRec, GenRec), and agents (LlamaRec, ChatREC). Hybrid pipelines, cold-start wins, prompt design, and the cost/quality Pareto frontier.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-01-03">January 3, 2026</time> · 17 min read · 3600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/recommendation-systems/" class="tag">#Recommendation Systems</a><a href="/en/tags/llm/" class="tag">#LLM</a><a href="/en/tags/large-language-models/" class="tag">#Large Language Models</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>A user opens a movie app and types: <em>&ldquo;Something like Inception, but less depressing.&rdquo;</em> A traditional recommender — collaborative filtering, two-tower DNN, even DIN — sees zero useful tokens here. It has no <code>like</code> button to count, no co-watch graph to traverse, no user ID with history. The query has to be turned into IDs before the system can do anything.</p>
+<p>A Large Language Model has the opposite problem: it has <em>too much</em> world knowledge but doesn&rsquo;t know who this user is. It knows Inception is a Christopher Nolan film with non-linear narrative and a hopeful-but-ambiguous ending; it knows what &ldquo;depressing&rdquo; means in cinema; it can name twenty films that fit. But it can&rsquo;t tell you which of those twenty the <em>current</em> user has already seen, rated badly, or left half-watched.</p>
+<p>The interesting question for 2023–2026 is not &ldquo;LLM or traditional?&rdquo; — it&rsquo;s <strong>how to compose them</strong>. This article walks through the three composition patterns that have actually shipped at scale, with code and the hard tradeoffs.</p>
+<h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li>The <strong>three roles</strong> an LLM can play in a recommender: enhancer, predictor, agent — and which papers ship which</li>
+<li><strong>Prompt anatomy</strong> for ranking tasks (TallRec / P5 style) and why low temperature matters</li>
+<li>How <strong>LLM-enriched item descriptions</strong> sharpen embedding clusters and fix cold-start</li>
+<li>The <strong>hybrid pipeline</strong> every production team converges to: ANN → DNN ranker → LLM reranker</li>
+<li><strong>ChatREC-style conversational</strong> flow with multi-turn state and tool use</li>
+<li>The <strong>cost/quality Pareto frontier</strong>: when fine-tuned 7B beats GPT-4, and where the sweet spot lives</li>
+<li>Working <strong>Python</strong> for prompt-based ranking, hybrid reranking, and conversational state</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Embeddings, ranking, and the retrieval/ranking split (<a href="/en/recommendation-systems-1-fundamentals/">Part 1</a>
+, <a href="/en/recommendation-systems-4-ctr-prediction/">Part 4</a>
+)</li>
+<li>Familiarity with an LLM SDK (OpenAI, Anthropic, vLLM); no fine-tuning required</li>
+<li>Basic PyTorch for the optional encoder examples</li>
+</ul>
+<hr>
+<h2 id="the-three-roles-of-llms-in-recommendation">The Three Roles of LLMs in Recommendation</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/fig1_three_roles.png" alt="Three roles of LLMs in recommendation: enhancer, predictor, agent" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The literature looks chaotic — P5, M6-Rec, KAR, TallRec, BIGRec, GenRec, LlamaRec, ChatREC — but every one of them slots into exactly one of three roles. The role determines latency, cost, training cost, and what the LLM is even doing in the loop.</p>
+<h3 id="role-1--enhancer-offline-feature-generation">Role 1 — Enhancer (offline feature generation)</h3>
+<p>The LLM never touches a live request. Offline, it reads each item&rsquo;s title, description, and reviews and emits richer features: structured attributes, dense semantic vectors, augmented descriptions, or pseudo-labels. Those features are then fed into a perfectly traditional CTR / CF stack.</p>
+<p>This is the role from the earliest serious LLM-in-RecSys papers: <strong>P5</strong> (Geng et al., RecSys 2022) unified five recommendation tasks under a single text-to-text T5; <strong>M6-Rec</strong> (Cui et al., 2022) used Alibaba&rsquo;s M6 to generate item descriptions and behavioral prompts; <strong>KAR</strong> (Xi et al., 2024) distills LLM reasoning into reusable feature vectors. The serving stack stays sub-50ms because the LLM cost is amortized across millions of requests.</p>
+<p><strong>Use it when</strong>: You already have a working ranker but cold-start items, sparse text, or hard-to-tag categories are hurting recall.</p>
+<h3 id="role-2--predictor-direct-ranking-or-generation">Role 2 — Predictor (direct ranking or generation)</h3>
+<p>The LLM is the ranker. You hand it the user&rsquo;s history and a candidate list (or no candidates at all) and it outputs a yes/no judgment, a score, or the next item directly.</p>
+<p>Two flavors: <strong>discriminative</strong> (TallRec, BIGRec — fine-tune Llama-2-7B with LoRA on <code>(history, item) → yes/no</code>) and <strong>generative</strong> (GenRec — generate the next item title). <strong>TallRec</strong> (Bao et al., RecSys 2023) showed that a LoRA-tuned 7B beats much larger zero-shot LLMs and matches strong sequential baselines with only a few hundred training examples. <strong>LlamaRec</strong> (Yue et al., 2023) added a verbalizer head so the LLM ranks an entire candidate set in one forward pass instead of K separate calls.</p>
+<p><strong>Use it when</strong>: You have rich textual content per item, your data is small (cold-start domain, new vertical), or you need explanations bundled with rankings.</p>
+<h3 id="role-3--agent-orchestrator-with-tools">Role 3 — Agent (orchestrator with tools)</h3>
+<p>The LLM doesn&rsquo;t just rank — it plans. It maintains conversation state, decides when to call retrieval, when to ask a clarifying question, when to filter by year or price, and when to hand off to a downstream model. <strong>ChatREC</strong> (Gao et al., 2023) is the canonical pattern; <strong>RecAgent</strong> (Wang et al., 2023) and <strong>InteRecAgent</strong> push this further with simulated users for evaluation.</p>
+<p><strong>Use it when</strong>: You&rsquo;re building a conversational surface (chatbot, voice, search-with-followup), or your users genuinely cannot articulate what they want in one shot.</p>
+<p>The cost ranking is roughly: enhancer ≪ predictor ≪ agent. So is the flexibility ranking. Most production systems start as enhancers, graduate to predictors as a reranking layer, and only adopt agents for specific surfaces.</p>
+<hr>
+<h2 id="prompt-based-ranking">Prompt-Based Ranking</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/fig2_prompt_template.png" alt="Prompt template anatomy for LLM-as-recommender" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A prompt-based recommender is the entry point: no training, just an API key and a well-shaped prompt. Five sections matter, in this order.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_recommendation_prompt</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">examples</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;TallRec / P5-style ranking prompt.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 1. Role + task: pin the LLM into a narrow behavior</span>
+</span></span><span class="line"><span class="cl">    <span class="n">role</span> <span class="o">=</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;You are a movie recommender. Given the user&#39;s viewing history, &#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;predict whether they will like the target movie.&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 2. User history (chronological, with signal)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">hist_lines</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;  - </span><span class="si">{</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="s1">&#39;liked&#39;</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;liked&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="s1">&#39;disliked&#39;</span><span class="si">}</span><span class="s2">)&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">20</span><span class="p">:]</span>   <span class="c1"># truncate to fit context</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 3. Candidate / target item with attributes</span>
+</span></span><span class="line"><span class="cl">    <span class="n">target_line</span> <span class="o">=</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s1">&#39;Target movie: &#34;</span><span class="si">{</span><span class="n">target</span><span class="p">[</span><span class="s2">&#34;title&#34;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#34; &#39;</span>
+</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s1">&#39;(</span><span class="si">{</span><span class="n">target</span><span class="p">[</span><span class="s2">&#34;genre&#34;</span><span class="p">]</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">target</span><span class="p">[</span><span class="s2">&#34;year&#34;</span><span class="p">]</span><span class="si">}</span><span class="s1">, dir. </span><span class="si">{</span><span class="n">target</span><span class="p">[</span><span class="s2">&#34;director&#34;</span><span class="p">]</span><span class="si">}</span><span class="s1">)&#39;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 4. Output format (constrained — single token if possible)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">output_spec</span> <span class="o">=</span> <span class="s1">&#39;Answer with exactly one token: &#34;Yes&#34; or &#34;No&#34;.&#39;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 5. Few-shot examples (optional; biggest accuracy lever after format)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">fewshot</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">examples</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fewshot</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="sa">f</span><span class="s2">&#34;[Example </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">]</span><span class="se">\n</span><span class="s2">History: </span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;history&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="sa">f</span><span class="s2">&#34;Target: </span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">Answer: </span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;answer&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ex</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">examples</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="sa">f</span><span class="s2">&#34;&#34;&#34;</span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{</span><span class="n">fewshot</span><span class="si">}</span><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">History:
+</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{</span><span class="n">hist_lines</span><span class="si">}</span><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{</span><span class="n">target_line</span><span class="si">}</span><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{</span><span class="n">output_spec</span><span class="si">}</span><span class="s2">&#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Three implementation rules</strong> that sound trivial and are not:</p>
+<ol>
+<li><strong>Constrain the output token-by-token.</strong> A single <code>Yes</code>/<code>No</code> is parseable; &ldquo;I think the user might enjoy this because&hellip;&rdquo; is not. For ranking K items, ask for <code>[3, 1, 5, 2, 4]</code> — never free-form prose. Use logit bias or grammar-constrained decoding when the SDK supports it.</li>
+<li><strong>Keep temperature ≤ 0.3.</strong> Recommendation is not creative writing. High temperature yields different rankings on identical inputs — a debugging nightmare.</li>
+<li><strong>Truncate history.</strong> LLMs degrade past ~50 items and cost scales linearly with prompt tokens. Newest items first; summarize older ones if needed.</li>
+</ol>
+<h3 id="zero-shot-vs-few-shot-vs-fine-tuned">Zero-shot vs few-shot vs fine-tuned</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Approach</th>
+          <th>Setup cost</th>
+          <th>Per-call cost</th>
+          <th>Accuracy on cold-start</th>
+          <th>Accuracy on warm-start</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Zero-shot (GPT-4o)</td>
+          <td>Hours</td>
+          <td>High ($0.01+/call)</td>
+          <td>Strong</td>
+          <td>Mediocre</td>
+      </tr>
+      <tr>
+          <td>Few-shot (3–5 examples)</td>
+          <td>Hours</td>
+          <td>Higher (more tokens)</td>
+          <td>Strong</td>
+          <td>Better</td>
+      </tr>
+      <tr>
+          <td>Fine-tuned (TallRec, LoRA on 7B)</td>
+          <td>Days + GPUs</td>
+          <td>Low ($0.0005/call)</td>
+          <td>Strong</td>
+          <td>Strong</td>
+      </tr>
+  </tbody>
+</table>
+<p>The TallRec result is striking: with <strong>256 fine-tuning examples</strong>, a LoRA-tuned Llama-7B matches or beats zero-shot GPT-4 at a fraction of the per-call cost. If you have any labeled interaction data, fine-tune.</p>
+<hr>
+<h2 id="llm-as-enhancer-sharper-embeddings-better-cold-start">LLM as Enhancer: Sharper Embeddings, Better Cold-Start</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/fig3_embedding_quality.png" alt="Item embeddings before and after LLM description enhancement" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The cheapest and lowest-risk way to put an LLM into a production stack: use it offline to expand thin item text into rich descriptions, then re-encode with your existing sentence encoder.</p>
+<p>A movie title <code>&quot;Tenet&quot;</code> carries almost no signal for a sentence encoder. Asking GPT-4 to expand it into:</p>
+<blockquote>
+<p>&ldquo;A 2020 sci-fi action thriller directed by Christopher Nolan. Features inverted entropy as a plot device, exploring themes of free will and predestination. Tone is cerebral and atmospheric, with elaborate practical action sequences. Audience: viewers who liked Inception, Interstellar, or other puzzle-box narratives. Pace is brisk; emotional core is friendship and sacrifice.&rdquo;</p>
+</blockquote>
+<p>…produces an embedding that lands much closer to its true semantic neighbors. In offline tests on MovieLens-style data, silhouette coefficients on genre clusters typically jump from ~0.2 (raw titles) to ~0.65 (LLM-enhanced) — the same effect P5 and KAR report.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">enhance_item</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Offline: expand sparse item text into rich semantic description.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;&#34;&#34;Write an 80-word description of this item for a
+</span></span></span><span class="line"><span class="cl"><span class="s2">recommendation system. Cover: themes, tone, mood, target audience,
+</span></span></span><span class="line"><span class="cl"><span class="s2">similar items, what kind of user would love it.
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">Title: </span><span class="si">{</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">Existing tags: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,</span> <span class="p">[]))</span><span class="si">}</span><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">Year: </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;year&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">Description:&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;gpt-4o-mini&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">temperature</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">max_tokens</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_enhanced_index</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">encoder</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Run once per item; cache forever (until item changes).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">enhanced_texts</span> <span class="o">=</span> <span class="p">[</span><span class="n">enhance_item</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">items</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">encoder</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">enhanced_texts</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The economics work because <strong>enhancement is offline and one-shot per item</strong>. A million-item catalog at $0.0002 per call is $200 total, paid once. Compare to using an LLM on every live request at the same cost: $200 per million queries, <em>recurring</em>.</p>
+<h3 id="where-the-offline-only-constraint-hurts">Where the offline-only constraint hurts</h3>
+<p>LLM enhancement only generates <em>item-side</em> features that are stable. It cannot:</p>
+<ul>
+<li>React to a <em>new</em> item&rsquo;s first hour of interactions</li>
+<li>Capture user-specific signal (taste, mood right now, current session intent)</li>
+<li>Reflect breaking trends (&ldquo;everyone is suddenly watching X because of Y&rdquo;)</li>
+</ul>
+<p>For those you need a live LLM call — or, more realistically, a hybrid pipeline.</p>
+<hr>
+<h2 id="the-hybrid-pipeline-the-architecture-you-actually-ship">The Hybrid Pipeline (the architecture you actually ship)</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/fig4_hybrid_pipeline.png" alt="Hybrid pipeline: ANN retrieval, DNN ranker, LLM reranker" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Every production team that ships LLM-powered recommendations converges on the same shape:</p>
+<ol>
+<li><strong>Catalog</strong> (10⁶–10⁸ items)</li>
+<li><strong>ANN retrieval</strong> with Faiss/HNSW — ~10ms, ~$0 — narrows to ~1,000 candidates</li>
+<li><strong>CF or deep ranker</strong> (DIN, DCN-V2, two-tower) — ~30ms, ~$0 — narrows to ~50</li>
+<li><strong>LLM reranker</strong> (GPT-4o or fine-tuned 7B) — ~1–2s, ~$0.005–0.01 — picks top 10</li>
+<li><strong>User</strong> sees top 10 + LLM-generated explanation</li>
+</ol>
+<p>The funnel ratio is critical: <strong>5–7 orders of magnitude</strong> of pruning happen <em>before</em> the expensive LLM call. The LLM only ever sees ~50 items, never millions. This single architectural choice is what makes LLM recommendation viable.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">HybridRecommender</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;ANN -&gt; DNN -&gt; LLM. The pipeline every team converges on.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ann_index</span><span class="p">,</span> <span class="n">dnn_ranker</span><span class="p">,</span> <span class="n">llm_reranker</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ann</span> <span class="o">=</span> <span class="n">ann_index</span>            <span class="c1"># Faiss / HNSW</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ranker</span> <span class="o">=</span> <span class="n">dnn_ranker</span>        <span class="c1"># DIN / DCN-V2 / two-tower</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">llm</span> <span class="o">=</span> <span class="n">llm_reranker</span>         <span class="c1"># GPT-4o or fine-tuned 7B</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recommend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">query_embedding</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Stage 1: ANN — millions to ~1000 in ~10ms</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cand_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ann</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query_embedding</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Stage 2: DNN ranker — 1000 to ~50 in ~30ms</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scored</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ranker</span><span class="o">.</span><span class="n">score_batch</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">cand_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">top50</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scored</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">])[:</span><span class="mi">50</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Stage 3: LLM rerank — 50 to top-10 in ~1.5s</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Critical: prompt fits in context, cost stays bounded</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">rerank</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">top50</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The DNN ranker stage is what people new to LLMs underestimate. You cannot skip from ANN directly to LLM rerank: ANN&rsquo;s 1,000 candidates still contain too much noise (popular-but-irrelevant items dominate), and stuffing 1,000 items into a prompt either blows the context window or buries the signal. The DNN gives you a clean top-50 with <em>learned interaction patterns</em> the LLM doesn&rsquo;t have.</p>
+<hr>
+<h2 id="cold-start-where-llms-actually-win">Cold-Start: Where LLMs Actually Win</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/fig5_cold_start.png" alt="Cold-start: LLM zero-shot vs CF as user interactions grow" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The LLM-vs-CF question has a sharp answer when you plot accuracy against user history length:</p>
+<ul>
+<li><strong>0–5 interactions</strong> (cold): LLM zero-shot wins by 4–7×. CF has nothing to work with; the LLM&rsquo;s world knowledge is all the signal there is.</li>
+<li><strong>10–50 interactions</strong> (warming up): the gap closes fast. CF starts to find genuine collaborative signal.</li>
+<li><strong>100+ interactions</strong> (warm): CF wins on pure ranking accuracy. The LLM&rsquo;s world knowledge is now noise compared to the user&rsquo;s actual revealed preferences.</li>
+</ul>
+<p>The corollary: <strong>route by user state</strong>.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">route_recommend</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">cf_model</span><span class="p">,</span> <span class="n">llm_model</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Use the model appropriate for this user&#39;s data density.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">n_interactions</span> <span class="o">=</span> <span class="n">cf_model</span><span class="o">.</span><span class="n">interaction_count</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">n_interactions</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Cold: LLM uses world knowledge from query alone</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">llm_model</span><span class="o">.</span><span class="n">recommend</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">elif</span> <span class="n">n_interactions</span> <span class="o">&lt;</span> <span class="mi">50</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Warming: hybrid blend</span>
+</span></span><span class="line"><span class="cl">        <span class="n">cf_recs</span> <span class="o">=</span> <span class="n">cf_model</span><span class="o">.</span><span class="n">recommend</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">llm_model</span><span class="o">.</span><span class="n">rerank</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">cf_recs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">else</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Warm: CF is now strictly better; LLM only for explanation</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">cf_model</span><span class="o">.</span><span class="n">recommend</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>This is also why &ldquo;we tried LLMs and they didn&rsquo;t beat our DCN&rdquo; is a common false negative: the team almost certainly tested on warm users where CF was always going to win.</p>
+<hr>
+<h2 id="conversational-recommendation-chatrec-style">Conversational Recommendation: ChatREC-Style</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/fig6_chat_flow.png" alt="Conversational recommendation flow with dialog state and tool use" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A conversational recommender is fundamentally different: it&rsquo;s a <strong>planner</strong>, not a one-shot ranker. The LLM maintains dialog state, decides when to retrieve, when to clarify, and when to recommend. The recommendation step itself often delegates back to a retrieval + DNN ranker stack.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ChatREC</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;LLM as planner; retrieval and ranking are tools it calls.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm</span><span class="p">,</span> <span class="n">retriever</span><span class="p">,</span> <span class="n">ranker</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">llm</span> <span class="o">=</span> <span class="n">llm</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">retriever</span> <span class="o">=</span> <span class="n">retriever</span>      <span class="c1"># ANN search</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ranker</span> <span class="o">=</span> <span class="n">ranker</span>            <span class="c1"># DNN</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;history&#34;</span><span class="p">:</span> <span class="p">[],</span>              <span class="c1"># message log</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;preferences&#34;</span><span class="p">:</span> <span class="p">{},</span>          <span class="c1"># accumulated taste</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;candidates&#34;</span><span class="p">:</span> <span class="p">[],</span>           <span class="c1"># current shortlist</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_message</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;history&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">user_message</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># The LLM decides what to do next: clarify / retrieve / recommend / explain</span>
+</span></span><span class="line"><span class="cl">        <span class="n">plan</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">plan</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">history</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;history&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="n">current_prefs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;preferences&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">            <span class="n">current_candidates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">&#34;extract_preference&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;preferences&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">extracted_prefs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">acknowledge</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">extracted_prefs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">&#34;retrieve&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">build_query</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;preferences&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">            <span class="n">cand</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retriever</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ranker</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">cand</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">][:</span><span class="mi">5</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">&#34;filter&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">                <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">filter_fn</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">][:</span><span class="mi">5</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">&#34;explain&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">target_item</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;preferences&#34;</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">respond</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;history&#34;</span><span class="p">])</span>  <span class="c1"># general fallback</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The hard parts are not in this code — they&rsquo;re in the planner prompt (which actions to expose, how to keep the LLM from hallucinating items not in <code>candidates</code>) and in the state management (when to discard preferences the user contradicted, when to refresh candidates after a filter).</p>
+<hr>
+<h2 id="the-costquality-pareto-frontier">The Cost/Quality Pareto Frontier</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/fig7_cost_quality.png" alt="Cost vs quality Pareto frontier across LLM-RecSys methods" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>When you map every published method onto (cost per 1K requests, NDCG lift over CF baseline), three things become clear:</p>
+<ol>
+<li>**Returns diminish sharply above $1 per 1K requests.** The jump from a fine-tuned 7B (~$0.4) to GPT-4 generative (~$25) buys you ~2.4 NDCG points. The jump from CF baseline to fine-tuned 7B buys you ~8.6 points at less than 100× the latency cost.</li>
+<li><strong>Fine-tuned 7B is the production sweet spot.</strong> TallRec / LlamaRec deliver near-GPT-4 accuracy at ~1% of GPT-4&rsquo;s per-call cost. If you can afford 4× A100 hours once for LoRA training, you save the rest of the year on inference.</li>
+<li><strong>Conversational agents are a different product, not a different point on the curve.</strong> Their cost is high not because the model is expensive but because every session is multi-turn — you&rsquo;re paying 5–10× the requests for the same recommendation outcome. Justify them by the conversational UX itself, not by a ranking-metric improvement.</li>
+</ol>
+<h3 id="practical-cost-levers">Practical cost levers</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Lever</th>
+          <th>Typical savings</th>
+          <th>Caveat</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Cache identical prompts</td>
+          <td>30–60%</td>
+          <td>Only helps if queries repeat</td>
+      </tr>
+      <tr>
+          <td>Truncate history to 20 items</td>
+          <td>20–40%</td>
+          <td>Loses long-tail preferences</td>
+      </tr>
+      <tr>
+          <td>Rerank top-20 instead of top-50</td>
+          <td>50%</td>
+          <td>Small accuracy hit (~1 NDCG pt)</td>
+      </tr>
+      <tr>
+          <td>Fine-tune 7B instead of GPT-4</td>
+          <td>90%+</td>
+          <td>Needs labeled data + GPU time</td>
+      </tr>
+      <tr>
+          <td>Route warm users to CF only</td>
+          <td>40–80%</td>
+          <td>Depends on user mix</td>
+      </tr>
+  </tbody>
+</table>
+<p>The single biggest lever, by far, is <strong>route by user state</strong> (previous section). For a typical platform 70%+ of requests come from warm users where CF is strictly better; routing them away from the LLM saves real money for free.</p>
+<hr>
+<h2 id="evaluation-what-to-measure">Evaluation: What to Measure</h2>
+<p>Standard ranking metrics still apply (NDCG@K, Recall@K, MRR), but LLM systems need additional axes:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">evaluate_llm_recommender</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">,</span> <span class="n">llm_calls</span><span class="p">,</span> <span class="n">latencies</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Standard metrics + LLM-specific operational metrics.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># --- Quality ---</span>
+</span></span><span class="line"><span class="cl">    <span class="n">k</span> <span class="o">=</span> <span class="mi">10</span>
+</span></span><span class="line"><span class="cl">    <span class="n">hits</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">p</span><span class="p">[:</span><span class="n">k</span><span class="p">])</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">gt</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">gt</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">)]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">precision</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="n">k</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">    <span class="n">recall</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gt</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">gt</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hits</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">)])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">ndcg</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">gt</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">gt_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">gt</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">dcg</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pred</span><span class="p">[:</span><span class="n">k</span><span class="p">])</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">gt_set</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idcg</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">gt_set</span><span class="p">))))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">dcg</span> <span class="o">/</span> <span class="n">idcg</span> <span class="k">if</span> <span class="n">idcg</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">ndcg_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">ndcg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">gt</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">gt</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">)])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># --- Operational ---</span>
+</span></span><span class="line"><span class="cl">    <span class="n">p50_latency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">latencies</span><span class="p">,</span> <span class="mi">50</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">p99_latency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">latencies</span><span class="p">,</span> <span class="mi">99</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">cost_per_request</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">llm_calls</span><span class="p">))</span> <span class="o">*</span> <span class="mf">0.005</span>   <span class="c1"># $/call rough estimate</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;precision@10&#34;</span><span class="p">:</span> <span class="n">precision</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;recall@10&#34;</span><span class="p">:</span> <span class="n">recall</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;ndcg@10&#34;</span><span class="p">:</span> <span class="n">ndcg_score</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;p50_latency_s&#34;</span><span class="p">:</span> <span class="n">p50_latency</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;p99_latency_s&#34;</span><span class="p">:</span> <span class="n">p99_latency</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;cost_per_request_usd&#34;</span><span class="p">:</span> <span class="n">cost_per_request</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The operational metrics matter more than people expect. A model that wins NDCG by 2 points but adds 1.5s to p50 latency is a net loss for most consumer products — users churn faster than ranking quality improves.</p>
+<p>For conversational systems, also track:</p>
+<ul>
+<li><strong>Turns to satisfaction</strong>: how many turns until the user accepts a recommendation</li>
+<li><strong>Recommendation diversity per session</strong>: are you collapsing to the same five items every conversation</li>
+<li><strong>Hallucination rate</strong>: how often the LLM recommends an item not in the candidate set</li>
+</ul>
+<hr>
+<h2 id="frequently-asked-questions">Frequently Asked Questions</h2>
+<h3 id="when-should-i-use-an-llm-at-all">When should I use an LLM at all?</h3>
+<p>When at least one is true: (a) you have rich textual content per item, (b) you have a serious cold-start problem, (c) you need user-facing explanations, (d) you&rsquo;re building a conversational surface. If none of those apply, a well-tuned DCN-V2 or DIN will outperform any LLM at lower cost.</p>
+<h3 id="should-i-use-gpt-4-or-fine-tune-a-7b">Should I use GPT-4 or fine-tune a 7B?</h3>
+<p>Almost always fine-tune. <strong>TallRec</strong> and <strong>LlamaRec</strong> show that LoRA-tuned 7B models match or beat GPT-4 zero-shot on recommendation, at ~1% the inference cost. The only reason to stay on GPT-4 is if you have zero training data or your domain shifts faster than you can re-tune.</p>
+<h3 id="how-do-i-avoid-hallucinated-items">How do I avoid hallucinated items?</h3>
+<p>Two layers: (1) constrain the LLM&rsquo;s output to indices into the candidate set (<code>[3, 1, 5, 2, 4]</code>, not titles), and (2) hard-validate the output against the candidate list before returning. If the LLM emits an unknown index, fall back to the DNN ranker&rsquo;s order.</p>
+<h3 id="how-big-should-the-candidate-set-passed-to-the-llm-be">How big should the candidate set passed to the LLM be?</h3>
+<p>Empirically, 20–50. Below 20 you don&rsquo;t give the LLM enough to rerank meaningfully; above 50 the prompt gets long, slow, and expensive, and the model starts losing track of items in the middle (&ldquo;lost in the middle&rdquo; effect).</p>
+<h3 id="do-i-need-rag-for-recommendation">Do I need RAG for recommendation?</h3>
+<p>Sometimes. RAG (retrieval-augmented generation) helps when the LLM needs <em>factual</em> knowledge about items beyond what&rsquo;s in the prompt — release dates, specifications, current availability. For pure ranking from a known catalog, the catalog itself in the prompt is the retrieval; you don&rsquo;t need a separate vector DB.</p>
+<h3 id="what-about-latency-for-real-time-feeds">What about latency for real-time feeds?</h3>
+<p>Real-time feeds (TikTok-style infinite scroll, news) generally cannot afford a synchronous LLM call per impression. The patterns that work: (a) pre-compute LLM rerankings during off-peak and cache, (b) use the LLM only for the <em>first</em> page and DNN for subsequent pages, (c) run the LLM on the offline batch path for next-day recommendations.</p>
+<h3 id="how-do-i-handle-multilingual-catalogs">How do I handle multilingual catalogs?</h3>
+<p>LLMs handle this naturally — translation and cross-lingual reasoning come built-in. The catch is that fine-tuning on English-only interaction data will collapse the multilingual capability. Either keep some non-English examples in your fine-tune mix, or fine-tune a multilingual base model (Qwen, Llama-3 multilingual, mT5).</p>
+<hr>
+<h2 id="conclusion">Conclusion</h2>
+<p>LLMs are not replacing recommendation systems — they&rsquo;re filling specific gaps the previous generation could not. The three roles map cleanly to the three gaps:</p>
+<ul>
+<li><strong>Enhancer</strong> fills the <em>content understanding</em> gap. Run it offline, cache forever, get cleaner embeddings and stronger cold-start.</li>
+<li><strong>Predictor</strong> fills the <em>cold-start and small-data</em> gap. Fine-tune a 7B, use it to rerank the top 20–50 from a traditional pipeline.</li>
+<li><strong>Agent</strong> fills the <em>interaction</em> gap. Reserve it for genuinely conversational surfaces; pay the latency tax knowingly.</li>
+</ul>
+<p>The architecture every production team converges on is the hybrid pipeline: ANN retrieval → DNN ranker → LLM reranker → optional explanation. It works because the LLM only sees the top ~50 items, never the catalog. Cost stays bounded; quality gets the LLM&rsquo;s semantic lift.</p>
+<p>Start there. Measure operational metrics alongside ranking metrics from day one. Route warm users away from the LLM to keep the bill sane. Fine-tune as soon as you have a few hundred labeled examples.</p>
+<hr>
+<h2 id="references">References</h2>
+<ol>
+<li>Geng, S., Liu, S., Fu, Z., Ge, Y., &amp; Zhang, Y. (2022). <a href="https://arxiv.org/abs/2203.13366" target="_blank" rel="noopener noreferrer"><strong>Recommendation as Language Processing (RLP): A Unified Pretrain, Personalized Prompt &amp; Predict Paradigm (P5)</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. RecSys 2022.</li>
+<li>Cui, Z., Ma, J., Zhou, C., Zhou, J., &amp; Yang, H. (2022). <a href="https://arxiv.org/abs/2205.08084" target="_blank" rel="noopener noreferrer"><strong>M6-Rec: Generative Pretrained Language Models are Open-Ended Recommender Systems</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. arXiv:2205.08084.</li>
+<li>Bao, K., Zhang, J., Zhang, Y., Wang, W., Feng, F., &amp; He, X. (2023). <a href="https://arxiv.org/abs/2305.00447" target="_blank" rel="noopener noreferrer"><strong>TallRec: An Effective and Efficient Tuning Framework to Align Large Language Model with Recommendation</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. RecSys 2023.</li>
+<li>Ji, J., Li, Z., Xu, S., Hua, W., Ge, Y., Tan, J., &amp; Zhang, Y. (2024). <a href="https://arxiv.org/abs/2307.00457" target="_blank" rel="noopener noreferrer"><strong>GenRec: Large Language Model for Generative Recommendation</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. ECIR 2024.</li>
+<li>Yue, Z., Rabhi, S., Moreira, G. de S. P., Wang, D., &amp; Oldridge, E. (2023). <a href="https://arxiv.org/abs/2311.02089" target="_blank" rel="noopener noreferrer"><strong>LlamaRec: Two-Stage Recommendation using Large Language Models for Ranking</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. arXiv:2311.02089.</li>
+<li>Gao, Y., Sheng, T., Xiang, Y., Xiong, Y., Wang, H., &amp; Zhang, J. (2023). <a href="https://arxiv.org/abs/2303.14524" target="_blank" rel="noopener noreferrer"><strong>Chat-REC: Towards Interactive and Explainable LLMs-Augmented Recommender System</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. arXiv:2303.14524.</li>
+<li>Xi, Y., Liu, W., Lin, J., Zhu, J., Chen, B., Tang, R., Zhang, W., Zhang, R., &amp; Yu, Y. (2024). <a href="https://arxiv.org/abs/2306.10933" target="_blank" rel="noopener noreferrer"><strong>Towards Open-World Recommendation with Knowledge Augmentation from Large Language Models (KAR)</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. RecSys 2024.</li>
+<li>Liu, N. F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., &amp; Liang, P. (2024). <a href="https://arxiv.org/abs/2307.03172" target="_blank" rel="noopener noreferrer"><strong>Lost in the Middle: How Language Models Use Long Contexts</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. TACL.</li>
+</ol>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<p>This article is <strong>Part 12</strong> of the 16-part Recommendation Systems series.</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: left">Previous</th>
+          <th style="text-align: center"></th>
+          <th style="text-align: right">Next</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left"><a href="/en/recommendation-systems-11-contrastive-learning/">Part 11: Contrastive Learning</a>
+</td>
+          <td style="text-align: center"><a href="/tags/Recommendation-Systems/">All Parts</a>
+</td>
+          <td style="text-align: right"><a href="/tags/Recommendation-Systems/">Part 13: Coming Soon</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#the-three-roles-of-llms-in-recommendation">The Three Roles of LLMs in Recommendation</a>
+      <ul>
+        <li><a href="#role-1--enhancer-offline-feature-generation">Role 1 — Enhancer (offline feature generation)</a></li>
+        <li><a href="#role-2--predictor-direct-ranking-or-generation">Role 2 — Predictor (direct ranking or generation)</a></li>
+        <li><a href="#role-3--agent-orchestrator-with-tools">Role 3 — Agent (orchestrator with tools)</a></li>
+      </ul>
+    </li>
+    <li><a href="#prompt-based-ranking">Prompt-Based Ranking</a>
+      <ul>
+        <li><a href="#zero-shot-vs-few-shot-vs-fine-tuned">Zero-shot vs few-shot vs fine-tuned</a></li>
+      </ul>
+    </li>
+    <li><a href="#llm-as-enhancer-sharper-embeddings-better-cold-start">LLM as Enhancer: Sharper Embeddings, Better Cold-Start</a>
+      <ul>
+        <li><a href="#where-the-offline-only-constraint-hurts">Where the offline-only constraint hurts</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-hybrid-pipeline-the-architecture-you-actually-ship">The Hybrid Pipeline (the architecture you actually ship)</a></li>
+    <li><a href="#cold-start-where-llms-actually-win">Cold-Start: Where LLMs Actually Win</a></li>
+    <li><a href="#conversational-recommendation-chatrec-style">Conversational Recommendation: ChatREC-Style</a></li>
+    <li><a href="#the-costquality-pareto-frontier">The Cost/Quality Pareto Frontier</a>
+      <ul>
+        <li><a href="#practical-cost-levers">Practical cost levers</a></li>
+      </ul>
+    </li>
+    <li><a href="#evaluation-what-to-measure">Evaluation: What to Measure</a></li>
+    <li><a href="#frequently-asked-questions">Frequently Asked Questions</a>
+      <ul>
+        <li><a href="#when-should-i-use-an-llm-at-all">When should I use an LLM at all?</a></li>
+        <li><a href="#should-i-use-gpt-4-or-fine-tune-a-7b">Should I use GPT-4 or fine-tune a 7B?</a></li>
+        <li><a href="#how-do-i-avoid-hallucinated-items">How do I avoid hallucinated items?</a></li>
+        <li><a href="#how-big-should-the-candidate-set-passed-to-the-llm-be">How big should the candidate set passed to the LLM be?</a></li>
+        <li><a href="#do-i-need-rag-for-recommendation">Do I need RAG for recommendation?</a></li>
+        <li><a href="#what-about-latency-for-real-time-feeds">What about latency for real-time feeds?</a></li>
+        <li><a href="#how-do-i-handle-multilingual-catalogs">How do I handle multilingual catalogs?</a></li>
+      </ul>
+    </li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Recommendation Systems</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>17 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3600</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

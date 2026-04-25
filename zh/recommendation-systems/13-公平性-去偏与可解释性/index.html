@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>推荐系统（十三）—— 公平性、去偏与可解释性 · Chen Kai Blog</title>
+<meta name="description" content="可信推荐的实战深读：七类偏差（流行度/位置/选择/曝光/从众/人口/确认）的来源与度量；因果推断（RCT、IPS、双重稳健）如何把有偏日志变成无偏信号；MACR、DICE、FairCo 等业界主流去偏方案；LIME、SHAP、反事实解释的工程取舍。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="推荐系统（十三）—— 公平性、去偏与可解释性">
+<meta property="og:description" content="可信推荐的实战深读：七类偏差（流行度/位置/选择/曝光/从众/人口/确认）的来源与度量；因果推断（RCT、IPS、双重稳健）如何把有偏日志变成无偏信号；MACR、DICE、FairCo 等业界主流去偏方案；LIME、SHAP、反事实解释的工程取舍。">
+<meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">推荐系统</a>
+         · Chapter 13
+      </div>
+      <h1>推荐系统（十三）—— 公平性、去偏与可解释性</h1>
+      <p class="deck">可信推荐的实战深读：七类偏差（流行度/位置/选择/曝光/从众/人口/确认）的来源与度量；因果推断（RCT、IPS、双重稳健）如何把有偏日志变成无偏信号；MACR、DICE、FairCo 等业界主流去偏方案；LIME、SHAP、反事实解释的工程取舍。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-01-06">January 6, 2026</time> · 16 min read · 7600 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/" class="tag">#推荐系统</a><a href="/zh/tags/%E5%85%AC%E5%B9%B3%E6%80%A7/" class="tag">#公平性</a><a href="/zh/tags/%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/" class="tag">#可解释性</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <blockquote>
+<p>用户打开 Spotify，反复出现的还是那五十首歌。打开 Amazon，排在最前面的总是自己已经看过的商品。打开 YouTube，每条推荐都把你拽向某个并不记得自己想要的兔子洞。这些症状各有名字、各有原因、各有解法。本文讨论的就是这三件事。</p>
+</blockquote>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>系统性扭曲用户所见的<strong>七类偏差</strong>——每一种的来源、度量方法和影响</li>
+<li><strong>推荐系统中的因果推断</strong>——为什么从日志直接学习会撒谎，IPS、双重稳健估计、倾向得分如何还原无偏信号</li>
+<li><strong>可上线的去偏方案</strong>：MACR 治流行度偏差、DICE 解从众偏差、FairCo 摊销曝光公平</li>
+<li><strong>反事实公平</strong>与对抗训练，让用户嵌入不再泄露受保护属性</li>
+<li><strong>能扛审计的可解释性</strong>：LIME、SHAP、反事实解释的工程对比</li>
+<li>一套可操作的<strong>取舍框架</strong>，帮你在准确率—公平性的 Pareto 前沿上选好工作点</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>基于嵌入的推荐器（<a href="/zh/recommendation-systems-04-ctr-prediction/">第 4 篇</a>
+ 与 <a href="/zh/recommendation-systems-05-embedding-techniques/">第 5 篇</a>
+）</li>
+<li>一点点因果推断词汇会有帮助，但不是必需——本文从零讲起</li>
+<li>能读 PyTorch 风格的伪代码</li>
+</ul>
+<hr>
+<h2 id="第一部分--七类偏差">第一部分 —— 七类偏差</h2>
+<p>推荐系统中的偏差不是一个问题，而是至少七个，并且会相互叠加。下面这套分类沿用 Chen 等人在 2023 年综述 <em>Bias and Debias in Recommender System</em> 中的框架——想完整看文献地图，从这一篇开始最干净。</p>
+<h3 id="1-流行度偏差--越富者越富">1. 流行度偏差 —— 越富者越富</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/fig1_popularity_bias.png" alt="长尾交互分布：少量头部物品垄断了曝光，长尾被饿死" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>少数物品占据绝大多数交互，推荐器又把这种集中进一步放大。右图是关键证据：哪怕目录本身均匀，前 20 个物品也吃掉了 60% 以上的推荐位。</p>
+<p>一个干净的度量是被推荐物品平均流行度与目录均值之差：</p>
+$$\text{PopBias@K} = \frac{1}{|U|}\sum_{u \in U} \frac{\sum_{i \in R_u^K} \log(1 + p_i)}{K} - \frac{1}{|I|}\sum_{i \in I} \log(1 + p_i)$$<p>取对数是为了不被极少数超热门物品主导。要按 slate 单独追踪，不能只看全局——全局均值会把每个用户层面的集中度抹平。</p>
+<h3 id="2-位置偏差--点击跟着鼠标走不跟着意图走">2. 位置偏差 —— 点击跟着鼠标走，不跟着意图走</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/fig2_position_bias.png" alt="即使底层相关性恒定，CTR 仍随位置急剧下降" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>用户检视靠前位置的概率远高于靠后。经典的<em>检视假设</em>（Richardson、Joachims 等）把点击拆为两个独立事件：</p>
+$$P(\text{click} \mid u, i, k) = P(\text{examine} \mid k) \cdot P(\text{relevant} \mid u, i)$$<p>如果直接用日志点击训练，你会把&quot;被放到第一位&quot;和&quot;真正相关&quot;混为一谈。位置偏差是工业级 learning-to-rank 中被研究最透彻的偏差，对应的修复方案——<strong>逆倾向得分（IPS）</strong>——也是这个季度就能落地的那种。</p>
+<h3 id="3-选择偏差--你拿到的数据不是你想要的数据">3. 选择偏差 —— 你拿到的数据不是你想要的数据</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/fig3_selection_bias.png" alt="观测到的评分被系统性高估；评分高的物品更可能被打分" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>用户不会随机评分。他们要么对热爱的、要么对失望的物品打分；不温不火的中间地带从来不进日志。这是教科书式的<em>非随机缺失</em>（MNAR）。Marlin 与 Zemel（2009）证明，在 MovieLens 类数据集上忽略它会让 RMSE 虚高 10–30%。解药与位置偏差同源：显式建模缺失机制，再做加权或填补。</p>
+<h3 id="4-曝光偏差--看不到就点不到">4. 曝光偏差 —— 看不到就点不到</h3>
+<p>系统只能学习它展示过的物品。新物品、长尾物品、来自小众创作者的物品获得的曝光更少，意味着更少的交互、更低的预测相关性、更少的曝光。这就是让推荐器随时间衰退的闭环反馈。</p>
+<h3 id="5-从众偏差--用户在模仿群体">5. 从众偏差 —— 用户在模仿群体</h3>
+<p>用户表达的偏好里既有真实口味，也有社会从众。如果模型把两者当成同一个信号，它学到的是&quot;流行度代理&quot;而非真实偏好。这正是 <strong>DICE</strong>（Zheng 等，WWW 2021）显式拆分&quot;兴趣嵌入&quot;和&quot;从众嵌入&quot;想解决的问题。</p>
+<h3 id="6-人口偏差--不同群体上的服务质量不均">6. 人口偏差 —— 不同群体上的服务质量不均</h3>
+<p>同一个模型可能在某群体上 NDCG@10 = 0.42，在另一个群体上只有 0.31。常见原因是数据失衡：弱势群体训练样本更少，学到的表示就更弱。也可能是因果性的：某个特征是受保护属性的代理（邮编代理种族、浏览器语言代理国籍）。</p>
+<h3 id="7-确认偏差--信息茧房--世界越来越窄">7. 确认偏差 / 信息茧房 —— 世界越来越窄</h3>
+<p>模型一旦觉得自己懂你，每条推荐都会强化这个信念。多样性塌缩，惊喜消失，用户接触的观念面越缩越小。这是监管者最担心的偏差，因为它在群体层面起作用，而非个体层面。</p>
+<h3 id="偏差从哪来">偏差从哪来</h3>
+<p>四个源头，按修复难度递增：</p>
+<table>
+  <thead>
+      <tr>
+          <th>来源</th>
+          <th>例子</th>
+          <th>修复难度</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>数据采集</strong></td>
+          <td>只追踪登录用户</td>
+          <td>容易——更好地采集</td>
+      </tr>
+      <tr>
+          <td><strong>算法</strong></td>
+          <td>损失函数优化点击而不是满意度</td>
+          <td>中等——改目标</td>
+      </tr>
+      <tr>
+          <td><strong>反馈循环</strong></td>
+          <td>推荐结果变成训练数据</td>
+          <td>困难——打破闭环</td>
+      </tr>
+      <tr>
+          <td><strong>评估</strong></td>
+          <td>离线 NDCG 不看公平性</td>
+          <td>中等——加正确的指标</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="偏差度量工具箱">偏差度量工具箱</h3>
+<p>修任何东西之前先把仪表打全。下面这个类是我每个新推荐器在首次发版评审前一定会跑的最小集合。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BiasMetrics</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;每个推荐器都该和 NDCG/HR 一起报告的六个指标。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">recommendations</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">item_popularity</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">user_groups</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="n">item_groups</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">recs</span> <span class="o">=</span> <span class="n">recommendations</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pop</span> <span class="o">=</span> <span class="n">item_popularity</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_groups</span> <span class="o">=</span> <span class="n">user_groups</span> <span class="ow">or</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_groups</span> <span class="o">=</span> <span class="n">item_groups</span> <span class="ow">or</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">popularity_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;被推荐物品和目录之间的对数流行度差。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rec_items</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recs</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[:</span><span class="n">k</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">rec_pop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">rec_items</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="n">all_pop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">rec_pop</span> <span class="o">-</span> <span class="n">all_pop</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">gini</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;全目录的曝光不平等度。0 = 均匀，1 = 赢者通吃。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">exposure</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[:</span><span class="n">k</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">                <span class="n">exposure</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">exposure</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">-</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;至少被推荐过一次的物品占目录的比例。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seen</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recs</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[:</span><span class="n">k</span><span class="p">]}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">seen</span><span class="p">)</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">demographic_disparity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;不同用户群之间推荐长度均值的最大差（服务质量代理）。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_groups</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">per_group</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">per_group</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">user_groups</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="s2">&#34;?&#34;</span><span class="p">)]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">[:</span><span class="n">k</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">means</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">per_group</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">means</span><span class="p">)</span> <span class="o">-</span> <span class="nb">min</span><span class="p">(</span><span class="n">means</span><span class="p">))</span> <span class="k">if</span> <span class="n">means</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">intra_list_diversity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;每个 slate 内不同类目占比的平均值。&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_groups</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recs</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">            <span class="n">slate</span> <span class="o">=</span> <span class="n">r</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">slate</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">                <span class="k">continue</span>
+</span></span><span class="line"><span class="cl">            <span class="n">cats</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_groups</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&#34;?&#34;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">slate</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">cats</span><span class="p">))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cats</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores</span><span class="p">))</span> <span class="k">if</span> <span class="n">scores</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;popularity_bias&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">popularity_bias</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;gini&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">gini</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;coverage&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;demographic_disparity&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">demographic_disparity</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;intra_list_diversity&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">intra_list_diversity</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Gini 系数借自经济学，那里它衡量收入不平等。在这里它衡量<em>曝光不平等</em>。Gini &gt; 0.8 意味着少数物品独占 slate，目录其余部分坐冷板凳。</p>
+<hr>
+<h2 id="第二部分--推荐系统的因果推断">第二部分 —— 推荐系统的因果推断</h2>
+<h3 id="相关性远远不够">相关性远远不够</h3>
+<p>日志告诉你看过 A 的用户也点了 B，但它没告诉你他们点 B 是<em>因为</em>系统推了 B，还是反正都会找到 B。这件事很重要，因为你报告的每一个&quot;提升&quot;，本质都是一个因果断言。</p>
+<p><strong>潜在结果</strong>框架把这个断言显式化。对用户 $u$ 和物品 $i$，想象两个平行世界：</p>
+<ul>
+<li>$Y_{ui}(1)$：推荐了 $i$ 时的结果</li>
+<li>$Y_{ui}(0)$：没推荐时的结果</li>
+</ul>
+<p><strong>个体处理效应</strong>为 $\text{ITE}_{ui} = Y_{ui}(1) - Y_{ui}(0)$。我们永远观测不到两者——这就是<em>因果推断的基本问题</em>。次优解是对很多用户求平均：</p>
+$$\text{ATE} = \mathbb{E}_{u,i}[Y_{ui}(1) - Y_{ui}(0)]$$<p><strong>混淆变量</strong>是同时驱动处理（系统展示什么）和结果（用户做什么）的变量。最显著的混淆是用户口味：品味好的用户既会得到好推荐，也更可能点击，无论谁来推荐什么。</p>
+<h3 id="逆倾向得分ips">逆倾向得分（IPS）</h3>
+<p>IPS 是去偏的主力工具。思路是：如果一次点击发生在检视概率为 $\pi$ 的条件下，把它加权 $1/\pi$ 就还原出&quot;在均匀检视条件下点击数会是多少&quot;。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/fig5_ips_reweighting.png" alt="IPS 概念示意：每次点击除以 P(被观测到)，还原无偏的相关性信号" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>对于 learning-to-rank 损失，IPS 修正后的估计量是</p>
+$$\hat{\mathcal{L}}_{\text{IPS}}(f) = \frac{1}{|D|} \sum_{(u,i,k) \in D} \frac{c_{ui}}{\pi_k} \cdot \ell(f(u, i))$$<p>其中 $c_{ui} \in \{0,1\}$ 是点击，$\pi_k$ 是位置 $k$ 的位置偏差倾向。Joachims、Swaminathan 与 Schnabel 在 2017 年 SIGIR 论文中证明：只要 $\pi_k > 0$ 处处成立，这个估计量就是无偏的——这也是工业团队会给小倾向加 $\epsilon$、给极端权重剪裁的原因。Saito 等（2020）提出的<em>自归一化 IPS</em>和<em>双重稳健</em>变体用一点偏差换得方差大幅下降。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">ips_loss</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">clicks</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">             <span class="n">positions</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">propensities</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">             <span class="n">clip</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;IPS 加权交叉熵。
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    scores      : 模型 logits, shape (B,)
+</span></span></span><span class="line"><span class="cl"><span class="s2">    clicks      : 0/1 标签, shape (B,)
+</span></span></span><span class="line"><span class="cl"><span class="s2">    positions   : 物品被展示的排名位置, shape (B,)
+</span></span></span><span class="line"><span class="cl"><span class="s2">    propensities: P(检视 | 位置 k), shape (max_pos+1,)
+</span></span></span><span class="line"><span class="cl"><span class="s2">    clip        : IPS 权重上限，控制方差
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pi</span> <span class="o">=</span> <span class="n">propensities</span><span class="p">[</span><span class="n">positions</span><span class="p">]</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">weights</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">pi</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="n">clip</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">per_example</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span><span class="p">,</span> <span class="n">clicks</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;none&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span><span class="n">weights</span> <span class="o">*</span> <span class="n">clicks</span> <span class="o">*</span> <span class="n">per_example</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>实践中你会撞上的两类失败：</p>
+<ol>
+<li><strong>方差爆炸</strong>：$\pi_k$ 极小时，权重 $1/\pi_k$ 会爆炸。剪裁要狠（5–20 是常见区间），并监控权重分布。</li>
+<li><strong>倾向不准</strong>：你需要一个可信的&quot;用户为什么看到了这些&quot;模型。常用技巧是开一个小流量随机槽（1–5%），随机打乱位置后从中估 $\pi_k$。</li>
+</ol>
+<h3 id="双重稳健估计">双重稳健估计</h3>
+<p>只要倾向模型<em>或</em>结果模型有一个对，双重稳健（DR）估计就是无偏的。带保险绳：</p>
+$$\hat{Y}_{\text{DR}} = \hat{Y}(X) + \frac{T}{\pi(X)} \big( Y - \hat{Y}(X) \big)$$<p>其中 $\hat{Y}(X)$ 是你的填补模型，$T$ 是处理指示。实战中 DR 比纯 IPS 方差更低、比纯填补偏差更小。Wang 等（2019，<em>Doubly Robust Joint Learning</em>）是推荐场景的标准改写。</p>
+<h3 id="随机化数据黄金标准">随机化数据：黄金标准</h3>
+<p>如果你担得起，跑一个推荐随机化的 A/B 实验就能拿到真实的 ATE。多数团队不能在生产流量上完全随机推荐，所以会用<strong>分层随机化</strong>——在每个用户的小候选集内随机，记录倾向，下游使用。</p>
+<hr>
+<h2 id="第三部分--工业落地的去偏">第三部分 —— 工业落地的去偏</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/fig4_pareto_frontier.png" alt="准确率 vs 公平性：前沿上每个点都是一个无法在不牺牲另一方的前提下改善某一方的配置" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>真正的问题不是&quot;如何消除偏差&quot;，而是&quot;我们要在 Pareto 前沿的哪个点工作&quot;。上图的前沿是真实的：在所有发表过的去偏论文里，完美的公平都有代价。你的任务是选一个可接受、可度量的工作点。</p>
+<h3 id="macr--治流行度偏差的模型无关反事实推理">MACR —— 治流行度偏差的模型无关反事实推理</h3>
+<p>MACR（Wei 等，KDD 2021）是我所知最干净的流行度去偏工程方案。它把预测分数视为三个因果效应之和：用户单独效应、物品单独效应（这就是流行度捷径）、用户—物品交互效应。在推理时<em>减去</em>物品单独效应，把流行度捷径剥掉。</p>
+<p>架构上 MACR 加了两个旁路塔：</p>
+<pre tabindex="0"><code>score(u, i) = main(u, i) - alpha * item_tower(i) - beta * user_tower(u)
+</code></pre><p>物品塔被训练成只用物品本身预测点击——也就是它学的是流行度捷径。推理时减掉它，迫使主塔依赖真实的用户—物品匹配。在 Yelp 和 Amazon-Book 上，MACR 把长尾物品的召回率提升 20–40%，整体 NDCG 只损失个位数。</p>
+<h3 id="dice--把兴趣和从众解耦">DICE —— 把兴趣和从众解耦</h3>
+<p>DICE（Zheng 等，WWW 2021）把每个用户和物品嵌入拆成两段：<em>兴趣</em>与<em>从众</em>。训练目标用不同的负采样策略迫使两段各有专长：</p>
+<ul>
+<li><strong>兴趣嵌入</strong>：负样本是用户<em>不太可能见过</em>的物品 → 抓真实口味</li>
+<li><strong>从众嵌入</strong>：负样本按流行度匹配 → 抓羊群行为</li>
+</ul>
+<p>推理时只用兴趣嵌入打分，从众信号被剥离。</p>
+<h3 id="fairco--跨多次-slate-摊销公平">FairCo —— 跨多次 slate 摊销公平</h3>
+<p>FairCo（Morik 等，SIGIR 2020）瞄准的是<em>随时间累积的曝光公平</em>：每个物品或物品组在所有用户上累计的曝光应当与其优劣成比例。技巧是一个控制器，维护每个组的曝光&quot;债务&quot;，并把修正项加到打分上：</p>
+$$s'(u, i) = s(u, i) + \lambda \cdot \big( \text{deserved}_g(t) - \text{received}_g(t) \big)$$<p>其中 $g$ 是物品 $i$ 所属的组。落后的组得到加成，超前的组被压一压。漂亮的性质是：随时间摊销下来，系统会收敛到与优劣成比例的曝光，哪怕单次 slate 看起来仍然有偏。这对 Airbnb、Uber、Etsy 这种生产者公平是商业刚需的双边市场尤为重要。</p>
+<h3 id="三大家族一个组合配方">三大家族，一个组合配方</h3>
+<table>
+  <thead>
+      <tr>
+          <th>家族</th>
+          <th>何时用</th>
+          <th>工具</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>预处理</strong></td>
+          <td>你能控制数据采集</td>
+          <td>重平衡、重加权、MNAR 填补</td>
+      </tr>
+      <tr>
+          <td><strong>过程内</strong></td>
+          <td>你能改损失</td>
+          <td>IPS、MACR、DICE、公平正则</td>
+      </tr>
+      <tr>
+          <td><strong>后处理</strong></td>
+          <td>模型已冻结</td>
+          <td>FairCo、MMR、公平重排</td>
+      </tr>
+  </tbody>
+</table>
+<p>新发版的合理组合：</p>
+<ol>
+<li>用上面的工具箱审计；选两个你打算撬动的指标</li>
+<li>加一个过程内修复（位置偏差先用 IPS）</li>
+<li>加一个后处理保险（FairCo 控制器）做生产者侧公平</li>
+<li>把这些指标写进发版标准——去偏只有进了评分卡才会留下来</li>
+</ol>
+<hr>
+<h2 id="第四部分--反事实公平与对抗训练">第四部分 —— 反事实公平与对抗训练</h2>
+<p>一个推荐器是<strong>反事实公平</strong>的，当且仅当假设用户的性别、种族或其他受保护属性变了，推荐结果不变。形式化地，对受保护属性 $A$ 和预测 $f$：</p>
+$$P\big(f_{Y \leftarrow a}(U, X) = y \mid X = x, A = a\big) = P\big(f_{Y \leftarrow a'}(U, X) = y \mid X = x, A = a\big)$$<p>记号 $f_{Y \leftarrow a}$ 是 Pearl 的<em>do-算子</em>：我们<em>干预</em> $A$，其余保持不变。这比&quot;统计平价&quot;严格——后者只要求边缘分布相等。</p>
+<h3 id="对抗去偏--cfairer-范式">对抗去偏 —— CFairER 范式</h3>
+<p>判别器尝试从用户嵌入预测受保护属性，编码器尝试欺骗它。均衡时，嵌入不再含有受保护信息。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CFairER</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;推荐器嵌入的对抗去偏。
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    两个网络打 minimax：
+</span></span></span><span class="line"><span class="cl"><span class="s2">    - 判别器：从用户嵌入预测受保护属性
+</span></span></span><span class="line"><span class="cl"><span class="s2">    - 编码器：既要打好分，又要骗过判别器
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_users</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">n_users</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">predictor</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">dim</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_emb</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ie</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_emb</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ue</span><span class="p">,</span> <span class="n">ie</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">attr_logit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">ue</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">attr_logit</span><span class="p">,</span> <span class="n">ue</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_step</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">CFairER</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">opt_main</span><span class="p">,</span> <span class="n">opt_disc</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">               <span class="n">lam_fair</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">u</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">batch</span>  <span class="c1"># 用户、物品、评分、受保护属性</span>
+</span></span><span class="line"><span class="cl">    <span class="n">score</span><span class="p">,</span> <span class="n">attr_logit</span><span class="p">,</span> <span class="n">ue</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 1) 在 detach 后的嵌入上更新判别器</span>
+</span></span><span class="line"><span class="cl">    <span class="n">opt_disc</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">a_logit</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">ue</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">d_loss</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span><span class="p">(</span><span class="n">a_logit</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="n">d_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">opt_disc</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 2) 更新编码器 + 预测器（既要好推荐，也要骗住判别器）</span>
+</span></span><span class="line"><span class="cl">    <span class="n">opt_main</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">score</span><span class="p">,</span> <span class="n">attr_logit</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pred_loss</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 鼓励判别器不确定（在概率空间目标 0.5）</span>
+</span></span><span class="line"><span class="cl">    <span class="n">fair_loss</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">attr_logit</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">attr_logit</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">total</span> <span class="o">=</span> <span class="n">pred_loss</span> <span class="o">+</span> <span class="n">lam_fair</span> <span class="o">*</span> <span class="n">fair_loss</span>
+</span></span><span class="line"><span class="cl">    <span class="n">total</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">opt_main</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;pred&#34;</span><span class="p">:</span> <span class="n">pred_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="s2">&#34;disc&#34;</span><span class="p">:</span> <span class="n">d_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="s2">&#34;fair&#34;</span><span class="p">:</span> <span class="n">fair_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>实战要盯紧两件事：</p>
+<ul>
+<li><strong>判别器塌陷</strong>：判别器跑得太快太猛，编码器会摆烂。给判别器更小的学习率或更低的更新频率。</li>
+<li><strong>物品侧泄露</strong>：如果物品本身就和受保护属性强相关（比如女性杂志类物品能预测性别），仅在用户嵌入侧去偏不够。可能需要在 (用户, 物品) 分数上再加一个判别器。</li>
+</ul>
+<hr>
+<h2 id="第五部分--可解释性">第五部分 —— 可解释性</h2>
+<h3 id="为什么要做">为什么要做</h3>
+<p>三类受众，三个理由：</p>
+<ul>
+<li><strong>用户</strong>更信任他们能理解的推荐。&ldquo;因为你看过《盗梦空间》&ldquo;在 Netflix 和 Spotify 公开实验中能把 CTR 抬 6–12%。</li>
+<li><strong>工程师</strong>在模型能&quot;亮出账本&quot;时调试更快。</li>
+<li><strong>监管</strong>——欧盟 GDPR 第 22 条以及越来越多美国地区都要求自动化决策提供&quot;对所涉及逻辑的有意义信息&rdquo;。</li>
+</ul>
+<h3 id="lime--任意模型的局部线性近似">LIME —— 任意模型的局部线性近似</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/fig6_lime_explanation.png" alt="LIME 风格的局部解释：哪些特征把这一对 (用户, 物品) 的预测往上推或往下拉" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>LIME（Ribeiro 等，KDD 2016）是<em>模型无关</em>且<em>局部</em>的。在你想解释的实例附近扰动输入，向黑盒模型查询扰动后的预测，再用按近似度加权的稀疏线性模型拟合。线性模型的系数就是解释。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">Ridge</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">lime_explain</span><span class="p">(</span><span class="n">predict_fn</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">n_top</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;返回驱动 predict_fn(x) 的前 k 个特征。
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    predict_fn : callable(np.ndarray of shape (N, d)) -&gt; (N,)
+</span></span></span><span class="line"><span class="cl"><span class="s2">    x          : 待解释的实例, shape (d,)
+</span></span></span><span class="line"><span class="cl"><span class="s2">    sigma      : 扰动噪声尺度
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">d</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 在 x 附近采扰动邻居</span>
+</span></span><span class="line"><span class="cl">    <span class="n">samples</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">preds</span> <span class="o">=</span> <span class="n">predict_fn</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 用 RBF 核按近似度加权</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">samples</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">dist</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 拟合稀疏线性代理</span>
+</span></span><span class="line"><span class="cl">    <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Ridge</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">surrogate</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># 按系数绝对值取前 k 个特征</span>
+</span></span><span class="line"><span class="cl">    <span class="n">coefs</span> <span class="o">=</span> <span class="n">surrogate</span><span class="o">.</span><span class="n">coef_</span>
+</span></span><span class="line"><span class="cl">    <span class="n">top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">coefs</span><span class="p">))[:</span><span class="n">n_top</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[(</span><span class="nb">int</span><span class="p">(</span><span class="n">j</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">coefs</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">top</span><span class="p">]</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>注意：LIME 不稳定。Ribeiro 自己也说同一实例两次跑可能给出不同的 top 特征。生产环境固定随机种子，并报告稳定性指标。</p>
+<h3 id="shap--博弈论的贡献">SHAP —— 博弈论的贡献</h3>
+<p>SHAP（Lundberg 与 Lee，NeurIPS 2017）计算 Shapley 值：满足<em>效率</em>（归因和等于预测减基线）、<em>对称</em>、<em>哑</em>、<em>可加</em>的唯一归因方案。对模型 $f$ 和特征集合 $N$：</p>
+$$\phi_j = \sum_{S \subseteq N \setminus \{j\}} \frac{|S|! (|N| - |S| - 1)!}{|N|!} \big( f(S \cup \{j\}) - f(S) \big)$$<p>精确 Shapley 值随特征数指数级。生产用近似：</p>
+<ul>
+<li><strong>TreeSHAP</strong>（树集成多项式时间）—— GBDT 推荐器的首选</li>
+<li><strong>KernelSHAP</strong>（模型无关，类似 LIME 但用 Shapley 权重）</li>
+<li><strong>DeepSHAP</strong>（神经网络版，基于 DeepLIFT）</li>
+</ul>
+<p>与 LIME 的关键差异：SHAP 归因的和等于预测，因此是<em>一致</em>且<em>可加</em>的。如果要面对审计，用 SHAP。</p>
+<table>
+  <thead>
+      <tr>
+          <th></th>
+          <th>LIME</th>
+          <th>SHAP</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>速度</td>
+          <td>快</td>
+          <td>中（TreeSHAP）到慢（KernelSHAP 精确版）</td>
+      </tr>
+      <tr>
+          <td>理论</td>
+          <td>启发式</td>
+          <td>博弈论（Shapley 值）</td>
+      </tr>
+      <tr>
+          <td>稳定性</td>
+          <td>不稳定</td>
+          <td>一致</td>
+      </tr>
+      <tr>
+          <td>适用</td>
+          <td>快速调试、特征量大</td>
+          <td>审计、合规报告</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="反事实解释--可执行的答案">反事实解释 —— 可执行的答案</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/13-%E5%85%AC%E5%B9%B3%E6%80%A7-%E5%8E%BB%E5%81%8F%E4%B8%8E%E5%8F%AF%E8%A7%A3%E9%87%8A%E6%80%A7/fig7_counterfactual.png" alt="反事实：让推荐结果反转所需的最小改动" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>反事实回答的是&quot;要怎么改，推荐结果才会变？&quot;。它比特征归因更可执行，因为它指向一次<em>最小干预</em>。Wachter 等（2017）的形式化：</p>
+$$x^{\text{cf}} = \arg\min_{x'} \; d(x, x') \quad \text{s.t.} \quad f(x') \neq f(x)$$<p>其中 $d$ 是惩罚不现实改动的距离（一次改太多特征、或动了不可改的特征如年龄）。现代实现（DiCE，Mothilal 等 2020）用梯度下降优化松弛版本，并加<em>多样性</em>项，一次给出几条不同的反事实。</p>
+<p>杀手级用法是<em>可审计性</em>。&ldquo;我们没把这款贷款产品推给用户 X，因为他申报的收入低于阈值；如果再高 5000 美元，模型就会推&rdquo;——这种解释是监管能接受的形式。</p>
+<hr>
+<h2 id="第六部分--工业的信任建设">第六部分 —— 工业的信任建设</h2>
+<h3 id="能上线的透明度">能上线的透明度</h3>
+<p>最小可上线透明层：</p>
+<ol>
+<li>每个物品一句自然语言解释（&ldquo;因为你看过《盗梦空间》和《信条》&quot;）</li>
+<li>一个用户能基于其行动的置信度（&ldquo;匹配度 85%&quot;）</li>
+<li>一个&quot;为什么是这个？&ldquo;的深入页面，展示 SHAP 值与贡献特征</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">render_explanation</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">item_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                       <span class="n">shap_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">history</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">top_pos</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">shap_values</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[:</span><span class="mi">2</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">top_neg</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">shap_values</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])[:</span><span class="mi">1</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;headline&#34;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&#34;因为你喜欢 </span><span class="si">{</span><span class="n">history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> 和 </span><span class="si">{</span><span class="n">history</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;confidence&#34;</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="mi">99</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mi">50</span> <span class="o">+</span> <span class="mi">100</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">top_pos</span><span class="p">))),</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;positive_factors&#34;</span><span class="p">:</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">top_pos</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;negative_factors&#34;</span><span class="p">:</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">top_neg</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;feedback_options&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;要更多这类&#34;</span><span class="p">,</span> <span class="s2">&#34;要少一些&#34;</span><span class="p">,</span> <span class="s2">&#34;不感兴趣&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="用户控制面板">用户控制面板</h3>
+<p>每个推荐曝光面都该提供三种控制：</p>
+<ul>
+<li><strong>多样性滑块</strong> —— 探索 vs 利用的显式旋钮</li>
+<li><strong>话题屏蔽</strong> —— &ldquo;永远不要给我推恐怖片&rdquo;</li>
+<li><strong>解释并调整</strong> —— 展示贡献特征，让用户重新加权</li>
+</ul>
+<p>这些都是低成本、高信任度的添加。YouTube 的&quot;不再推荐此频道&rdquo;、Spotify 的&quot;隐藏这首歌&quot;存在的意义是一样的：可见的控制权能降低感知偏差，哪怕底层模型没变。</p>
+<h3 id="持续监控">持续监控</h3>
+<p>公平性不是发版勾选项，而是持续度量。把第一部分的偏差指标做成仪表盘，对回退报警，每季度用 SHAP/反事实工具做一次审计。三月公平的模型可能六月就漂了；唯一的防线是仪表化。</p>
+<hr>
+<h2 id="qa">Q&amp;A</h2>
+<h3 id="我是个小团队去偏的最低标准是什么">我是个小团队，去偏的最低标准是什么？</h3>
+<p>两件事。第一，把第一部分的偏差指标仪表化——量不到就修不了。第二，把 IPS 加进 learning-to-rank 损失里治位置偏差。两者都便宜，而且都能跑出可度量的胜利。</p>
+<h3 id="公平性的准确率代价有多大">公平性的准确率代价有多大？</h3>
+<p>取决于你在前沿的位置。从一个低公平基线出发，30% 的公平改善通常只要 1–3% 的 NDCG。贵的部分是最后那 10% 的公平，常常要付 10%+ 的准确率。定个目标，别追求完美。</p>
+<h3 id="选-lime-还是-shap">选 LIME 还是 SHAP？</h3>
+<p>LIME 用于开发期的快速本地调试。SHAP 用于一切要给审计或用户看的场景。如果你用树模型，TreeSHAP 已经够快，没理由用别的。</p>
+<h3 id="对抗去偏里的判别器一直收敛到随机水平是好事吗">对抗去偏里的判别器一直收敛到随机水平，是好事吗？</h3>
+<p>是的——随机水平意味着嵌入没泄露受保护信息。但要用下游指标验证：从头训练一个新的分类器到嵌入上，确认它也无法超过随机。GAN 式循环里的判别器有时会欠拟合。</p>
+<h3 id="怎么处理交叉性公平如黑人女性而非单看种族或性别">怎么处理交叉性公平（如黑人女性，而非单看种族或性别）？</h3>
+<p>单属性公平会在交叉处藏起差距。最低做法是在交叉单元上报指标，而不是只看边缘分布。进阶方案是<em>交叉性去偏</em>——在属性元组上加对抗损失——但要小心：单元格样本数下降很快，统计功效随之降低。</p>
+<hr>
+<h2 id="小结">小结</h2>
+<ul>
+<li>七类偏差——流行度、位置、选择、曝光、从众、人口、确认——各有可度量的特征和已知的修复方案</li>
+<li>因果推断，特别是 <strong>IPS</strong> 与<strong>双重稳健</strong>估计，把有偏的日志数据变成无偏的训练信号</li>
+<li>工业去偏工具箱：<strong>MACR</strong> 治流行度，<strong>DICE</strong> 解从众，<strong>FairCo</strong> 摊销曝光，对抗训练剥离受保护属性</li>
+<li><strong>LIME</strong> 做快速本地调试，<strong>SHAP</strong> 出可审计的解释，<strong>反事实</strong>给可执行的&quot;怎么改才会反转&quot;的答案</li>
+<li>可信推荐不是一次性项目——是仪表化、仪表盘、用户控制和季度审计</li>
+</ul>
+<p>偏差和可解释性已经不是可选项，它们是 2024 年运营推荐器的入场券。</p>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<p>本文是推荐系统系列<strong>第 13 篇 / 共 16 篇</strong>。</p>
+<p><strong>上一篇</strong>：<a href="/zh/recommendation-systems-12-llm-recommendation/">第 12 篇 —— 大语言模型与推荐系统</a>
+
+<strong>下一篇</strong>：<a href="/zh/recommendation-systems-14-cross-domain-cold-start/">第 14 篇 —— 跨域推荐与冷启动方案</a>
+</p>
+<p><a href="/categories/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">查看推荐系统系列全部文章</a>
+</p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+    <li><a href="#第一部分--七类偏差">第一部分 —— 七类偏差</a>
+      <ul>
+        <li><a href="#1-流行度偏差--越富者越富">1. 流行度偏差 —— 越富者越富</a></li>
+        <li><a href="#2-位置偏差--点击跟着鼠标走不跟着意图走">2. 位置偏差 —— 点击跟着鼠标走，不跟着意图走</a></li>
+        <li><a href="#3-选择偏差--你拿到的数据不是你想要的数据">3. 选择偏差 —— 你拿到的数据不是你想要的数据</a></li>
+        <li><a href="#4-曝光偏差--看不到就点不到">4. 曝光偏差 —— 看不到就点不到</a></li>
+        <li><a href="#5-从众偏差--用户在模仿群体">5. 从众偏差 —— 用户在模仿群体</a></li>
+        <li><a href="#6-人口偏差--不同群体上的服务质量不均">6. 人口偏差 —— 不同群体上的服务质量不均</a></li>
+        <li><a href="#7-确认偏差--信息茧房--世界越来越窄">7. 确认偏差 / 信息茧房 —— 世界越来越窄</a></li>
+        <li><a href="#偏差从哪来">偏差从哪来</a></li>
+        <li><a href="#偏差度量工具箱">偏差度量工具箱</a></li>
+      </ul>
+    </li>
+    <li><a href="#第二部分--推荐系统的因果推断">第二部分 —— 推荐系统的因果推断</a>
+      <ul>
+        <li><a href="#相关性远远不够">相关性远远不够</a></li>
+        <li><a href="#逆倾向得分ips">逆倾向得分（IPS）</a></li>
+        <li><a href="#双重稳健估计">双重稳健估计</a></li>
+        <li><a href="#随机化数据黄金标准">随机化数据：黄金标准</a></li>
+      </ul>
+    </li>
+    <li><a href="#第三部分--工业落地的去偏">第三部分 —— 工业落地的去偏</a>
+      <ul>
+        <li><a href="#macr--治流行度偏差的模型无关反事实推理">MACR —— 治流行度偏差的模型无关反事实推理</a></li>
+        <li><a href="#dice--把兴趣和从众解耦">DICE —— 把兴趣和从众解耦</a></li>
+        <li><a href="#fairco--跨多次-slate-摊销公平">FairCo —— 跨多次 slate 摊销公平</a></li>
+        <li><a href="#三大家族一个组合配方">三大家族，一个组合配方</a></li>
+      </ul>
+    </li>
+    <li><a href="#第四部分--反事实公平与对抗训练">第四部分 —— 反事实公平与对抗训练</a>
+      <ul>
+        <li><a href="#对抗去偏--cfairer-范式">对抗去偏 —— CFairER 范式</a></li>
+      </ul>
+    </li>
+    <li><a href="#第五部分--可解释性">第五部分 —— 可解释性</a>
+      <ul>
+        <li><a href="#为什么要做">为什么要做</a></li>
+        <li><a href="#lime--任意模型的局部线性近似">LIME —— 任意模型的局部线性近似</a></li>
+        <li><a href="#shap--博弈论的贡献">SHAP —— 博弈论的贡献</a></li>
+        <li><a href="#反事实解释--可执行的答案">反事实解释 —— 可执行的答案</a></li>
+      </ul>
+    </li>
+    <li><a href="#第六部分--工业的信任建设">第六部分 —— 工业的信任建设</a>
+      <ul>
+        <li><a href="#能上线的透明度">能上线的透明度</a></li>
+        <li><a href="#用户控制面板">用户控制面板</a></li>
+        <li><a href="#持续监控">持续监控</a></li>
+      </ul>
+    </li>
+    <li><a href="#qa">Q&amp;A</a>
+      <ul>
+        <li><a href="#我是个小团队去偏的最低标准是什么">我是个小团队，去偏的最低标准是什么？</a></li>
+        <li><a href="#公平性的准确率代价有多大">公平性的准确率代价有多大？</a></li>
+        <li><a href="#选-lime-还是-shap">选 LIME 还是 SHAP？</a></li>
+        <li><a href="#对抗去偏里的判别器一直收敛到随机水平是好事吗">对抗去偏里的判别器一直收敛到随机水平，是好事吗？</a></li>
+        <li><a href="#怎么处理交叉性公平如黑人女性而非单看种族或性别">怎么处理交叉性公平（如黑人女性，而非单看种族或性别）？</a></li>
+      </ul>
+    </li>
+    <li><a href="#小结">小结</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">推荐系统</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>16 min</strong></div>
+      <div class="row"><span>Word count</span><strong>7600</strong></div>
+      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

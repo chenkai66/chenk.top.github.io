@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Ordinary Differential Equations (11): Numerical Methods · Chen Kai Blog</title>
+<meta name="description" content="From Euler&#39;s tangent step to Dormand-Prince adaptive integrators: a working numerics toolkit. Convergence orders, A-stability, stiffness, and when to reach for Radau or BDF instead of RK45.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/ode/11-numerical-methods/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/ode/11-numerical-methods/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ordinary Differential Equations (11): Numerical Methods">
+<meta property="og:description" content="From Euler&#39;s tangent step to Dormand-Prince adaptive integrators: a working numerics toolkit. Convergence orders, A-stability, stiffness, and when to reach for Radau or BDF instead of RK45.">
+<meta property="og:url" content="https://www.chenk.top/en/ode/11-numerical-methods/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Ordinary differential equations</a>
+         · Chapter 11
+      </div>
+      <h1>Ordinary Differential Equations (11): Numerical Methods</h1>
+      <p class="deck">From Euler&#39;s tangent step to Dormand-Prince adaptive integrators: a working numerics toolkit. Convergence orders, A-stability, stiffness, and when to reach for Radau or BDF instead of RK45.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2023-12-18">December 18, 2023</time> · 4 min read · 700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/ordinary-differential-equations/" class="tag">#Ordinary Differential Equations</a><a href="/en/tags/numerical-methods/" class="tag">#Numerical Methods</a><a href="/en/tags/euler-method/" class="tag">#Euler Method</a><a href="/en/tags/runge-kutta/" class="tag">#Runge-Kutta</a><a href="/en/tags/python/" class="tag">#Python</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Almost every interesting differential equation in science and engineering refuses to yield a closed-form solution. Nonlinear vector fields, variable coefficients, ten thousand coupled state variables &ndash; pen and paper give up long before the problem does. Numerical integration is the way through. This chapter builds, evaluates, and compares the small set of algorithms that solve essentially every ODE you will meet, and gives you the diagnostics to know when an integrator is lying to you.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>The geometric idea behind Euler&rsquo;s method, and why it costs you accuracy that classical Runge-Kutta gives back essentially for free</li>
+<li>A clean derivation of the order of accuracy and what &ldquo;convergence rate$\mathcal{O}(h^p)$&rdquo; really means in a log-log plot</li>
+<li>Adaptive step-size control via embedded RK methods (the engine inside <code>scipy.integrate.solve_ivp</code>)</li>
+<li><strong>Stiffness</strong>: what it is, how to spot it, why explicit methods catastrophically fail, and how implicit methods (BDF, Radau) save the day</li>
+<li>Linear stability regions in the complex plane and what they tell you about choosing$h$- A short tour of multistep methods, symplectic integrators for Hamiltonian flows, and a checklist for production use</li>
+</ul>
+<p><strong>Prerequisites</strong>: basic ODE concepts from <a href="/en/ode-chapter-01-origins-and-intuition/">Chapters 1-4</a>
+. Some Taylor-series fluency.</p>
+<hr>
+<h2 id="1-why-we-need-numerical-methods">1. Why we need numerical methods</h2>
+<p>The analytical methods of earlier chapters &ndash; separation of variables, integrating factors, Laplace transforms, eigenvalue expansions &ndash; are powerful but <strong>fragile</strong>. They work for narrow classes of equations and break the moment a real problem stops being symbolic-friendly. Take$\frac{dy}{dx} = \sin(xy).$No closed form exists. The Navier-Stokes equations, the three-body problem, every chemical reaction network with more than a handful of species, the Lorenz system &ndash; all defeat symbolic methods. We have to settle for <strong>discrete approximations</strong>$y_n \approx y(x_n)$at a sequence of grid points$x_n = x_0 + nh$.</p>
+<p>The questions are then:</p>
+<ul>
+<li>How do we choose the update rule$y_{n+1} = \Phi(y_n, h, f, \ldots)$?</li>
+<li>How does the error scale with$h$?</li>
+<li>How does the method behave when the equation is &ldquo;stiff&rdquo; &ndash; when small$h$is required for stability rather than for accuracy?</li>
+</ul>
+<p>We answer all three.</p>
+<hr>
+<h2 id="2-forward-euler-the-geometric-idea">2. Forward Euler: the geometric idea</h2>
+<p>Given$\dot{y} = f(x, y),\;y(x_0) = y_0$, the simplest step replaces the curve by its tangent line:$y_{n+1} = y_n + h\,f(x_n, y_n).$This is <strong>forward Euler</strong>, and it is the prototype of every explicit one-step scheme. The intuition: at every step you read the slope at your current location, walk a small distance$h$in that direction, then re-read the slope. Like navigating a hillside in fog by always trusting the local incline.</p>
+<h3 id="order-of-accuracy">Order of accuracy</h3>
+<p>Taylor-expand the true solution:$y(x_n + h) = y(x_n) + h\,y'(x_n) + \tfrac{h^2}{2}y''(x_n) + \mathcal{O}(h^3).$Subtracting the Euler step$y_{n+1} = y_n + h f(x_n, y_n)$leaves a <strong>local truncation error</strong> of$\mathcal{O}(h^2)$per step. Over a fixed interval$[x_0, X]$we take$N = (X - x_0)/h$steps, so the <strong>global error</strong> is$\mathcal{O}(h)$. Halving the step size halves the error &ndash; a slow rate of return for the doubled cost.</p>
+<h3 id="linear-stability">Linear stability</h3>
+<p>Apply Euler to the test equation$\dot{y} = \lambda y$, $\mathrm{Re}\,\lambda < 0$:$y_{n+1} = (1 + h\lambda)\,y_n.$The amplification factor is$R(z) := 1 + z$, where$z = h\lambda$. Stability requires$|R(z)| \le 1$. For real negative$\lambda$, this forces$h < 2/|\lambda|$. For oscillatory$\lambda$on the imaginary axis, <strong>no$h>0$is stable</strong>. Euler is <strong>conditionally stable</strong> at best, and useless for purely oscillatory problems.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">euler</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">x_end</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Forward Euler. f(x, y) -&gt; dy/dx.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x0</span><span class="p">],</span> <span class="p">[</span><span class="n">y0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span>
+</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">x_end</span> <span class="o">-</span> <span class="mf">1e-12</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h_eff</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">x_end</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span> <span class="o">*</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span>
+</span></span><span class="line"><span class="cl">        <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">);</span> <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="3-heun-midpoint-and-the-runge-kutta-family">3. Heun, midpoint, and the Runge-Kutta family</h2>
+<p>The cure for Euler&rsquo;s first-order accuracy is to evaluate the slope <strong>more than once per step</strong> and combine the evaluations cleverly. The general structure of an explicit$s$-stage Runge-Kutta method:$k_i = f\bigl(x_n + c_i h,\; y_n + h \textstyle\sum_{j<i} a_{ij}\,k_j\bigr), \quad y_{n+1} = y_n + h\sum_i b_i\,k_i.$The coefficients$\{a_{ij}, b_i, c_i\}$are arranged in a <strong>Butcher tableau</strong>.</p>
+<h3 id="heun-improved-euler-order-2">Heun (improved Euler), order 2</h3>
+<p>A predict-and-correct two-stage method:</p>
+<ol>
+<li>predictor: $\tilde y = y_n + h\,f(x_n, y_n)$</li>
+<li>corrector: $y_{n+1} = y_n + \tfrac{h}{2}\bigl[f(x_n, y_n) + f(x_n + h, \tilde y)\bigr]$</li>
+</ol>
+<p>Local error$\mathcal{O}(h^3)$, global error$\mathcal{O}(h^2)$. Halve$h$, cut the error to a quarter. Already much better.</p>
+<h3 id="classical-rk4-order-4">Classical RK4, order 4</h3>
+<p>The four-stage workhorse:</p>
+$$k_1 = f(x_n, y_n)$$$$k_2 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_1\right)$$$$k_3 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_2\right)$$$$k_4 = f(x_n + h,\; y_n + h k_3)$$$$y_{n+1} = y_n + \tfrac{h}{6}(k_1 + 2k_2 + 2k_3 + k_4)$$<p>The weights$(1, 2, 2, 1)/6$mirror Simpson&rsquo;s rule for integration; that is not a coincidence. Global error$\mathcal{O}(h^4)$, four function evaluations per step, one of the great practical bargains in scientific computing. For non-stiff problems with smooth right-hand sides, this single algorithm has been the engineering default for over a century.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">rk4</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">x_end</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x0</span><span class="p">],</span> <span class="p">[</span><span class="n">y0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span>
+</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">x_end</span> <span class="o">-</span> <span class="mf">1e-12</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h_eff</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">x_end</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">k1</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">k2</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">*</span><span class="n">k1</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">k3</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">*</span><span class="n">k2</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">k4</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">*</span><span class="n">k3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">*</span><span class="p">(</span><span class="n">k1</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">k2</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">k3</span> <span class="o">+</span> <span class="n">k4</span><span class="p">)</span><span class="o">/</span><span class="mi">6</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span>
+</span></span><span class="line"><span class="cl">        <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">);</span> <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="side-by-side-euler-vs-rk4">Side-by-side: Euler vs RK4</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig1_euler_vs_rk4.png" alt="Euler vs RK4 on the test equation y&rsquo; = -2y for several step sizes h." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Same step sizes, same problem ($\dot y = -2y$, $y(0) = 1$). Euler at$h = 0.5$even goes negative &ndash; it overshoots the equilibrium because$h\lambda = -1$is just inside the stability region. RK4 at the same$h$is visually indistinguishable from the exact curve.</em></p>
+<p>This is not a small effect. Going from order 1 to order 4 means the error budget at fixed$h$is squared <em>twice</em>. To match RK4&rsquo;s accuracy at$h=0.1$with Euler, you would need$h \approx 10^{-5}$&ndash; a hundred-thousand-fold cost.</p>
+<hr>
+<h2 id="4-convergence-orders-made-visible">4. Convergence orders, made visible</h2>
+<p>The cleanest way to detect a method&rsquo;s order is to compute the global error at the endpoint for a sequence of step sizes and plot on log-log axes. The slope is the order.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig2_error_convergence.png" alt="Log-log convergence: Euler O(h), Heun O(h^2), RK4 O(h^4) on the test equation." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>The dotted reference lines have slopes 1, 2, 4. Each method&rsquo;s error tracks the corresponding line until either round-off (RK4 at the smallest$h$) or stability (Euler at the largest$h$) takes over.</em></p>
+<p>Two practical lessons:</p>
+<ul>
+<li><strong>The order is a hard speed limit.</strong> No amount of tuning will give you better than$\mathcal{O}(h^p)$convergence from a method of order$p$. To go faster, you need a higher-order method or extrapolation.</li>
+<li><strong>The floor is real.</strong> RK4 at$h = 10^{-3}$on a smooth problem already grazes machine precision. Below that, errors grow as round-off accumulates over more steps. Lowering$h$past this floor <em>hurts</em>.</li>
+</ul>
+<hr>
+<h2 id="5-adaptive-step-size-control">5. Adaptive step-size control</h2>
+<p>Real solutions are not uniformly smooth. They have plateaus, sharp transients, slow tails. A fixed$h$is either wastefully small on the plateau or dangerously large on the transient. The fix is <strong>adaptive stepping</strong>: choose$h$on the fly to hold the local error near a user-specified tolerance.</p>
+<p>The standard mechanism is <strong>embedded Runge-Kutta</strong>. Two methods of orders$p$and$p+1$share their stage evaluations. Their difference is an estimate of the local error$E_n$. If$E_n > \text{tol}$we reject the step and try a smaller$h$; otherwise we accept and pick the next step from$h_\text{new} = 0.9\,h\,\bigl(\text{tol}/E_n\bigr)^{1/(p+1)}.$The 0.9 is a safety factor; the exponent comes from the order-$p+1$asymptotic. The most popular embedded pair is <strong>Dormand-Prince RK4(5)</strong> &ndash; the &ldquo;RK45&rdquo; inside <code>scipy.integrate.solve_ivp</code>. Each step uses 6 function evaluations and produces both a 4th- and a 5th-order estimate.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig3_adaptive_step_size.png" alt="Adaptive RK45 step locations on a sharp transient, plus the step-size history." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Top: a forced linear ODE with a Gaussian impulse at$t=1$. Red dots mark every step the integrator took. Bottom: the step size shrinks roughly 100x to follow the spike, then expands again. A fixed$h$small enough for the spike would have taken thousands of unnecessary steps in the smooth tail.</em></p>
+<hr>
+<h2 id="6-stiffness-the-failure-mode-of-explicit-methods">6. Stiffness: the failure mode of explicit methods</h2>
+<p>Some equations have a small amount of fast dynamics living on top of a slow evolution. Once the fast part has decayed, you would <em>like</em> to take big steps &ndash; but explicit methods will not let you. They demand$h \lesssim 1/|\lambda_{\max}|$forever, just to stay numerically stable. Such problems are called <strong>stiff</strong>.</p>
+<p>The textbook example is the van der Pol oscillator at large nonlinearity:$\ddot{y} - \mu(1 - y^2)\dot{y} + y = 0.$For$\mu = 1000$, the slow timescale is$\sim \mu$while the fast timescale is$\sim 1/\mu$. The ratio is $10^6$. Trying to integrate this with RK45 is a disaster.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig4_stiffness.png" alt="Stiff problem: explicit RK45 takes ~100x more steps than implicit BDF." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Same trajectory, two methods. BDF (implicit, blue) needs only a few thousand steps for the entire integration; RK45 (explicit, red) needs hundreds of thousands and still has trouble. The pattern is universal across stiff problems.</em></p>
+<p>The way out is <strong>implicit</strong> methods. The simplest is <strong>backward Euler</strong>:$y_{n+1} = y_n + h\,f(x_{n+1}, y_{n+1}),$which evaluates the slope at the <em>new</em> point. The price: each step requires solving an algebraic equation for$y_{n+1}$, usually by Newton&rsquo;s method. The reward: backward Euler&rsquo;s stability region is the <em>entire</em> left half-plane (it is <strong>A-stable</strong>). No matter how stiff the problem, you can take whatever$h$is needed for accuracy.</p>
+<h3 id="stability-regions-drawn">Stability regions, drawn</h3>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig5_implicit_vs_explicit.png" alt="Stability regions of explicit and implicit methods in the complex plane." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Left: explicit methods&rsquo; stability regions are bounded ovals near the origin. RK4&rsquo;s region (blue) covers ~ $|h\lambda| \le 2.78$ on the negative real axis &ndash; a big chunk, but still bounded. Right: backward Euler and the trapezoidal rule cover the entire left half-plane, the defining property of A-stability.</em></p>
+<p>For a stiff problem with eigenvalues stretched far down the negative real axis, the explicit region is a narrow corridor. You either shrink$h$enough to fit (huge cost) or use an A-stable method (no$h$constraint).</p>
+<p>In production, the standard implicit families are:</p>
+<ul>
+<li><strong>BDF</strong> (Backward Differentiation Formulas, orders 1-5). The default for stiff ODEs in industrial solvers (LSODE, CVODE, SciPy&rsquo;s <code>'BDF'</code>).</li>
+<li><strong>Radau IIA</strong> (orders 3, 5, 9). Implicit Runge-Kutta with strong stability properties; SciPy&rsquo;s <code>'Radau'</code>.</li>
+<li><strong>Implicit midpoint / trapezoidal</strong>. A-stable, second order, energy-conserving for Hamiltonian systems.</li>
+</ul>
+<p>A practical rule: if <code>solve_ivp(..., method='RK45')</code> is taking forever or refusing tolerances, try <code>'BDF'</code> or <code>'Radau'</code>. If the problem switches between stiff and non-stiff regimes, <code>'LSODA'</code> does the detection automatically.</p>
+<hr>
+<h2 id="7-a-few-more-methods-worth-knowing">7. A few more methods worth knowing</h2>
+<h3 id="multistep-adams-bashforth-and-adams-moulton">Multistep: Adams-Bashforth and Adams-Moulton</h3>
+<p>Instead of evaluating$f$at multiple internal stages, <strong>multistep</strong> methods reuse stored values from previous steps:$y_{n+1} = y_n + h \sum_{j=0}^{k-1} \beta_j\,f(x_{n-j}, y_{n-j}).$Adams-Bashforth (explicit) and Adams-Moulton (implicit) are the textbook families. Predictor-corrector pairs combine an Adams-Bashforth prediction with an Adams-Moulton correction. The advantage is one function evaluation per step (after startup); the disadvantage is fragility around discontinuities and the need for separate startup procedures.</p>
+<h3 id="symplectic-integrators-for-hamiltonian-flows">Symplectic integrators for Hamiltonian flows</h3>
+<p>For energy-conserving systems (planetary orbits, molecular dynamics, lattice gauge theory), conventional methods cause <strong>energy drift</strong>: the conserved quantity slowly grows or shrinks as round-off accumulates. <strong>Symplectic</strong> integrators preserve the symplectic 2-form of phase space; they cannot conserve energy exactly either, but they confine the energy error to a bounded oscillation around the true value, even over millions of periods.</p>
+<p>The minimal example is <strong>Stormer-Verlet (leapfrog)</strong> for$\ddot q = -\nabla V(q)$:$p_{n+1/2} = p_n - \tfrac{h}{2}\nabla V(q_n),\quad q_{n+1} = q_n + h\,p_{n+1/2},\quad p_{n+1} = p_{n+1/2} - \tfrac{h}{2}\nabla V(q_{n+1}).$Second-order accurate, time-reversible, symplectic. The standard tool of N-body astrophysics.</p>
+<hr>
+<h2 id="8-using-scipy-in-practice">8. Using SciPy in practice</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">solve_ivp</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Generic non-stiff problem: default RK45 is the right call.</span>
+</span></span><span class="line"><span class="cl"><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_ivp</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                <span class="n">t_eval</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Stiff problem: switch to BDF or Radau.</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">vdp</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">mu</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+</span></span><span class="line"><span class="cl"><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_ivp</span><span class="p">(</span><span class="n">vdp</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3000</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">                <span class="n">method</span><span class="o">=</span><span class="s1">&#39;BDF&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># If you do not know whether the system is stiff, let LSODA figure it out.</span>
+</span></span><span class="line"><span class="cl"><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_ivp</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span> <span class="n">y0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;LSODA&#39;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>solve_ivp</code>&rsquo;s most-used options:</p>
+<ul>
+<li><code>method</code>: <code>'RK45'</code> (default), <code>'RK23'</code>, <code>'DOP853'</code> (8th-order, very high accuracy), <code>'Radau'</code>, <code>'BDF'</code>, <code>'LSODA'</code>.</li>
+<li><code>rtol</code>, <code>atol</code>: relative and absolute tolerances per component. Defaults are loose ($10^{-3}, 10^{-6}$); for serious work tighten to$10^{-8}, 10^{-10}$or below.</li>
+<li><code>dense_output=True</code>: returns an interpolant <code>sol.sol(t)</code> you can call at any time, not just at the integrator&rsquo;s chosen steps.</li>
+<li><code>events</code>: pass a function and the solver locates its zeros via root-finding &ndash; ideal for collisions, bouncing, threshold crossings.</li>
+<li><code>jac</code>: provide an analytic Jacobian for stiff methods; massive speedup over finite-difference Jacobians.</li>
+</ul>
+<h3 id="practical-reliability-checklist">Practical reliability checklist</h3>
+<ol>
+<li><strong>Run twice at different tolerances.</strong> If reducing <code>rtol</code> by 100x changes the answer noticeably, the looser run was wrong.</li>
+<li><strong>Plot the step-size history.</strong> A solver hammering on <code>min_step</code> is in trouble. If <code>nfev</code> (function evaluations) is enormous, you are probably on a stiff problem with an explicit method.</li>
+<li><strong>Watch for <code>success=False</code>.</strong> <code>solve_ivp</code> returns this silently; you must check it.</li>
+<li><strong>For long integrations, use a dense output and verify on a coarser grid.</strong> Drift over$10^6$periods is invisible in any single-step check.</li>
+</ol>
+<hr>
+<h2 id="9-method-selection-summary">9. Method selection summary</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Method</th>
+          <th>Order</th>
+          <th>Class</th>
+          <th>Stable for stiff?</th>
+          <th>Best for</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Forward Euler</td>
+          <td>1</td>
+          <td>explicit</td>
+          <td>no</td>
+          <td>learning, never production</td>
+      </tr>
+      <tr>
+          <td>Heun (improved Euler)</td>
+          <td>2</td>
+          <td>explicit</td>
+          <td>no</td>
+          <td>toy problems</td>
+      </tr>
+      <tr>
+          <td>Classical RK4</td>
+          <td>4</td>
+          <td>explicit</td>
+          <td>no</td>
+          <td>smooth non-stiff problems</td>
+      </tr>
+      <tr>
+          <td>Dormand-Prince RK4(5)</td>
+          <td>4(5)</td>
+          <td>explicit, adaptive</td>
+          <td>no</td>
+          <td>the default workhorse</td>
+      </tr>
+      <tr>
+          <td>DOP853</td>
+          <td>8(5,3)</td>
+          <td>explicit, adaptive</td>
+          <td>no</td>
+          <td>demanding non-stiff accuracy</td>
+      </tr>
+      <tr>
+          <td>Backward Euler</td>
+          <td>1</td>
+          <td>implicit</td>
+          <td>yes (A-stable)</td>
+          <td>minimal stiff solver</td>
+      </tr>
+      <tr>
+          <td>Trapezoidal / Crank-Nicolson</td>
+          <td>2</td>
+          <td>implicit</td>
+          <td>yes (A-stable)</td>
+          <td>mildly stiff, conservative</td>
+      </tr>
+      <tr>
+          <td>BDF (orders 1-5)</td>
+          <td>up to 5</td>
+          <td>implicit, multistep</td>
+          <td>yes</td>
+          <td>stiff industrial workhorse</td>
+      </tr>
+      <tr>
+          <td>Radau IIA</td>
+          <td>3, 5, 9</td>
+          <td>implicit RK</td>
+          <td>yes (L-stable)</td>
+          <td>very stiff, high-accuracy</td>
+      </tr>
+      <tr>
+          <td>Stormer-Verlet</td>
+          <td>2</td>
+          <td>symplectic</td>
+          <td>&ndash;</td>
+          <td>Hamiltonian / orbital</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>One sentence of advice</strong>: start with <code>solve_ivp(method='RK45')</code>; if it is slow or unstable, switch to <code>'BDF'</code> and try again; if it conserves something and you care about that, look at symplectic methods.</p>
+<hr>
+<h2 id="exercises">Exercises</h2>
+<ol>
+<li><strong>Order verification.</strong> Implement <code>euler</code>, <code>heun</code>, and <code>rk4</code>. Solve$\dot y = -2y$,$y(0)=1$on$[0, 3]$at$h \in \{0.5, 0.25, 0.125, 0.0625\}$, plot the global error log-log, and confirm slopes 1, 2, 4.</li>
+<li><strong>Stability boundary, by experiment.</strong> For Euler applied to$\dot y = \lambda y$with$\lambda = -10$, find the critical step size$h_*$at which Euler stops being stable, and verify it agrees with$2/|\lambda|$.</li>
+<li><strong>A stiff system, both ways.</strong> Solve the Robertson chemical kinetics problem
+$$\dot y_1 = -0.04 y_1 + 10^4 y_2 y_3,$$
+$$\dot y_2 = 0.04 y_1 - 10^4 y_2 y_3 - 3\times 10^7 y_2^2,$$
+$$\dot y_3 = 3\times 10^7 y_2^2,$$
+with$y(0) = (1, 0, 0)$on$[0, 10^{11}]$using both <code>'RK45'</code> and <code>'BDF'</code>. Compare run time and step count.</li>
+<li><strong>Adaptive vs fixed.</strong> Use <code>solve_ivp</code> to integrate$\dot y = -y + 100\,e^{-(t-1)^2/0.005}$on$[0, 3]$at <code>rtol=1e-6</code>. Then redo with a fixed-step RK4 fine enough to match the accuracy. Report the step counts.</li>
+<li><strong>Symplectic vs RK4 on the Kepler orbit.</strong> Integrate a circular Kepler orbit for$10^4$periods using leapfrog and using RK4 at the same step size. Plot energy vs time for each.</li>
+</ol>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Hairer, E., Norsett, S. P., &amp; Wanner, G. (1993). <em>Solving Ordinary Differential Equations I: Nonstiff Problems</em> (2nd ed.). Springer.</li>
+<li>Hairer, E. &amp; Wanner, G. (1996). <em>Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems</em> (2nd ed.). Springer. The two Hairer-Wanner volumes are the bible.</li>
+<li>Ascher, U. &amp; Petzold, L. (1998). <em>Computer Methods for Ordinary Differential Equations and Differential-Algebraic Equations</em>. SIAM.</li>
+<li>Hairer, E., Lubich, C. &amp; Wanner, G. (2006). <em>Geometric Numerical Integration</em> (2nd ed.). Springer. The reference for symplectic methods.</li>
+<li>SciPy documentation: <code>scipy.integrate.solve_ivp</code> and the source of its method classes.</li>
+</ul>
+<hr>
+<p><strong>Previous Chapter</strong>: <a href="/en/ode-chapter-10-bifurcation-theory/">Chapter 10: Bifurcation Theory</a>
+</p>
+<p><strong>Next Chapter</strong>: <a href="/en/ode-chapter-12-boundary-value-problems/">Chapter 12: Boundary Value Problems</a>
+</p>
+<p><em>This is Part 11 of the 18-part series on Ordinary Differential Equations.</em></p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#1-why-we-need-numerical-methods">1. Why we need numerical methods</a></li>
+    <li><a href="#2-forward-euler-the-geometric-idea">2. Forward Euler: the geometric idea</a>
+      <ul>
+        <li><a href="#order-of-accuracy">Order of accuracy</a></li>
+        <li><a href="#linear-stability">Linear stability</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-heun-midpoint-and-the-runge-kutta-family">3. Heun, midpoint, and the Runge-Kutta family</a>
+      <ul>
+        <li><a href="#heun-improved-euler-order-2">Heun (improved Euler), order 2</a></li>
+        <li><a href="#classical-rk4-order-4">Classical RK4, order 4</a></li>
+        <li><a href="#side-by-side-euler-vs-rk4">Side-by-side: Euler vs RK4</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-convergence-orders-made-visible">4. Convergence orders, made visible</a></li>
+    <li><a href="#5-adaptive-step-size-control">5. Adaptive step-size control</a></li>
+    <li><a href="#6-stiffness-the-failure-mode-of-explicit-methods">6. Stiffness: the failure mode of explicit methods</a>
+      <ul>
+        <li><a href="#stability-regions-drawn">Stability regions, drawn</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-a-few-more-methods-worth-knowing">7. A few more methods worth knowing</a>
+      <ul>
+        <li><a href="#multistep-adams-bashforth-and-adams-moulton">Multistep: Adams-Bashforth and Adams-Moulton</a></li>
+        <li><a href="#symplectic-integrators-for-hamiltonian-flows">Symplectic integrators for Hamiltonian flows</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-using-scipy-in-practice">8. Using SciPy in practice</a>
+      <ul>
+        <li><a href="#practical-reliability-checklist">Practical reliability checklist</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-method-selection-summary">9. Method selection summary</a></li>
+    <li><a href="#exercises">Exercises</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Ordinary differential equations</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>4 min</strong></div>
+      <div class="row"><span>Word count</span><strong>700</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2023</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

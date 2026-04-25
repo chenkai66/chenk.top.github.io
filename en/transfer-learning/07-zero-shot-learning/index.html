@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Transfer Learning (7): Zero-Shot Learning · Chen Kai Blog</title>
+<meta name="description" content="A first-principles tour of zero-shot learning: attribute prototypes (DAP), compatibility functions, DeViSE, generative ZSL with f-CLSWGAN, the GZSL bias problem and calibration, and CLIP-style vision-language pretraining, with PyTorch building blocks.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/transfer-learning/07-zero-shot-learning/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/transfer-learning/07-zero-shot-learning/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Transfer Learning (7): Zero-Shot Learning">
+<meta property="og:description" content="A first-principles tour of zero-shot learning: attribute prototypes (DAP), compatibility functions, DeViSE, generative ZSL with f-CLSWGAN, the GZSL bias problem and calibration, and CLIP-style vision-language pretraining, with PyTorch building blocks.">
+<meta property="og:url" content="https://www.chenk.top/en/transfer-learning/07-zero-shot-learning/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Transfer Learning</a>
+         · Chapter 7
+      </div>
+      <h1>Transfer Learning (7): Zero-Shot Learning</h1>
+      <p class="deck">A first-principles tour of zero-shot learning: attribute prototypes (DAP), compatibility functions, DeViSE, generative ZSL with f-CLSWGAN, the GZSL bias problem and calibration, and CLIP-style vision-language pretraining, with PyTorch building blocks.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-06-06">June 6, 2025</time> · 13 min read · 2700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/zero-shot-learning/" class="tag">#Zero-Shot Learning</a><a href="/en/tags/semantic-embedding/" class="tag">#Semantic Embedding</a><a href="/en/tags/attribute-representation/" class="tag">#Attribute Representation</a><a href="/en/tags/generative-zsl/" class="tag">#Generative ZSL</a><a href="/en/tags/clip/" class="tag">#CLIP</a><a href="/en/tags/transfer-learning/" class="tag">#Transfer Learning</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>You have never seen a zebra. I tell you it looks like a horse painted with black and white stripes, and the next time one walks into the zoo you recognise it instantly. No labelled examples, no fine-tuning — only a <em>semantic bridge</em> between what you know (horses, stripes) and what you don&rsquo;t (this new species).</p>
+<p><strong>Zero-shot learning (ZSL)</strong> is the machine-learning version of that trick. Train on a set of <em>seen</em> classes for which you have labelled images. At test time, classify into a <em>disjoint</em> set of <em>unseen</em> classes that you have <em>never</em> shown the model — using only a description of what those classes are: a list of attributes, a word embedding of the class name, a sentence, or an image-text contrastive prompt. The model&rsquo;s only handle on the unseen classes is the geometry it has learned in a shared visual–semantic space.</p>
+<p>This post derives ZSL from one equation — a compatibility function $F(x, c)$ between an image and a class description — and then walks through every major family that has appeared in the last fifteen years: attribute prototypes, bilinear and deep compatibility, generative feature synthesis, generalised ZSL with calibration, and finally CLIP-style web-scale pretraining that has effectively dissolved the field as a separate problem.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>The ZSL problem statement and the seen / unseen split</li>
+<li>Attribute representations and <strong>Direct Attribute Prediction (DAP)</strong></li>
+<li>Compatibility functions: bilinear, deep, and ranking-based (DeViSE, ALE)</li>
+<li><strong>Generative ZSL</strong> (f-CLSWGAN, f-VAEGAN-D2): turning ZSL back into supervised learning</li>
+<li>Why <strong>generalised ZSL (GZSL)</strong> collapses without calibration, and three fixes</li>
+<li><strong>CLIP</strong> as the modern, scalable answer</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Parts 1–6 of this series (especially few-shot in Part 4 and multi-task in Part 6)</li>
+<li>PyTorch and standard cross-entropy / softmax training</li>
+<li>Word embeddings (Word2Vec / GloVe basics) and a passing acquaintance with GANs</li>
+</ul>
+<hr>
+<h2 id="1-problem-definition">1. Problem definition</h2>
+<p>Let $\mathcal{C}^s$ be the set of <strong>seen classes</strong> (labelled training data available) and $\mathcal{C}^u$ the set of <strong>unseen classes</strong> (no labelled data at all). The defining constraint of ZSL is</p>
+$$
+\mathcal{C}^s \cap \mathcal{C}^u = \emptyset.
+$$<p>Each class $c$ — seen or unseen — is paired with a <strong>semantic descriptor</strong> $a_c \in \mathbb{R}^M$. This descriptor is the only way information can leak from the seen classes to the unseen ones. It can be:</p>
+<ul>
+<li>a <strong>binary or continuous attribute vector</strong> (e.g. <em>striped</em>, <em>has wings</em>, <em>aquatic</em>);</li>
+<li>a <strong>word embedding</strong> of the class name (Word2Vec, GloVe);</li>
+<li>a <strong>sentence embedding</strong> of an encyclopaedic description (BERT [CLS] token);</li>
+<li>a <strong>prompt embedding</strong> in a vision-language model (CLIP).</li>
+</ul>
+<p>We then face two flavours of the task:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Setting</th>
+          <th>Test label space</th>
+          <th>Realism</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Conventional ZSL</strong></td>
+          <td>$y \in \mathcal{C}^u$</td>
+          <td>Easier benchmark; assumes you know the test image is unseen.</td>
+      </tr>
+      <tr>
+          <td><strong>Generalised ZSL (GZSL)</strong></td>
+          <td>$y \in \mathcal{C}^s \cup \mathcal{C}^u$</td>
+          <td>What you actually need in production; much harder because of bias toward seen classes.</td>
+      </tr>
+  </tbody>
+</table>
+<p>The single equation that organises every method below is the <strong>compatibility function</strong></p>
+$$
+F: \mathcal{X} \times \mathcal{C} \to \mathbb{R},
+\qquad
+\hat{y} = \arg\max_{c \in \mathcal{C}_{\text{test}}} F(x, c; \theta).
+$$<p>We learn $F$ on seen classes and <em>trust</em> the semantic geometry to extend it to unseen ones.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig1_zsl_vs_fsl_vs_supervised.png" alt="Supervised vs few-shot vs zero-shot supervision" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<hr>
+<h2 id="2-attribute-representations-and-dap">2. Attribute representations and DAP</h2>
+<p>Attributes are the most interpretable semantic descriptor. They are short, human-defined predicates such as <em>striped</em>, <em>four-legged</em>, <em>has wings</em>, <em>aquatic</em>. The widely used <strong>Animals with Attributes 2</strong> (AwA2) dataset gives every one of its 50 animal classes an 85-dimensional attribute vector; <strong>CUB-200-2011</strong> uses 312 attributes for fine-grained bird recognition.</p>
+<p>A class becomes a row in the $|\mathcal{C}| \times M$ <strong>attribute prototype matrix</strong>. For example,</p>
+$$
+a_{\text{zebra}} = (\underbrace{1}_{\text{striped}}, \underbrace{1}_{\text{four-legs}}, \underbrace{0}_{\text{wings}}, \underbrace{1}_{\text{hooves}}, \ldots).
+$$<h3 id="direct-attribute-prediction-dap">Direct Attribute Prediction (DAP)</h3>
+<p>Lampert et al. (2009) — the paper that <em>defined</em> the modern ZSL problem — proposed a clean two-stage pipeline:</p>
+<p><strong>Stage 1.</strong> Train one binary classifier per attribute on the seen-class images:</p>
+$$
+\hat{a}_m(x) = P(\text{attribute } m \mid x), \qquad m = 1, \ldots, M.
+$$<p><strong>Stage 2.</strong> At test time, run all $M$ attribute classifiers on $x$ to get a predicted attribute vector $\hat{a}(x)$, then pick the unseen class whose prototype is closest:</p>
+$$
+\hat{y} = \arg\min_{c \in \mathcal{C}^u} d\bigl(\hat{a}(x),\, a_c\bigr).
+$$<p>A worked example: the query is a zebra. The attribute classifiers fire strongly on <em>striped</em>, <em>four-legs</em>, <em>hooves</em> and <em>mane</em>, weakly on <em>wings</em> and <em>aquatic</em>. Cosine similarity against the prototype matrix puts <em>zebra</em> on top, with <em>horse</em> and <em>tiger</em> trailing.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig2_attribute_classification.png" alt="Attribute-based zero-shot pipeline (DAP)" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>Why it works:</strong> the attribute classifiers transfer because attributes are <em>shared</em> across classes. <em>Striped</em> is the same predicate whether the animal is a zebra (unseen) or a tiger (seen).</p>
+<p><strong>Why it falls short:</strong></p>
+<ol>
+<li><strong>Error compounds across stages.</strong> A 90% accurate attribute classifier still leaves a noisy $\hat{a}(x)$, and nearest-prototype search amplifies the noise.</li>
+<li><strong>Attribute independence.</strong> DAP treats attributes as independent given the class — but <em>has wings</em> and <em>can fly</em> are obviously correlated.</li>
+<li><strong>Annotation cost.</strong> Defining and labelling attributes requires an expert taxonomy.</li>
+</ol>
+<p>The variant <strong>IAP (Indirect Attribute Prediction)</strong> marginalises over seen classes — predict the seen-class probability first, then map through the attribute matrix — but the structural limits are the same.</p>
+<hr>
+<h2 id="3-compatibility-functions-a-unified-view">3. Compatibility functions: a unified view</h2>
+<p>Stop predicting attributes as an intermediate step and learn the compatibility $F(x, c)$ end-to-end.</p>
+<h3 id="bilinear-ale-sje">Bilinear (ALE, SJE)</h3>
+<p>The simplest form is bilinear:</p>
+$$
+F(x, c) = \phi(x)^\top W\, a_c,
+$$<p>with a CNN backbone $\phi(\cdot)$ producing a $d$-dimensional visual feature and $W \in \mathbb{R}^{d \times M}$ the only trainable matrix. Train it on seen classes with a standard softmax cross-entropy:</p>
+$$
+\mathcal{L}(x, y) = -\log \frac{\exp F(x, y)}{\sum_{c \in \mathcal{C}^s} \exp F(x, c)}.
+$$<p>Akata et al.&rsquo;s <strong>ALE</strong> (2013) and <strong>SJE</strong> (2015) replace cross-entropy with a structured <strong>ranking loss</strong> — <em>the score of the correct class must beat every wrong class by a margin</em> — which empirically generalises better to unseen classes than vanilla softmax.</p>
+<h3 id="deep-compatibility--two-tower">Deep compatibility / two-tower</h3>
+<p>To capture non-linear visual-semantic interactions, project both modalities into a shared $d$-dimensional space with two small MLPs:</p>
+$$
+F(x, c) = \frac{f_v(\phi(x))^\top f_s(a_c)}{\|f_v(\phi(x))\|\, \|f_s(a_c)\|} \cdot \tau,
+$$<p>with a learned temperature $\tau$. This <strong>two-tower</strong> design is the same structure that powers DeViSE, CLIP and modern dense retrieval — only the data and scale differ.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig3_semantic_embedding_space.png" alt="Shared semantic embedding space" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The geometric picture is the punchline. Seen-class features cluster around their semantic prototypes (<em>horse</em>, <em>cat</em>, <em>dog</em>) during training; the prototypes for unseen classes (<em>zebra</em>, <em>lion</em>, <em>panda</em>) are <em>placed by the semantics alone</em>. A query image projected into the same space lands near the unseen prototype that best matches its attributes — and that is the prediction.</p>
+<h3 id="devise-word-embeddings-as-the-semantic-side">DeViSE: word embeddings as the semantic side</h3>
+<p>Frome et al. (2013) proposed <strong>DeViSE</strong> — <em>Deep Visual–Semantic Embedding</em> — which replaces hand-defined attributes with <strong>word embeddings of class names</strong> (Word2Vec / GloVe). The architecture is a two-tower model trained with a hinge ranking loss</p>
+$$
+\mathcal{L} = \sum_{c' \neq y} \max\bigl(0,\; m - F(x, y) + F(x, c')\bigr),
+$$<p>and at inference the score is computed against <em>every</em> class embedding, including ones never seen in image form.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig4_devise_visual_text_embedding.png" alt="DeViSE: visual encoder &#43; Word2Vec text encoder in a shared space" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>DeViSE was the first proof that ZSL could scale: trained on ImageNet, it produced reasonable predictions on tens of thousands of zero-shot classes drawn from WordNet. Its weakness is that word embeddings encode <em>linguistic</em> similarity (<em>cat</em>, <em>dog</em>, <em>pet</em> cluster) rather than <em>visual</em> similarity (<em>zebra</em>, <em>tiger</em>, <em>jaguar</em> — also striped — cluster). This <strong>modality gap</strong> motivated everything that came next.</p>
+<hr>
+<h2 id="4-generative-zsl-synthesise-unseen-class-features">4. Generative ZSL: synthesise unseen-class features</h2>
+<p>Discriminative ZSL learns a fixed compatibility function and <em>hopes</em> it extends. Generative ZSL flips the problem: <strong>synthesise visual features for unseen classes from their semantic descriptors</strong>, then train a perfectly ordinary supervised classifier on the union of real-seen and synthetic-unseen features. ZSL becomes supervised learning again.</p>
+<h3 id="f-clswgan-xian-et-al-2018">f-CLSWGAN (Xian et al., 2018)</h3>
+<p>The model is a conditional Wasserstein GAN with a classifier-guidance loss:</p>
+<ul>
+<li><strong>Generator</strong> $G(z, a_c) \to \tilde{x}$. Input: noise $z \sim \mathcal{N}(0, I)$ and class semantics $a_c$. Output: a synthetic CNN feature.</li>
+<li><strong>Critic</strong> $D(x)$ scores real vs synthetic features (no sigmoid, Wasserstein loss).</li>
+<li><strong>Auxiliary classifier</strong> $\mathrm{cls}$ on top of generated features, trained on real seen-class features.</li>
+</ul>
+<p>The total objective is</p>
+$$
+\mathcal{L} = \underbrace{\mathbb{E}[D(\tilde{x})] - \mathbb{E}[D(x)] + \lambda\,\mathrm{GP}}_{\text{WGAN-GP}}
+\;+\; \beta \cdot \underbrace{\mathbb{E}\bigl[-\log P(y \mid \tilde{x})\bigr]}_{\text{classification}},
+$$<p>where $\mathrm{GP}$ is the standard gradient penalty $\mathbb{E}[(\|\nabla_{\hat{x}} D(\hat{x})\|_2 - 1)^2]$. The classification loss is the key trick — it forces synthetic features to be <em>class-discriminative</em>, not just realistic.</p>
+<p><strong>At test time,</strong> sample $\tilde{x}^{(u)} \sim G(z, a_u)$ for every unseen class, train softmax on $\{(x, y) : y \in \mathcal{C}^s\} \cup \{(\tilde{x}^{(u)}, u)\}$, and predict normally. On AwA2 this jumps GZSL harmonic mean from ~22 (vanilla embedding) to ~58.</p>
+<h3 id="f-vaegan-d2">f-VAEGAN-D2</h3>
+<p>Xian et al. (2019) added a VAE encoder to stabilise training and a second discriminator that exploits <em>unlabelled</em> test images (transductive). The recipe — VAE for stability, GAN for sharpness, classifier for discriminability — is now standard in feature-generation ZSL.</p>
+<hr>
+<h2 id="5-generalised-zsl-the-bias-problem">5. Generalised ZSL: the bias problem</h2>
+<p>Conventional-ZSL benchmarks restrict the test label space to $\mathcal{C}^u$, which secretly papers over the real difficulty: in deployment, you do not know whether an incoming image belongs to a seen or unseen class.</p>
+<p>When you open the label space to $\mathcal{C}^s \cup \mathcal{C}^u$, every method trained only on seen-class images develops a strong <strong>bias toward seen classes</strong>. Their visual features lie inside the regions $F$ already knows; unseen-class features look slightly off-distribution and almost always lose the argmax.</p>
+<p>The standard metric is the <strong>harmonic mean</strong> of seen and unseen accuracies:</p>
+$$
+H = \frac{2 \cdot S \cdot U}{S + U}.
+$$<p>It punishes any method that wins on one side at the cost of the other. A model that scores $S = 88, U = 12$ has $H = 21$ — terrible.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig6_gzsl_vs_zsl.png" alt="GZSL bias problem and three remedies" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Three families of remedies:</p>
+<p><strong>1. Calibrated stacking (Chao et al., 2016).</strong> Subtract a constant from every seen-class score:</p>
+$$
+F_{\text{cal}}(x, c) = F(x, c) - \gamma \cdot \mathbb{1}[c \in \mathcal{C}^s].
+$$<p>Tune $\gamma$ on a held-out validation set. Cheap, effective, and a strong baseline.</p>
+<p><strong>2. Generative feature synthesis</strong> (Section 4). Once you can fabricate unseen-class features, GZSL is just supervised classification on a balanced training set.</p>
+<p><strong>3. OOD gating.</strong> Train a binary detector that decides &ldquo;is this image from a seen class or an unseen class?&rdquo; and route to the appropriate sub-classifier. Performance is bounded by the OOD detector itself.</p>
+<hr>
+<h2 id="6-clip-and-the-vision-language-pretraining-era">6. CLIP and the vision-language pretraining era</h2>
+<p><strong>CLIP</strong> (Radford et al., 2021) is, in retrospect, exactly the deep-compatibility two-tower of Section 3 — but trained on <strong>400 million image–text pairs</strong> scraped from the web, with the cross-entropy contrastive loss</p>
+$$
+\mathcal{L} = -\sum_i \log \frac{\exp\bigl(I_i \cdot T_i / \tau\bigr)}{\sum_j \exp\bigl(I_i \cdot T_j / \tau\bigr)} \;+\; (\text{symmetric term over text}).
+$$<p>At zero-shot inference time you build a classifier <em>from text</em> on the fly. For a $K$-class problem, write a prompt template such as <code>&quot;a photo of a {class}&quot;</code>, encode all $K$ prompts with the text tower, and classify a new image by picking the prompt embedding closest to its image embedding.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig5_clip_zero_shot.png" alt="CLIP zero-shot classification" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Two consequences worth absorbing:</p>
+<ol>
+<li><strong>No semantic engineering.</strong> Classes are described in natural language. Want to add a class? Write a sentence.</li>
+<li><strong>GZSL is no longer a separate problem.</strong> CLIP achieves comparable accuracy on classes it has and has not &ldquo;seen&rdquo; in the training distribution because it was never trained class-discriminatively to begin with.</li>
+</ol>
+<p>The benchmark picture confirms the trajectory:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/07-zero-shot-learning/fig7_benchmark_results.png" alt="Zero-shot benchmark progression on AwA2 and CUB" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>DAP (2009) → ALE/DeViSE (2013) — bilinear and ranking compatibility. SAE (2017) — semantic autoencoders. f-CLSWGAN (2018) → CADA-VAE (2019) — generative feature synthesis closes the GZSL gap. CLIP (2021) — large-scale contrastive pretraining redefines the ceiling.</p>
+<hr>
+<h2 id="7-implementation">7. Implementation</h2>
+<p>A compact PyTorch building block for the deep-compatibility model and a feature-generating GAN. The complete training scaffold (data loaders for AwA2, evaluation in both ZSL and GZSL settings) is in the longer reference implementation linked at the end.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DeepCompatibility</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Two-tower visual-semantic compatibility used by DeViSE / ALE / CLIP.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">visual_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">semantic_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">vis</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">visual_dim</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">sem</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">semantic_dim</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">=</span> <span class="n">temperature</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Score every class for every image. Returns [B, C] logits.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vis</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># [B, d]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sem</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>        <span class="c1"># [C, d]</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau</span> <span class="o">*</span> <span class="n">v</span> <span class="o">@</span> <span class="n">s</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FeatureGenerator</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;f-CLSWGAN-style conditional generator.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noise_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">semantic_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">feature_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">noise_dim</span> <span class="o">+</span> <span class="n">semantic_dim</span><span class="p">,</span> <span class="mi">4096</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(</span><span class="mf">0.2</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">4096</span><span class="p">,</span> <span class="n">feature_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">z</span><span class="p">,</span> <span class="n">a</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">gzsl_evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">DeepCompatibility</span><span class="p">,</span> <span class="n">features</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">attrs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">seen_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">unseen_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Compute (S, U, H) on a GZSL test set with optional calibration.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">attrs</span><span class="p">)</span>                 <span class="c1"># [N, C]</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span><span class="p">[:,</span> <span class="n">seen_ids</span><span class="p">]</span> <span class="o">-=</span> <span class="n">gamma</span>                    <span class="c1"># bias subtraction</span>
+</span></span><span class="line"><span class="cl">        <span class="n">pred</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">seen_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">seen_ids</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">S</span> <span class="o">=</span> <span class="p">(</span><span class="n">pred</span><span class="p">[</span><span class="n">seen_mask</span><span class="p">]</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="n">seen_mask</span><span class="p">])</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">U</span> <span class="o">=</span> <span class="p">(</span><span class="n">pred</span><span class="p">[</span><span class="o">~</span><span class="n">seen_mask</span><span class="p">]</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="o">~</span><span class="n">seen_mask</span><span class="p">])</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">H</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">S</span> <span class="o">*</span> <span class="n">U</span> <span class="o">/</span> <span class="p">(</span><span class="n">S</span> <span class="o">+</span> <span class="n">U</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">S</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">H</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The <code>gamma</code> argument to <code>gzsl_evaluate</code> implements calibrated stacking — the simplest GZSL fix to try first.</p>
+<hr>
+<h2 id="8-qa">8. Q&amp;A</h2>
+<p><strong>Q1. When should I reach for ZSL instead of few-shot or active learning?</strong>
+When (a) the long tail is wide and unstable — new classes appear faster than you can label them; (b) you already have rich semantics — attribute taxonomies, product catalogues, textual descriptions; or (c) you can use a pretrained vision-language model (CLIP, SigLIP, OpenCLIP) and skip ZSL-specific machinery entirely.</p>
+<p><strong>Q2. Attributes vs word embeddings vs sentences vs CLIP prompts?</strong>
+Attributes are the most discriminative per-dimension but require expert design. Word embeddings scale but encode language similarity, not visual similarity. Sentence embeddings strike a balance. CLIP prompts dominate everything below it on most natural-image benchmarks because the encoders were already trained jointly.</p>
+<p><strong>Q3. Why does GZSL collapse without calibration?</strong>
+The training objective only ever rewards correct seen-class predictions, so the score margin between seen and unseen logits is uncalibrated. At test time, seen-class logits are systematically larger and steal the argmax. Calibrated stacking, generative synthesis and OOD gating all attack the same imbalance.</p>
+<p><strong>Q4. Did CLIP make ZSL research obsolete?</strong>
+For natural images: largely, yes. For domains under-represented on the open web — medical imaging, industrial defect detection, satellite imagery — the older semantic-attribute machinery is still the most data-efficient way to bootstrap. And CLIP itself is a deep two-tower compatibility function, so the conceptual scaffolding from this post still applies.</p>
+<p><strong>Q5. How do I avoid the Hubness problem?</strong>
+Hubness is the high-dimensional pathology where a few &ldquo;hub&rdquo; prototypes are nearest neighbours to far too many queries. Fixes: L2-normalise both modalities before scoring (already in the snippet above), apply rank-based scoring (CSLS, ZestNorm), or use a per-class score-standardisation step.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Lampert, C. H., Nickisch, H., &amp; Harmeling, S. (2009). <em>Learning to detect unseen object classes by between-class attribute transfer.</em> CVPR. — DAP, AwA dataset.</li>
+<li>Frome, A., et al. (2013). <em>DeViSE: A deep visual-semantic embedding model.</em> NeurIPS.</li>
+<li>Akata, Z., Perronnin, F., Harchaoui, Z., &amp; Schmid, C. (2013). <em>Label-embedding for attribute-based classification.</em> CVPR. — ALE.</li>
+<li>Chao, W.-L., et al. (2016). <em>An empirical study and analysis of generalized zero-shot learning for object recognition in the wild.</em> ECCV. — GZSL and calibrated stacking.</li>
+<li>Xian, Y., Lampert, C. H., Schiele, B., &amp; Akata, Z. (2019). <em>Zero-shot learning — A comprehensive evaluation of the good, the bad and the ugly.</em> TPAMI.</li>
+<li>Xian, Y., Lorenz, T., Schiele, B., &amp; Akata, Z. (2018). <em>Feature generating networks for zero-shot learning.</em> CVPR. — f-CLSWGAN.</li>
+<li>Xian, Y., Sharma, S., Schiele, B., &amp; Akata, Z. (2019). <em>f-VAEGAN-D2: A feature generating framework for any-shot learning.</em> CVPR.</li>
+<li>Schönfeld, E., et al. (2019). <em>Generalized zero- and few-shot learning via aligned variational autoencoders.</em> CVPR. — CADA-VAE.</li>
+<li>Radford, A., et al. (2021). <em>Learning transferable visual models from natural language supervision.</em> ICML. — CLIP.</li>
+</ul>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<ul>
+<li>Previous: <a href="/en/transfer-learning-6-multi-task-learning/">Part 6 — Multi-Task Learning</a>
+</li>
+<li>Next: <a href="/en/transfer-learning-8-multimodal-transfer/">Part 8 — Multimodal Transfer</a>
+</li>
+<li><a href="/tags/Transfer-Learning/">View all 12 parts in this series</a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-problem-definition">1. Problem definition</a></li>
+    <li><a href="#2-attribute-representations-and-dap">2. Attribute representations and DAP</a>
+      <ul>
+        <li><a href="#direct-attribute-prediction-dap">Direct Attribute Prediction (DAP)</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-compatibility-functions-a-unified-view">3. Compatibility functions: a unified view</a>
+      <ul>
+        <li><a href="#bilinear-ale-sje">Bilinear (ALE, SJE)</a></li>
+        <li><a href="#deep-compatibility--two-tower">Deep compatibility / two-tower</a></li>
+        <li><a href="#devise-word-embeddings-as-the-semantic-side">DeViSE: word embeddings as the semantic side</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-generative-zsl-synthesise-unseen-class-features">4. Generative ZSL: synthesise unseen-class features</a>
+      <ul>
+        <li><a href="#f-clswgan-xian-et-al-2018">f-CLSWGAN (Xian et al., 2018)</a></li>
+        <li><a href="#f-vaegan-d2">f-VAEGAN-D2</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-generalised-zsl-the-bias-problem">5. Generalised ZSL: the bias problem</a></li>
+    <li><a href="#6-clip-and-the-vision-language-pretraining-era">6. CLIP and the vision-language pretraining era</a></li>
+    <li><a href="#7-implementation">7. Implementation</a></li>
+    <li><a href="#8-qa">8. Q&amp;A</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Transfer Learning</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2700</strong></div>
+      <div class="row"><span>Published</span><strong>Jun 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

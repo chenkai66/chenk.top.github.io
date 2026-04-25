@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Optimizer Evolution: From Gradient Descent to Adam (and Beyond, 2025) · Chen Kai Blog</title>
+<meta name="description" content="One article that traces the full lineage GD -&gt; SGD -&gt; Momentum -&gt; NAG -&gt; AdaGrad -&gt; RMSProp -&gt; Adam -&gt; AdamW, then onwards to Lion / Sophia / Schedule-Free. Each step is framed by the specific failure of the previous one, and we end with a practical selection guide.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/standalone/optimizer-evolution-gd-to-adam/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/optimizer-evolution-gd-to-adam/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Optimizer Evolution: From Gradient Descent to Adam (and Beyond, 2025)">
+<meta property="og:description" content="One article that traces the full lineage GD -&gt; SGD -&gt; Momentum -&gt; NAG -&gt; AdaGrad -&gt; RMSProp -&gt; Adam -&gt; AdamW, then onwards to Lion / Sophia / Schedule-Free. Each step is framed by the specific failure of the previous one, and we end with a practical selection guide.">
+<meta property="og:url" content="https://www.chenk.top/en/standalone/optimizer-evolution-gd-to-adam/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
+        
+      </div>
+      <h1>Optimizer Evolution: From Gradient Descent to Adam (and Beyond, 2025)</h1>
+      <p class="deck">One article that traces the full lineage GD -&gt; SGD -&gt; Momentum -&gt; NAG -&gt; AdaGrad -&gt; RMSProp -&gt; Adam -&gt; AdamW, then onwards to Lion / Sophia / Schedule-Free. Each step is framed by the specific failure of the previous one, and we end with a practical selection guide.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-12-09">December 9, 2022</time> · 10 min read · 2100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/ml/" class="tag">#ML</a><a href="/en/tags/optimization/" class="tag">#Optimization</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/llm/" class="tag">#LLM</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Why is &ldquo;tuning the LR is an art&rdquo; a meme for ResNet, while every modern LLM paper just writes &ldquo;AdamW, $\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$&rdquo; and moves on? It is not an accident — it is the <strong>end-point of three decades of optimizer evolution</strong>.</p>
+<p>This post walks the lineage end-to-end on a single thread: each step exists because of a <strong>specific failure</strong> of the previous one. We end with the three directions that have actually entered the post-2023 large-model toolkit: Lion, Sophia, and Schedule-Free.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>Why GD zig-zags on ill-conditioned losses, and how momentum fixes it physically</li>
+<li>The exact mathematical difference between Nesterov &ldquo;lookahead&rdquo; and classical momentum</li>
+<li>Why AdaGrad is a killer on sparse features, and why it eventually &ldquo;suffocates&rdquo; in deep nets</li>
+<li>How RMSProp rescued AdaGrad with a one-line change (exponential moving average)</li>
+<li>How Adam stitches momentum and RMSProp together, and why bias correction matters</li>
+<li>AdamW vs Adam: why &ldquo;L2 == weight decay&rdquo; stops being true once you put adaptive scaling in the denominator</li>
+<li>Lion / Sophia / Schedule-Free: the three post-AdamW directions that scaled</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Basic calculus (gradients, Hessian, Taylor expansion)</li>
+<li>Some experience training a neural network (any framework)</li>
+</ul>
+<hr>
+<h1 id="the-lineage-at-a-glance">The lineage at a glance</h1>
+<table>
+  <thead>
+      <tr>
+          <th>Year</th>
+          <th>Algorithm</th>
+          <th>Specific problem it fixed</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1847</td>
+          <td>GD</td>
+          <td>Formalized &ldquo;step along the negative gradient&rdquo;</td>
+      </tr>
+      <tr>
+          <td>1951</td>
+          <td>SGD</td>
+          <td>Datasets too big for full-batch gradients</td>
+      </tr>
+      <tr>
+          <td>1964</td>
+          <td>Momentum</td>
+          <td>GD zig-zags in narrow valleys</td>
+      </tr>
+      <tr>
+          <td>1983</td>
+          <td>NAG</td>
+          <td>Plain momentum overshoots near minima</td>
+      </tr>
+      <tr>
+          <td>2011</td>
+          <td>AdaGrad</td>
+          <td>Sparse features need per-coordinate LRs</td>
+      </tr>
+      <tr>
+          <td>2012</td>
+          <td>RMSProp</td>
+          <td>AdaGrad&rsquo;s denominator suffocates the LR</td>
+      </tr>
+      <tr>
+          <td>2014</td>
+          <td>Adam</td>
+          <td>Combine direction (momentum) and scale (RMSProp)</td>
+      </tr>
+      <tr>
+          <td>2017</td>
+          <td>AdamW</td>
+          <td>Adam + L2 != Adam + weight decay</td>
+      </tr>
+      <tr>
+          <td>2023</td>
+          <td>Lion</td>
+          <td>Drop the second moment; use sign of momentum</td>
+      </tr>
+      <tr>
+          <td>2023</td>
+          <td>Sophia</td>
+          <td>Cheap diagonal-Hessian preconditioner</td>
+      </tr>
+      <tr>
+          <td>2024</td>
+          <td>Schedule-Free</td>
+          <td>Stop needing to know the total step count</td>
+      </tr>
+  </tbody>
+</table>
+<p>The sections below follow this order.</p>
+<h1 id="1-gradient-descent-gd-the-origin">1. Gradient descent (GD): the origin</h1>
+<p>Given a differentiable loss $J(\theta)$, the simplest update is</p>
+$$
+\theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t).
+$$<p><strong>Convergence</strong>: if $J$ is convex with $L$-Lipschitz gradient, $\eta \le 1/L$ guarantees (sub)linear convergence to the global minimum.</p>
+<p><strong>The fatal weakness that motivates everything else</strong>:</p>
+<ul>
+<li>Under <strong>ill-conditioned curvature</strong> (Hessian condition number $\kappa = \lambda_{\max}/\lambda_{\min}$ large), the iteration count grows linearly in $\kappa$. The 1-D intuition: $f(\theta)=\frac{1}{2}H\theta^2$ gives $\theta_{t+1}=(1-\eta H)\theta_t$, stable iff $\eta < 2/H$. Your step is <strong>capped by the curvature in the steepest direction</strong>.</li>
+<li>When the steepest direction ($\lambda_{\max}$) and the flattest direction ($\lambda_{\min}$) differ by orders of magnitude, you barely move along the flat one but bounce back and forth along the steep one. That is the <strong>narrow-valley problem</strong> — visible in the left panel of Fig 1 below.</li>
+</ul>
+<h1 id="2-sgd-the-price-and-bonus-of-noise">2. SGD: the price and bonus of noise</h1>
+<p>Once datasets do not fit in memory, you replace the full gradient with a mini-batch estimate:</p>
+$$
+g_t = \nabla J(\theta_t) + \xi_t,\qquad \mathbb{E}[\xi_t]=0.
+$$<p>The noise $\xi_t$ is both a curse and a blessing:</p>
+<ul>
+<li><strong>Curse</strong>: a slightly larger step gets amplified by noise into divergence.</li>
+<li><strong>Blessing</strong>: noise helps <strong>escape sharp local minima</strong> — later linked by Keskar et al. to the &ldquo;flat-minima&rdquo; generalization story.</li>
+</ul>
+<p><strong>Fig 1 middle panel</strong>: SGD&rsquo;s trajectory in the same valley is hairier than GD&rsquo;s, but on average it still flows toward the bottom.</p>
+<h1 id="3-momentum-give-the-optimizer-some-inertia">3. Momentum: give the optimizer some inertia</h1>
+<p>Mental model: think of $\theta$ as a <strong>ball rolling down the valley</strong>. GD is a &ldquo;massless bug&rdquo; — every step only sees the local slope, so it bounces around the narrow direction. Give the bug some mass and inertia <strong>accumulates along the long axis</strong> of the valley while the perpendicular bounces cancel out.</p>
+$$
+v_t = \gamma v_{t-1} + \eta\,g_t,\qquad \theta_{t+1} = \theta_t - v_t.
+$$<p>Typical $\gamma = 0.9$ — geometrically weights past gradients with effective memory $\approx 1/(1-\gamma) = 10$ steps.</p>
+<p><strong>Key insight</strong>: momentum <strong>amplifies the effective step size</strong> by roughly $1/(1-\gamma)$. So when you turn momentum on, you must <strong>shrink</strong> the LR you used without it. This is the most common beginner trap.</p>
+<p><strong>Fig 1 right panel</strong>: the same valley, but momentum&rsquo;s path is &ldquo;straightened&rdquo; — perpendicular oscillation cancels, longitudinal velocity accumulates.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig1_gd_sgd_momentum_contour.png" alt="GD / SGD / Momentum trajectories on an ill-conditioned quadratic" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h1 id="4-nesterov-accelerated-gradient-nag-peek-before-you-leap">4. Nesterov accelerated gradient (NAG): peek before you leap</h1>
+<p>Classical momentum <strong>overshoots</strong> near the minimum: it computes the gradient at the current point, so it only learns &ldquo;oops, I went too far&rdquo; one step too late.</p>
+<p>NAG changes one line:</p>
+$$
+v_t = \gamma v_{t-1} + \eta\,\nabla J(\theta_t - \gamma v_{t-1}),\qquad \theta_{t+1} = \theta_t - v_t.
+$$<p><strong>The only difference is where you evaluate the gradient</strong>: classical momentum at $\theta_t$, NAG at the <strong>lookahead point</strong> $\theta_t - \gamma v_{t-1}$ — i.e. &ldquo;where the momentum step alone would have taken me&rdquo;.</p>
+<p><strong>Why it works</strong>: it is a one-step look-ahead. If the slope is about to flatten, NAG sees that early and decelerates; the converse for steepening. Nesterov (1983) proved this accelerates convex smooth optimization from $O(1/t)$ to $O(1/t^2)$.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig2_nesterov_lookahead.png" alt="NAG: lookahead gradient evaluation reduces overshoot" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h1 id="5-adagrad-every-coordinate-gets-its-own-learning-rate">5. AdaGrad: every coordinate gets its own learning rate</h1>
+<p>By 2011, NLP was drowning in <strong>sparse features</strong> — think word2vec where a rare word might appear 5 times in a million examples. With a single $\eta$ for everything:</p>
+<ul>
+<li>Rare-word parameters: small gradients, but the same $\eta$ is either too big (kills them) or too small (they never learn).</li>
+<li>Frequent-word parameters: big and frequent gradients, would prefer <strong>smaller</strong> steps.</li>
+</ul>
+<p>Duchi proposed AdaGrad — <strong>per-coordinate</strong> adaptation based on each coordinate&rsquo;s own gradient history:</p>
+$$
+G_t = G_{t-1} + g_t^2 \quad(\text{element-wise})
+$$$$
+\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t}+\epsilon}\,g_t.
+$$<p><strong>Intuition</strong>: large accumulated $g^2$ -&gt; large denominator -&gt; small effective step. Rare-but-suddenly-large coordinate -&gt; small denominator -&gt; large effective step. <strong>LR is auto-distributed by frequency.</strong></p>
+<p><strong>The fatal flaw</strong>: $G_t$ is a <strong>monotonically growing sum</strong>. Train deep nets for hundreds of thousands of steps and the denominator drives every effective LR toward zero. The model &ldquo;suffocates&rdquo;. The right panel of Fig 3 makes this concrete.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig3_adagrad_per_coord_lr.png" alt="AdaGrad: shrinks the steep direction automatically, but every per-coord LR decays monotonically" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h1 id="6-rmsprop-replace-cumulative-sum-with-ema">6. RMSProp: replace cumulative sum with EMA</h1>
+<p>In his 2012 Coursera slides, Hinton <strong>changed exactly one thing</strong> and rescued AdaGrad: replace the cumulative sum $\sum g_t^2$ with an exponential moving average:</p>
+$$
+E[g^2]_t = \rho\,E[g^2]_{t-1} + (1-\rho)\,g_t^2
+$$$$
+\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t}+\epsilon}\,g_t.
+$$<p>Typical $\rho = 0.9$ — &ldquo;remember roughly the last 10 steps of gradient magnitude&rdquo;.</p>
+<p><strong>The crucial difference</strong>:</p>
+<ul>
+<li><strong>AdaGrad</strong>: $G_t$ only ever grows -&gt; LR only ever shrinks (irreversible).</li>
+<li><strong>RMSProp</strong>: $E[g^2]_t$ is a finite-window average -&gt; when <strong>gradient magnitude changes</strong>, the denominator follows -&gt; the LR can <strong>scale back up</strong>.</li>
+</ul>
+<p><strong>Fig 4 right panel</strong> shows this directly: at step 60 the gradient magnitude drops sharply. AdaGrad&rsquo;s effective LR keeps falling; RMSProp&rsquo;s effective LR <strong>climbs back</strong> to match the new regime.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig4_rmsprop_moving_average.png" alt="RMSProp (EMA) vs AdaGrad (cumulative) under non-stationary gradient magnitude" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h1 id="7-adam-stitch-momentum-and-rmsprop-together">7. Adam: stitch momentum and RMSProp together</h1>
+<p>By now both threads were mature:</p>
+<ul>
+<li><strong>Momentum</strong> gives a good <strong>direction</strong>.</li>
+<li><strong>RMSProp</strong> gives a good <strong>per-coordinate scale</strong>.</li>
+</ul>
+<p>Kingma &amp; Ba (2014) just bolted them together:</p>
+$$
+m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t \quad\text{(1st moment = momentum)}
+$$$$
+v_t = \beta_2 v_{t-1} + (1-\beta_2)\,g_t^2 \quad\text{(2nd moment = RMSProp)}
+$$<p><strong>Bias correction</strong> — the most under-appreciated detail. Because $m_0=v_0=0$, both $m_t$ and $v_t$ are heavily biased toward zero in the first few steps. Fix:</p>
+$$
+\hat m_t = \frac{m_t}{1-\beta_1^t},\qquad \hat v_t = \frac{v_t}{1-\beta_2^t}
+$$$$
+\theta_{t+1} = \theta_t - \frac{\eta\,\hat m_t}{\sqrt{\hat v_t}+\epsilon}.
+$$<p>Defaults: $\beta_1 = 0.9,\ \beta_2 = 0.999,\ \epsilon = 10^{-8}$.</p>
+<p><strong>Why $\beta_2$ is much larger than $\beta_1$</strong>: variance estimates are noisier than mean estimates and need a longer averaging window. $1/(1-0.999) = 1000$ steps — and that is exactly why Adam typically needs ~1000 warmup steps before $v_t$ &ldquo;warms up&rdquo;.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig5_adam_combined.png" alt="Adam dataflow: momentum branch &#43; RMSProp branch -&gt; bias correction -&gt; adaptive update" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h1 id="8-adamw-the-weight-decay-bug-that-lived-for-a-decade">8. AdamW: the weight-decay bug that lived for a decade</h1>
+<p>Adding L2 regularization $\frac{\lambda}{2}\|\theta\|^2$ to the loss adds a term $\lambda\theta$ to the gradient. In <strong>SGD</strong> this is exactly equivalent to multiplying weights by $(1-\eta\lambda)$ each step — the classical &ldquo;weight decay&rdquo;.</p>
+<p>But Loshchilov &amp; Hutter (2017) noticed that in <strong>Adam</strong> these two operations are <strong>no longer equivalent</strong>. The reason is direct: Adam divides the gradient by $\sqrt{\hat v_t}$. If you fold $\lambda\theta$ into the gradient, <strong>it also gets divided by $\sqrt{\hat v_t}$</strong> — meaning <strong>parameters with large gradient history get less weight decay</strong>, which is the opposite of what regularization wants.</p>
+<p>AdamW&rsquo;s fix is to take weight decay <strong>out of the gradient</strong> and apply it directly to the parameters:</p>
+$$
+\theta_{t+1} = \theta_t - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon} - \eta\lambda\,\theta_t.
+$$<p>The effect: at the same $\lambda$ and LR, AdamW&rsquo;s generalization gap on ImageNet/Transformer is meaningfully smaller than Adam+L2. This is why <strong>post-2018 every large-model pretrain defaults to AdamW</strong>.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig6_adamw_vs_adam.png" alt="AdamW (decoupled) vs Adam&#43;L2 (coupled): where weight decay enters the update" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h1 id="9-the-post-2023-frontier-three-directions-that-scaled">9. The post-2023 frontier: three directions that scaled</h1>
+<p>After AdamW reigned for ~6 years, three directions have actually <strong>proven themselves at scale</strong> since 2023.</p>
+<h2 id="91-lion-google-2023-only-the-sign">9.1 Lion (Google, 2023): only the sign</h2>
+<p>Discovered by AutoML program search; the update keeps <strong>only the sign</strong>:</p>
+$$
+m_t = \beta_2 m_{t-1} + (1-\beta_2)\,g_t
+$$$$
+\theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_1)\,g_t\bigr).
+$$<p><strong>Notable properties</strong>:</p>
+<ul>
+<li><strong>Half the optimizer state</strong>: no $v_t$ needed — meaningful real money for hundred-billion-parameter models.</li>
+<li><strong>Constant update magnitude $\eta$</strong>: because sign returns $\pm 1$. So Lion&rsquo;s LR must be <strong>about 10x smaller</strong> than AdamW&rsquo;s, and wd about 10x larger.</li>
+<li>On ViT and LLM pretraining, matches or slightly beats AdamW with faster wall-clock.</li>
+</ul>
+<h2 id="92-sophia-stanford-2023-cheap-second-order">9.2 Sophia (Stanford, 2023): cheap second-order</h2>
+<p>Sophia plugs a cheap diagonal-Hessian estimate into the denominator:</p>
+$$
+m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t
+$$$$
+h_t \approx \mathrm{diag}(H_t) \quad\text{(Hutchinson estimate, every } k \text{ steps)}
+$$$$
+\theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_t,\,\varepsilon)},\,1\right).
+$$<p><strong>Core tricks</strong>:</p>
+<ul>
+<li>Use $\mathrm{diag}(H)$ instead of $g^2$ as the denominator — that is the <strong>actual curvature</strong>.</li>
+<li>The <code>clip</code> is essential: $h_t$ can be negative in non-convex losses, and clipping keeps the update bounded.</li>
+<li>The Hessian probe runs only every $k$ steps, so amortized cost is modest.</li>
+</ul>
+<p>Reported results: roughly halves the wall-clock to reach a given perplexity at GPT-2 scale.</p>
+<h2 id="93-schedule-free-meta-2024-drop-the-schedule">9.3 Schedule-Free (Meta, 2024): drop the schedule</h2>
+<p>LR schedules (cosine, WSD, etc.) all share one annoyance: <strong>you must know the total step count in advance</strong>. During research you usually do not, so committing to a schedule ties your hands.</p>
+<p>Schedule-Free AdamW replaces the schedule with <strong>iterate averaging</strong>:</p>
+$$
+y_t = (1-\beta) z_t + \beta x_t \quad\text{(point at which the gradient is taken)}
+$$$$
+z_{t+1} = z_t - \eta\,\nabla J(y_t)
+$$$$
+x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(returned "averaged" parameters)}
+$$<p>The result: matches the final performance of cosine schedules <strong>without any explicit decay</strong>, and can be <strong>extended mid-training</strong> without redesigning anything.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/optimizer-evolution-gd-to-adam/fig7_modern_optimizers.png" alt="Lion / Sophia / Schedule-Free: the three post-AdamW directions" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h1 id="10-selection-guide">10. Selection guide</h1>
+<table>
+  <thead>
+      <tr>
+          <th>Setting</th>
+          <th>Recommendation</th>
+          <th>Why</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Convex / simple regression</td>
+          <td>GD or SGD-momentum</td>
+          <td>Strong theory, easy tuning</td>
+      </tr>
+      <tr>
+          <td>CV baseline</td>
+          <td>SGD + Nesterov + cosine</td>
+          <td>Historically the best optimum on ResNet/CNN</td>
+      </tr>
+      <tr>
+          <td>Transformer / LLM pretraining</td>
+          <td><strong>AdamW</strong> + warmup + cosine/WSD</td>
+          <td>Industry default; close to free lunch</td>
+      </tr>
+      <tr>
+          <td>Memory-constrained large models</td>
+          <td><strong>Lion</strong></td>
+          <td>Saves the 1st-moment-equivalent state (~1/3 memory)</td>
+      </tr>
+      <tr>
+          <td>Research, unknown training length</td>
+          <td><strong>Schedule-Free AdamW</strong></td>
+          <td>Extend mid-run, no schedule redesign</td>
+      </tr>
+      <tr>
+          <td>Chasing wall-clock SOTA</td>
+          <td><strong>Sophia</strong></td>
+          <td>2nd-order acceleration, but engineering cost</td>
+      </tr>
+  </tbody>
+</table>
+<h1 id="11-five-facts-that-get-missed-most-often">11. Five facts that get missed most often</h1>
+<ol>
+<li><strong>If you turn momentum on, lower the LR.</strong> Momentum amplifies the effective step by roughly $1/(1-\gamma)$. With $\gamma=0.9$ that is ~10x.</li>
+<li><strong>Adam&rsquo;s $\beta_2 = 0.999$ implies a ~1000-step warmup</strong> because $v_t$ has not &ldquo;warmed up&rdquo; before that.</li>
+<li><strong>AdamW&rsquo;s wd is decoupled from the LR.</strong> When the LR scheduler decays the LR, wd does NOT decay with it. This is the fundamental difference from the old SGD+L2 workflow.</li>
+<li><strong>Lion&rsquo;s LR must be ~10x smaller than AdamW&rsquo;s.</strong> Copy-pasting AdamW&rsquo;s <code>3e-4</code> will diverge immediately.</li>
+<li><strong>Second-order methods looked &ldquo;permanently impractical&rdquo; not because they are bad, but because Hessians used to be too expensive.</strong> Sophia broke that wall by combining $\mathrm{diag}(H)$ with cheap Hutchinson estimation.</li>
+</ol>
+<h1 id="summary">Summary</h1>
+<p>Three decades of optimizer evolution compress to two sentences:</p>
+<ul>
+<li><strong>GD to Adam</strong>: first solve the <strong>direction</strong> problem (momentum), then the <strong>scale</strong> problem (AdaGrad / RMSProp), then merge them and fix the bias (Adam).</li>
+<li><strong>Adam onwards</strong>: algorithmic improvement gives way to <strong>regularization detail</strong> (AdamW), <strong>memory efficiency</strong> (Lion), <strong>second-order information</strong> (Sophia), and <strong>schedule freedom</strong> (Schedule-Free).</li>
+</ul>
+<p>If you only remember one thing: <strong>the LLM-era default is still AdamW + warmup + cosine/WSD + gradient clipping</strong>. Until you have a concrete bottleneck (memory, wall-clock, schedule flexibility), every paper claiming to beat AdamW deserves a baseline reproduction on your own task before you commit.</p>
+<h1 id="further-reading">Further reading</h1>
+<ul>
+<li>Adam: A Method for Stochastic Optimization (Kingma &amp; Ba, 2014) — <a href="https://arxiv.org/abs/1412.6980" target="_blank" rel="noopener noreferrer">arXiv:1412.6980 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Decoupled Weight Decay Regularization (Loshchilov &amp; Hutter, 2017) — <a href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener noreferrer">arXiv:1711.05101 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Symbolic Discovery of Optimization Algorithms / Lion (Chen et al., 2023) — <a href="https://arxiv.org/abs/2302.06675" target="_blank" rel="noopener noreferrer">arXiv:2302.06675 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Sophia: A Scalable Stochastic Second-order Optimizer for Language Model Pre-training (Liu et al., 2023) — <a href="https://arxiv.org/abs/2305.14342" target="_blank" rel="noopener noreferrer">arXiv:2305.14342 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>The Road Less Scheduled / Schedule-Free (Defazio et al., 2024) — <a href="https://arxiv.org/abs/2405.15682" target="_blank" rel="noopener noreferrer">arXiv:2405.15682 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>For the <strong>learning-rate side</strong> of training: <a href="../learning-rate-guide/">Learning Rate: From Basics to Large-Scale Training</a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#91-lion-google-2023-only-the-sign">9.1 Lion (Google, 2023): only the sign</a></li>
+    <li><a href="#92-sophia-stanford-2023-cheap-second-order">9.2 Sophia (Stanford, 2023): cheap second-order</a></li>
+    <li><a href="#93-schedule-free-meta-2024-drop-the-schedule">9.3 Schedule-Free (Meta, 2024): drop the schedule</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2100</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

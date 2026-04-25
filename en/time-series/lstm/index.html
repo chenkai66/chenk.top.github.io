@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies · Chen Kai Blog</title>
+<meta name="description" content="How LSTM&#39;s forget, input, and output gates solve the vanishing gradient problem. Complete PyTorch code for time series forecasting with practical tuning tips.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/time-series/lstm/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/time-series/lstm/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies">
+<meta property="og:description" content="How LSTM&#39;s forget, input, and output gates solve the vanishing gradient problem. Complete PyTorch code for time series forecasting with practical tuning tips.">
+<meta property="og:url" content="https://www.chenk.top/en/time-series/lstm/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Time series forecasting</a>
+         · Chapter 2
+      </div>
+      <h1>Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies</h1>
+      <p class="deck">How LSTM&#39;s forget, input, and output gates solve the vanishing gradient problem. Complete PyTorch code for time series forecasting with practical tuning tips.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-09-16">September 16, 2024</time> · 9 min read · 1800 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/time-series/" class="tag">#Time Series</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/lstm/" class="tag">#LSTM</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <h2 id="what-you-will-learn">What You Will Learn</h2>
+<ul>
+<li>Why vanilla RNNs fail on long sequences and how LSTM fixes the gradient problem</li>
+<li>The intuition behind each gate (forget, input, output) and the cell-state &ldquo;highway&rdquo;</li>
+<li>How to structure inputs/outputs for one-step and multi-step time series forecasting</li>
+<li>Practical recipes: regularization, sequence length, bidirectional vs stacked LSTM, when to choose LSTM vs GRU</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Basic understanding of neural networks (forward pass, backpropagation)</li>
+<li>Familiarity with PyTorch (<code>nn.Module</code>, tensors, optimizers)</li>
+<li>Part 1 of this series (helpful but not required)</li>
+</ul>
+<hr>
+<h2 id="1-the-problem-lstm-solves">1. The Problem LSTM Solves</h2>
+$$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$$$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.$$<p>Two regimes appear:</p>
+<ul>
+<li>If the dominant singular value of $W_h$ is below 1, the product <strong>vanishes</strong> exponentially and the network cannot learn from anything more than ~10 steps in the past.</li>
+<li>If it is above 1, the product <strong>explodes</strong> and training diverges.</li>
+</ul>
+<p>LSTM (Hochreiter &amp; Schmidhuber, 1997) replaces the single recurrent state with <strong>two</strong> states and three learned gates that decide what to remember, what to overwrite, and what to expose. The result is a near-additive update over time, which lets gradients survive the long walk back.</p>
+<h2 id="2-anatomy-of-an-lstm-cell">2. Anatomy of an LSTM Cell</h2>
+<p>Inside one cell, four gating units share the same input $[h_{t-1}, x_t]$ and emit three sigmoid gates plus one $\tanh$ candidate:</p>
+$$
+\begin{aligned}
+f_t &= \sigma(W_f [h_{t-1}, x_t] + b_f) && \text{forget gate} \\
+i_t &= \sigma(W_i [h_{t-1}, x_t] + b_i) && \text{input gate} \\
+\tilde C_t &= \tanh(W_C [h_{t-1}, x_t] + b_C) && \text{candidate} \\
+o_t &= \sigma(W_o [h_{t-1}, x_t] + b_o) && \text{output gate}
+\end{aligned}
+$$<p>These four signals combine into the cell-state update and the hidden output:</p>
+$$
+C_t = f_t \odot C_{t-1} + i_t \odot \tilde C_t, \qquad
+h_t = o_t \odot \tanh(C_t).
+$$<p>The product $\odot$ is element-wise. <strong>Read this in plain English</strong>: erase the fraction $1 - f_t$ of old memory, write the fraction $i_t$ of fresh candidate, then look at the result through the lens $o_t$.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig1_lstm_cell.png" alt="LSTM cell architecture: three sigmoid gates plus a tanh candidate sit beneath a horizontal cell-state highway. The forget gate multiplies the incoming cell state, the input gate scales the candidate, and the output gate exposes a filtered view as the hidden state." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>LSTM cell — three gates over a cell-state highway.</em></p>
+<h3 id="why-the-cell-state-is-special">Why the cell state is special</h3>
+<p>The hidden state $h_t$ is what the rest of the network sees, but the <strong>cell state</strong> $C_t$ is where memory actually lives. It runs as an unbroken horizontal line across time and is touched only by element-wise multiplication ($f_t$) and addition ($i_t \odot \tilde C_t$) — never by a fresh matrix multiplication. That single design choice is the reason gradients survive across hundreds of steps.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig2_state_highway.png" alt="Two parallel state streams across time: the green cell-state highway carries long-term memory with near-identity updates, while the dashed purple hidden-state line is the gated, filtered view that downstream layers actually see." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Cell state vs hidden state — two parallel streams.</em></p>
+<h3 id="gradient-flow-made-explicit">Gradient flow, made explicit</h3>
+$$\frac{\partial C_t}{\partial C_{t-1}} = f_t,$$$$\frac{\partial C_T}{\partial C_k} = \prod_{t=k+1}^{T} f_t.$$<p>Whenever the model wants to remember, it can learn to push $f_t$ close to 1 for the relevant coordinates, and the corresponding gradient stays close to 1 too. That is the entire trick.</p>
+<h2 id="3-a-minimal-pytorch-implementation">3. A Minimal PyTorch Implementation</h2>
+<p>For a univariate or multivariate forecaster, this is all you need:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LSTMForecaster</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">output_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">hidden_size</span><span class="o">=</span><span class="n">hidden_size</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span> <span class="k">if</span> <span class="n">num_layers</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># x: (batch, seq_len, input_size)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>              <span class="c1"># (batch, seq_len, hidden_size)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">out</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])</span>     <span class="c1"># use last time step</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A few non-obvious points:</p>
+<ul>
+<li><code>batch_first=True</code> makes the input shape <code>(batch, seq_len, features)</code>, which is the convention everyone outside the original PyTorch examples expects.</li>
+<li>The built-in <code>dropout</code> argument is <strong>inter-layer</strong> only — it does <em>not</em> drop activations between time steps. For recurrent dropout, use <code>nn.LSTMCell</code> and apply a fixed mask yourself, or use the <code>weight_drop</code> trick from AWD-LSTM.</li>
+<li>Initialize the forget-gate bias to <strong>+1</strong> so the network starts in &ldquo;remember&rdquo; mode. PyTorch does not do this by default:</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">lstm</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="s2">&#34;bias&#34;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">n</span> <span class="o">//</span> <span class="mi">4</span> <span class="p">:</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>   <span class="c1"># forget-gate bias</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="4-from-cell-to-forecaster">4. From Cell to Forecaster</h2>
+<p>For time series, the loop is:</p>
+<ol>
+<li><strong>Window the series</strong> into overlapping sequences of length $L$ — the <em>lookback</em>.</li>
+<li><strong>Standardize</strong> each feature using the training set&rsquo;s mean and standard deviation.</li>
+<li>Train the model to predict the next value (one-step) or the next $H$ values (multi-step).</li>
+<li>Validate on a <strong>chronologically held-out</strong> tail — never shuffle.</li>
+</ol>
+<p>A clean one-step forecast on a noisy seasonal signal looks like this:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig3_forecast.png" alt="One-step LSTM forecast versus the actual series. The shaded blue band is a 95% interval derived from the residual standard deviation on the test window. The model tracks both the dominant 24-step and the slower 75-step seasonal components with a small, characteristic lag of one step." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>One-step LSTM forecast vs actual on a noisy seasonal signal.</em></p>
+<h3 id="multi-step-ahead-recursive-vs-direct">Multi-step ahead: recursive vs direct</h3>
+<p>For horizon $H > 1$ there are two common strategies:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Strategy</th>
+          <th>How</th>
+          <th>Trade-off</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Recursive</strong></td>
+          <td>Train one one-step model; feed its prediction back as input.</td>
+          <td>Simple, but errors compound — variance grows like $\sqrt{H}$.</td>
+      </tr>
+      <tr>
+          <td><strong>Direct</strong></td>
+          <td>Train $H$ separate heads (or a single model with an $H$-dim output) to predict each future step directly.</td>
+          <td>More parameters, but no error feedback loop.</td>
+      </tr>
+  </tbody>
+</table>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig4_multistep.png" alt="Multi-step ahead forecast: amber recursive predictions show a fan-shaped uncertainty band that widens with horizon, while the green direct forecaster keeps a roughly constant band. The dotted vertical line marks the forecast origin." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Multi-step ahead — recursive forecasts accumulate error; direct forecasts pay in parameters but stay tighter.</em></p>
+<p>A useful hybrid is <strong>seq2seq with teacher forcing</strong>: an LSTM encoder reads the lookback window into a final $(h, C)$ pair, an LSTM decoder generates $H$ outputs one at a time, and during training the decoder receives the <em>true</em> previous value (not its own prediction) with some scheduled-sampling probability. This is what most production forecasters use today.</p>
+<h2 id="5-architectural-variants">5. Architectural Variants</h2>
+<h3 id="bidirectional-lstm">Bidirectional LSTM</h3>
+$$y_t = [\,\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\,].$$<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig5_bilstm.png" alt="Bidirectional LSTM: forward purple chain reads left-to-right, backward amber chain reads right-to-left, and the output at each step is the concatenation of both hidden states." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Bidirectional LSTM — combines past and future context per step.</em></p>
+<p><strong>Use it for</strong> sequence labeling, classification, missing-value imputation — any setting where the <em>whole</em> sequence is in hand at inference time. <strong>Do not use it for</strong> real-time forecasting: peeking at $x_{t+1}, x_{t+2}, \dots$ during training while predicting $x_{t+1}$ at inference is data leakage.</p>
+<h3 id="stacked-deep-lstm">Stacked (deep) LSTM</h3>
+<p>Stacking layers lets later layers operate on smoother, slower features. Layer 1 sees the raw input; layer 2 sees the hidden states of layer 1, and so on.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig6_stacked_lstm.png" alt="Stacked LSTM with three layers: each layer recurses left-to-right and feeds its hidden state up to the next layer. Lower layers capture short, local structure; higher layers compose longer-range, more abstract patterns." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Stacked LSTM — hierarchical feature extraction in time.</em></p>
+<p>In practice, <strong>2–3 layers</strong> is the sweet spot for forecasting. Going deeper rarely helps without residual connections, and it markedly increases the risk of vanishing gradients along the <em>depth</em> axis (between layers, not time).</p>
+<h2 id="6-training-recipe-that-actually-works">6. Training Recipe That Actually Works</h2>
+<p>The following defaults work on most univariate or moderately multivariate forecasting problems with a few thousand to a few hundred thousand training windows:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Knob</th>
+          <th>Default</th>
+          <th>When to deviate</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Lookback $L$</td>
+          <td>2–3 dominant periods of the series</td>
+          <td>Use autocorrelation to pick — see below</td>
+      </tr>
+      <tr>
+          <td><code>hidden_size</code></td>
+          <td>64</td>
+          <td>Up to 128–256 for $\geq$ 50 k windows</td>
+      </tr>
+      <tr>
+          <td><code>num_layers</code></td>
+          <td>2</td>
+          <td>1 if data is small; 3 only with residual connections</td>
+      </tr>
+      <tr>
+          <td><code>dropout</code></td>
+          <td>0.2</td>
+          <td>Up to 0.5 if you see overfitting</td>
+      </tr>
+      <tr>
+          <td>Optimizer</td>
+          <td>Adam, lr = 1e-3</td>
+          <td>Switch to AdamW + cosine schedule for long runs</td>
+      </tr>
+      <tr>
+          <td>Batch size</td>
+          <td>32–64</td>
+          <td>Larger only if you scale lr like $\sqrt{B/32}$</td>
+      </tr>
+      <tr>
+          <td>Loss</td>
+          <td>MSE or Huber</td>
+          <td>Huber if the target has heavy tails / outliers</td>
+      </tr>
+      <tr>
+          <td>Gradient clipping</td>
+          <td><code>clip_grad_norm_(..., 1.0)</code></td>
+          <td>Always — cheap insurance against exploding updates</td>
+      </tr>
+      <tr>
+          <td>Early stopping</td>
+          <td>patience = 8–10</td>
+          <td>On validation loss, with model-state restore</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="picking-the-lookback">Picking the lookback</h3>
+<p>Plot the autocorrelation function and find the largest lag $k$ where $|\rho_k|$ is still above a small threshold (say 0.1). Round up to the next dominant seasonal period. For hourly data with daily and weekly cycles, 168 (one week) is a natural ceiling.</p>
+<h3 id="anatomy-of-a-good-training-run">Anatomy of a good training run</h3>
+<p>A healthy LSTM training curve has the validation loss following the training loss closely until it bottoms out, then drifting upward as the model starts to memorize. Early stopping triggers a fixed number of epochs after the best validation loss and restores the best weights:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/lstm/fig7_training_curves.png" alt="Training and validation loss across 60 epochs. The green dashed line marks the best validation epoch (~35); the purple dotted line marks the early-stop trigger after a patience window of 8 epochs." loading="lazy" decoding="async">
+  
+</figure>
+
+<em>Training and validation loss with early stopping — restore the weights at the green line, not the purple one.</em></p>
+<h2 id="7-lstm-vs-gru--which-should-you-reach-for">7. LSTM vs GRU — Which Should You Reach For?</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Aspect</th>
+          <th>LSTM</th>
+          <th>GRU</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Gates</td>
+          <td>3 (forget, input, output)</td>
+          <td>2 (reset, update)</td>
+      </tr>
+      <tr>
+          <td>Separate cell state $C_t$</td>
+          <td>Yes</td>
+          <td>No</td>
+      </tr>
+      <tr>
+          <td>Parameters per cell</td>
+          <td>4 weight matrices</td>
+          <td>3 weight matrices</td>
+      </tr>
+      <tr>
+          <td>Speed</td>
+          <td>Baseline</td>
+          <td>~25 % faster, comparable accuracy</td>
+      </tr>
+      <tr>
+          <td>Best for</td>
+          <td>Long sequences, very large datasets, when you need maximum capacity</td>
+          <td>Smaller datasets, real-time inference, mobile/edge</td>
+      </tr>
+  </tbody>
+</table>
+<p>Empirically, on most forecasting tasks the gap between LSTM and GRU is within noise. <strong>Default to GRU</strong> for fast iteration; switch to LSTM if you have plenty of data and very long-range dependencies (sequences of several hundred steps). For sequences past ~500 steps, both are usually beaten by a Temporal Convolutional Network (Part 6) or an Informer-style sparse Transformer (Part 8).</p>
+<h2 id="8-common-pitfalls">8. Common Pitfalls</h2>
+<ul>
+<li><strong>Forgetting to standardize per feature.</strong> LSTMs are scale-sensitive; raw stock prices and percent returns mixed in one input will train badly.</li>
+<li><strong>Shuffling time-series windows across the train/test boundary.</strong> Use <code>TimeSeriesSplit</code> or a fixed chronological cut.</li>
+<li><strong>Reading the last hidden state as if it were the prediction.</strong> It is just a feature vector — you still need a linear head, and you should standardize the target too.</li>
+<li><strong>Using a BiLSTM for forecasting.</strong> It will look great in the notebook because the model is reading the future, and then collapse in production.</li>
+<li><strong>Tuning hidden size before the lookback.</strong> Lookback decides what information the cell <em>can</em> see; making the cell wider doesn&rsquo;t help if the window is too short.</li>
+<li><strong>Trusting a single random seed.</strong> RNN training is noisy. Report mean ± std over at least 3 seeds.</li>
+</ul>
+<h2 id="summary">Summary</h2>
+<p>LSTM solves the vanishing gradient problem by routing memory through an additive <strong>cell-state highway</strong> that the network controls with three multiplicative gates. The forget gate decides what to erase, the input gate decides what to write, and the output gate decides what to expose — and because the long-range gradient is a product of forget gates rather than a product of recurrent Jacobians, the model can learn dependencies hundreds of steps long.</p>
+<p>For time series, that translates into a small set of practical recipes: window the series with a sensible lookback, stack 1–3 layers of moderate width, regularize with dropout and early stopping, choose direct multi-step over recursive when horizons are long, and keep BiLSTM for offline tasks only. The next part covers GRU — the slimmer cousin that achieves nearly the same with fewer parameters.</p>
+<h2 id="references">References</h2>
+<ul>
+<li>Hochreiter &amp; Schmidhuber, <em>Long Short-Term Memory</em>, Neural Computation (1997)</li>
+<li>Gers, Schmidhuber &amp; Cummins, <em>Learning to Forget: Continual Prediction with LSTM</em> (2000) — the paper that introduced the +1 forget-gate bias trick</li>
+<li>Olah, <em>Understanding LSTM Networks</em>, colah.github.io (2015) — the canonical illustrated explanation</li>
+<li>Greff et al., <em>LSTM: A Search Space Odyssey</em>, IEEE TNNLS (2017) — empirical study of LSTM variants</li>
+</ul>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/time-series/01-traditional-models/"><span class="title">Time Series Forecasting (1): Traditional Statistical Models</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/en/time-series/gru/"><span class="title">Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-the-problem-lstm-solves">1. The Problem LSTM Solves</a></li>
+    <li><a href="#2-anatomy-of-an-lstm-cell">2. Anatomy of an LSTM Cell</a>
+      <ul>
+        <li><a href="#why-the-cell-state-is-special">Why the cell state is special</a></li>
+        <li><a href="#gradient-flow-made-explicit">Gradient flow, made explicit</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-a-minimal-pytorch-implementation">3. A Minimal PyTorch Implementation</a></li>
+    <li><a href="#4-from-cell-to-forecaster">4. From Cell to Forecaster</a>
+      <ul>
+        <li><a href="#multi-step-ahead-recursive-vs-direct">Multi-step ahead: recursive vs direct</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-architectural-variants">5. Architectural Variants</a>
+      <ul>
+        <li><a href="#bidirectional-lstm">Bidirectional LSTM</a></li>
+        <li><a href="#stacked-deep-lstm">Stacked (deep) LSTM</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-training-recipe-that-actually-works">6. Training Recipe That Actually Works</a>
+      <ul>
+        <li><a href="#picking-the-lookback">Picking the lookback</a></li>
+        <li><a href="#anatomy-of-a-good-training-run">Anatomy of a good training run</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-lstm-vs-gru--which-should-you-reach-for">7. LSTM vs GRU — Which Should You Reach For?</a></li>
+    <li><a href="#8-common-pitfalls">8. Common Pitfalls</a></li>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Time series forecasting</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>9 min</strong></div>
+      <div class="row"><span>Word count</span><strong>1800</strong></div>
+      <div class="row"><span>Published</span><strong>Sep 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

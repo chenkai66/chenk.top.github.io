@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Reparameterization Trick &amp; Gumbel-Softmax: A Deep Dive · Chen Kai Blog</title>
+<meta name="description" content="Make sense of the reparameterization trick and Gumbel-Softmax: why gradients can flow through sampling, how temperature trades bias for variance, and the practical pitfalls of training discrete latent variables end-to-end.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/standalone/reparameterization-gumbel-softmax/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/reparameterization-gumbel-softmax/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Reparameterization Trick &amp; Gumbel-Softmax: A Deep Dive">
+<meta property="og:description" content="Make sense of the reparameterization trick and Gumbel-Softmax: why gradients can flow through sampling, how temperature trades bias for variance, and the practical pitfalls of training discrete latent variables end-to-end.">
+<meta property="og:url" content="https://www.chenk.top/en/standalone/reparameterization-gumbel-softmax/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
+        
+      </div>
+      <h1>Reparameterization Trick &amp; Gumbel-Softmax: A Deep Dive</h1>
+      <p class="deck">Make sense of the reparameterization trick and Gumbel-Softmax: why gradients can flow through sampling, how temperature trades bias for variance, and the practical pitfalls of training discrete latent variables end-to-end.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-07-24">July 24, 2025</time> · 14 min read · 2900 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/ml/" class="tag">#ML</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/generative-models/" class="tag">#Generative Models</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>The moment your model contains a sampling step, training hits a hard wall: <strong>how do gradients flow through a random node?</strong></p>
+<p>The reparameterization trick has a clean answer — rewrite $z\sim p_\theta(z)$ as $z=g_\theta(\epsilon)$, isolating the randomness in a parameter-free noise variable $\epsilon$, so backprop can flow through $g_\theta$. The trouble starts with discrete variables: operations like $\arg\max$ are not differentiable. <strong>Gumbel-Softmax</strong> (a.k.a. the Concrete distribution) replaces the discrete sample with a tempered softmax over Gumbel-perturbed logits, giving you a smooth, differentiable surrogate that you can train end-to-end.</p>
+<p>This post walks through the derivations, the intuition, the implementation details, the bias-variance trade-off behind the temperature, and the most common training pitfalls.</p>
+<h2 id="what-youll-learn">What you&rsquo;ll learn</h2>
+<ul>
+<li>Why gradients cannot flow through $z\sim\mathcal N(\mu,\sigma^2)$, but flow freely through $z=\mu+\sigma\epsilon$.</li>
+<li>Where the Gumbel distribution comes from and <strong>why</strong> &ldquo;logits + Gumbel noise + argmax = softmax sampling&rdquo; is exact.</li>
+<li>How the Gumbel-Softmax temperature $\tau$ trades bias for variance, plus annealing in practice.</li>
+<li>The Straight-Through estimator (ST-GS): hard forward, soft backward.</li>
+<li>Variance comparison vs. REINFORCE / score-function estimators (typically 1–3 orders of magnitude lower).</li>
+<li>Full PyTorch implementations for both continuous and discrete VAEs, with the most common training pitfalls.</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Expectations, densities, change-of-variables.</li>
+<li>Basic PyTorch and the chain rule under autograd.</li>
+<li>Familiarity with the variational autoencoder (see the companion post <a href="../vae-guide/">VAE: From Intuition to Implementation</a>
+).</li>
+</ul>
+<hr>
+<h1 id="1-why-we-need-reparameterization">1. Why we need reparameterization</h1>
+<p>The general training objective looks like</p>
+$$
+\mathcal L(\theta) \;=\; \mathbb E_{z\sim q_\theta(z)}\,[\,f(z)\,].
+$$<p>In a VAE, $f$ is the reconstruction log-likelihood; in RL, it&rsquo;s a return; in discrete structure learning, it&rsquo;s the downstream loss. <strong>The trouble</strong>: $\theta$ appears both inside $f$ and inside the distribution. Naively &ldquo;sample $z$, evaluate $f(z)$, call <code>.backward()</code>&rdquo; breaks because the computation graph is severed at the sampling step.</p>
+<p>A blunt PyTorch example:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># Wrong: sampling inside the graph</span>
+</span></span><span class="line"><span class="cl"><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">sigma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>        <span class="c1"># &lt;- not differentiable</span>
+</span></span><span class="line"><span class="cl"><span class="n">recon</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">recon</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>                    <span class="c1"># mu, sigma receive no gradient</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>torch.normal(mu, sigma)</code> is a <strong>stochastic op</strong>: there is no smooth functional relationship between its output $z$ and its inputs $\mu,\sigma$. Change $\mu$ a tiny bit and the <em>distribution</em> shifts, but a particular drawn $z$ does not move smoothly with it — there is no derivative to define.</p>
+<blockquote>
+<p><strong>Core problem</strong>: training requires $\nabla_\theta \mathbb E_{q_\theta}[f(z)]$, but the sampling step kills backprop.</p>
+</blockquote>
+<p>Two families of fixes exist:</p>
+<ol>
+<li><strong>Score-function / REINFORCE</strong>: rewrite the gradient as $\mathbb E[f(z)\nabla_\theta\log q_\theta(z)]$. Universal, works on any random variable — <strong>but the variance is enormous</strong>.</li>
+<li><strong>Reparameterization</strong>: pull the randomness <em>out of the parameters</em>, replace it with parameter-free noise, and keep the graph differentiable. <strong>Low variance and end-to-end trainable, but requires a distribution that admits such a rewrite</strong>.</li>
+</ol>
+<h1 id="2-reparameterizing-continuous-distributions">2. Reparameterizing continuous distributions</h1>
+<h2 id="21-the-general-form">2.1 The general form</h2>
+<p>Express $z$ as a deterministic, differentiable function of a parameter-free noise $\epsilon$:</p>
+$$
+z \;=\; g_\theta(\epsilon),\qquad \epsilon \sim p(\epsilon),
+$$<p>where $p(\epsilon)$ is a fixed base distribution (e.g. $\mathcal N(0,I)$ or $\mathrm{Uniform}(0,1)$). Substituting back,</p>
+$$
+\mathcal L(\theta) \;=\; \mathbb E_{\epsilon\sim p(\epsilon)}\,[\,f(g_\theta(\epsilon))\,].
+$$<p>Now $\theta$ no longer appears inside the expectation, so we can swap differentiation and expectation:</p>
+$$
+\nabla_\theta\,\mathcal L(\theta) \;=\; \mathbb E_{\epsilon\sim p(\epsilon)}\,[\,\nabla_\theta\, f(g_\theta(\epsilon))\,].
+$$<p>A Monte Carlo estimate is just: draw one (or a few) $\epsilon$, run autograd through $f(g_\theta(\epsilon))$.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig1_reparam_trick.png" alt="Reparameterization trick" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<blockquote>
+<p><strong>Side-by-side</strong>: on the left, $z\sim\mathcal N(\mu,\sigma^2)$ is a stochastic node and gradients cannot flow through it; on the right, $z=\mu+\sigma\epsilon$ is a deterministic function of $\mu,\sigma$ and gradients flow through the green path back into the encoder.</p>
+</blockquote>
+<h2 id="22-the-gaussian-case">2.2 The Gaussian case</h2>
+<p>The textbook example: for $z\sim\mathcal N(\mu,\sigma^2)$,</p>
+$$
+z \;=\; \mu \;+\; \sigma \odot \epsilon,\qquad \epsilon \sim \mathcal N(0,I).
+$$<p>Verify on both sides: (i) $\mathbb E[z]=\mu$, $\mathrm{Var}(z)=\sigma^2$; (ii) since linear transforms preserve normality, $z$&rsquo;s marginal is exactly $\mathcal N(\mu,\sigma^2)$. <strong>Crucially</strong>, $\partial z/\partial\mu=1$ and $\partial z/\partial\sigma=\epsilon$ — both trivial expressions, gradients are unobstructed.</p>
+<p>In PyTorch, predict $\log\sigma^2$ rather than $\sigma$ for numerical stability:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">logvar</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;z = mu + sigma * eps,  eps ~ N(0, I).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>        <span class="c1"># sigma &gt;= 0 by construction</span>
+</span></span><span class="line"><span class="cl">    <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>          <span class="c1"># the only random source</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">eps</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="23-in-the-vae">2.3 In the VAE</h2>
+<p>The VAE optimizes the evidence lower bound (ELBO):</p>
+$$
+\mathcal L_{\text{ELBO}}(\theta,\phi;x)
+\;=\; \mathbb E_{q_\phi(z|x)}\!\bigl[\log p_\theta(x|z)\bigr]
+\;-\;\mathrm{KL}\!\bigl(q_\phi(z|x)\,\Vert\,p(z)\bigr).
+$$<p>The expectation in the first term is taken w.r.t. $q_\phi(z|x)$, which has $\phi$ inside. <strong>Reparameterization is what makes this term differentiable</strong>: writing $z=\mu_\phi(x)+\sigma_\phi(x)\odot\epsilon$,</p>
+$$
+\nabla_\phi\,\mathbb E_{q_\phi(z|x)}[\log p_\theta(x|z)]
+\;=\;\mathbb E_{\epsilon\sim\mathcal N(0,I)}\!\bigl[\,\nabla_\phi\log p_\theta(x\mid \mu_\phi+\sigma_\phi\epsilon)\,\bigr].
+$$<p>The gradient w.r.t. $\phi$ flows through the decoder all the way back into the encoder. The KL term has a closed form when $q_\phi=\mathcal N(\mu,\sigma^2)$ and $p=\mathcal N(0,I)$:</p>
+$$
+\mathrm{KL}=\tfrac12\sum_j\!\bigl(\mu_j^2+\sigma_j^2-1-\log\sigma_j^2\bigr),
+$$<p>so no Monte Carlo is needed there.</p>
+<h2 id="24-which-continuous-distributions-are-naturally-reparameterizable">2.4 Which continuous distributions are &ldquo;naturally&rdquo; reparameterizable?</h2>
+<p>Anything that admits a location-scale form, or a base-noise + differentiable transform:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Distribution</th>
+          <th>Reparameterization</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>$\mathcal N(\mu,\sigma^2)$</td>
+          <td>$z=\mu+\sigma\epsilon$, $\epsilon\sim\mathcal N(0,1)$</td>
+      </tr>
+      <tr>
+          <td>$\mathrm{Logistic}(\mu,s)$</td>
+          <td>$z=\mu+s\,\log\frac{u}{1-u}$, $u\sim\mathrm U(0,1)$</td>
+      </tr>
+      <tr>
+          <td>$\mathrm{Laplace}(\mu,b)$</td>
+          <td>$z=\mu-b,\mathrm{sign}(u)\log(1-2</td>
+      </tr>
+      <tr>
+          <td>$\mathrm{Exp}(\lambda)$</td>
+          <td>$z=-\tfrac1\lambda\log(1-u)$, $u\sim\mathrm U(0,1)$</td>
+      </tr>
+      <tr>
+          <td>$\mathrm{Gumbel}(\mu,\beta)$</td>
+          <td>$z=\mu-\beta\log(-\log u)$, $u\sim\mathrm U(0,1)$</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Counter-examples</strong>: Gamma, Beta, Dirichlet, Student-t do not have a simple location-scale form. They need <em>implicit reparameterization gradients</em> or pathwise tricks (Figurnov et al., NeurIPS 2018; see §7).</p>
+<h1 id="3-reparameterizing-discrete-distributions-the-gumbel-max-trick">3. Reparameterizing discrete distributions: the Gumbel-Max trick</h1>
+<h2 id="31-the-difficulty">3.1 The difficulty</h2>
+<p>Take a $K$-class categorical $\mathrm{Cat}(\pi_1,\dots,\pi_K)$ with $\pi_i=\mathrm{softmax}(\alpha)_i=\frac{\exp(\alpha_i)}{\sum_j\exp(\alpha_j)}$. The naive &ldquo;sample&rdquo; is: compute $\pi$, draw a class index $k$ from a multinomial. That step is <strong>completely non-differentiable</strong> — its output is a one-hot vector, with no notion of smooth variation.</p>
+<p>The fallback is the score-function estimator:</p>
+$$
+\nabla_\alpha\,\mathbb E_{k\sim\mathrm{Cat}(\pi)}[f(k)]
+\;=\;\mathbb E_{k}\bigl[f(k)\,\nabla_\alpha\log\pi_k\bigr],
+$$<p>universal but with variance large enough to wreck training stability. Can we, like in the Gaussian case, factor sampling into &ldquo;noise + deterministic transform&rdquo;? The answer is the Gumbel-Max trick.</p>
+<h2 id="32-a-quick-tour-of-the-gumbel-distribution">3.2 A quick tour of the Gumbel distribution</h2>
+<p>The standard Gumbel $\mathrm{Gumbel}(0,1)$ has CDF/PDF</p>
+$$
+F(g)=\exp(-e^{-g}),\qquad f(g)=\exp\!\bigl(-(g+e^{-g})\bigr).
+$$<p>Mode at $0$, mean at the Euler–Mascheroni constant $\gamma\approx 0.5772$. Crucially, it is the <strong>extreme-value distribution</strong> for maxima of iid samples (under suitable scaling). Gumbel-Max exploits exactly this property.</p>
+<p>Inverse-CDF sampling is one line:</p>
+$$
+u\sim\mathrm U(0,1) \;\Rightarrow\; g=-\log(-\log u)\sim\mathrm{Gumbel}(0,1).
+$$<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig2_gumbel_pdf.png" alt="Gumbel distribution PDF/CDF/empirical" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<blockquote>
+<p><strong>Left</strong>: the Gumbel(0,1) PDF; <strong>middle</strong>: inverse-CDF sampling visualized; <strong>right</strong>: 20k samples drawn via $-\log(-\log u)$, with the empirical histogram matching the analytic PDF.</p>
+</blockquote>
+<h2 id="33-the-gumbel-max-trick">3.3 The Gumbel-Max trick</h2>
+<p><strong>Claim.</strong> Let $g_1,\dots,g_K\overset{iid}{\sim}\mathrm{Gumbel}(0,1)$ and define</p>
+$$
+k^\star \;=\; \arg\max_i\,(\alpha_i + g_i).
+$$<p>Then $k^\star\sim\mathrm{Cat}(\mathrm{softmax}(\alpha))$. In words, <strong>adding Gumbel noise to logits and taking argmax is equivalent to sampling from the softmax distribution</strong>.</p>
+<h3 id="proof-probability-of-class-1">Proof (probability of class 1)</h3>
+<p>$\Pr[k^\star=1] = \Pr\bigl[\,\forall i\neq 1:\;\alpha_1+g_1>\alpha_i+g_i\,\bigr] = \Pr\bigl[\,\forall i\neq 1:\;g_i<\alpha_1-\alpha_i+g_1\,\bigr]$.</p>
+<p>Conditioning on $g_1=t$:</p>
+$$
+\Pr[k^\star=1\mid g_1=t]=\prod_{i\neq 1}F(\alpha_1-\alpha_i+t)
+=\prod_{i\neq 1}\exp\!\bigl(-e^{-(\alpha_1-\alpha_i+t)}\bigr)
+=\exp\!\Bigl(-e^{-t}\!\!\sum_{i\neq 1}e^{\alpha_i-\alpha_1}\Bigr).
+$$<p>Let $S=\sum_{i\neq 1}e^{\alpha_i-\alpha_1}$ and integrate over $g_1$:</p>
+$$
+\Pr[k^\star=1]=\int e^{-(t+e^{-t})}\cdot\exp(-S e^{-t})\,dt
+=\int e^{-t}\exp\!\bigl(-(1+S)e^{-t}\bigr)\,dt.
+$$<p>Substituting $u=(1+S)e^{-t}$, $du=-(1+S)e^{-t}dt$ gives $\frac{1}{1+S}\int_0^\infty e^{-u}du=\frac{1}{1+S}$.</p>
+<p>But $1+S=1+\sum_{i\neq 1}e^{\alpha_i-\alpha_1}=e^{-\alpha_1}\sum_i e^{\alpha_i}$, so</p>
+$$
+\Pr[k^\star=1]=\frac{e^{\alpha_1}}{\sum_i e^{\alpha_i}}=\mathrm{softmax}(\alpha)_1. \quad\blacksquare
+$$<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig3_gumbel_max_trick.png" alt="Gumbel-Max trick" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<blockquote>
+<p><strong>Left</strong>: target categorical distribution; <strong>middle</strong>: a single draw — adding Gumbel noise to logits and taking the argmax selects class c2; <strong>right</strong>: 8000 draws — the empirical frequencies match the target softmax probabilities, confirming exact equivalence in expectation.</p>
+</blockquote>
+<h3 id="why-this-matters">Why this matters</h3>
+<ul>
+<li><strong>Efficient</strong>: $K$ uniforms + one argmax. No explicit normalization, no cumulative-distribution lookup.</li>
+<li><strong>Numerically stable</strong>: addition followed by argmax is invariant to constant shifts in the logits.</li>
+<li><strong>Most importantly</strong>: all the randomness now lives in $g$; the logits $\alpha$ enter through the deterministic $\alpha+g$. We are one step away from &ldquo;differentiable&rdquo; — just need to soften the $\arg\max$.</li>
+</ul>
+<h1 id="4-gumbel-softmax-softening-the-argmax">4. Gumbel-Softmax: softening the argmax</h1>
+<h2 id="41-definition">4.1 Definition</h2>
+<p>Replace $\arg\max$ with a temperature-scaled softmax to obtain a sample from the <strong>Gumbel-Softmax / Concrete</strong> distribution:</p>
+$$
+y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bigl((\alpha_j + g_j)/\tau\bigr)},
+\qquad g_i\overset{iid}{\sim}\mathrm{Gumbel}(0,1).
+$$<p>Here $y\in\Delta^{K-1}$, the $(K-1)$-simplex — a continuous vector. The two limits give intuition:</p>
+<ul>
+<li>$\tau\to 0^+$: softmax degenerates into the indicator of the argmax, $y$ becomes one-hot — <strong>a true discrete sample</strong>;</li>
+<li>$\tau\to\infty$: $(\alpha_i+g_i)/\tau\to 0$, $y$ becomes the uniform vector $(1/K,\dots,1/K)$.</li>
+</ul>
+<p>Because $g$ is independent of $\alpha$ and softmax is everywhere differentiable, $y$ is <strong>differentiable in $\alpha$</strong> (and therefore in any upstream parameter $\theta$). This is the heart of Gumbel-Softmax: a smooth, differentiable proxy for the discrete one-hot.</p>
+<h2 id="42-the-temperature-bias-variance-trade-off">4.2 The temperature bias-variance trade-off</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig4_gumbel_softmax_temp.png" alt="Gumbel-Softmax temperature effect" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<blockquote>
+<p><strong>Four temperatures</strong>: in each panel the light-blue bars show the target softmax, while the orange polylines are five independent Gumbel-Softmax draws.</p>
+<ul>
+<li>$\tau=5$: very smooth, near-uniform — <strong>low gradient variance</strong> but <strong>highly biased</strong> away from a true discrete sample;</li>
+<li>$\tau=1$: balanced;</li>
+<li>$\tau=0.5$: starts looking one-hot;</li>
+<li>$\tau=0.1$: nearly hard one-hot — <strong>low bias</strong> but <strong>high variance</strong> (and softmax internals are prone to over/underflow).</li>
+</ul>
+</blockquote>
+<p>You can read this off the gradient estimator directly: smaller $\tau$ makes $y$ closer to the true one-hot $z$, reducing bias; but the softmax Jacobian $\partial y/\partial\alpha$ scales like $1/\tau$, so variance grows like $\tau^{-2}$.</p>
+<p><strong>Practical annealing</strong>:</p>
+<ul>
+<li>Start at $\tau\in[1.0, 2.0]$, end at $\tau\in[0.1, 0.5]$.</li>
+<li>Exponential schedule $\tau_t=\max(\tau_{\min},\tau_0\,e^{-rt})$ with a check every $\sim 1000$ steps.</li>
+<li><strong>Don&rsquo;t</strong> drive $\tau\to 0$ — softmax numerics blow up and gradient variance dominates. Let the model &ldquo;see&rdquo; the soft distribution early, then &ldquo;harden&rdquo; it later.</li>
+</ul>
+<h2 id="43-straight-through-gumbel-softmax-st-gs">4.3 Straight-Through Gumbel-Softmax (ST-GS)</h2>
+<p>Many tasks — hard attention, discrete token selection, sparse routing — <strong>must</strong> use a strict one-hot in the forward pass (e.g. the downstream is an embedding lookup expecting an integer index). The fix is the <strong>Straight-Through estimator</strong>:</p>
+$$
+\boxed{
+\;\;y_{\text{hard}}=\mathrm{onehot}(\arg\max_i y_i),
+\qquad
+\tilde y \;=\; y_{\text{hard}}\;-\;\mathrm{stop\_grad}(y_{\text{soft}})\;+\;y_{\text{soft}}.\;\;
+}
+$$<p>Forward: $\tilde y=y_{\text{hard}}$ (strict one-hot). Backward: $\partial\tilde y/\partial\alpha=\partial y_{\text{soft}}/\partial\alpha$ (the soft Jacobian). It&rsquo;s a <strong>biased but low-variance</strong> estimator: hard sample for the loss, soft sample for the gradient.</p>
+<p>In PyTorch:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">gumbel_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                   <span class="n">hard</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;y = softmax((logits + g) / tau); optional ST-hard.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 1) Gumbel noise; clamp to avoid log(0)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_</span><span class="p">(</span><span class="mf">1e-9</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mf">1e-9</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">g</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">u</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 2) soft sample</span>
+</span></span><span class="line"><span class="cl">    <span class="n">y_soft</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">((</span><span class="n">logits</span> <span class="o">+</span> <span class="n">g</span><span class="p">)</span> <span class="o">/</span> <span class="n">tau</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="ow">not</span> <span class="n">hard</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">y_soft</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 3) Straight-Through: hard forward, soft backward</span>
+</span></span><span class="line"><span class="cl">    <span class="n">idx</span> <span class="o">=</span> <span class="n">y_soft</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">y_hard</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">y_soft</span><span class="p">)</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">y_hard</span> <span class="o">-</span> <span class="n">y_soft</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">+</span> <span class="n">y_soft</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>PyTorch ships <code>torch.nn.functional.gumbel_softmax(logits, tau, hard)</code> with the same semantics; rolling your own is just to make every step explicit.</p>
+<h1 id="5-comparison-with-reinforce-orders-of-magnitude-variance-gap">5. Comparison with REINFORCE: orders-of-magnitude variance gap</h1>
+<h2 id="51-score-function--reinforce-estimator">5.1 Score-function / REINFORCE estimator</h2>
+<p>General form:</p>
+$$
+\nabla_\theta\,\mathbb E_{z\sim q_\theta}[f(z)]
+=\mathbb E_{z\sim q_\theta}\!\bigl[f(z)\,\nabla_\theta\log q_\theta(z)\bigr].
+$$<p>Its strength: it makes <strong>no assumption</strong> about differentiability of $z$ in $\theta$ — discrete, control-flow, even black-box external calls all work. Its weakness: very high variance. Intuitively, the entire scalar value $f(z)$ rides on the gradient with no differentiable path to cancel signs.</p>
+<p>Standard variance reductions:</p>
+<ul>
+<li><strong>Baselines / control variates</strong>: replace $f(z)$ with $f(z)-b$ for some $z$-independent $b$ (e.g. a running average).</li>
+<li><strong>Rao–Blackwellization</strong>, antithetic sampling, importance sampling, etc.</li>
+</ul>
+<p>Even with all these tricks, REINFORCE typically remains 1–3 orders of magnitude noisier than reparameterization.</p>
+<h2 id="52-empirical-comparison">5.2 Empirical comparison</h2>
+<p>We estimate $\nabla_{\alpha_0}\,\mathbb E_z[r^\top z]$ on a synthetic 8-class categorical (with a fixed reward vector $r$). Each curve aggregates 200 trials.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/reparameterization-gumbel-softmax/fig5_discrete_pipeline.png" alt="Variance: REINFORCE vs Gumbel-Softmax" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<blockquote>
+<p><strong>Left pipeline</strong>: logits → +Gumbel noise → /τ → softmax → $y_{\text{soft}}$; optional argmax → $y_{\text{hard}}$, combined via STE for hard-forward / soft-backward. <strong>Right curves</strong>: $x$-axis is the number of MC samples per gradient estimate, $y$-axis is the variance of the estimate (log-log). Gumbel-Softmax with $\tau=0.5$ is consistently more than an order of magnitude lower than REINFORCE; both decay as $1/n$ (slope $-1$).</p>
+</blockquote>
+<p>This is exactly why end-to-end discrete training only became practical once reparameterization-based estimators were available.</p>
+<h1 id="6-full-pytorch-continuous-and-discrete-vaes">6. Full PyTorch: continuous and discrete VAEs</h1>
+<h2 id="61-continuous-vae-reparameterization">6.1 Continuous VAE (reparameterization)</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">VAE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">784</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">400</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">z_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># encoder</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">x_dim</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">z_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc_lv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">z_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># decoder</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dec</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">z_dim</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">x_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_lv</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">reparameterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">eps</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">vae_loss</span><span class="p">(</span><span class="n">logits_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># logits + BCE-with-logits is more numerically stable than sigmoid + BCE</span>
+</span></span><span class="line"><span class="cl">    <span class="n">recon</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;sum&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># Closed-form KL: KL(N(mu, sigma^2) || N(0, I))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">kl</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">logvar</span> <span class="o">-</span> <span class="n">mu</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">logvar</span><span class="o">.</span><span class="n">exp</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">recon</span> <span class="o">+</span> <span class="n">kl</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Implementation notes</strong>:</p>
+<ul>
+<li>Use <code>binary_cross_entropy_with_logits</code> instead of <code>BCELoss + sigmoid</code> to avoid numerical issues in saturation regions.</li>
+<li>Compute the KL term in closed form (rather than via sampling) to reduce gradient variance.</li>
+<li>Optionally anneal KL ($\beta$ in $\beta$-VAE from 0 → 1) to mitigate posterior collapse.</li>
+</ul>
+<h2 id="62-discrete-latent-vae-categorical--gumbel-softmax">6.2 Discrete-latent VAE (categorical + Gumbel-Softmax)</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CategoricalVAE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">,</span> <span class="n">h_dim</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">n_cat</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_dim</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;n_cat independent categoricals, each with K = n_dim classes.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_cat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_dim</span> <span class="o">=</span> <span class="n">n_cat</span><span class="p">,</span> <span class="n">n_dim</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">x_dim</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                                 <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">n_cat</span> <span class="o">*</span> <span class="n">n_dim</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dec</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_cat</span> <span class="o">*</span> <span class="n">n_dim</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                                 <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">x_dim</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">hard</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Gumbel-Softmax along the class dimension</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">gumbel_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="n">tau</span><span class="p">,</span> <span class="n">hard</span><span class="o">=</span><span class="n">hard</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z_flat</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cat</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">(</span><span class="n">z_flat</span><span class="p">),</span> <span class="n">logits</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">cat_vae_loss</span><span class="p">(</span><span class="n">logits_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">q_logits</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Closed-form KL: KL(q || Uniform(K)) = log K - H(q).&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">recon</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">logits_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;sum&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">K</span> <span class="o">=</span> <span class="n">q_logits</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">log_q</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">q_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">q</span> <span class="o">=</span> <span class="n">log_q</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">kl</span> <span class="o">=</span> <span class="p">(</span><span class="n">q</span> <span class="o">*</span> <span class="p">(</span><span class="n">log_q</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">K</span><span class="p">)))))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">recon</span> <span class="o">+</span> <span class="n">kl</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Inside the training loop, anneal temperature:</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># tau = max(tau_min, tau0 * exp(-r * step))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>Implementation notes</strong>:</p>
+<ul>
+<li>Treat each latent as a $K$-way categorical; logits have shape <code>[B, n_cat, K]</code>, softmax over the <strong>last</strong> dimension.</li>
+<li>KL has the closed form $\mathrm{KL}(q\|\mathrm{Uniform})=\log K - H(q)$ — no sampling required.</li>
+<li><code>hard=True</code> enables ST-GS (forces a true discrete forward pass); <code>hard=False</code> keeps gradients smoother.</li>
+<li>Anneal: <code>tau0=1.0</code>, <code>tau_min=0.5</code>, <code>r=1e-5</code>, checked every ~1k steps.</li>
+</ul>
+<h1 id="7-common-training-pitfalls">7. Common training pitfalls</h1>
+<table>
+  <thead>
+      <tr>
+          <th>Symptom</th>
+          <th>Likely cause</th>
+          <th>Fix</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>NaN loss</strong></td>
+          <td>$\tau$ annealed too low; softmax over/underflow; or $u=0$ in $\log(-\log u)$</td>
+          <td>clamp $u\in[\epsilon, 1-\epsilon]$; keep $\tau_{\min}\ge 0.1$</td>
+      </tr>
+      <tr>
+          <td><strong>Gradient variance explodes</strong></td>
+          <td>One MC sample + tiny $\tau$</td>
+          <td>More MC samples per batch; slow the $\tau$ schedule</td>
+      </tr>
+      <tr>
+          <td><strong>Discrete structure not actually &ldquo;hard&rdquo;</strong></td>
+          <td>Using soft outputs at eval time</td>
+          <td>Set <code>hard=True</code> at inference, or <code>argmax</code>; switch to ST-GS late in training</td>
+      </tr>
+      <tr>
+          <td><strong>Posterior collapse</strong> (continuous VAE)</td>
+          <td>KL too strong from the start</td>
+          <td>Anneal $\beta$ from 0 → 1; use free-bits</td>
+      </tr>
+      <tr>
+          <td><strong>Discrete VAE doesn&rsquo;t learn structure</strong></td>
+          <td>Decoder too powerful, KL too weak</td>
+          <td>Reduce decoder capacity; lower KL weight, then raise it back</td>
+      </tr>
+      <tr>
+          <td><strong>Gradients insensitive to logits</strong></td>
+          <td>$\tau$ too large, output near-uniform</td>
+          <td>Lower $\tau$ or raise the learning rate</td>
+      </tr>
+      <tr>
+          <td><strong>Forward / backward mismatch</strong></td>
+          <td>ST-GS line written incorrectly</td>
+          <td>Re-check <code>y_hard - y_soft.detach() + y_soft</code></td>
+      </tr>
+  </tbody>
+</table>
+<h1 id="8-recent-work">8. Recent work</h1>
+<ul>
+<li><strong>Implicit Reparameterization Gradients</strong> (Figurnov et al., NeurIPS 2018) — uses the implicit function theorem to make Gamma, Beta, Dirichlet, Student-t reparameterizable, with low bias and clean derivations.</li>
+<li><strong>REBAR / RELAX</strong> (Tucker et al., NeurIPS 2017; Grathwohl et al., ICLR 2018) — combine Gumbel-Softmax with REINFORCE and learn a control variate via a neural network, yielding <strong>unbiased and lower-variance</strong> discrete gradient estimators.</li>
+<li><strong>Hard Concrete gates</strong> (Louizos et al., ICLR 2018) — stretch and clip Concrete/Gumbel-Softmax samples to $[0,1]$, producing differentiable gates with literal zeros for $L_0$ regularization and sparsification.</li>
+<li><strong>Top-$k$ Gumbel</strong> and <strong>Plackett–Luce</strong> — extend Gumbel-Max to <strong>without-replacement</strong> sampling of $k$ classes; useful for sparse attention and routing.</li>
+<li><strong>Permutation-equivariant relaxations</strong> (Mena et al., ICLR 2018) — Sinkhorn operator + Gumbel noise to differentiate through permutation matrices.</li>
+</ul>
+<h1 id="summary">Summary</h1>
+<ul>
+<li>In continuous settings, reparameterization rewrites a random variable $z$ as a deterministic, differentiable transform $g_\theta(\epsilon)$ of a fixed noise — gradients flow through the deterministic path back to the parameters. This is what makes VAEs trainable with SGD.</li>
+<li>In discrete settings, Gumbel-Max gives the exact equivalence &ldquo;logits + Gumbel noise + argmax = softmax sample&rdquo;; Gumbel-Softmax then softens the argmax into a temperature-scaled softmax, making the entire sampling step differentiable.</li>
+<li>The temperature $\tau$ is the central knob: small $\tau$ → low bias / high variance; large $\tau$ → the opposite. Annealing (large → small) is the key to stable training.</li>
+<li>When a strict discrete forward pass is required, use ST-GS: hard forward, soft backward — the most common engineering compromise.</li>
+<li>Versus REINFORCE, reparameterization-based estimators give 1–3 orders of magnitude lower gradient variance — without that, end-to-end discrete training would not be practical.</li>
+</ul>
+<h1 id="references">References</h1>
+<ul>
+<li>E. Jang, S. Gu, B. Poole. &ldquo;Categorical Reparameterization with Gumbel-Softmax.&rdquo; <em>ICLR</em>, 2017.</li>
+<li>C. Maddison, A. Mnih, Y. W. Teh. &ldquo;The Concrete Distribution: A Continuous Relaxation of Discrete Random Variables.&rdquo; <em>ICLR</em>, 2017.</li>
+<li>D. P. Kingma, M. Welling. &ldquo;Auto-Encoding Variational Bayes.&rdquo; <em>ICLR</em>, 2014.</li>
+<li>M. Figurnov, S. Mohamed, A. Mnih. &ldquo;Implicit Reparameterization Gradients.&rdquo; <em>NeurIPS</em>, 2018.</li>
+<li>G. Tucker et al. &ldquo;REBAR: Low-variance, unbiased gradient estimates for discrete latent variable models.&rdquo; <em>NeurIPS</em>, 2017.</li>
+<li>C. Louizos, M. Welling, D. P. Kingma. &ldquo;Learning Sparse Neural Networks through $L_0$ Regularization.&rdquo; <em>ICLR</em>, 2018.</li>
+<li>W. Kool, H. van Hoof, M. Welling. &ldquo;Stochastic Beams and Where to Find Them: The Gumbel-Top-$k$ Trick for Sampling Sequences Without Replacement.&rdquo; <em>ICML</em>, 2019.</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-youll-learn">What you&rsquo;ll learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#21-the-general-form">2.1 The general form</a></li>
+    <li><a href="#22-the-gaussian-case">2.2 The Gaussian case</a></li>
+    <li><a href="#23-in-the-vae">2.3 In the VAE</a></li>
+    <li><a href="#24-which-continuous-distributions-are-naturally-reparameterizable">2.4 Which continuous distributions are &ldquo;naturally&rdquo; reparameterizable?</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#31-the-difficulty">3.1 The difficulty</a></li>
+    <li><a href="#32-a-quick-tour-of-the-gumbel-distribution">3.2 A quick tour of the Gumbel distribution</a></li>
+    <li><a href="#33-the-gumbel-max-trick">3.3 The Gumbel-Max trick</a>
+      <ul>
+        <li><a href="#proof-probability-of-class-1">Proof (probability of class 1)</a></li>
+        <li><a href="#why-this-matters">Why this matters</a></li>
+      </ul>
+    </li>
+  </ul>
+
+  <ul>
+    <li><a href="#41-definition">4.1 Definition</a></li>
+    <li><a href="#42-the-temperature-bias-variance-trade-off">4.2 The temperature bias-variance trade-off</a></li>
+    <li><a href="#43-straight-through-gumbel-softmax-st-gs">4.3 Straight-Through Gumbel-Softmax (ST-GS)</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#51-score-function--reinforce-estimator">5.1 Score-function / REINFORCE estimator</a></li>
+    <li><a href="#52-empirical-comparison">5.2 Empirical comparison</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#61-continuous-vae-reparameterization">6.1 Continuous VAE (reparameterization)</a></li>
+    <li><a href="#62-discrete-latent-vae-categorical--gumbel-softmax">6.2 Discrete-latent VAE (categorical + Gumbel-Softmax)</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
+      <div class="row"><span>Word count</span><strong>2900</strong></div>
+      <div class="row"><span>Published</span><strong>Jul 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

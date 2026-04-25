@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>核方法：从理论到实战 (RKHS、常见核函数与超参数调优) · Chen Kai Blog</title>
+<meta name="description" content="理解核技巧、RKHS 理论与实用核函数选择。涵盖 RBF、多项式、Matern、周期核，含 sklearn 代码与调优流程图。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/standalone/%E6%A0%B8%E5%87%BD%E6%95%B0%E7%AE%80%E8%BF%B0/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/%E6%A0%B8%E5%87%BD%E6%95%B0%E7%AE%80%E8%BF%B0/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="核方法：从理论到实战 (RKHS、常见核函数与超参数调优)">
+<meta property="og:description" content="理解核技巧、RKHS 理论与实用核函数选择。涵盖 RBF、多项式、Matern、周期核，含 sklearn 代码与调优流程图。">
+<meta property="og:url" content="https://www.chenk.top/zh/standalone/%E6%A0%B8%E5%87%BD%E6%95%B0%E7%AE%80%E8%BF%B0/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+        
+      </div>
+      <h1>核方法：从理论到实战 (RKHS、常见核函数与超参数调优)</h1>
+      <p class="deck">理解核技巧、RKHS 理论与实用核函数选择。涵盖 RBF、多项式、Matern、周期核，含 sklearn 代码与调优流程图。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-12-27">December 27, 2024</time> · 13 min read · 6300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/ml/" class="tag">#ML</a><a href="/zh/tags/optimization/" class="tag">#Optimization</a><a href="/zh/tags/kernel-methods/" class="tag">#Kernel Methods</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>你手上是非线性数据，工具箱里却只有线性算法。核技巧（kernel trick）让你把这套线性算法直接用在非线性数据上——而且<strong>全程不需要把高维特征映射写出来</strong>。这篇文章先讲直觉，再补数学，最后给一套能直接搬到生产里的工具箱。</p>
+<h2 id="你将学到">你将学到</h2>
+<ul>
+<li>核技巧到底为什么能工作，又给你换来了什么</li>
+<li>数学基础：正定核、RKHS、Mercer 定理</li>
+<li>常见核函数：RBF、多项式、线性、Matern、周期核、sigmoid</li>
+<li>超参数调优：网格搜索、随机搜索、边际似然</li>
+<li>故障排查：过拟合、欠拟合、数值不稳定、尺度问题</li>
+<li>SVM、GP、Kernel PCA 的核函数选择决策树</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>线性代数基础（内积、特征分解）</li>
+<li>对 SVM 或高斯过程有概念性了解</li>
+<li>Python + scikit-learn</li>
+</ul>
+<hr>
+<h1 id="为什么核方法重要">为什么核方法重要</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/kernel-methods/fig1_kernel_trick.png" alt="核技巧：二维同心圆在三维变得线性可分" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="线性算法的天花板">线性算法的天花板</h2>
+<p>意外地多的常用算法——线性回归、PCA、线性 SVM、岭回归、Fisher 判别——都只在<strong>线性可分</strong>或<strong>有线性结构</strong>的数据上表现良好。可现实数据基本都不配合。</p>
+<p>最朴素的对策是<strong>手工造特征</strong>：加多项式项、交互项、对数变换、指示变量。这条路走得通，但有三个老大难：</p>
+<ul>
+<li><strong>繁琐。</strong> 需要领域知识反复试。</li>
+<li><strong>组合爆炸。</strong> $d$ 个原始特征两两相乘就有 $\binom{d+2}{2}$ 个二阶特征，三阶更夸张。</li>
+<li><strong>存不下也算不动。</strong> 高维 $\phi(x)$ 既要存又要算，代价直接顶上来。</li>
+</ul>
+<h2 id="核技巧把映射藏起来">核技巧：把映射藏起来</h2>
+<p>关键观察来了。如果你的算法只通过内积 $\langle \phi(x_i), \phi(x_j)\rangle$ 接触数据，那干脆别算 $\phi$，直接选一个函数</p>
+$$K(x_i, x_j) = \langle \phi(x_i), \phi(x_j) \rangle$$<p>让它<strong>直接吐出内积</strong>就行。算法在高维空间里能算出什么，现在照样能算出来，但 $\phi(x)$ 自始至终没出现过。</p>
+<blockquote>
+<p><strong>核技巧</strong> 把一个显式映射 $x \mapsto \phi(x)$ 换成了一个相似度函数 $K(x, y)$ 定义的隐式映射。</p>
+</blockquote>
+<p>上面的图把这件事讲透了。在原始二维空间里，两类点是同心圆，没有任何直线能把它们分开。把每个点抬升一下，$\phi(x) = (x_1, x_2, x_1^2 + x_2^2)$，两层圆环就被抬到了不同高度——一个<strong>平面</strong>就把它们切开了。多项式核 $K(x, y) = (\langle x, y\rangle + 1)^2$ 对应的就是所有二阶多项式特征，但你只算一个内积，不必存下那 $O(d^2)$ 个新坐标。</p>
+<h1 id="数学基础">数学基础</h1>
+<p>把核技巧从一个聪明的小动作升格为一套理论，靠的是三个结果：正定核（什么样的 $K$ 才算&quot;合法的内积&quot;？）、Mercer 定理（隐式特征空间长什么样？）、RKHS 构造（核方法到底是在什么函数空间上做优化？）。</p>
+<h2 id="正定核">正定核</h2>
+<p>一个对称函数 $K: \mathcal{X} \times \mathcal{X} \to \mathbb{R}$ 称为<strong>正定的</strong>，如果对任意有限点集 $\{x_1, \dots, x_n\}$ 和任意实向量 $c \in \mathbb{R}^n$，都有</p>
+$$\sum_{i,j=1}^n c_i c_j \, K(x_i, x_j) \;\geq\; 0.$$<p>等价地，<strong>Gram 矩阵</strong> $K_{ij} = K(x_i, x_j)$ 在任何采样下都半正定（PSD）。</p>
+<p>为什么这个性质这么关键：正定核<strong>恰好就是</strong>某个希尔伯特空间里的内积函数。所以选一个正定核，等价于选一个隐式特征映射——只是你不必把它写出来。</p>
+<h2 id="mercer-定理">Mercer 定理</h2>
+<p>如果 $K$ 在紧集上连续、对称、正定，那么它有谱分解</p>
+$$K(x, y) \;=\; \sum_{k=1}^{\infty} \lambda_k \, \phi_k(x) \, \phi_k(y), \qquad \lambda_k \geq 0,$$<p>其中 $\phi_k$ 是正交归一化的特征函数，$\lambda_k$ 是非负特征值。隐式特征映射就是</p>
+$$\phi(x) \;=\; \big(\sqrt{\lambda_1}\,\phi_1(x),\; \sqrt{\lambda_2}\,\phi_2(x),\; \dots\big).$$<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/kernel-methods/fig4_mercer.png" alt="Mercer 定理：把 RBF 核分解成特征函数之和" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>图里有两件事值得品一下：</p>
+<ul>
+<li><strong>特征值衰减很快。</strong> 少数几个分量就承载了核绝大部分&quot;能量&quot;。这正是 Nystrom、随机傅里叶特征这类低秩近似为什么能 work 的原因。</li>
+<li><strong>特征函数像傅里叶模式。</strong> RBF 核在区间上的前几个特征函数，是越来越振荡的光滑波包——核相当于在&quot;光滑函数基&quot;上度量相似度。</li>
+</ul>
+<p>对 RBF 核来说，谱是<strong>无穷的</strong>：每个 $\lambda_k > 0$。这就是大家口中那句&quot;RBF 的特征空间是无穷维的&quot;的真实含义。</p>
+<h2 id="再生核希尔伯特空间rkhs">再生核希尔伯特空间（RKHS）</h2>
+<p>Moore-Aronszajn 定理告诉我们：每个正定核唯一地对应一个函数希尔伯特空间 $\mathcal{H}_K$，满足两条性质：</p>
+<ol>
+<li>每个 $f \in \mathcal{H}_K$ 都是函数 $\mathcal{X} \to \mathbb{R}$。</li>
+<li><strong>再生性。</strong> 对任意 $f \in \mathcal{H}_K$ 和 $x \in \mathcal{X}$，$f(x) = \langle f, K(x, \cdot) \rangle_{\mathcal{H}_K}$。</li>
+</ol>
+<p>再生性是 RKHS 理论威力的来源：在某点取值这个动作变成了一个<strong>有界的线性运算</strong>，由跟 $K(x, \cdot)$ 做内积给出。</p>
+<p>实际后果就是大名鼎鼎的<strong>表示定理（representer theorem）</strong>。当你最小化一个正则化风险</p>
+$$\min_{f \in \mathcal{H}_K} \;\frac{1}{n}\sum_i L(y_i, f(x_i)) \;+\; \lambda \|f\|_{\mathcal{H}_K}^2,$$<p>最优解 $f^*$ 一定落在由 $\{K(x_i, \cdot)\}_{i=1}^n$ 张成的<strong>有限维子空间</strong>里：</p>
+$$f^*(x) \;=\; \sum_{i=1}^n \alpha_i \, K(x_i, x).$$<p>不管 $\mathcal{H}_K$ 是多么&quot;无穷维&quot;，你永远只需要 $n$ 个系数 $\alpha_i$。这正是核 SVM、高斯过程能算得动的结构性原因。</p>
+<h1 id="核技巧实战">核技巧实战</h1>
+<h2 id="核-svm">核 SVM</h2>
+<p>软间隔 SVM 的对偶问题是</p>
+$$\max_{\alpha} \;\sum_i \alpha_i \;-\; \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j \,\langle x_i, x_j \rangle, \qquad 0 \leq \alpha_i \leq C.$$<p>数据只通过内积 $\langle x_i, x_j\rangle$ 出现。把它替换成 $K(x_i, x_j)$，你就得到一个非线性分类器，<strong>优化问题、变量个数、求解器都不变</strong>。决策函数变成</p>
+$$f(x) \;=\; \sum_{i \in \mathrm{SV}} \alpha_i y_i \, K(x_i, x) + b.$$<h2 id="核-pca">核 PCA</h2>
+<p>标准 PCA 对 $d \times d$ 协方差矩阵做特征分解。核 PCA 改对 $n \times n$ 中心化 Gram 矩阵做特征分解。前几个特征向量 $\alpha^{(k)}$ 给出投影</p>
+$$z_k(x) \;=\; \sum_{i=1}^n \alpha_i^{(k)} \, K(x_i, x),$$<p>提取出非线性主成分，$\phi(x)$ 一次也不用具体化。</p>
+<h2 id="核岭回归">核岭回归</h2>
+<p>最小化 $\sum_i (y_i - f(x_i))^2 + \lambda \|f\|^2_{\mathcal{H}_K}$ 有闭式解</p>
+$$\hat{f}(x) = \mathbf{k}(x)^\top (K + \lambda I)^{-1} \mathbf{y},$$<p>其中 $\mathbf{k}(x)_i = K(x_i, x)$。这同时也是协方差为 $K$、噪声方差为 $\lambda$ 的高斯过程的后验均值——核岭回归和 GP 回归本质上是同一件事。</p>
+<h1 id="常见核函数理论与实战">常见核函数：理论与实战</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/kernel-methods/fig2_common_kernels.png" alt="同一个 moons 数据集上的四种核函数" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>挑同一份数据，只换核，决策边界的&quot;性格&quot;就完全变了。线性核拐不了弯；多项式核按代数曲线弯；RBF 紧贴数据；sigmoid 经常调皮捣蛋。下面是日用手册。</p>
+<h2 id="1-rbf高斯核">1. RBF（高斯）核</h2>
+$$K(x, y) = \exp\!\left(-\gamma \,\|x - y\|^2\right) \quad \text{或} \quad \exp\!\left(-\frac{\|x-y\|^2}{2\sigma^2}\right).$$<p>（scikit-learn 用 $\gamma$，许多教科书用 $\sigma$，关系是 $\gamma = 1/(2\sigma^2)$。）</p>
+<p><strong>性质。</strong> 无穷维特征空间，无穷阶可微，<strong>万能逼近</strong>——只要数据够、带宽合适，可以逼近紧集上任意连续函数。</p>
+<p><strong>何时使用。</strong> SVM、GP、核 PCA 的默认选择。任何你预期&quot;光滑、局部&quot;结构的场景。</p>
+<p><strong>超参数 $\gamma$（或 $\sigma$）。</strong> 这一个数控制了&quot;影响半径&quot;，是你需要做的最重要的决定，没有之一。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/kernel-methods/fig3_rbf_gamma.png" alt="RBF 的 γ 扫一遍：欠拟合、甜点区、过拟合" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>$\gamma$ 太大</strong>（$\sigma$ 太小）：每个训练点只影响自己。Gram 矩阵几乎退化成单位矩阵；模型把训练集背了下来；测试精度垮掉。</li>
+<li><strong>$\gamma$ 太小</strong>（$\sigma$ 太大）：所有点对所有点看起来都一样；核退化成常数；模型欠拟合。</li>
+<li><strong>甜点区。</strong> 在<strong>对数网格</strong>上做交叉验证找。一个不错的初值是<strong>中位数启发式</strong>：$\sigma \approx \mathrm{median}(\|x_i - x_j\|)$，相应地 $\gamma \approx 1/(2 \cdot \mathrm{median}^2)$。</li>
+</ul>
+<h2 id="2-多项式核">2. 多项式核</h2>
+$$K(x, y) = (\gamma\, \langle x, y \rangle + c)^d.$$<p><strong>性质。</strong> 有限维特征空间（所有不超过 $d$ 阶的单项式）。能显式捕捉到 $d$ 阶为止的交互。</p>
+<p><strong>何时使用。</strong> 稀疏高维且交互结构已知的数据（带 bigram 的文本分类、有上位效应的基因组学）。低维稠密数据上不要用——RBF 通常更强。</p>
+<p><strong>超参数。</strong> $d$ 实战里取 2 或 3；五阶以上几乎一定过拟合。$\gamma$ 缩放内积（对特征量纲敏感，<strong>先归一化</strong>）。$c$ 控制低阶与高阶项的权衡：$c = 0$ 只保留最高阶单项式，$c = 1$ 把各阶混起来。</p>
+<h2 id="3-线性核">3. 线性核</h2>
+$$K(x, y) = \langle x, y \rangle.$$<p>最朴素的核。没有特征映射，每次求值 $O(d)$，等价于直接跑线性算法。</p>
+<p><strong>何时使用。</strong> 数据本身线性可分，或者<strong>高维稀疏</strong>数据（文本、基因表达），或者作为基线对比。文本场景下线性 SVM 经常碾压 RBF——这里维度高反倒是优势：高维空间中的随机点彼此近似正交。</p>
+<h2 id="4-sigmoid-核">4. Sigmoid 核</h2>
+$$K(x, y) = \tanh(\gamma\, \langle x, y \rangle + c).$$<p>模仿神经网络激活的形式，但<strong>并不总是正定</strong>——只在某些 $\gamma, c$ 范围里成立。现代实践基本已经放弃它：想要神经网络风格的非线性，那就训练神经网络。这里列出来主要是为了让你在老代码里能认出它。</p>
+<h2 id="5-matern-核高斯过程">5. Matern 核（高斯过程）</h2>
+$$K_\nu(r) = \frac{2^{1-\nu}}{\Gamma(\nu)} \left(\frac{\sqrt{2\nu}\, r}{\ell}\right)^{\!\nu} \! K_\nu\!\left(\frac{\sqrt{2\nu}\, r}{\ell}\right), \qquad r = \|x - y\|.$$<p>Matern 核的<strong>平滑度参数 $\nu$ 可调</strong>：</p>
+<ul>
+<li>$\nu = 1/2$：指数核，样本路径连续但处处不可微。适合粗糙函数。</li>
+<li>$\nu = 3/2$：样本路径一阶可微。</li>
+<li>$\nu = 5/2$：二阶可微。贝叶斯优化里最常用的设置。</li>
+<li>$\nu \to \infty$：退化为 RBF（无穷光滑）。</li>
+</ul>
+<p><strong>何时使用。</strong> 高斯过程回归里几乎总是优先于 RBF。RBF 那种&quot;无穷光滑&quot;对真实函数来说强得不真实；Matern $\nu = 5/2$ 是最稳的默认值。</p>
+<h2 id="6-周期核时间序列">6. 周期核（时间序列）</h2>
+$$K(x, y) = \exp\!\left(-\frac{2 \sin^2(\pi \|x - y\| / p)}{\ell^2}\right).$$<p>捕捉<strong>严格周期性</strong>，周期为 $p$。常用做法是把它和 RBF 或线性核<strong>加在一起</strong>，建模&quot;趋势 + 季节性&quot;。</p>
+<p><strong>何时使用。</strong> 有季节性的时间序列（温度、电力负荷、销量），音频音高跟踪，任何有已知周期分量的信号。</p>
+<h1 id="超参数调优">超参数调优</h1>
+<h2 id="交叉验证首选方案">交叉验证（首选方案）</h2>
+<p>把数据切成 $k$ 折，用 $k-1$ 折训练、剩 1 折验证，平均得分。挑平均验证得分最好的那组超参数。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">GridSearchCV</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">StandardScaler</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.pipeline</span> <span class="kn">import</span> <span class="n">Pipeline</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="kn">import</span> <span class="n">SVC</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="s2">&#34;scaler&#34;</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>  <span class="c1"># RBF 之前一定要先标准化</span>
+</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="s2">&#34;svm&#34;</span><span class="p">,</span> <span class="n">SVC</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="s2">&#34;rbf&#34;</span><span class="p">)),</span>
+</span></span><span class="line"><span class="cl"><span class="p">])</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 在对数网格上搜——线性网格会浪费大半预算</span>
+</span></span><span class="line"><span class="cl"><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;svm__C&#34;</span><span class="p">:</span>     <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;svm__gamma&#34;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">grid</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">param_grid</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">scoring</span><span class="o">=</span><span class="s2">&#34;accuracy&#34;</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">grid</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;best:&#34;</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">best_params_</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">best_score_</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>超参数空间维度更高时，<strong>随机搜索</strong>比网格搜索更省样本：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">RandomizedSearchCV</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">loguniform</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">param_dist</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;svm__C&#34;</span><span class="p">:</span>     <span class="n">loguniform</span><span class="p">(</span><span class="mf">1e-2</span><span class="p">,</span> <span class="mf">1e2</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;svm__gamma&#34;</span><span class="p">:</span> <span class="n">loguniform</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e1</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">rs</span> <span class="o">=</span> <span class="n">RandomizedSearchCV</span><span class="p">(</span><span class="n">pipe</span><span class="p">,</span> <span class="n">param_dist</span><span class="p">,</span> <span class="n">n_iter</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">rs</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="边际似然高斯过程">边际似然（高斯过程）</h2>
+<p>GP 回归里可以通过最大化对数边际似然来调超参 $\theta$：</p>
+$$\log p(\mathbf{y} \mid \theta) = -\tfrac{1}{2} \mathbf{y}^\top (K_\theta + \sigma^2 I)^{-1} \mathbf{y} \;-\; \tfrac{1}{2} \log |K_\theta + \sigma^2 I| \;-\; \tfrac{n}{2}\log(2\pi).$$<p>这条路有原理性优势（不需要单独划验证集），而且式子能拆成&quot;拟合项 + 复杂度惩罚 + 常数&quot;——奥卡姆剃刀直接从数学里掉出来。需要警惕的是：数据噪声大、超参数多时，边际似然优化也会过拟合，加上一些弱先验（比如对长度尺度加对数正态先验）能稳很多。</p>
+<h1 id="诊断看-gram-矩阵">诊断：看 Gram 矩阵</h1>
+<p>核矩阵本身就是一面镜子，直接告诉你超参数是不是合理。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/kernel-methods/fig5_gram_matrix.png" alt="不同 RBF 带宽下 Gram 矩阵的结构" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>三个高斯簇上 RBF 核的三种状态（行按簇号排过序）：</p>
+<ul>
+<li><strong>$\gamma$ 太小。</strong> 矩阵均匀偏亮——所有点对看起来都差不多。特征值谱被一个模式主导。欠拟合。</li>
+<li><strong>$\gamma$ 在甜点区。</strong> 三个清晰的对角块浮现出来，每个簇一块。谱呈现明显的三阶台阶。核&quot;看见&quot;了簇结构。</li>
+<li><strong>$\gamma$ 太大。</strong> 矩阵塌缩成单位阵。谱平坦。每个点都是孤岛，泛化无从谈起。</li>
+</ul>
+<p>开发期两行代码即可检查：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.metrics.pairwise</span> <span class="kn">import</span> <span class="n">rbf_kernel</span>
+</span></span><span class="line"><span class="cl"><span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">rbf_kernel</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="n">g</span><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&#34;viridis&#34;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">();</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="故障排查">故障排查</h1>
+<h2 id="问题-1过拟合">问题 1：过拟合</h2>
+<p><strong>症状。</strong> 训练精度接近 1.0；测试精度差很多；Gram 矩阵看着接近对角阵。</p>
+<p><strong>原因。</strong> RBF $\gamma$ 太大（带宽太小）、多项式阶数过高、SVM $C$ 太大（正则化不够）。</p>
+<p><strong>修法。</strong> 减小 $\gamma$；降低多项式阶数；减小 $C$；加大 GP 噪声方差；加更多训练数据。</p>
+<h2 id="问题-2欠拟合">问题 2：欠拟合</h2>
+<p><strong>症状。</strong> 训练和测试精度都不行。预测几乎是常数。</p>
+<p><strong>原因。</strong> 用线性核处理非线性数据；RBF $\gamma$ 太小；SVM $C$ 太小。</p>
+<p><strong>修法。</strong> 沿表达力阶梯往上走：线性 → 多项式 → RBF；增大 $\gamma$；增大 $C$。</p>
+<h2 id="问题-3数值不稳定">问题 3：数值不稳定</h2>
+<p><strong>症状。</strong> GP 拟合报&quot;奇异矩阵&quot;；核 PCA 出现负特征值；SVM 求解器不收敛。</p>
+<p><strong>原因。</strong> Gram 矩阵秩亏或病态。常见诱因：重复点、自定义核非 PSD、$\gamma$ 极小。</p>
+<p><strong>修法。</strong></p>
+<ol>
+<li><strong>加抖动</strong>：<code>K = K + 1e-6 * np.eye(n)</code>。</li>
+<li><strong>标准化特征</strong>——基于距离的核（RBF、Matern）对量纲极其敏感。</li>
+<li><strong>去掉近重复行。</strong></li>
+<li><strong>核矩阵用 64 位浮点。</strong></li>
+<li><strong>自定义核要验 PSD</strong>：<code>np.all(np.linalg.eigvalsh(K) &gt;= -1e-8)</code>。</li>
+</ol>
+<h2 id="问题-4训练太慢">问题 4：训练太慢</h2>
+<p><strong>症状。</strong> $10^4$ 样本上 SVM 跑几小时；GP 回归过几千就跑不动。</p>
+<p><strong>原因。</strong> 核方法是 $O(n^2)$ 内存、$O(n^3)$ 计算（矩阵分解）。</p>
+<p><strong>修法。</strong></p>
+<ul>
+<li>能用<strong>线性核</strong>就用：<code>LinearSVC</code> / SGD 能轻松扩展到百万级。</li>
+<li><strong>Nystrom 近似</strong>（<code>sklearn.kernel_approximation.Nystroem</code>）：选 $m \ll n$ 个 landmark，得到一个显式的 $m$ 维特征映射。</li>
+<li><strong>随机傅里叶特征</strong>用于平移不变核（RBF、Matern）：显式映射维度 $D$，误差按 $1/\sqrt{D}$ 衰减。</li>
+<li><strong>稀疏 / 诱导点 GP</strong>（<code>gpytorch</code>、<code>GPy</code>）：把 GP 扩展到 $10^5$ 量级。</li>
+<li>$n \gtrsim 10^5$ 且结构复杂时，<strong>切到深度学习</strong>。</li>
+</ul>
+<h1 id="核函数选择决策树">核函数选择决策树</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/kernel-methods/fig6_decision_tree.png" alt="挑核函数的决策树" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>走这条路：</p>
+<ol>
+<li><strong>数据已经线性可分？</strong> 用<strong>线性核</strong>。又快又可解释，对稀疏高维数据通常很难被超越。</li>
+<li><strong>季节性强的时间序列？</strong> 用<strong>周期核</strong>（通常和某个光滑核加在一起）。</li>
+<li><strong>需要细粒度地控制函数光滑度（典型场景是 GP）？</strong> 用 <strong>Matern</strong>，$\nu$ 在 $\{1/2, 3/2, 5/2\}$ 里挑。</li>
+<li><strong>稀疏、高维、有已知交互（文本、基因组）？</strong> 先试<strong>线性</strong>，不行再上 $d = 2$ 的<strong>多项式</strong>。</li>
+<li><strong>以上都不是。</strong> 默认 <strong>RBF</strong>，在对数网格上调 $\gamma$ 和 $C$。</li>
+</ol>
+<h1 id="实战建议">实战建议</h1>
+<p><strong>1. 一定要标准化特征。</strong> RBF 和 Matern 是基于距离的；以&quot;百万&quot;为单位的特征会碾压以&quot;小数&quot;为单位的特征。每次都把 <code>StandardScaler</code>（重尾分布换 <code>RobustScaler</code>）放在核模型前面。</p>
+<p><strong>2. 在对数尺度上搜超参。</strong> $\gamma$、$C$、$\sigma$ 这类超参数是乘性作用的。线性网格会把预算大半浪费在某一段窄区间里；对数网格用同样的点数能覆盖好几个数量级。</p>
+<p><strong>3. 用 Pipeline 搭模型。</strong> <code>Pipeline([scaler, kernel_model])</code> 能保证 scaler 在每折训练数据上单独 fit，而不是在整份数据上 fit——否则你就把测试集的统计量泄露进了训练。</p>
+<p><strong>4. 核可以组合。</strong> 有效核的和与积仍然是有效核。<code>Matern * Periodic + WhiteNoise</code> 是&quot;光滑 + 周期 + 噪声&quot;的标准配方。</p>
+<p><strong>5. 自定义核要做 sanity check。</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">is_psd</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">K</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">tol</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="核方法-vs-深度学习">核方法 vs 深度学习</h1>
+<table>
+  <thead>
+      <tr>
+          <th>维度</th>
+          <th>核方法</th>
+          <th>深度学习</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>数据量</strong></td>
+          <td>小数据出色（$n < 10^4$）</td>
+          <td>需要大数据（$n \gtrsim 10^5$）</td>
+      </tr>
+      <tr>
+          <td><strong>可解释性</strong></td>
+          <td>高（RKHS、支持向量）</td>
+          <td>低（基本是黑盒）</td>
+      </tr>
+      <tr>
+          <td><strong>超参数</strong></td>
+          <td>少（核参数 + 正则）</td>
+          <td>多（架构、优化器、调度等）</td>
+      </tr>
+      <tr>
+          <td><strong>可扩展性</strong></td>
+          <td>差（$O(n^2)$ 内存、$O(n^3)$ 计算）</td>
+          <td>好（小批量、GPU）</td>
+      </tr>
+      <tr>
+          <td><strong>理论</strong></td>
+          <td>强（RKHS、Mercer、表示定理）</td>
+          <td>多半经验性</td>
+      </tr>
+      <tr>
+          <td><strong>不确定性</strong></td>
+          <td>GP 原生提供</td>
+          <td>需要外挂（集成、MC dropout、BNN）</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>用核方法的情形</strong>：数据中小规模、需要校准良好的不确定性（GP）、看重可解释性（SVM 的支持向量）。</p>
+<p><strong>用深度学习的情形</strong>：数据规模大、需要从原始信号（图像、音频、文本）里学表示、要拼可扩展性。</p>
+<p>这两条路并不互斥。**深度核学习（Deep Kernel Learning）**就是用神经网络做特征提取、上面套 GP——在合适的场景里能拿到两边的好处。</p>
+<h1 id="总结核方法的五步流程">总结：核方法的五步流程</h1>
+<ol>
+<li><strong>选核家族。</strong> 线性可分 → 线性核；否则默认 RBF；GP 用 Matern；季节性时间序列用周期核。</li>
+<li><strong>标准化特征。</strong> RBF / Matern / 周期核必须做。</li>
+<li><strong>对数网格调参。</strong> 交叉验证 $\gamma$、$C$、多项式阶数、长度尺度。</li>
+<li><strong>看诊断信号。</strong> 画 Gram 矩阵；接近对角 → 过拟合（减小 $\gamma$）；接近均匀 → 欠拟合（增大 $\gamma$）。</li>
+<li><strong>不够用就扩规模。</strong> $n \to 10^6$ 用线性核；非线性用 Nystrom / 随机特征；概率模型用稀疏 GP；结构主导时切深度学习。</li>
+</ol>
+<p><strong>关键超参数一览。</strong></p>
+<ul>
+<li><strong>RBF.</strong> $\gamma$（带宽）、$C$（正则化）。</li>
+<li><strong>多项式.</strong> $d$（阶数，最好 $\leq 3$）、$\gamma$、$c$。</li>
+<li><strong>Matern.</strong> $\nu$（平滑度，没特别理由就钉在 $5/2$）、$\ell$（长度尺度）。</li>
+</ul>
+<p><strong>常见坑。</strong></p>
+<ul>
+<li>忘了标准化特征（RBF 会&quot;沉默地&quot;把精度跌到比随机猜还差）。</li>
+<li>用 sigmoid 核（很多时候不正定，换别的）。</li>
+<li>$\gamma$、$C$ 在线性网格上搜（90% 的搜索预算被浪费）。</li>
+<li>在 CV 之前把 scaler fit 在整份数据上（测试信息泄露进训练）。</li>
+</ul>
+<h1 id="延伸阅读">延伸阅读</h1>
+<ul>
+<li>Hofmann, Scholkopf, Smola. <a href="https://arxiv.org/abs/math/0701907" target="_blank" rel="noopener noreferrer"><em>Kernel Methods in Machine Learning</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+（Annals of Statistics, 2008）。经典综述。</li>
+<li>Rasmussen and Williams. <a href="http://www.gaussianprocess.org/gpml/" target="_blank" rel="noopener noreferrer"><em>Gaussian Processes for Machine Learning</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+（MIT Press, 2006）。免费 PDF；GP 圣经。</li>
+<li>Scholkopf and Smola. <a href="https://mitpress.mit.edu/9780262536578/learning-with-kernels/" target="_blank" rel="noopener noreferrer"><em>Learning with Kernels</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+（MIT Press, 2002）。教科书级别的系统讲解。</li>
+<li>Rahimi and Recht. <a href="https://people.eecs.berkeley.edu/~brecht/papers/07.rah.rec.nips.pdf" target="_blank" rel="noopener noreferrer"><em>Random Features for Large-Scale Kernel Machines</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+（NeurIPS, 2007）。随机傅里叶特征原始论文。</li>
+<li>Wilson and Adams. <a href="https://arxiv.org/abs/1302.4245" target="_blank" rel="noopener noreferrer"><em>Gaussian Process Kernels for Pattern Discovery and Extrapolation</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+（ICML, 2013）。时间序列上的谱混合核。</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到">你将学到</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#线性算法的天花板">线性算法的天花板</a></li>
+    <li><a href="#核技巧把映射藏起来">核技巧：把映射藏起来</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#正定核">正定核</a></li>
+    <li><a href="#mercer-定理">Mercer 定理</a></li>
+    <li><a href="#再生核希尔伯特空间rkhs">再生核希尔伯特空间（RKHS）</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#核-svm">核 SVM</a></li>
+    <li><a href="#核-pca">核 PCA</a></li>
+    <li><a href="#核岭回归">核岭回归</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#1-rbf高斯核">1. RBF（高斯）核</a></li>
+    <li><a href="#2-多项式核">2. 多项式核</a></li>
+    <li><a href="#3-线性核">3. 线性核</a></li>
+    <li><a href="#4-sigmoid-核">4. Sigmoid 核</a></li>
+    <li><a href="#5-matern-核高斯过程">5. Matern 核（高斯过程）</a></li>
+    <li><a href="#6-周期核时间序列">6. 周期核（时间序列）</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#交叉验证首选方案">交叉验证（首选方案）</a></li>
+    <li><a href="#边际似然高斯过程">边际似然（高斯过程）</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#问题-1过拟合">问题 1：过拟合</a></li>
+    <li><a href="#问题-2欠拟合">问题 2：欠拟合</a></li>
+    <li><a href="#问题-3数值不稳定">问题 3：数值不稳定</a></li>
+    <li><a href="#问题-4训练太慢">问题 4：训练太慢</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
+      <div class="row"><span>Word count</span><strong>6300</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

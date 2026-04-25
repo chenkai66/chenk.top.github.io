@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>变分自编码器 (VAE)：从直觉到实现与调试 · Chen Kai Blog</title>
+<meta name="description" content="从零用 PyTorch 构建 VAE。涵盖 ELBO 目标函数、重参数化技巧、后验坍塌修复、beta-VAE，以及完整的训练流水线。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="变分自编码器 (VAE)：从直觉到实现与调试">
+<meta property="og:description" content="从零用 PyTorch 构建 VAE。涵盖 ELBO 目标函数、重参数化技巧、后验坍塌修复、beta-VAE，以及完整的训练流水线。">
+<meta property="og:url" content="https://www.chenk.top/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+        
+      </div>
+      <h1>变分自编码器 (VAE)：从直觉到实现与调试</h1>
+      <p class="deck">从零用 PyTorch 构建 VAE。涵盖 ELBO 目标函数、重参数化技巧、后验坍塌修复、beta-VAE，以及完整的训练流水线。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-06-05">June 5, 2024</time> · 11 min read · 5100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/ml/" class="tag">#ML</a><a href="/zh/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/zh/tags/generative-models/" class="tag">#Generative Models</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>普通自编码器只能压缩与重建，变分自编码器（VAE）则要有用得多——它学到的是一个<strong>平滑、有结构的潜在空间</strong>，你可以从里面<strong>采样</strong>，凭空生成新的数据。把编码器从&quot;输出一个向量&quot;改成&quot;输出一个分布&quot;，仅这一步，模型就从一个花哨的压缩器升级成了带可优化似然下界的生成模型。</p>
+<p>本文走完整条路径：先讲清楚自编码器为什么不能生成；再从 ELBO 推导出损失函数；接着拆解为什么必须用重参数化技巧让梯度走得通；然后给出可以直接跑的 PyTorch 实现；最后逐一分析每种你<strong>一定会遇到</strong>的失败模式，并给出对应的修复手段。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>自编码器的潜在空间为什么不能采样，VAE 改了哪一步</li>
+<li>ELBO 目标函数：重建项与 KL 项是怎么从一个似然下界中自然落出来的</li>
+<li>重参数化技巧：为什么直接采样会切断梯度，<code>mu + sigma * eps</code> 又是怎么救场的</li>
+<li>一份完整的 PyTorch 实现：编码器、解码器、损失、训练循环、采样、插值</li>
+<li>你迟早会遇到的失败模式：后验坍塌、采样模糊、NaN 梯度——含诊断与修复</li>
+<li>常用变体：beta-VAE、条件 VAE（CVAE）、层次化 VAE</li>
+<li>什么时候用 VAE，什么时候改用 GAN 或扩散模型</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>PyTorch 基础（<code>nn.Module</code>、前向/反向传播、优化器）</li>
+<li>概率基础（均值、方差、高斯分布）</li>
+<li>完整训练过神经网络的经验</li>
+</ul>
+<hr>
+<h1 id="为什么需要-vae自编码器与生成模型">为什么需要 VAE：自编码器与生成模型</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/fig1_vae_architecture.png" alt="VAE 架构：编码器输出 (mu, sigma)，重参数化采样后送入解码器，KL 把 q 拉向先验" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="自编码器基线">自编码器基线</h2>
+<p>自编码器由编码器 $f_\phi$ 和解码器 $g_\theta$ 组成。它把输入 $x$ 压成编码 $z = f_\phi(x)$，再把它重建成 $\hat{x} = g_\theta(z)$。训练目标就是重建误差：</p>
+$$
+\mathcal{L}_{\text{AE}}(x) = \|x - g_\theta(f_\phi(x))\|^2.
+$$<p>用作压缩或去噪没问题，但它给你的是一个<strong>确定性、无结构</strong>的潜在空间，具体表现为：</p>
+<ul>
+<li><strong>没法采样。</strong> 解码器只见过编码器输出的那些点。在空间里随便撒一个 $z$，大概率落进解码器从没拜访过的&quot;洞&quot;里，吐出来一坨垃圾。</li>
+<li><strong>插值很脆弱。</strong> 两张视觉相近的图可能映射到很远的位置；两张毫无关系的图反而挨在一起。在潜在空间里走一条直线，中间多半是无意义的过渡。</li>
+<li><strong>没有概率解释。</strong> 没有先验、没有似然，更没法谈&quot;这个生成样本到底有多可能&quot;。</li>
+</ul>
+<h2 id="vae-的改动把潜在变量概率化">VAE 的改动：把潜在变量概率化</h2>
+<p>VAE 把&quot;确定性的编码&quot;换成&quot;一个分布&quot;。编码器输出的是高斯分布的参数：</p>
+$$
+q_\phi(z \mid x) = \mathcal{N}\!\left(\mu_\phi(x),\, \sigma^2_\phi(x)\, I\right).
+$$<p>解码器定义似然 $p_\theta(x \mid z)$，再加上一个固定的先验 $p(z) = \mathcal{N}(0, I)$。</p>
+<p>仅这一改动，就带来了三件好事：</p>
+<ol>
+<li><strong>能采样了。</strong> 从 $p(z)$ 抽一个 $z$，喂给解码器，就得到一张全新的 $\hat{x}$。</li>
+<li><strong>插值变平滑。</strong> 相似输入对应的编码分布会<strong>互相重叠</strong>，于是潜在空间里的直线对应的就是一段连贯的渐变。</li>
+<li><strong>结构被强制约束。</strong> 损失中的 KL 项会主动把聚合后的后验拉向先验，让整个空间被均匀填满。</li>
+</ol>
+<h1 id="elbo-目标函数损失从哪里来">ELBO 目标函数：损失从哪里来</h1>
+<h2 id="推导下界">推导下界</h2>
+<p>我们要最大化数据的对数似然 $\log p_\theta(x)$，但它涉及对 $z$ 的积分，不可解。这时引入变分后验 $q_\phi(z \mid x)$，配合 Jensen 不等式，可以得到：</p>
+$$
+\log p_\theta(x) \;\geq\; \mathbb{E}_{q_\phi(z\mid x)}\!\left[\log p_\theta(x \mid z)\right] - D_{\mathrm{KL}}\!\left(q_\phi(z\mid x)\,\|\,p(z)\right).
+$$<p>右边就是大名鼎鼎的<strong>证据下界（ELBO）</strong>。最大化它，等价于同时做两件事：</p>
+<ul>
+<li><strong>重建项</strong> $\mathbb{E}_{q_\phi}[\log p_\theta(x \mid z)]$：解码器要能从编码器抽出的 $z$ 里把 $x$ 还原回来。</li>
+<li><strong>KL 项</strong> $D_{\mathrm{KL}}(q_\phi(z\mid x)\,\|\,p(z))$：编码器不能想跑哪儿跑哪儿，必须紧贴着先验。</li>
+</ul>
+<p>写代码时我们最小化的是负 ELBO。当编码器是高斯、先验是标准正态时，KL 项有逐维度的闭式解：</p>
+$$
+D_{\mathrm{KL}}\!\left(\mathcal{N}(\mu, \sigma^2)\,\|\,\mathcal{N}(0,1)\right)
+= \tfrac{1}{2}\!\left(\mu^2 + \sigma^2 - \log \sigma^2 - 1\right).
+$$<h2 id="为什么-kl-项是关键的承重墙">为什么 KL 项是关键的承重墙</h2>
+<p>去掉 KL 正则，立刻会出两个极端：</p>
+<ul>
+<li><strong>尖峰加空隙。</strong> 编码器把每个 $x$ 映到一个孤立的尖刺上，方差小得可怜。整个空间就是真空里的一串针——重建好看，生成无用。</li>
+<li><strong>解码器无视 $z$。</strong> 解码器太强时会出现反方向的崩坏（也就是后面要讲的&quot;后验坍塌&quot;）。</li>
+</ul>
+<p>KL 项强制不同��入的 $q_\phi(z\mid x)$ <strong>重叠</strong>并<strong>覆盖先验</strong>。这种重叠正是平滑插值的来源，也正是先验能当作采样器使用的前提。</p>
+<h1 id="重参数化技巧">重参数化技巧</h1>
+<h2 id="问题梯度穿不过随机采样">问题：梯度穿不过随机采样</h2>
+<p>要估算重建项，得先从 $q_\phi(z \mid x)$ 抽样 $z$ 再跑解码器。问题是采样是个<strong>随机节点</strong>，反向传播没法穿过&quot;抽一个随机数&quot;这一步——直接采样的话，编码器参数 $\phi$ 的梯度根本无定义。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/fig2_reparameterization.png" alt="朴素采样 vs. 重参数化版本：把随机的 epsilon 移到参数图之外，梯度才能顺着 mu 和 sigma 流回去" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="解决把随机性挪到参数路径之外">解决：把随机性挪到参数路径之外</h2>
+<p>把采样改写成<strong>参数的确定性函数</strong>加上<strong>外部噪声</strong>：</p>
+$$
+z = \mu_\phi(x) + \sigma_\phi(x) \odot \epsilon, \qquad \epsilon \sim \mathcal{N}(0, I).
+$$<p>这下 $\epsilon$ 与参数无关，从 $\phi$ 到 $z$ 是一条全程可微的通路，梯度可以干干净净地顺着 $\mu$ 和 $\sigma$ 走。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;以可微的方式从 N(mu, sigma^2) 采样 z。
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Args:
+</span></span></span><span class="line"><span class="cl"><span class="s2">        mu:     (B, latent_dim) 编码器均值
+</span></span></span><span class="line"><span class="cl"><span class="s2">        logvar: (B, latent_dim) 编码器对数方差
+</span></span></span><span class="line"><span class="cl"><span class="s2">    Returns:
+</span></span></span><span class="line"><span class="cl"><span class="s2">        z:      (B, latent_dim) 采样结果
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">eps</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>为什么预测 <code>logvar</code> 而不是 <code>sigma</code>？</strong> 两个理由，都是数值安全相关：</p>
+<ul>
+<li><code>logvar</code> 不受约束，任意实数都合法；直接预测 <code>sigma</code> 必须额外保证 $\sigma > 0$（比如套个 <code>softplus</code>），又多了一个出错点。</li>
+<li>KL 闭式解里本来就要用 $\log \sigma^2$。直接预测它，可以避免 <code>log(exp(...))</code> 来回折腾导致下溢。</li>
+</ul>
+<h1 id="完整的-pytorch-实现">完整的 PyTorch 实现</h1>
+<p>下面这份代码是经典的&quot;MNIST VAE&quot;：全连接的编解码器、20 维潜空间、伯努利解码器。故意写得很短，方便从头读到尾。</p>
+<h2 id="网络结构">网络结构</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Encoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">latent_dim</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span>       <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span>     <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc_logvar</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_logvar</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">latent_dim</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">output_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc4</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc3</span><span class="p">(</span><span class="n">z</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc4</span><span class="p">(</span><span class="n">h</span><span class="p">))</span>   <span class="c1"># 像素概率，落在 [0, 1]</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">VAE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">latent_dim</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">Decoder</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">reparameterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">z</span>          <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="损失函数">损失函数</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">vae_loss</span><span class="p">(</span><span class="n">recon_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;负 ELBO = 重建项 + beta * KL。
+</span></span></span><span class="line"><span class="cl"><span class="s2">
+</span></span></span><span class="line"><span class="cl"><span class="s2">    返回的是 batch 上的**总和**而不是均值，因为 KL 闭式解本身也是求和。
+</span></span></span><span class="line"><span class="cl"><span class="s2">    日志输出时按需除以 batch_size 即可换成&#34;每张图&#34;的数值。
+</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 伯努利重建（适用于二值化 MNIST）；</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># 连续值数据用 F.mse_loss(reduction=&#39;sum&#39;)。</span>
+</span></span><span class="line"><span class="cl">    <span class="n">recon</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy</span><span class="p">(</span><span class="n">recon_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;sum&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># KL(N(mu, sigma^2) || N(0, I))，对 batch 与潜在维度求和。</span>
+</span></span><span class="line"><span class="cl">    <span class="n">kl</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">logvar</span> <span class="o">-</span> <span class="n">mu</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">logvar</span><span class="o">.</span><span class="n">exp</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">recon</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">kl</span><span class="p">,</span> <span class="n">recon</span><span class="p">,</span> <span class="n">kl</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>把两项分别返回，多花一行代码值回票价：分别监控这两项是排查问题最有用的工具，没有之一。</p>
+<h2 id="训练循环">训练循环</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_vae</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">              <span class="n">warmup_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># KL 退火：beta 在前 warmup_epochs 轮里从 0 线性升到 1。</span>
+</span></span><span class="line"><span class="cl">        <span class="n">beta</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">epoch</span> <span class="o">/</span> <span class="n">warmup_epochs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ep_total</span> <span class="o">=</span> <span class="n">ep_recon</span> <span class="o">=</span> <span class="n">ep_kl</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">784</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">recon_x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="p">,</span> <span class="n">recon</span><span class="p">,</span> <span class="n">kl</span> <span class="o">=</span> <span class="n">vae_loss</span><span class="p">(</span><span class="n">recon_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">ep_total</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ep_recon</span> <span class="o">+=</span> <span class="n">recon</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">            <span class="n">ep_kl</span>    <span class="o">+=</span> <span class="n">kl</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">  beta=</span><span class="si">{</span><span class="n">beta</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  &#34;</span>
+</span></span><span class="line"><span class="cl">              <span class="sa">f</span><span class="s2">&#34;loss=</span><span class="si">{</span><span class="n">ep_total</span><span class="o">/</span><span class="n">n</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  recon=</span><span class="si">{</span><span class="n">ep_recon</span><span class="o">/</span><span class="n">n</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  &#34;</span>
+</span></span><span class="line"><span class="cl">              <span class="sa">f</span><span class="s2">&#34;kl=</span><span class="si">{</span><span class="n">ep_kl</span><span class="o">/</span><span class="n">n</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这循环里有三件事在实战中<strong>不要省</strong>：梯度裁剪、KL 退火、两项损失分别打印。读完下一节你就明白为什么。</p>
+<h1 id="你迟早会撞上的失败模式">你迟早会撞上的失败模式</h1>
+<p>下面这四种坑几乎人人会踩。每一节给出&quot;症状—根因—修复&quot;。</p>
+<h2 id="坑-1后验坍塌">坑 1：后验坍塌</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/fig6_posterior_collapse.png" alt="健康 VAE vs. 坍塌 VAE 的逐维 KL 对比，以及解码器在坍塌时输出的&quot;模糊均值图&quot;" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>症状。</strong> KL 项在前几轮直接掉到接近零，再也起不来；不管输入是什么，重建图都长得像训练集的&quot;平均脸&quot;；潜在空间随便走，输出毫无变化。</p>
+<p><strong>根因。</strong> 解码器太强，光靠 $\mu$ 就能重建；或者训练初期 KL 的压力盖过了重建信号。编码器发现只要把每个输入都映到 $\mu \approx 0,\ \sigma \approx 1$，就能用最便宜的方式满足 KL 项——也就是把 $x$ 直接忽略了。</p>
+<p><strong>有效的修复手段，按&quot;够用程度&quot;排序：</strong></p>
+<ol>
+<li><strong>KL 退火。</strong> 让 $\beta$ 从 0 出发，在前 10–20 轮里线性升到 1（上面的训练循环就是这么做的）。给重建一段时间扎根，再让 KL 上桌。</li>
+<li><strong>Free bits。</strong> 对那些 KL 已经足够小的维度停止施压，免得优化器把它们直接打死。
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">kl_per_dim</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">logvar</span> <span class="o">-</span> <span class="n">mu</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">logvar</span><span class="o">.</span><span class="n">exp</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl"><span class="n">kl_loss</span>    <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">kl_per_dim</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">free_bits</span><span class="p">))</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div></li>
+<li><strong>削弱解码器。</strong> 减小隐藏维、加 dropout；如果是自回归解码器，前几轮先把自回归捷径砍掉。</li>
+</ol>
+<h2 id="坑-2采样质量差">坑 2：采样质量差</h2>
+<p><strong>症状。</strong> 训练数据的重建看起来不错，但从 $z \sim \mathcal{N}(0, I)$ 采样出来的图就乱七八糟。</p>
+<p><strong>根因。</strong> 聚合后验 $\frac{1}{N}\sum_i q_\phi(z\mid x_i)$ 没有真正贴合先验 $p(z)$，先验里有大片解码器从没训练过的&quot;洞&quot;。</p>
+<p><strong>修复。</strong> 加大 $\beta$（1.5–4 比较常见）；扩大潜在维度（$20 \to 64$）；训得更久；换更强的解码器（图像任务用卷积）。如果到这一步样本质量还不够&quot;以假乱真&quot;，那基本就是在告诉你：换 GAN 或扩散模型。</p>
+<h2 id="坑-3重建模糊">坑 3：重建模糊</h2>
+<p><strong>症状。</strong> 重建认得出，但平滑、缺细节；损失停在一个不上不下的位置。</p>
+<p><strong>根因。</strong> 像素独立的似然（伯努利或逐像素高斯）只惩罚单像素误差，最优解就是条件均值——而在不确定性下，均值天然就是糊的。</p>
+<p><strong>修复。</strong> 加感知损失（VGG 特征、LPIPS）；自然图像换成离散 logistic 混合似然；或者改用层次化 VAE，让高层潜变量管全局结构、低层潜变量管细节。</p>
+<h2 id="坑-4nan-损失与梯度爆炸">坑 4：NaN 损失与梯度爆炸</h2>
+<p><strong>症状。</strong> 跑几百步以后损失变成 <code>NaN</code>，或者梯度范数突然飙升好几个数量级。</p>
+<p><strong>根因。</strong> 几乎一定是这几个里的某一个：<code>logvar</code> 没设上界，KL 里 <code>exp(logvar)</code> 溢出；BCE 的输入跑出了 <code>[0, 1]</code>；学习率过大；某个 batch 里重参数化的 $\sigma$ 下溢成 0。</p>
+<p><strong>修复：</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">logvar</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">logvar</span><span class="p">,</span> <span class="nb">min</span><span class="o">=-</span><span class="mi">10</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>        <span class="c1"># 给 exp(logvar) 兜底</span>
+</span></span><span class="line"><span class="cl"><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 优先 AdamW，lr 取 1e-3 ~ 3e-4，weight_decay 取 1e-5 量级</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="几个常用变体">几个常用变体</h1>
+<h2 id="beta-vae显式追求解耦">Beta-VAE：显式追求解耦</h2>
+<p>把 $\beta$ 调到大于 1，鼓励潜在维度去捕获<strong>相互独立</strong>的变化因子。ELBO 变成：</p>
+$$
+\mathcal{L} = \mathbb{E}_{q_\phi}[\log p_\theta(x\mid z)] - \beta \cdot D_{\mathrm{KL}}(q_\phi(z\mid x)\,\|\,p(z)),
+$$<p>做解耦实验时 $\beta \in [2, 10]$ 比较典型。代价也很直白：$\beta$ 越大，重建越糊。</p>
+<h2 id="条件-vae可控生成">条件 VAE：可控生成</h2>
+<p>把编码器和解码器都条件化在标签 $y$ 上（数字类别、属性向量都行）：</p>
+$$
+q_\phi(z \mid x, y), \qquad p_\theta(x \mid z, y).
+$$<p>代码层面，把 one-hot 的 $y$ 拼到编码器输入上，再在送入解码器前拼到 $z$ 上即可。要生成指定类别，只需采样 $z \sim \mathcal{N}(0, I)$，再附上想要的标签。</p>
+<h2 id="层次化-vae多尺度潜变量">层次化 VAE：多尺度潜变量</h2>
+<p>把潜变量堆成 $z_1, z_2, \ldots, z_L$，让 $z_{l-1}$ 在 $z_l$ 的条件下生成。下层潜变量管局部细节，上层管全局语义。现代变体（NVAE、Very Deep VAE）就是靠这一招把样本质量逼近扩散模型的。</p>
+<h1 id="实战经验">实战经验</h1>
+<h2 id="1-输入归一化要匹配你用的似然">1. 输入归一化要匹配你用的似然</h2>
+<p>BCE 期望像素落在 $[0, 1]$；高斯似然（MSE）则在零均值数据上更稳。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># MNIST：ToTensor() 已经给到 [0, 1]</span>
+</span></span><span class="line"><span class="cl"><span class="n">transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 连续数据：标准化到 [-1, 1]</span>
+</span></span><span class="line"><span class="cl"><span class="n">transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">    <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">]),</span>
+</span></span><span class="line"><span class="cl"><span class="p">])</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="2-潜在维度从小开始">2. 潜在维度从小开始</h2>
+<p>MNIST 这种规模，<code>latent_dim = 20</code> 是个合理起点。太小，重建被瓶颈卡死；太大，更容易后验坍塌，训练也变慢。</p>
+<h2 id="3-永远把重建项与-kl-项分开打印">3. 永远把重建项与 KL 项分开打印</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/fig5_elbo_decomposition.png" alt="训练过程中的 ELBO 分解：KL 退火让 KL 项干净地爬上来，重建项稳步下降" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>健康的训练曲线长这样：重建项单调下降，KL 稳定在一个非平凡的值（每个活跃维度几个 nat）。如果 KL 一直贴在零，你正在后验坍塌；如果 KL 爆掉，重建项在被忽视。</p>
+<h2 id="4-把潜在空间画出来">4. 把潜在空间画出来</h2>
+<p>二维潜空间（或更高维做 PCA/t-SNE 之后），按类别给 $\mu(x)$ 上色画散点图。你应该看到的是<strong>有重叠但仍可分</strong>的若干类簇，并且大致铺满先验。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/fig3_latent_scatter.png" alt="MNIST 上的 VAE 潜空间：十个类形成相互重叠的平滑簇，大致填满先验" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">plot_latent_space</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mus</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mu</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">784</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">mus</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mu</span><span class="o">.</span><span class="n">cpu</span><span class="p">());</span> <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mus</span>    <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">mus</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">mus</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">mus</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&#34;tab10&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">();</span> <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&#34;VAE 潜在空间 (2D)&#34;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="5-既要采样也要在样本之间走">5. 既要采样，也要在样本之间走</h2>
+<p>下面这两个工具函数你会反复用到：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">sample_vae</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">fc_mu</span><span class="o">.</span><span class="n">out_features</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mu1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x1</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">mu2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x2</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">z</span>  <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ts</span><span class="p">)</span> <span class="o">*</span> <span class="n">mu1</span> <span class="o">+</span> <span class="n">ts</span> <span class="o">*</span> <span class="n">mu2</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一段干净的潜在插值，是证明你的 VAE &ldquo;真的训出来了&quot;的最有说服力的可视化。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/fig4_latent_interpolation.png" alt="潜在空间插值：在两个数字编码之间走一条直线，每一步都解码出一张图" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h1 id="vae-与其他生成模型的对比">VAE 与其他生成模型的对比</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8-vae-%E8%AF%A6%E8%A7%A3/fig7_model_comparison.png" alt="潜空间几何对比，以及 AE / VAE / GAN 在五个能力维度上的表现" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<table>
+  <thead>
+      <tr>
+          <th>模型</th>
+          <th>潜在空间</th>
+          <th>训练</th>
+          <th>生成质量</th>
+          <th>可解释性</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>VAE</strong></td>
+          <td>显式、平滑</td>
+          <td>稳定（ELBO）</td>
+          <td>凑合，偏糊</td>
+          <td>高（常常解耦）</td>
+      </tr>
+      <tr>
+          <td><strong>GAN</strong></td>
+          <td>隐式</td>
+          <td>不稳定（对抗）</td>
+          <td>锐利、逼真</td>
+          <td>低（常见模式坍塌）</td>
+      </tr>
+      <tr>
+          <td><strong>扩散模型</strong></td>
+          <td>隐式（按步）</td>
+          <td>稳定（去噪）</td>
+          <td>当前最佳</td>
+          <td>中（迭代采样）</td>
+      </tr>
+      <tr>
+          <td><strong>自回归</strong></td>
+          <td>无</td>
+          <td>稳定（似然）</td>
+          <td>高，但慢</td>
+          <td>低（顺序生成）</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>适合用 VAE 的场景：</strong> 下游任务需要显式潜在表示；想要训练稳定、不搞对抗博弈；关心解耦或可解释性。</p>
+<p><strong>别用 VAE 的场景：</strong> 目标是照片级真实（用 GAN 或扩散）；只要序列上的似然（用自回归）。</p>
+<h1 id="总结vae-五步走">总结：VAE 五步走</h1>
+<ol>
+<li><strong>编码器</strong>输出 $\mu_\phi(x)$ 与 $\log \sigma^2_\phi(x)$，不再是单个确定的编码。</li>
+<li><strong>重参数化：</strong> $z = \mu + \sigma \odot \epsilon$，$\epsilon \sim \mathcal{N}(0, I)$——梯度顺利通过。</li>
+<li><strong>解码器</strong>从 $z$ 重建 $\hat{x}$。</li>
+<li><strong>损失 = 负 ELBO：</strong> 重建 + $\beta$ · KL。</li>
+<li><strong>采样：</strong> $z \sim \mathcal{N}(0, I) \to$ 解码器 $\to \hat{x}$。</li>
+</ol>
+<p><strong>最影响结果的几个超参：</strong> 潜在维度（从 20 起步）、$\beta$（默认 1.0，追解耦时调大）、学习率（Adam 1e-3，配 10–20 轮 KL 退火，梯度裁剪 1.0）。</p>
+<p><strong>早晚会踩的坑：</strong> 后验坍塌（用 KL 退火或 free bits）、采样模糊（加大潜在维度或感知损失）、NaN 损失（钳制 <code>logvar</code>、裁剪梯度）。</p>
+<h1 id="延伸阅读">延伸阅读</h1>
+<ul>
+<li>Kingma, D.P. &amp; Welling, M. (2013). <a href="https://arxiv.org/abs/1312.6114" target="_blank" rel="noopener noreferrer"><em>Auto-Encoding Variational Bayes</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. VAE 的原始论文。</li>
+<li>Higgins, I. et al. (2017). <a href="https://openreview.net/forum?id=Sy2fzU9gl" target="_blank" rel="noopener noreferrer"><em>beta-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+.</li>
+<li>Doersch, C. (2016). <a href="https://arxiv.org/abs/1606.05908" target="_blank" rel="noopener noreferrer"><em>Tutorial on Variational Autoencoders</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. 推导细致的入门教程。</li>
+<li>Sohn, K., Lee, H. &amp; Yan, X. (2015). <a href="https://papers.nips.cc/paper/2015/hash/8d55a249e6baa5c06772297520da2051-Abstract.html" target="_blank" rel="noopener noreferrer"><em>Learning Structured Output Representation using Deep Conditional Generative Models</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. CVAE 论文。</li>
+<li>Vahdat, A. &amp; Kautz, J. (2020). <a href="https://arxiv.org/abs/2007.03898" target="_blank" rel="noopener noreferrer"><em>NVAE: A Deep Hierarchical Variational Autoencoder</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. 把 VAE 样本质量推到能与 GAN 对抗的层次化版本。</li>
+<li>Kingma, D.P. &amp; Welling, M. (2019). <a href="https://arxiv.org/abs/1906.02691" target="_blank" rel="noopener noreferrer"><em>An Introduction to Variational Autoencoders</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+. 全面的综述专著。</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#自编码器基线">自编码器基线</a></li>
+    <li><a href="#vae-的改动把潜在变量概率化">VAE 的改动：把潜在变量概率化</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#推导下界">推导下界</a></li>
+    <li><a href="#为什么-kl-项是关键的承重墙">为什么 KL 项是关键的承重墙</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#问题梯度穿不过随机采样">问题：梯度穿不过随机采样</a></li>
+    <li><a href="#解决把随机性挪到参数路径之外">解决：把随机性挪到参数路径之外</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#网络结构">网络结构</a></li>
+    <li><a href="#损失函数">损失函数</a></li>
+    <li><a href="#训练循环">训练循环</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#坑-1后验坍塌">坑 1：后验坍塌</a></li>
+    <li><a href="#坑-2采样质量差">坑 2：采样质量差</a></li>
+    <li><a href="#坑-3重建模糊">坑 3：重建模糊</a></li>
+    <li><a href="#坑-4nan-损失与梯度爆炸">坑 4：NaN 损失与梯度爆炸</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#beta-vae显式追求解耦">Beta-VAE：显式追求解耦</a></li>
+    <li><a href="#条件-vae可控生成">条件 VAE：可控生成</a></li>
+    <li><a href="#层次化-vae多尺度潜变量">层次化 VAE：多尺度潜变量</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#1-输入归一化要匹配你用的似然">1. 输入归一化要匹配你用的似然</a></li>
+    <li><a href="#2-潜在维度从小开始">2. 潜在维度从小开始</a></li>
+    <li><a href="#3-永远把重建项与-kl-项分开打印">3. 永远把重建项与 KL 项分开打印</a></li>
+    <li><a href="#4-把潜在空间画出来">4. 把潜在空间画出来</a></li>
+    <li><a href="#5-既要采样也要在样本之间走">5. 既要采样，也要在样本之间走</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5100</strong></div>
+      <div class="row"><span>Published</span><strong>Jun 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

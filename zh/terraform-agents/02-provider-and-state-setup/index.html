@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="zh" data-translation="/en/terraform-agents/02-provider-and-state-setup/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>用 Terraform 给 AI Agent 上云（二）：Provider、认证与 OSS 上的远程 State · Chen Kai Blog</title>
+<meta name="description" content="钉死 alicloud provider 版本，在 AK/SK、AssumeRole、ECS RAM role 三种认证方式之间正确选择，把 tfstate 放到 OSS 并用 Tablestore 加锁，外加让 dev/staging/prod 不互相踩脚的 workspace 模式。再加上初学者第一天必踩的十几个坑。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 Terraform 给 AI Agent 上云（二）：Provider、认证与 OSS 上的远程 State">
+<meta property="og:description" content="钉死 alicloud provider 版本，在 AK/SK、AssumeRole、ECS RAM role 三种认证方式之间正确选择，把 tfstate 放到 OSS 并用 Tablestore 加锁，外加让 dev/staging/prod 不互相踩脚的 workspace 模式。再加上初学者第一天必踩的十几个坑。">
+<meta property="og:url" content="https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-3);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Terraform Agents</a>
+         · Chapter 2
+      </div>
+      <h1>用 Terraform 给 AI Agent 上云（二）：Provider、认证与 OSS 上的远程 State</h1>
+      <p class="deck">钉死 alicloud provider 版本，在 AK/SK、AssumeRole、ECS RAM role 三种认证方式之间正确选择，把 tfstate 放到 OSS 并用 Tablestore 加锁，外加让 dev/staging/prod 不互相踩脚的 workspace 模式。再加上初学者第一天必踩的十几个坑。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-03-14">March 14, 2026</time> · 8 min read · 3700 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/terraform/" class="tag">#Terraform</a><a href="/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" class="tag">#阿里云</a><a href="/zh/tags/%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD%E5%8D%B3%E4%BB%A3%E7%A0%81/" class="tag">#基础设施即代码</a><a href="/zh/tags/ai-agent/" class="tag">#AI Agent</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/en/terraform-agents/02-provider-and-state-setup/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>这一篇你不再是读，是开始动手。读完之后你会有：</p>
+<ol>
+<li><code>alicloud</code> Terraform provider 装好且版本钉死</li>
+<li>认证接好——用对的方式，不是方便的方式</li>
+<li>远程 state 放在 OSS，用 Tablestore 加锁</li>
+<li>三个 workspace（<code>dev</code>、<code>staging</code>、<code>prod</code>），共用 backend、隔离 state</li>
+<li>一个能跑通的 <code>terraform plan</code>（即使配置是空的）</li>
+</ol>
+<p>本篇还不会建出任何 Agent 资源。我们打的是后续每一篇都会假设的地基。</p>
+<h2 id="第-0-步装-terraform">第 0 步：装 Terraform</h2>
+<p>不展开——官方《Install Terraform》文档覆盖了所有 OS。macOS 上：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">brew tap hashicorp/tap
+</span></span><span class="line"><span class="cl">brew install hashicorp/tap/terraform
+</span></span><span class="line"><span class="cl">terraform version
+</span></span><span class="line"><span class="cl"><span class="c1"># Terraform v1.9.x</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># on darwin_arm64</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>钉到一个近期稳定版。阿里云文档以 <code>&gt;= 0.12</code> 为基线测试，但新项目应该用 <code>&gt;= 1.9</code>。新版本有真实的人体工程学改进（<code>for_each</code>、<code>optional()</code>、改进过的 <code>moved</code> block）。</p>
+<h2 id="第-1-步钉死-provider-版本">第 1 步：钉死 provider 版本</h2>
+<p>建一个项目目录、一个 <code>versions.tf</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="c1"># versions.tf
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">terraform</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  required_version</span> <span class="o">=</span><span class="n"> &#34;&gt;</span><span class="o">=</span> <span class="m">1</span><span class="p">.</span><span class="m">9</span><span class="err">&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">required_providers</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    alicloud</span> <span class="o">=</span> {
+</span></span><span class="line"><span class="cl"><span class="n">      source</span>  <span class="o">=</span> <span class="s2">&#34;aliyun/alicloud&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      version</span> <span class="o">=</span> <span class="s2">&#34;~&gt; 1.230&#34;</span><span class="c1">   # 1.230.x 都允许，1.231.0 拒绝
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    }
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>~&gt; 1.230</code> 约束允许 <code>1.230.0</code> 到 <code>1.230.x</code>，挡住 <code>1.231.0</code>。这是合理默认。一旦你把 <code>terraform init</code> 自动生成的 <code>.terraform.lock.hcl</code> 也提交到 git，连 provider 的精确版本和 checksum 都被锁了。同事后面跑 <code>terraform init</code> 拿到的 provider 字节级一致。</p>
+<p>早钉版本是便宜的保险。alicloud provider 在 minor 版本之间发布过 break change（最近一次大的是 1.220 附近的 OSS bucket schema 重构）。你早晚要升级——故意升、在 PR 里、看 plan diff 升，而不是某个同事电脑上意外升。</p>
+<h2 id="第-2-步认证三种选择按优劣排序">第 2 步：认证——三种选择按优劣排序</h2>
+<p>provider 需要阿里云凭证。真实选择有三种，按职业认可度递增排序：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig2_auth_methods.png" alt="三种 alicloud provider 认证方式" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="方案-a静态-aksk仅限个人电脑">方案 A：静态 AK/SK（仅限个人电脑）</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">ALICLOUD_ACCESS_KEY</span><span class="o">=</span><span class="s2">&#34;LTAI5tXXXXXXXXXXXXXX&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">ALICLOUD_SECRET_KEY</span><span class="o">=</span><span class="s2">&#34;XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">ALICLOUD_REGION</span><span class="o">=</span><span class="s2">&#34;cn-shanghai&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>provider 自动发现这些环境变量。<strong>绝对不要</strong>把 key 写进 <code>.tf</code> 文件。state file 不存 secret，但 <code>provider {}</code> block 存，而那个 block 是要提交到 git 的。</p>
+<p>如果 AK/SK 是只能��� Terraform 管的资源的子账号，单人项目里这是可以接受的。任何共享场景，跳到方案 B。</p>
+<h3 id="方案-bassumeroleci-runner">方案 B：AssumeRole（CI runner）</h3>
+<p>CI runner 不该带长期有效的 AK。给 CI runner 一个只有一种权限的 AK——对目标 role 的 <code>sts:AssumeRole</code>——让 Terraform 在 apply 时去 assume：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">provider</span> <span class="s2">&#34;alicloud&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  region</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">region</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">assume_role</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    role_arn</span>           <span class="o">=</span> <span class="s2">&#34;acs:ram::${var.account_id}:role/TerraformDeployRole&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    session_name</span>       <span class="o">=</span> <span class="s2">&#34;ci-${var.commit_sha}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    session_expiration</span> <span class="o">=</span> <span class="m">3600</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>真正的写权限在 role 上；AK 只有 assume 的权利。STS session 短期有效（默认一小时），ActionTrail 全审计，trust policy 一摘就立刻失效。GitLab CI、GitHub Actions、Jenkins runner 都该用这个模式。</p>
+<h3 id="方案-cecs-ram-role堡垒机--iac-服务的-runner">方案 C：ECS RAM Role（堡垒机 / IaC 服务的 runner）</h3>
+<p>如果 <code>terraform apply</code> 跑在阿里云 ECS 实例上——比如团队的运维堡垒机，或阿里云托管的 IaC 服务 runner——给实例挂一个 RAM role，provider 自动从实例元数据拿凭证：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">provider</span> <span class="s2">&#34;alicloud&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  region</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">region</span><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">  # 不需要 assume_role，不需要 env vars，provider 自动从
+</span></span></span><span class="line"><span class="cl"><span class="c1">  # http://100.100.100.200/latest/meta-data/ram/security-credentials/ 读取
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>任何配置、任何环境变量、任何文件里都没有 secret。轮转自动。这是金标准。</p>
+<blockquote>
+<p><strong>实操提示：</strong> 不管选哪种，都要显式设 <code>ALICLOUD_REGION</code>（或者 <code>provider { region = ... }</code>）。不设的话 provider 不取默认——你会在 <code>terraform plan</code> 时拿到一个让人莫名其妙的 &ldquo;Region must be specified&rdquo; 错误。这事我栽过不止一次。</p>
+</blockquote>
+<h2 id="第-3-步state为什么本地-tfstate-是个坑">第 3 步：State——为什么本地 tfstate 是个坑</h2>
+<p>跑 <code>terraform apply</code> 时，默认 Terraform 会把 <code>terraform.tfstate</code> 写在当前目录。这个文件是你基础设施存在与否的真相源。三件事会出问题：</p>
+<ol>
+<li><strong>丢失。</strong> 删掉目录，Terraform 就以为什么都不存在。下次 <code>apply</code> 试图重建一切（或者因为重复而失败）。</li>
+<li><strong>冲突。</strong> 两个工程师同时跑 <code>apply</code> 能把 state 文件搞坏。</li>
+<li><strong>明文密钥。</strong> 某些 resource 属性（数据库密码、密钥材料）会落到 tfstate 里。放在笔记本上不好，提交到 git 更糟——而且真有人这么干。</li>
+</ol>
+<p>修法是 <strong>远程 state</strong> + <strong>state 锁</strong>。阿里云上典型的搭配是 OSS + Tablestore：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig1_state_backend.png" alt="OSS &#43; Tablestore 的远程 state 与锁" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>OSS 持有真正的 <code>terraform.tfstate</code> 文件（开版本控制——出问题时一条 CLI 就能恢复）。Tablestore 持有一个很小的&quot;锁&quot;行，Terraform 在每次 apply 之前写、apply 之后删。如果第二个 apply 在第一个还持锁的时候启动，它会等或失败——绝不会同时跑两个。</p>
+<h2 id="第-4-步bootstrap-backend先有鸡还是先有蛋">第 4 步：bootstrap backend（先有鸡还是先有蛋）</h2>
+<p>承载 backend 的 OSS bucket 和 Tablestore……得先于 backend 存在。诚实的做法是用一个单独的 <code>bootstrap/</code> 目录、用 <em>本地</em> state file 把它们建出来，然后再也不动它。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="c1"># bootstrap/main.tf —— 跑一次，只在这个目录里留 local tfstate
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">provider</span> <span class="s2">&#34;alicloud&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  region</span> <span class="o">=</span> <span class="s2">&#34;cn-shanghai&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_oss_bucket&#34; &#34;tfstate&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  bucket</span> <span class="o">=</span> <span class="s2">&#34;ck-tfstate-prod&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  acl</span>    <span class="o">=</span> <span class="s2">&#34;private&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">versioning</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    status</span> <span class="o">=</span> <span class="s2">&#34;Enabled&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">server_side_encryption_rule</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    sse_algorithm</span> <span class="o">=</span> <span class="s2">&#34;KMS&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">lifecycle</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    prevent_destroy</span> <span class="o">=</span> <span class="kt">true</span><span class="c1">   # 永远别让 terraform destroy 掉这个 bucket
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_ots_instance&#34; &#34;tflock&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>        <span class="o">=</span> <span class="s2">&#34;tf-state-lock&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Terraform state lock&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  instance_type</span> <span class="o">=</span> <span class="s2">&#34;Capacity&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_ots_table&#34; &#34;tflock&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  instance_name</span> <span class="o">=</span> <span class="k">alicloud_ots_instance</span><span class="p">.</span><span class="k">tflock</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  table_name</span>    <span class="o">=</span> <span class="s2">&#34;TerraformLock&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">primary_key</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    name</span> <span class="o">=</span> <span class="s2">&#34;LockID&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    type</span> <span class="o">=</span> <span class="s2">&#34;String&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl"><span class="n">  time_to_live</span>  <span class="o">=</span> <span class="err">-</span><span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="n">  max_version</span>   <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>进 <code>bootstrap/</code>，<code>terraform init &amp;&amp; terraform apply</code>。约 30 秒。然后把 local tfstate 归档到某处（我放 1Password 里做最后一道备份），从此不再从这个目录跑 Terraform。</p>
+<h2 id="第-5-步配置-backend">第 5 步：配置 backend</h2>
+<p>回到真实项目，加上：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="c1"># backend.tf
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">terraform</span> {
+</span></span><span class="line"><span class="cl">  <span class="k">backend</span> <span class="s2">&#34;oss&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    bucket</span>              <span class="o">=</span> <span class="s2">&#34;ck-tfstate-prod&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    prefix</span>              <span class="o">=</span> <span class="s2">&#34;agents/&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    key</span>                 <span class="o">=</span> <span class="s2">&#34;terraform.tfstate&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    region</span>              <span class="o">=</span> <span class="s2">&#34;cn-shanghai&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    tablestore_endpoint</span> <span class="o">=</span> <span class="s2">&#34;https://tf-state-lock.cn-shanghai.ots.aliyuncs.com&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    tablestore_table</span>    <span class="o">=</span> <span class="s2">&#34;TerraformLock&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    encrypt</span>             <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>prefix</code> 让你在一个 bucket 里塞多个 state 文件——后面把基础设施拆成多个 Terraform 项目时很方便。<code>encrypt = true</code> 开 OSS 端加密（bucket 级别我们已经开了 KMS 规则，但纵深防御从不嫌多）。</p>
+<p>跑：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform init
+</span></span><span class="line"><span class="cl"><span class="c1"># Initializing the backend...</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Successfully configured the backend &#34;oss&#34;!</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Initializing provider plugins...</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># - Installing aliyun/alicloud v1.230.x...</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果挂 &ldquo;AccessDenied&rdquo;，是你的认证 role 没有 bucket 上的 <code>oss:GetObject</code>/<code>PutObject</code>。最小 role policy：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;Version&#34;</span><span class="p">:</span> <span class="s2">&#34;1&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;Statement&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Effect&#34;</span><span class="p">:</span> <span class="s2">&#34;Allow&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Action&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;oss:GetObject&#34;</span><span class="p">,</span> <span class="s2">&#34;oss:PutObject&#34;</span><span class="p">,</span> <span class="s2">&#34;oss:DeleteObject&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Resource&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;acs:oss:*:*:ck-tfstate-prod/agents/*&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Effect&#34;</span><span class="p">:</span> <span class="s2">&#34;Allow&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Action&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;ots:GetRow&#34;</span><span class="p">,</span> <span class="s2">&#34;ots:PutRow&#34;</span><span class="p">,</span> <span class="s2">&#34;ots:DeleteRow&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;Resource&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;acs:ots:*:*:instance/tf-state-lock/table/TerraformLock&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>附给你认证用的 role。不要直接给 <code>oss:*</code>——backend role 也要最小权限，因为它在你的 CI runner 里。</p>
+<h2 id="第-6-步用-workspace-隔离环境">第 6 步：用 workspace 隔离环境</h2>
+<p>workspace 就是同一个 backend 里的另一份 state 文件。默认 workspace——很贴心地——叫 <code>default</code>。把你需要的其他几个建出来：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform workspace new dev
+</span></span><span class="line"><span class="cl">terraform workspace new staging
+</span></span><span class="line"><span class="cl">terraform workspace new prod
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">terraform workspace list
+</span></span><span class="line"><span class="cl"><span class="c1">#   default</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># * prod</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   dev</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#   staging</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">terraform workspace <span class="k">select</span> dev
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>HCL 里 <code>terraform.workspace</code> 解析成当前 workspace 名，你可以用它参数化资源规模：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">locals</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  is_prod</span> <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  ecs_count</span>        <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span> <span class="err">?</span> <span class="m">3</span> <span class="err">:</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="n">  ecs_instance_type</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span> <span class="err">?</span> <span class="s2">&#34;ecs.c7.xlarge&#34; : &#34;ecs.c7.large&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  rds_class</span>         <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span> <span class="err">?</span> <span class="s2">&#34;pg.x4.large.2c&#34; : &#34;pg.n2.medium.1c&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>干净的替代是每个环境一份 <code>*.tfvars</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform plan -var-file<span class="o">=</span>env/dev.tfvars
+</span></span><span class="line"><span class="cl">terraform plan -var-file<span class="o">=</span>env/prod.tfvars
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>我把 <code>tfvars</code> 用于&quot;显然不同的配置&quot;（CIDR、region、实例数），把 <code>terraform.workspace</code> 只用于条件式 <code>is_prod</code> 开关。混用没问题——一个项目里挑一种作为主机制就行。</p>
+<h2 id="第-7-步五条命令的循环">第 7 步：五条命令的循环</h2>
+<p>日常 Terraform 就五条命令：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig3_init_apply_loop.png" alt="你会跑几百次的五条命令循环" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform fmt        <span class="c1"># 规范缩进，pre-commit hook</span>
+</span></span><span class="line"><span class="cl">terraform validate   <span class="c1"># 静态 schema 校验，&lt;1s</span>
+</span></span><span class="line"><span class="cl">terraform plan       <span class="c1"># 期望 vs 真实的 diff，仔细看</span>
+</span></span><span class="line"><span class="cl">terraform apply      <span class="c1"># 发 API 调用</span>
+</span></span><span class="line"><span class="cl">terraform show       <span class="c1"># 看当前 state</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>三条规则：</p>
+<ol>
+<li><strong>apply 之前一定要看 plan 输出。</strong> 它会告诉你接下来要发生什么——哪些资源会创建（<code>+</code>）、原地更新（<code>~</code>）、强制重建（<code>-/+</code>）、销毁（<code>-</code>）。原地→重建那种箭头尤其会偷偷带停机。</li>
+<li><strong>CI 里把 plan 和 apply 拆成两步。</strong> 先 <code>terraform plan -out=tfplan</code>，把 plan 输出贴到 PR，等人工 approve，merge 时 <code>terraform apply tfplan</code>。绝不要 push 自动 apply。</li>
+<li><strong>别跳过 <code>state</code> 命令。</strong> <code>terraform state list</code> 列出所有当前管理的资源；<code>terraform state show &lt;addr&gt;</code> 看单个资源的全部属性。debug 奇怪 drift 时这就是起点。</li>
+</ol>
+<h2 id="第一天必踩的八个坑">第一天必踩的八个坑</h2>
+<p>按它们坑到我的顺序：</p>
+<ol>
+<li><strong><code>terraform init</code> 时 <code>Error: Failed to query available provider packages</code>。</strong> GFW。设 <code>HTTPS_PROXY</code>，或者按官方《Configure an acceleration solution for Terraform initialization》文档——镜像在 <code>https://mirrors.aliyun.com/terraform/</code>。</li>
+<li><strong><code>Error: state lock</code>。</strong> 上一次 apply Ctrl-C 了，锁残留。<code>terraform force-unlock &lt;LOCK_ID&gt;</code>（错误信息里有 ID）。先确认确实没在跑别的 apply。</li>
+<li><strong><code>Error: Region must be specified</code>。</strong> 设 <code>ALICLOUD_REGION</code> 环境变量或 <code>provider</code> block 里的 <code>region</code>。</li>
+<li><strong>backend init 时 <code>AccessDenied</code>。</strong> OSS bucket prefix 上的 RAM 权限不对。再核第 5 步的 policy。</li>
+<li><strong>Tablestore 上 <code>InvalidParameter.NotFound</code>。</strong> bootstrap 错了 region。Tablestore endpoint 和 OSS bucket 必须在同一 region。</li>
+<li><strong><code>Provider produced inconsistent result after apply</code>。</strong> 几乎总是 provider 升级后 <code>.terraform/</code> 缓存没清。<code>rm -rf .terraform .terraform.lock.hcl &amp;&amp; terraform init</code>。</li>
+<li><strong><code>Resource already exists</code>。</strong> 你在控制台手建过这个资源。要么删掉，要么 import：<code>terraform import alicloud_vpc.main vpc-uf6xxxxxx</code>。</li>
+<li><strong>刚 apply 完一个资源，立刻 <code>terraform plan</code> 又出 diff。</strong> &ldquo;Drift&rdquo;。要么有人去控制台动了，要么 provider 的读逻辑和创建逻辑不一致。看 diff 里具体哪个属性；通常修法是把那个属性显式写出来，让 Terraform 不再&quot;注意到&quot;差异。</li>
+</ol>
+<blockquote>
+<p><strong>实操提示：</strong> 每次 <code>apply</code> 之后立刻再跑一次 <code>terraform plan</code>，哪怕你以为没改。plan 应该是空的。如果不是，你已经有 drift——drift 留得越久越难和。</p>
+</blockquote>
+<h2 id="下一篇">下一篇</h2>
+<p>第三篇造第一块真实基础设施：可复用的 <code>vpc-baseline</code> module。VPC、跨三个 zone 的三个 vSwitch、NAT 网关、EIP、安全组基线、KMS key。后面每一篇都会用它，它也是我所有 Agent stack 里被复制粘贴最多的 module。</p>
+<p>如果这篇你跑通了，你现在应该能 <code>terraform init</code>、<code>terraform workspace select dev</code>、<code>terraform plan</code> 看到 &ldquo;No changes.&quot;。这就是地基。后面所有东西都摞在它上面。</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/"><span class="title">用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/"><span class="title">用 Terraform 给 AI Agent 上云（三）：可复用的 VPC 与安全基线</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#第-0-步装-terraform">第 0 步：装 Terraform</a></li>
+    <li><a href="#第-1-步钉死-provider-版本">第 1 步：钉死 provider 版本</a></li>
+    <li><a href="#第-2-步认证三种选择按优劣排序">第 2 步：认证——三种选择按优劣排序</a>
+      <ul>
+        <li><a href="#方案-a静态-aksk仅限个人电脑">方案 A：静态 AK/SK（仅限个人电脑）</a></li>
+        <li><a href="#方案-bassumeroleci-runner">方案 B：AssumeRole（CI runner）</a></li>
+        <li><a href="#方案-cecs-ram-role堡垒机--iac-服务的-runner">方案 C：ECS RAM Role（堡垒机 / IaC 服务的 runner）</a></li>
+      </ul>
+    </li>
+    <li><a href="#第-3-步state为什么本地-tfstate-是个坑">第 3 步：State——为什么本地 tfstate 是个坑</a></li>
+    <li><a href="#第-4-步bootstrap-backend先有鸡还是先有蛋">第 4 步：bootstrap backend（先有鸡还是先有蛋）</a></li>
+    <li><a href="#第-5-步配置-backend">第 5 步：配置 backend</a></li>
+    <li><a href="#第-6-步用-workspace-隔离环境">第 6 步：用 workspace 隔离环境</a></li>
+    <li><a href="#第-7-步五条命令的循环">第 7 步：五条命令的循环</a></li>
+    <li><a href="#第一天必踩的八个坑">第一天必踩的八个坑</a></li>
+    <li><a href="#下一篇">下一篇</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Terraform Agents</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>8 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3700</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Linux 系统服务管理 · Chen Kai Blog</title>
+<meta name="description" content="一份关于 systemd 的可用心智模型：PID 1、unit 与 target、服务生命周期、自定义 unit 文件的写法、journalctl 过滤、用 timer 替代 cron，以及一套有纪律的排障流程。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/linux/%E7%B3%BB%E7%BB%9F%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linux/%E7%B3%BB%E7%BB%9F%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux 系统服务管理">
+<meta property="og:description" content="一份关于 systemd 的可用心智模型：PID 1、unit 与 target、服务生命周期、自定义 unit 文件的写法、journalctl 过滤、用 timer 替代 cron，以及一套有纪律的排障流程。">
+<meta property="og:url" content="https://www.chenk.top/zh/linux/%E7%B3%BB%E7%BB%9F%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+         · Chapter 6
+      </div>
+      <h1>Linux 系统服务管理</h1>
+      <p class="deck">一份关于 systemd 的可用心智模型：PID 1、unit 与 target、服务生命周期、自定义 unit 文件的写法、journalctl 过滤、用 timer 替代 cron，以及一套有纪律的排障流程。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-03-07">March 7, 2022</time> · 17 min read · 8300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/linux/" class="tag">#Linux</a><a href="/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/" class="tag">#云计算</a><a href="/zh/tags/%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86/" class="tag">#系统管理</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Linux 上所谓的&quot;服务&quot;，本质上是一种&quot;在那里待命&quot;的长驻进程：负责对时、监听 SSH、处理 HTTP 请求、凌晨三点跑一次备份。这些进程几乎从来不会由人手工启动——必须有人在开机时拉起它们、在崩溃时把它们拉回来、抓住它们的日志、决定谁依赖谁、关机时按顺序优雅停掉。在所有现代发行版上，承担这个角色的就是 <strong>systemd</strong>。</p>
+<p>这篇文章是我希望自己第一次被丢到生产服务器面前时就有人塞给我的那种&quot;可用心智模型&quot;。我们先从&quot;为什么需要一个独立的服务管理器&quot;讲起，把 unit / target 的模型搭起来，把日常真正会用的 <code>systemctl</code> 命令过一遍，再把一份 unit 文件逐行拆开看，最后覆盖与之相邻的几块阵地：用 <code>journalctl</code> 查日志、用 <code>.timer</code> 单元替代 cron，以及一套&quot;服务起不来该怎么办&quot;的步骤化排查清单。</p>
+<h1 id="1-为什么需要服务管理器">1. 为什么需要服务管理器</h1>
+<h2 id="systemd-之前的世界">systemd 之前的世界</h2>
+<p>裸的 Linux 内核能做的事情很有限：加载驱动、挂载根文件系统、然后启动唯一的一个程序（PID 1）。除此之外的一切都是别人的问题。历史上承担&quot;别人&quot;这个角色的是 <strong>SysV init</strong>：一个小程序，从 <code>/etc/init.d/</code> 读取脚本、按字典序一个一个跑过去。每个脚本都是一段手写的 shell，自己负责把守护进程 fork 到后台、写 PID 文件、并假装知道服务到底起没起来。</p>
+<p>这套办法能跑，但它累积了三个结构性问题：</p>
+<ol>
+<li><strong>串行启动很慢。</strong> 在一台现代服务器上挨个跑 80 个 init 脚本，多核 CPU 大半时间在等 I/O。</li>
+<li><strong>依赖关系藏在脚本自己里。</strong> nginx 需要先有网络？那��就指望字典序帮你忙（<code>S20network</code> 排在 <code>S80nginx</code> 前面），或者在脚本里撒几个 <code>sleep</code>。听起来有多脆弱，实际就有多脆弱。</li>
+<li><strong>没有共享的状态概念。</strong> 每个守护进程都自己决定怎么进入后台、PID 写哪里、日志写哪里、崩了怎么重启。init 系统除了&quot;脚本退出码是不是 0&quot;以外，没有任何办法知道&quot;sshd 现在到底活着没&quot;。</li>
+</ol>
+<p>systemd 把这一切替换成一个统一的监管者：它能区分&quot;启动命令返回了&quot;和&quot;服务真的就绪了&quot;，能并行尽可能多的事情，并把发生过的一切都写进结构化的日志。</p>
+<h2 id="一张图看懂-systemd-模型">一张图看懂 systemd 模型</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/service-management/fig1_systemd_architecture.png" alt="systemd 架构：PID 1、unit 与 target" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>从上往下三层：</p>
+<ul>
+<li><strong>PID 1</strong>——<code>systemd</code> 本身，由内核作为第一个用户态进程启动。系统运行期间它永不退出。</li>
+<li><strong>Unit</strong>——系统上每一个可被管理的对象都是一个 <em>unit</em>：一个守护进程（<code>.service</code>）、一个等连接的套接字（<code>.socket</code>）、一个定时任务（<code>.timer</code>）、一个挂载点（<code>.mount</code>），等等。systemd 读取 unit 文件、追踪每个 unit 的状态、并在状态之间驱动它。</li>
+<li><strong>Target</strong>——把若干 unit 组合在一起的&quot;同步点&quot;。<code>multi-user.target</code> 是经典的&quot;机器起来了、对外提供服务&quot;状态；<code>graphical.target</code> 在它之上再叠一层桌面。Target 取代了 SysV 的 <code>runlevel</code> 概念，但更灵活——任何 unit 都可以把任何 target 拉进来。</li>
+</ul>
+<p>具体来说，当你敲 <code>systemctl restart nginx</code> 时，你是在请求 PID 1 把 <code>nginx.service</code> 这个 unit 走一遍状态机：停掉当前进程组、等它退、再次执行 <code>ExecStart</code>、监视就绪、刷新缓存的状态。本文后面所有命令，都是在这个主题上的变奏。</p>
+<h2 id="值得记住的几种-unit-类型">值得记住的几种 unit 类型</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Unit 类型</th>
+          <th>管理什么</th>
+          <th>例子</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>.service</code></td>
+          <td>长驻进程（90% 的场景）</td>
+          <td><code>sshd.service</code>、<code>nginx.service</code></td>
+      </tr>
+      <tr>
+          <td><code>.socket</code></td>
+          <td>监听套接字，首次连接时再拉起对应服务</td>
+          <td><code>sshd.socket</code>、<code>docker.socket</code></td>
+      </tr>
+      <tr>
+          <td><code>.target</code></td>
+          <td>一组 unit 的命名集合，作为同步点</td>
+          <td><code>multi-user.target</code>、<code>network-online.target</code></td>
+      </tr>
+      <tr>
+          <td><code>.timer</code></td>
+          <td>触发另一个 unit 的定时器（cron 的替代）</td>
+          <td><code>logrotate.timer</code>、<code>apt-daily.timer</code></td>
+      </tr>
+      <tr>
+          <td><code>.mount</code></td>
+          <td>一个挂载点，由 <code>/etc/fstab</code> 或 unit 文件派生</td>
+          <td><code>home.mount</code>、<code>var-log.mount</code></td>
+      </tr>
+      <tr>
+          <td><code>.path</code></td>
+          <td>监视文件或目录，发生变化时激活某个 unit</td>
+          <td><code>systemd-tmpfiles-clean.path</code></td>
+      </tr>
+      <tr>
+          <td><code>.slice</code></td>
+          <td>一个 cgroup 容器，用来对一组 unit 统一施加资源限制</td>
+          <td><code>system.slice</code>、<code>user.slice</code></td>
+      </tr>
+  </tbody>
+</table>
+<p>本文里说&quot;服务&quot;基本上就是指 <code>.service</code> unit。其他类型共享同一套生命周期和同一套管理命令，所以理解了 service，剩下的都是顺势的事。</p>
+<h1 id="2-systemctl日常会用的那些命令">2. systemctl：日常会用的那些命令</h1>
+<p><code>systemctl</code> 是你的唯一入口。把常用子命令记到肌肉里是值得的——在一台繁忙的服务器上，你一天会敲它几十遍。</p>
+<h2 id="启停重启reload">启停、重启、reload</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl start  nginx       <span class="c1"># 立即生效，但不会跨重启保留</span>
+</span></span><span class="line"><span class="cl">sudo systemctl stop   nginx
+</span></span><span class="line"><span class="cl">sudo systemctl restart nginx      <span class="c1"># 先停再起（会断掉正在处理的连接）</span>
+</span></span><span class="line"><span class="cl">sudo systemctl reload  nginx      <span class="c1"># 让守护进程重新读配置</span>
+</span></span><span class="line"><span class="cl">                                  <span class="c1"># （只有 unit 文件里定义了 ExecReload 才管用）</span>
+</span></span><span class="line"><span class="cl">sudo systemctl status  nginx      <span class="c1"># 当前状态 + 最近 10 行日志</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>restart</code> 和 <code>reload</code> 的区别在生产环境里很要紧。<code>restart</code> 永远管用，但会把服务正在做的事情拦腰打断；<code>reload</code> 优雅得多——nginx 的 reload 会拉起新的 worker、让老 worker 把现有连接处理完——但这事只有服务作者能实现。<code>systemctl cat nginx.service</code> 可以告诉你它有没有定义 <code>ExecReload=</code>。</p>
+<h2 id="开机自启的开关">开机自启的开关</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span>  nginx      <span class="c1"># 下次开机自启（创建一个 .wants/ 软链接）</span>
+</span></span><span class="line"><span class="cl">sudo systemctl disable nginx      <span class="c1"># 把那个软链接删掉</span>
+</span></span><span class="line"><span class="cl">sudo systemctl is-enabled nginx   <span class="c1"># 输出：enabled / disabled / static / masked</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span>  --now nginx   <span class="c1"># 一步搞定：enable + start</span>
+</span></span><span class="line"><span class="cl">sudo systemctl disable --now nginx   <span class="c1"># 一步搞定：disable + stop</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>enable</code> 和 <code>start</code> 是两件独立的事。一个刚装好的包通常会被启动，但不会被设成自启——它会跑到下次重启然后消失。<code>--now</code> 标志把这两件事合并，避免你忘掉其中之一。</p>
+<p>还有个微妙的命令：<strong><code>mask</code></strong>——比 <code>disable</code> 更狠。它会把 unit 指向 <code>/dev/null</code>，结果是你不可能&quot;不小心&quot;启动它，也不可能被别的 unit 作为依赖拉起来。当你确定要把一个服务彻底&quot;隔离&quot;时使用（<code>sudo systemctl mask firewalld</code>）；用 <code>unmask</code> 撤回。</p>
+<h2 id="列举与查看">列举与查看</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemctl list-units --type<span class="o">=</span>service --state<span class="o">=</span>running   <span class="c1"># 现在跑着的</span>
+</span></span><span class="line"><span class="cl">systemctl list-units --type<span class="o">=</span>service --all             <span class="c1"># systemd 知道的全部</span>
+</span></span><span class="line"><span class="cl">systemctl list-units --type<span class="o">=</span>service --state<span class="o">=</span>failed    <span class="c1"># 排障的起点</span>
+</span></span><span class="line"><span class="cl">systemctl list-unit-files --type<span class="o">=</span>service              <span class="c1"># 磁盘上所有 unit 文件，无论是否 enable</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">systemctl cat   sshd.service                          <span class="c1"># unit 文件内容（含所有 drop-in 覆盖）</span>
+</span></span><span class="line"><span class="cl">systemctl show  sshd.service                          <span class="c1"># systemd 追踪的所有属性</span>
+</span></span><span class="line"><span class="cl">systemctl list-dependencies sshd.service              <span class="c1"># After/Requires/Wants 的依赖树</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>其中两个被严重低估。<code>systemctl cat</code> 是<em>正确</em>查看 unit 文件的方式——它会把 <code>/usr/lib/systemd/system/</code> 下的基础文件和 <code>/etc/systemd/system/&lt;unit&gt;.d/</code> 下的 drop-in 覆盖拼起来，这正是 systemd 自己看到的。<code>systemctl list-dependencies</code> 则把启动顺序图可视化出来，当某个服务因为某个上游没起而起不来时，这个命令是救命的。</p>
+<h1 id="3-服务的生命周期">3. 服务的生命周期</h1>
+<p>服务一旦启动，就开始在一个小型状态机里活动。<code>systemctl status</code> 输出里的每一行状态，都是这个状态机里的一个标签。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/service-management/fig2_service_lifecycle.png" alt="服务生命周期：systemctl status 报告的状态" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ul>
+<li><strong>inactive</strong>——unit 存在，但没有对应的进程在跑。</li>
+<li><strong>activating</strong>——<code>ExecStart=</code> 正在执行。<code>Type=simple</code> 时这一步几乎一闪而过；<code>Type=notify</code> 则会停在这里直到服务调用 <code>sd_notify(READY=1)</code>。</li>
+<li><strong>active</strong>——服务在跑。对大多数服务来说意味着主进程活着；对 <code>oneshot</code> 单元来说意味着命令成功返回。</li>
+<li><strong>deactivating</strong>——<code>ExecStop=</code> 正在执行，或者 systemd 在发送信号（先 SIGTERM，超过 <code>TimeoutStopSec</code> 后 SIGKILL）。</li>
+<li><strong>failed</strong>——服务非零退出、被信号杀死，或者 watchdog 触发。停在这个状态直到你重启或重置（<code>systemctl reset-failed</code>）。</li>
+</ul>
+<p>最关键的一条转换是图里那条虚线回路：<code>failed → activating</code>。配上 <code>Restart=on-failure</code>（或者 <code>Restart=always</code>），systemd 会把 <code>failed</code> 视为暂态，等 <code>RestartSec</code> 秒后再次执行 <code>ExecStart=</code>。这就是为什么你在 systemd 之上不再需要 Monit 之类的东西——监管者本身已经在那里了。</p>
+<h1 id="4-写一个属于你自己的服务">4. 写一个属于你自己的服务</h1>
+<p>从&quot;我有个脚本&quot;到&quot;它能扛得住重启和崩溃&quot;，中间只隔着一个 unit 文件。假设你在 <code>/usr/local/bin/myapp</code> 放了一个 HTTP 服务程序，想让它表现得像一个真正的服务。</p>
+<h2 id="一个最小可用的-unit-文件">一个最小可用的 unit 文件</h2>
+<p>新建 <code>/etc/systemd/system/myapp.service</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">My Custom Application</span>
+</span></span><span class="line"><span class="cl"><span class="na">After</span><span class="o">=</span><span class="s">network-online.target</span>
+</span></span><span class="line"><span class="cl"><span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Service]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Type</span><span class="o">=</span><span class="s">simple</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/myapp --port 8080</span>
+</span></span><span class="line"><span class="cl"><span class="na">Restart</span><span class="o">=</span><span class="s">on-failure</span>
+</span></span><span class="line"><span class="cl"><span class="na">RestartSec</span><span class="o">=</span><span class="s">5</span>
+</span></span><span class="line"><span class="cl"><span class="na">User</span><span class="o">=</span><span class="s">myapp</span>
+</span></span><span class="line"><span class="cl"><span class="na">Group</span><span class="o">=</span><span class="s">myapp</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Install]</span>
+</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>接着让 systemd 注意到它、启动它、并设为自启：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl daemon-reload          <span class="c1"># 重新读取磁盘上的 unit 文件</span>
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now myapp     <span class="c1"># 现在跑起来 + 每次开机都跑</span>
+</span></span><span class="line"><span class="cl">sudo systemctl status myapp
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>完了。这个服务现在崩溃后自动重启、重启后能回来、以非 root 用户运行，stdout/stderr 都进了 journal，可以用 <code>journalctl -u myapp</code> 查询。</p>
+<h2 id="unit-文件的解剖">unit 文件的解剖</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/service-management/fig3_unit_file_anatomy.png" alt="unit 文件结构详解" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>文件分成三段，每一段回答一个不同的问题。</p>
+<h3 id="unit这是什么谁依赖谁"><code>[Unit]</code>——这是什么、谁依赖谁</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">My Custom Application       # 一行人类可读的描述</span>
+</span></span><span class="line"><span class="cl"><span class="na">Documentation</span><span class="o">=</span><span class="s">https://example.com/docs   # 会显示在 `systemctl status` 里</span>
+</span></span><span class="line"><span class="cl"><span class="na">After</span><span class="o">=</span><span class="s">network-online.target              # 顺序：在它之后启动</span>
+</span></span><span class="line"><span class="cl"><span class="na">Wants</span><span class="o">=</span><span class="s">network-online.target              # 弱依赖：把它拉进来，但它挂了我不挂</span>
+</span></span><span class="line"><span class="cl"><span class="na">Requires</span><span class="o">=</span><span class="s">postgresql.service              # 强依赖：它停我也停</span>
+</span></span><span class="line"><span class="cl"><span class="na">ConditionPathExists</span><span class="o">=</span><span class="s">/etc/myapp.conf      # 路径不存在就跳过激活</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这里要理解的关键对子是<strong>顺序</strong>和<strong>依赖</strong>。<code>After=</code> 和 <code>Before=</code> 只声明<em>什么时候</em>——不会把别的东西拉起来。<code>Wants=</code> 和 <code>Requires=</code> 只声明<em>谁还得在跑</em>——不规定先后。绝大多数情况你两者都需要：既 <code>Wants=network-online.target</code>，也 <code>After=network-online.target</code>，否则 systemd 完全可能&quot;在一个根本没被请求、也就根本没启动的 target 之后&quot;启动你的服务。</p>
+<h3 id="service具体怎么把进程跑起来"><code>[Service]</code>——具体怎么把进程跑起来</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Service]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Type</span><span class="o">=</span><span class="s">simple                                    # 类型，详见下表</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/myapp --port 8080     # 必须是绝对路径</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecReload</span><span class="o">=</span><span class="s">/bin/kill -HUP $MAINPID             # 可选，启用 `systemctl reload`</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStop</span><span class="o">=</span><span class="s">/usr/local/bin/myapp --shutdown       # 可选，默认是 SIGTERM</span>
+</span></span><span class="line"><span class="cl"><span class="na">Restart</span><span class="o">=</span><span class="s">on-failure                             # no | on-failure | on-abnormal | always</span>
+</span></span><span class="line"><span class="cl"><span class="na">RestartSec</span><span class="o">=</span><span class="s">5                                   # 重启前等待，避免崩溃风暴</span>
+</span></span><span class="line"><span class="cl"><span class="na">User</span><span class="o">=</span><span class="s">myapp                                     # 网络服务永远不要以 root 跑</span>
+</span></span><span class="line"><span class="cl"><span class="na">Group</span><span class="o">=</span><span class="s">myapp</span>
+</span></span><span class="line"><span class="cl"><span class="na">WorkingDirectory</span><span class="o">=</span><span class="s">/var/lib/myapp</span>
+</span></span><span class="line"><span class="cl"><span class="na">Environment</span><span class="o">=</span><span class="s">LOG_LEVEL=info</span>
+</span></span><span class="line"><span class="cl"><span class="na">EnvironmentFile</span><span class="o">=</span><span class="s">/etc/myapp/myapp.env           # 一行一个 KEY=VALUE</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 通过 cgroup 施加资源限制</span>
+</span></span><span class="line"><span class="cl"><span class="na">MemoryMax</span><span class="o">=</span><span class="s">512M</span>
+</span></span><span class="line"><span class="cl"><span class="na">CPUQuota</span><span class="o">=</span><span class="s">50%</span>
+</span></span><span class="line"><span class="cl"><span class="na">TasksMax</span><span class="o">=</span><span class="s">4096</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 廉价但价值很高的安全加固</span>
+</span></span><span class="line"><span class="cl"><span class="na">NoNewPrivileges</span><span class="o">=</span><span class="s">true</span>
+</span></span><span class="line"><span class="cl"><span class="na">ProtectSystem</span><span class="o">=</span><span class="s">strict</span>
+</span></span><span class="line"><span class="cl"><span class="na">ProtectHome</span><span class="o">=</span><span class="s">true</span>
+</span></span><span class="line"><span class="cl"><span class="na">PrivateTmp</span><span class="o">=</span><span class="s">true</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>Type=</code> 这个旋钮值得单列一张表：</p>
+<table>
+  <thead>
+      <tr>
+          <th>Type</th>
+          <th>systemd 何时认为服务&quot;已启动&quot;</th>
+          <th>适用场景</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>simple</code>（默认）</td>
+          <td><code>ExecStart=</code> 一执行立刻算</td>
+          <td>前台进程——大多数现代守护进程、脚本、容器里跑的东西</td>
+      </tr>
+      <tr>
+          <td><code>exec</code></td>
+          <td>二进制被 <code>exec()</code> 后立刻算</td>
+          <td>类似 <code>simple</code>，就绪判定稍严格</td>
+      </tr>
+      <tr>
+          <td><code>forking</code></td>
+          <td>父进程退出、留下子进程时算</td>
+          <td>老式 double-fork 的守护进程</td>
+      </tr>
+      <tr>
+          <td><code>oneshot</code></td>
+          <td><code>ExecStart=</code> 返回 0 时算。可以 <code>active</code> 而没有任何进程</td>
+          <td>初始化任务、挂载辅助、幂等脚本，常配 <code>RemainAfterExit=yes</code></td>
+      </tr>
+      <tr>
+          <td><code>notify</code></td>
+          <td>服务自己调用 <code>sd_notify(READY=1)</code> 时算</td>
+          <td>任何想精确就绪信号的服务——数据库、调度器、所有依赖它的下游服务</td>
+      </tr>
+  </tbody>
+</table>
+<h3 id="install什么时候启用"><code>[Install]</code>——什么时候启用</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Install]</span>
+</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Alias=myapp-alt.service   （可选的第二个名字）</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>[Install]</code> 段<em>只</em>会被 <code>systemctl enable</code> / <code>disable</code> 读取。它告诉 systemd：&ldquo;启用我时，请把我塞到这个 target 里&rdquo;——服务端 99% 的情况都是 <code>multi-user.target</code>。没有 <code>[Install]</code> 段的 unit 是 &ldquo;static&rdquo; 的，<code>enable</code> 会直接拒绝执行。</p>
+<h2 id="修改-unit-的正确方式">修改 unit 的正确方式</h2>
+<p>发行版包提供的 unit 文件放在 <code>/usr/lib/systemd/system/</code>。<strong>别去改它们。</strong> 用 drop-in 覆盖：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl edit nginx.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>它会打开一个空文件，路径是 <code>/etc/systemd/system/nginx.service.d/override.conf</code>。你写在这里的内容会叠在厂商 unit 之上。如果想完整替换厂商 unit（少见），用 <code>systemctl edit --full</code>。任何修改之后：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl daemon-reload          <span class="c1"># 拾起文件改动</span>
+</span></span><span class="line"><span class="cl">sudo systemctl restart nginx          <span class="c1"># 把改动应用到正在跑的进程</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>daemon-reload</code> 只是重新读 unit 文件，并不会重启任何东西。忘了它，是&quot;我改了文件却没生效&quot;的头号原因。</p>
+<h1 id="5-journalctl日志已经在那里了">5. journalctl：日志已经在那里了</h1>
+<p>systemd 自带 <strong>journald</strong> 这个日志守护进程，它会捕获每个服务的 stdout/stderr，外加所有写到 syslog 的内容。不用额外配置——服务往 stdout 一打，journal 就记下来了。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/service-management/fig4_journalctl_filters.png" alt="journalctl 过滤器：一个 journal，多种过滤" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="你需要的过滤器">你需要的过滤器</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">journalctl -u nginx                        <span class="c1"># 单个 unit 的日志</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx -f                     <span class="c1"># 实时跟随（类似 tail -f）</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx -n <span class="m">100</span>                 <span class="c1"># 最后 100 行</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx --since <span class="s2">&#34;10 min ago&#34;</span>   <span class="c1"># 人类可读的时间表达式</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx --since <span class="s2">&#34;2025-02-01&#34;</span> --until <span class="s2">&#34;2025-02-02&#34;</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx -p err                 <span class="c1"># 优先级 err 及以上（更严重）</span>
+</span></span><span class="line"><span class="cl">journalctl -u nginx -o json-pretty         <span class="c1"># 完整的结构化记录</span>
+</span></span><span class="line"><span class="cl">journalctl -b                              <span class="c1"># 只看本次开机</span>
+</span></span><span class="line"><span class="cl">journalctl -b -1                           <span class="c1"># 上一次开机</span>
+</span></span><span class="line"><span class="cl">journalctl -k                              <span class="c1"># 只看内核消息（相当于 dmesg）</span>
+</span></span><span class="line"><span class="cl">journalctl <span class="nv">_PID</span><span class="o">=</span><span class="m">1234</span>                       <span class="c1"># 指定 PID 的记录</span>
+</span></span><span class="line"><span class="cl">journalctl <span class="nv">_UID</span><span class="o">=</span><span class="m">1000</span> <span class="nv">_COMM</span><span class="o">=</span>python3         <span class="c1"># 任意字段都可以叠</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>其中两条在事故响应时是顶梁柱。<code>journalctl -u &lt;svc&gt; -p err -b</code>（&ldquo;本次开机里这个 unit 的错误日志&rdquo;）通常是我排查失败时第一条命令。<code>journalctl -b -1</code> 用来回看一次&quot;莫名其妙&quot;的重启之前发生了什么——那些消息否则就消失了。</p>
+<p>优先级用的是 syslog 的那套，0（最严重）到 7（debug）：<code>emerg</code>、<code>alert</code>、<code>crit</code>、<code>err</code>、<code>warning</code>、<code>notice</code>、<code>info</code>、<code>debug</code>。<code>-p err</code> 意思是&quot;<code>err</code> 级及以上&quot;，即 0 到 3。</p>
+<h2 id="让-journal-跨重启留存">让 journal 跨重启留存</h2>
+<p>很多发行版默认把 journal 写在 <code>/run/log/journal/</code>——一个 tmpfs，重启就清空。在你需要&quot;重启前&quot;的日志之前，这都没问题。让它持久化：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mkdir -p /var/log/journal
+</span></span><span class="line"><span class="cl">sudo systemd-tmpfiles --create --prefix /var/log/journal
+</span></span><span class="line"><span class="cl">sudo systemctl restart systemd-journald
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>也可以编辑 <code>/etc/systemd/journald.conf</code> 来限制磁盘占用（<code>SystemMaxUse=2G</code>、<code>MaxRetentionSec=30day</code> 等），改完 reload <code>systemd-journald</code>。</p>
+<h2 id="清理">清理</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo journalctl --disk-usage                 <span class="c1"># journal 占了多少盘</span>
+</span></span><span class="line"><span class="cl">sudo journalctl --vacuum-time<span class="o">=</span>7d             <span class="c1"># 只留最近 7 天</span>
+</span></span><span class="line"><span class="cl">sudo journalctl --vacuum-size<span class="o">=</span>1G             <span class="c1"># 上限 1 GiB</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="6-timer现代化的-cron">6. Timer：现代化的 cron</h1>
+<p><code>cron</code> 在每台 Linux 上都还能用。但在一台 systemd 系统上，<code>.timer</code> unit 通常是更好的选择——它和别的东西共用同一个 journal、以正经 unit 的身份跑（也就有重启策略、资源限制、依赖关系），还能扛过错过的执行（<code>Persistent=true</code>）。</p>
+<p>一个 timer 总是成对出现：一个 <code>.timer</code> 按时点火，一个 <code>.service</code> 真正干活。</p>
+<p><code>/etc/systemd/system/backup.service</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">Nightly database backup</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Service]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Type</span><span class="o">=</span><span class="s">oneshot</span>
+</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/bin/backup.sh</span>
+</span></span><span class="line"><span class="cl"><span class="na">User</span><span class="o">=</span><span class="s">backup</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>/etc/systemd/system/backup.timer</code>：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
+</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">Run database backup nightly</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Timer]</span>
+</span></span><span class="line"><span class="cl"><span class="na">OnCalendar</span><span class="o">=</span><span class="s">*-*-* 02:30:00       # 每天本地时间 02:30</span>
+</span></span><span class="line"><span class="cl"><span class="na">RandomizedDelaySec</span><span class="o">=</span><span class="s">10min        # 在窗口内打散，避免一队机器同时冲</span>
+</span></span><span class="line"><span class="cl"><span class="na">Persistent</span><span class="o">=</span><span class="s">true                 # 启动时若错过了点位就立刻补一次（笔记本/虚拟机常用）</span>
+</span></span><span class="line"><span class="cl"><span class="na">Unit</span><span class="o">=</span><span class="s">backup.service             # 触发哪个 unit（默认是同名 .service）</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">[Install]</span>
+</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">timers.target</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>启用的是 <em>timer</em>，不是 service：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl daemon-reload
+</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now backup.timer
+</span></span><span class="line"><span class="cl">systemctl list-timers --all     <span class="c1"># 每个 timer 下次什么时候触发？</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>OnCalendar=</code> 的语法很丰富——<code>Mon..Fri 09:00</code>、<code>hourly</code>、<code>weekly</code>、<code>*-*-1 04:00:00</code> 表示&quot;每月 1 号 04:00&quot;等等。<code>systemd-analyze calendar 'Mon..Fri 09:00'</code> 会告诉你某个表达式具体会解析到哪些时刻。</p>
+<p>相比 cron，赢面有三个：失败会出现在 <code>systemctl --failed</code> 和 journal 里、和服务自己的日志躺在一起；任务继承 <code>[Service]</code> 段的所有加固/限制旋钮；<code>Persistent=true</code> 解决了笔记本问题（cron 那个&quot;应该 03:00 跑&quot;但笔记本那时正在睡的任务，结果就是再也不会跑了）。</p>
+<h1 id="7-启动时间线">7. 启动时间线</h1>
+<p>大致知道从按下电源到登录提示符之间发生了什么，&ldquo;为什么这次启动用了 90 秒&quot;才会变得可分析。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/service-management/fig5_boot_timeline.png" alt="启动时间线：固件 → 引导加载 → 内核 → systemd → multi-user.target" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<ol>
+<li><strong>固件（BIOS/UEFI）</strong> 跑 POST，挑一个引导设备。</li>
+<li><strong>引导加载器</strong>（一般是 GRUB）把内核和 <code>initramfs</code> 加载到内存，把控制权交给内核。</li>
+<li><strong>内核</strong> 初始化硬件、以只读方式挂上根文件系统、然后启动 <code>/sbin/init</code>——它是指向 systemd 的软链接。从这里开始，PID 1 接管。</li>
+<li><strong>systemd</strong> 解析 unit 文件，开始走依赖图，能并行处就并行。</li>
+<li><strong>Target</strong> 按顺序激活：<code>sysinit.target</code>（早期挂载、swap、udev）→ <code>basic.target</code>（socket、timer、path 已就位）→ <code>multi-user.target</code>（所有 enable 的服务都活着，可以登录了）。桌面系统再往上叠一个 <code>graphical.target</code>。</li>
+</ol>
+<p>这里有三条诊断命令值回票价：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">systemd-analyze                                  <span class="c1"># 总启动时间，分内核/用户态两段</span>
+</span></span><span class="line"><span class="cl">systemd-analyze blame                            <span class="c1"># 各服务按激活耗时排序</span>
+</span></span><span class="line"><span class="cl">systemd-analyze critical-chain                   <span class="c1"># 最长的依赖链——真正决定启动时间的那条</span>
+</span></span><span class="line"><span class="cl">systemd-analyze critical-chain nginx.service     <span class="c1"># 通往某个 unit 的依赖链</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>只看 <code>blame</code> 是有误导性的——一个服务花 5 秒启动，如果没人在等它，它根本不会拖慢整个启动。<code>critical-chain</code> 才告诉你哪个慢服务真在关键路径上。优先优化那个。</p>
+<h1 id="8-几个常见服务的-60-秒手册">8. 几个常见服务的 60 秒手册</h1>
+<p>这一节是你最常碰的那几个服务的速查卡。</p>
+<h2 id="时间同步">时间同步</h2>
+<p>时钟漂移迟早会击穿一切——TLS 握手、日志关联、Kerberos、分布式数据库复制。在一台 systemd 系统上最简单的答案是内建客户端：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo timedatectl set-ntp <span class="nb">true</span>
+</span></span><span class="line"><span class="cl">sudo timedatectl set-timezone Asia/Shanghai
+</span></span><span class="line"><span class="cl">timedatectl                                <span class="c1"># 当前状态，包括 &#34;System clock synchronized: yes&#34;</span>
+</span></span><span class="line"><span class="cl">timedatectl list-timezones <span class="p">|</span> grep Shanghai
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>timedatectl</code> 启用的是 <code>systemd-timesyncd</code>，一个轻量的 SNTP 客户端，对客户端和大多数服务器都够用。如果你需要正经的 NTP 实现（高精度集群、对外提供时间服务），装 <strong>chrony</strong> 并禁用 timesyncd。</p>
+<p>避免使用 <code>ntpdate</code>。它会把时钟瞬间跳到目标值，会把任何&quot;假定时间只前进&quot;的东西打坏（cron、journald 顺序、复制）。真正的 NTP 客户端是平滑修正的。</p>
+<h2 id="防火墙firewalld">防火墙（firewalld）</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now firewalld
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --get-default-zone
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --list-all                       <span class="c1"># 当前开了什么</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 加规则并持久化</span>
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-service<span class="o">=</span>http
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-port<span class="o">=</span>8080/tcp
+</span></span><span class="line"><span class="cl">sudo firewall-cmd --reload                         <span class="c1"># 不 reload，--permanent 规则不生效</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>不带 <code>--permanent</code>，规则只活到下次 reload；带了 <code>--permanent</code> 但不 <code>--reload</code>，规则会活到下次 reload，但现在不生效。实际操作里你两个都要带。</p>
+<p>Zone（<code>public</code>、<code>work</code>、<code>home</code>、<code>internal</code>、<code>dmz</code>、<code>trusted</code>、<code>drop</code>、<code>block</code>）是 firewalld 用来表达&quot;这个网卡接的是哪种网络、就套哪套规则&quot;的方式。在单网口的服务器上，你通常把所有东西留在 <code>public</code>，然后在那里开端口。</p>
+<h2 id="ssh-加固">SSH 加固</h2>
+<p><code>/etc/ssh/sshd_config</code> 的默认值在 Debian/Ubuntu 上是保守的，在别的发行版上就未必。高价值的几条改动：</p>
+<pre tabindex="0"><code>Port 22                          # 改默认端口要权衡运维成本
+PermitRootLogin no               # 用普通用户登录，再 sudo
+PasswordAuthentication no        # 只用密钥——把&#34;暴力破解&#34;这一整类问题消除掉
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+MaxAuthTries 3
+ClientAliveInterval 300
+ClientAliveCountMax 2
+</code></pre><p>reload 之前永远先校验——一个写坏的配置文件足以把你锁在远程机器外面：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo sshd -t                            <span class="c1"># 仅解析配置然后退出</span>
+</span></span><span class="line"><span class="cl">sudo systemctl reload sshd              <span class="c1"># 不打断现有会话即可应用</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果 SSH 端口暴露在公网且你想要 IP 级速率限制，再叠一层 <code>fail2ban</code>；否则光是密钥认证就足以让暴力破解毫无意义。</p>
+<h2 id="cron在-timer-不适用时">Cron（在 timer 不适用时）</h2>
+<p>如果你在一台不完全是 systemd 的系统上，或者要维护已经存在的 cron 任务：</p>
+<pre tabindex="0"><code># 分  时   日   月   星期   命令
+30 1   *    *    *    /usr/local/bin/backup.sh
+*/10 *  *    *    *    /usr/local/bin/health-check.sh
+0  3   *    *    0    /usr/local/bin/weekly-cleanup.sh
+</code></pre><p>用 <code>crontab -e</code> 编辑当前用户的任务、<code>crontab -l</code> 列出。命令里永远写绝对路径——cron 跑命令时 <code>PATH</code> 几乎是空的。stdout/stderr 都重定向出来（<code>&gt;&gt; /var/log/myjob.log 2&gt;&amp;1</code>），否则任务什么时候坏了都没人知道。</p>
+<h1 id="9-排障流程服务起不来该怎么办">9. 排障流程：服务起不来该怎么办</h1>
+<p>服务起不来的时候，按顺序走下面这张清单。大部分情况你在前两步就能找到答案。</p>
+<p><strong>1. 先看 systemctl 跟你说了什么。</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl status myapp.service
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>重点看 <code>Active:</code>（状态以及持续多久）、<code>Main PID:</code>（如果是 0，说明进程没了）、<code>Process:</code> 行（实际跑了什么命令、退码是多少）、以及底部复述的最后 10 行日志。八成时候答案就在那里。</p>
+<p><strong>2. 看本次开机的完整日志。</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo journalctl -u myapp.service -b -p err -xe
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>-x</code> 会附上 systemd 的目录解释，<code>-e</code> 跳到末尾。如果服务被 <code>Restart=on-failure</code> 多次拉起，往前翻——那几次失败的原因经常不一样。</p>
+<p><strong>3. 在怪罪服务之前，先校验配置。</strong></p>
+<p>大多数守护进程都自带 config check：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo nginx -t
+</span></span><span class="line"><span class="cl">sudo apachectl configtest
+</span></span><span class="line"><span class="cl">sudo sshd -t
+</span></span><span class="line"><span class="cl">sudo named-checkconf
+</span></span><span class="line"><span class="cl">sudo postfix check
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果是自定义服务，以目标用户的身份手动跑一下 <code>ExecStart=</code> 命令：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo -u myapp /usr/local/bin/myapp --port <span class="m">8080</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><strong>4. 找端口冲突。</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ss -lntp <span class="p">|</span> grep <span class="m">8080</span>
+</span></span><span class="line"><span class="cl">sudo lsof -i :8080
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>一个常见的失败模式：服务先前崩了一次，被拉起，新的进程 bind 不上，因为旧进程不知道为什么还在占着那个端口（或者完全无关的另一个进程占了）。</p>
+<p><strong>5. 找权限和路径问题。</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls -ld /var/lib/myapp /var/log/myapp
+</span></span><span class="line"><span class="cl">namei -l /var/lib/myapp/data.db        <span class="c1"># 把路径上每一层目录的所有者列出来</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果服务以 <code>myapp</code> 用户跑，但工作目录被 root 拥有且 mode 700，它会以一种看起来很神秘的方式起不来。<code>namei -l</code> 把&quot;搜索权限&quot;的链条可视化出来。</p>
+<p><strong>6. 别忘了安全层。</strong></p>
+<p>RHEL 系上 SELinux 可能在权限看起来都对的情况下挡住服务；Ubuntu 上 AppArmor 同理。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># RHEL/CentOS/Rocky</span>
+</span></span><span class="line"><span class="cl">sudo ausearch -m avc -ts recent          <span class="c1"># 审计日志里的 AVC 拒绝</span>
+</span></span><span class="line"><span class="cl">sudo setenforce <span class="m">0</span>                        <span class="c1"># 临时切到 permissive（仅排查用！）</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Ubuntu/Debian</span>
+</span></span><span class="line"><span class="cl">sudo journalctl -k <span class="p">|</span> grep -i apparmor
+</span></span><span class="line"><span class="cl">sudo aa-status
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果切到 permissive 问题就消失，正确的做法是写一份合适的 SELinux 策略或 AppArmor profile，而不是把强制模式一直关着。</p>
+<p><strong>7. 沿着依赖图走一遍。</strong></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl list-dependencies myapp.service
+</span></span><span class="line"><span class="cl">sudo systemctl --failed
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果你这个 unit <code>Requires=</code> 的某个东西自己就是 failed，症状会上溯到那里。先修那个。</p>
+<h1 id="10-后续阅读">10. 后续阅读</h1>
+<p>到这里你应该有了一个可用的心智模型：PID 1 监管 unit、unit 在状态机里活动、unit 文件描述了这份监管契约、journald 把发生的一切记录下来，而 <code>systemctl</code> 和 <code>journalctl</code> 是你向里看的两扇窗。从这里继续：</p>
+<ul>
+<li><strong><code>man systemd.service</code></strong> 和 <strong><code>man systemd.unit</code></strong> 是权威参考——短、密、值得读一遍。</li>
+<li><strong><code>man systemd.exec</code></strong> 列出了 <code>[Service]</code> 里所有可用的沙箱/限制旋钮。其中大多数都是免费的安全加固。</li>
+<li><strong>freedesktop.org/wiki/Software/systemd/</strong> 是官方文档以及 Lennart Poettering 那套优秀的&quot;systemd for Administrators&quot;系列。</li>
+<li><strong><code>systemd-analyze security &lt;unit&gt;</code></strong> 会按沙箱姿态给每个跑着的服务打分，并告诉你拧哪几个旋钮可以收紧它。</li>
+</ul>
+<p>本系列后面两篇会讲 <strong>软件包管理</strong>（去装那些之后会被你做成服务的守护进程）和 <strong>进程与资源管理</strong>（看那些服务起来之后到底在干什么）。本文里建立的心智模型——服务作为受监管的 unit、有显式依赖、有结构化日志——会一路贯穿过去。</p>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#systemd-之前的世界">systemd 之前的世界</a></li>
+    <li><a href="#一张图看懂-systemd-模型">一张图看懂 systemd 模型</a></li>
+    <li><a href="#值得记住的几种-unit-类型">值得记住的几种 unit 类型</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#启停重启reload">启停、重启、reload</a></li>
+    <li><a href="#开机自启的开关">开机自启的开关</a></li>
+    <li><a href="#列举与查看">列举与查看</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#一个最小可用的-unit-文件">一个最小可用的 unit 文件</a></li>
+    <li><a href="#unit-文件的解剖">unit 文件的解剖</a>
+      <ul>
+        <li><a href="#unit这是什么谁依赖谁"><code>[Unit]</code>——这是什么、谁依赖谁</a></li>
+        <li><a href="#service具体怎么把进程跑起来"><code>[Service]</code>——具体怎么把进程跑起来</a></li>
+        <li><a href="#install什么时候启用"><code>[Install]</code>——什么时候启用</a></li>
+      </ul>
+    </li>
+    <li><a href="#修改-unit-的正确方式">修改 unit 的正确方式</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#你需要的过滤器">你需要的过滤器</a></li>
+    <li><a href="#让-journal-跨重启留存">让 journal 跨重启留存</a></li>
+    <li><a href="#清理">清理</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#时间同步">时间同步</a></li>
+    <li><a href="#防火墙firewalld">防火墙（firewalld）</a></li>
+    <li><a href="#ssh-加固">SSH 加固</a></li>
+    <li><a href="#cron在-timer-不适用时">Cron（在 timer 不适用时）</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>17 min</strong></div>
+      <div class="row"><span>Word count</span><strong>8300</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

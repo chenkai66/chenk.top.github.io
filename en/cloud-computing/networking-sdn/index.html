@@ -1,0 +1,1292 @@
+<!doctype html>
+<html lang="en" data-translation="/zh/cloud-computing/networking-sdn/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Cloud Network Architecture and SDN · Chen Kai Blog</title>
+<meta name="description" content="VPC, load balancers, CDN, SDN/NFV, and BGP -- a deep tour of cloud networking from packet to planet, with the production knobs that matter.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/cloud-computing/networking-sdn/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/cloud-computing/networking-sdn/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/cloud-computing/networking-sdn/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/cloud-computing/networking-sdn/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cloud Network Architecture and SDN">
+<meta property="og:description" content="VPC, load balancers, CDN, SDN/NFV, and BGP -- a deep tour of cloud networking from packet to planet, with the production knobs that matter.">
+<meta property="og:url" content="https://www.chenk.top/en/cloud-computing/networking-sdn/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-2);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Cloud Computing</a>
+         · Chapter 5
+      </div>
+      <h1>Cloud Network Architecture and SDN</h1>
+      <p class="deck">VPC, load balancers, CDN, SDN/NFV, and BGP -- a deep tour of cloud networking from packet to planet, with the production knobs that matter.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2023-04-18">April 18, 2023</time> · 20 min read · 4300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/cloud-computing/" class="tag">#Cloud Computing</a><a href="/en/tags/vpc/" class="tag">#VPC</a><a href="/en/tags/cloud-networking/" class="tag">#Cloud Networking</a><a href="/en/tags/load-balancing/" class="tag">#Load Balancing</a><a href="/en/tags/sdn/" class="tag">#SDN</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/zh/cloud-computing/networking-sdn/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>A cloud platform is, in the end, a network with computers attached. The compute layer scales by adding boxes; the storage layer scales by adding disks; the <em>network</em> layer is what makes those boxes and disks behave as a single coherent system. Get the network right and the rest of the stack feels effortless. Get it wrong &ndash; a missing route, a 5-tuple mismatch on a security group, an under-provisioned load balancer &ndash; and the whole platform goes dark.</p>
+<p>This article maps the cloud-networking stack from the packet up: how a VPC actually carves an isolated network out of shared infrastructure, what changes when load balancers move from L4 to L7, how a CDN turns geography into latency savings, why SDN reshaped the data centre, and how BGP stitches it all together across regions.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ol>
+<li><strong>VPC internals</strong> &ndash; subnets, route tables, gateways, endpoints, and the encapsulation that makes them isolated</li>
+<li><strong>Load balancing</strong> &ndash; L4 vs L7, algorithms, health checks, sticky sessions, draining</li>
+<li><strong>CDN architecture</strong> &ndash; edge PoPs, cache hierarchies, TLS termination, dynamic acceleration</li>
+<li><strong>SDN</strong> &ndash; control / data plane split, OpenFlow / P4Runtime, NFV and service chains</li>
+<li><strong>VPN, Direct Connect, and Transit Gateway</strong> &ndash; when to choose which connectivity model</li>
+<li><strong>Security</strong> &ndash; security groups vs NACLs, flow logs, zero-trust micro-segmentation</li>
+<li><strong>BGP and global routing</strong> &ndash; AS-paths, ECMP, anycast, multi-region failover</li>
+</ol>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>IP addressing and CIDR notation</li>
+<li>Familiarity with at least one cloud console (AWS / GCP / Aliyun)</li>
+<li>Parts 1-3 of this series</li>
+</ul>
+<hr>
+<h2 id="1-virtual-private-cloud-vpc">1. Virtual Private Cloud (VPC)</h2>
+<p>A VPC is a software-defined slice of the cloud provider&rsquo;s physical network that <em>behaves</em> like your own private datacentre: you choose the IP space, draw the subnets, install the gateways and write the firewall rules. Behind the scenes the provider implements isolation through <strong>VXLAN</strong> (or a proprietary equivalent) &ndash; every packet carries a tenant tag so two customers can both use 10.0.0.0/16 without ever seeing each other&rsquo;s traffic.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig1_vpc_architecture.png" alt="Multi-AZ VPC architecture" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="11-anatomy-of-a-production-vpc">1.1 Anatomy of a production VPC</h3>
+<p>The diagram above is a textbook 3-tier deployment. The pieces:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Component</th>
+          <th>Layer</th>
+          <th>What it does</th>
+          <th>Free?</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>VPC</strong></td>
+          <td>network</td>
+          <td>The 10.0.0.0/16 envelope. One per environment per region.</td>
+          <td>yes</td>
+      </tr>
+      <tr>
+          <td><strong>Subnet</strong></td>
+          <td>network</td>
+          <td>A CIDR carved out of the VPC, pinned to one AZ. Public/Private/Isolated by <em>route table</em>, not by name.</td>
+          <td>yes</td>
+      </tr>
+      <tr>
+          <td><strong>Internet Gateway (IGW)</strong></td>
+          <td>edge</td>
+          <td>Bidirectional NAT-free path to the public internet. One per VPC.</td>
+          <td>yes</td>
+      </tr>
+      <tr>
+          <td><strong>NAT Gateway</strong></td>
+          <td>egress</td>
+          <td>Lets <em>private</em> instances reach the internet outbound; blocks inbound. Per-AZ for HA.</td>
+          <td>hourly + GB</td>
+      </tr>
+      <tr>
+          <td><strong>Route Table</strong></td>
+          <td>control</td>
+          <td>Maps destination CIDR -&gt; target (IGW, NAT, VPCe, peering, TGW). One per subnet.</td>
+          <td>yes</td>
+      </tr>
+      <tr>
+          <td><strong>Security Group</strong></td>
+          <td>instance FW</td>
+          <td><strong>Stateful</strong>, allow-only, attached to ENIs.</td>
+          <td>yes</td>
+      </tr>
+      <tr>
+          <td><strong>Network ACL</strong></td>
+          <td>subnet FW</td>
+          <td><strong>Stateless</strong>, allow + deny, ordered. Belt-and-braces with SGs.</td>
+          <td>yes</td>
+      </tr>
+      <tr>
+          <td><strong>VPC Endpoint</strong></td>
+          <td>data plane</td>
+          <td>Private path from VPC to a cloud service (S3, DynamoDB, Secrets Manager, &hellip;).</td>
+          <td>gateway free / interface hourly</td>
+      </tr>
+      <tr>
+          <td><strong>Transit Gateway</strong></td>
+          <td>hub</td>
+          <td>N-to-N VPC + VPN + Direct Connect interconnect.</td>
+          <td>hourly + GB</td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>The &ldquo;public vs private subnet&rdquo; distinction is purely about routes.</strong> A subnet whose route table contains <code>0.0.0.0/0 -&gt; igw-...</code> is public; a subnet whose default route is <code>0.0.0.0/0 -&gt; nat-...</code> is private; a subnet with no internet route at all is isolated. This sounds trivial but is the source of half of all &ldquo;I cannot reach the internet from my Lambda&rdquo; tickets.</p>
+<h3 id="12-terraform-a-real-multi-az-vpc">1.2 Terraform: a real, multi-AZ VPC</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">locals</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  azs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;us-east-1a&#34;, &#34;us-east-1b&#34;, &#34;us-east-1c&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_vpc&#34; &#34;main&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span>           <span class="o">=</span> <span class="s2">&#34;10.0.0.0/16&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  enable_dns_hostnames</span> <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl"><span class="n">  enable_dns_support</span>   <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span><span class="n"> { Name</span> <span class="o">=</span> <span class="s2">&#34;prod-vpc&#34;</span> }
+</span></span><span class="line"><span class="cl">}<span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1"># One public + one private subnet per AZ
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">resource</span> <span class="s2">&#34;aws_subnet&#34; &#34;public&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span>                <span class="o">=</span> <span class="k">toset</span><span class="p">(</span><span class="k">local</span><span class="p">.</span><span class="k">azs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>                  <span class="o">=</span> <span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span>              <span class="o">=</span> <span class="k">cidrsubnet</span><span class="p">(</span><span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">cidr_block</span><span class="p">,</span> <span class="m">8</span><span class="p">,</span> <span class="k">index</span><span class="p">(</span><span class="k">local</span><span class="p">.</span><span class="k">azs</span><span class="p">,</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="n">  availability_zone</span>       <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span>
+</span></span><span class="line"><span class="cl"><span class="n">  map_public_ip_on_launch</span> <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span><span class="n"> { Name</span> <span class="o">=</span><span class="n"> &#34;public-${each.key}&#34;, Tier</span> <span class="o">=</span> <span class="s2">&#34;public&#34;</span> }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_subnet&#34; &#34;private&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span>          <span class="o">=</span> <span class="k">toset</span><span class="p">(</span><span class="k">local</span><span class="p">.</span><span class="k">azs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>            <span class="o">=</span> <span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span>        <span class="o">=</span> <span class="k">cidrsubnet</span><span class="p">(</span><span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">cidr_block</span><span class="p">,</span> <span class="m">8</span><span class="p">,</span> <span class="k">index</span><span class="p">(</span><span class="k">local</span><span class="p">.</span><span class="k">azs</span><span class="p">,</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span><span class="p">)</span> <span class="err">+</span> <span class="m">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="n">  availability_zone</span> <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span><span class="n"> { Name</span> <span class="o">=</span><span class="n"> &#34;private-${each.key}&#34;, Tier</span> <span class="o">=</span> <span class="s2">&#34;private&#34;</span> }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">resource &#34;aws_internet_gateway&#34; &#34;main&#34; { vpc_id</span> <span class="o">=</span> <span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span> }<span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1"># One NAT GW per AZ for HA (a single NAT GW is a per-AZ SPOF)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">resource &#34;aws_eip&#34;         &#34;nat&#34; { for_each</span> <span class="o">=</span> <span class="k">aws_subnet</span><span class="p">.</span><span class="k">public</span> }
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_nat_gateway&#34; &#34;nat&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span>      <span class="o">=</span> <span class="k">aws_subnet</span><span class="p">.</span><span class="k">public</span>
+</span></span><span class="line"><span class="cl"><span class="n">  allocation_id</span> <span class="o">=</span> <span class="k">aws_eip</span><span class="p">.</span><span class="k">nat</span><span class="p">[</span><span class="k">each</span><span class="p">.</span><span class="k">key</span><span class="p">].</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  subnet_id</span>     <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}<span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1"># Routes
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">resource</span> <span class="s2">&#34;aws_route_table&#34; &#34;public&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span> <span class="o">=</span> <span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  route { cidr_block</span> <span class="o">=</span><span class="n"> &#34;0.0.0.0/0&#34;  gateway_id</span> <span class="o">=</span> <span class="k">aws_internet_gateway</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span> }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_route_table&#34; &#34;private&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span> <span class="k">aws_subnet</span><span class="p">.</span><span class="k">private</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>   <span class="o">=</span> <span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">  <span class="k">route</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    cidr_block</span>     <span class="o">=</span> <span class="s2">&#34;0.0.0.0/0&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    nat_gateway_id</span> <span class="o">=</span> <span class="k">aws_nat_gateway</span><span class="p">.</span><span class="k">nat</span><span class="p">[</span><span class="k">each</span><span class="p">.</span><span class="k">key</span><span class="p">].</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}<span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1"># Gateway endpoint for S3 -- avoids NAT GW data-processing fees
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">resource</span> <span class="s2">&#34;aws_vpc_endpoint&#34; &#34;s3&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>          <span class="o">=</span> <span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  service_name</span>    <span class="o">=</span> <span class="s2">&#34;com.amazonaws.us-east-1.s3&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  route_table_ids</span> <span class="o">=</span> <span class="p">[</span><span class="k">for</span> <span class="k">rt</span> <span class="k">in</span> <span class="k">aws_route_table</span><span class="p">.</span><span class="k">private</span> <span class="err">:</span> <span class="k">rt</span><span class="p">.</span><span class="k">id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Three production-relevant choices encoded above:</p>
+<ul>
+<li><strong>One NAT GW per AZ.</strong> A single NAT GW is a per-AZ failure boundary; a region-wide NAT GW is a region-wide outage waiting to happen.</li>
+<li><strong>Gateway endpoint for S3 / DynamoDB.</strong> Without it, every byte to S3 from a private subnet flows through the NAT GW and bills at $0.045/GB. The endpoint is free.</li>
+<li><strong><code>map_public_ip_on_launch</code> only on public subnets.</strong> Stops you from accidentally giving a private DB a public IP.</li>
+</ul>
+<h3 id="13-connecting-vpcs-peering-tgw-privatelink">1.3 Connecting VPCs: peering, TGW, PrivateLink</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Pattern</th>
+          <th>Topology</th>
+          <th>Best for</th>
+          <th>Caveats</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>VPC peering</strong></td>
+          <td>point-to-point</td>
+          <td>2-5 VPCs, simple intra-region</td>
+          <td>non-transitive: A↔B and B↔C does not give A↔C</td>
+      </tr>
+      <tr>
+          <td><strong>Transit Gateway</strong></td>
+          <td>hub-and-spoke</td>
+          <td>5+ VPCs, VPN + DX integration, central inspection</td>
+          <td>hourly + per-GB charge</td>
+      </tr>
+      <tr>
+          <td><strong>PrivateLink</strong></td>
+          <td>service exposure</td>
+          <td>one VPC publishes a service to many consumer VPCs</td>
+          <td>one-way; no need to peer entire networks</td>
+      </tr>
+      <tr>
+          <td><strong>Cloud WAN</strong></td>
+          <td>global mesh</td>
+          <td>multi-region, multi-account meshes</td>
+          <td>newest, simplest at scale, costs accordingly</td>
+      </tr>
+  </tbody>
+</table>
+<p>The decision driver is mostly the <em>topology</em> you need, not the bandwidth &ndash; all of these can saturate 10s of Gbps when sized correctly.</p>
+<hr>
+<h2 id="2-load-balancing">2. Load Balancing</h2>
+<p>A load balancer turns a fleet into a service. It hides individual instance failures, spreads load, terminates TLS, and &ndash; in its L7 form &ndash; lets you reshape traffic by path, host or header without touching the apps.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig3_lb_l4_l7.png" alt="L4 vs L7 load balancers" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="21-l4-vs-l7">2.1 L4 vs L7</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Feature</th>
+          <th>Network LB (L4)</th>
+          <th>Application LB (L7)</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Operates on</td>
+          <td>TCP / UDP / TLS</td>
+          <td>HTTP / HTTPS / gRPC</td>
+      </tr>
+      <tr>
+          <td>Routing decision</td>
+          <td>5-tuple (src IP/port, dst IP/port, protocol)</td>
+          <td>path, host, header, cookie, JWT claim</td>
+      </tr>
+      <tr>
+          <td>Latency added</td>
+          <td>tens of µs</td>
+          <td>low ms</td>
+      </tr>
+      <tr>
+          <td>Throughput per LB</td>
+          <td>100s of Gbps</td>
+          <td>10s of Gbps</td>
+      </tr>
+      <tr>
+          <td>TLS termination</td>
+          <td>optional (passthrough or terminate)</td>
+          <td>almost always terminate</td>
+      </tr>
+      <tr>
+          <td>WebSocket / HTTP/2 / gRPC</td>
+          <td>passthrough only</td>
+          <td>first-class</td>
+      </tr>
+      <tr>
+          <td>Source IP preservation</td>
+          <td>yes (with proxy protocol)</td>
+          <td>via <code>X-Forwarded-For</code></td>
+      </tr>
+      <tr>
+          <td>Best for</td>
+          <td>Game servers, IoT, MQTT, low-level TCP</td>
+          <td>Web apps, microservices, public APIs</td>
+      </tr>
+  </tbody>
+</table>
+<p>A practical pattern in modern stacks: <strong>L4 (NLB) -&gt; L7 (Envoy/ALB) -&gt; services</strong>. The L4 layer absorbs DDoS and gives you a stable anycast IP; the L7 layer does smart routing and authentication. Each layer does one thing well.</p>
+<h3 id="22-algorithms">2.2 Algorithms</h3>
+<pre tabindex="0"><code>Round robin           A, B, C, A, B, C, ...
+Weighted RR           A(3), B(1)  -&gt;  A, A, A, B, A, A, A, B, ...
+Least connections     pick the backend with fewest in-flight requests (best for variable-cost requests)
+Least response time   pick the backend with the lowest EWMA of response latency
+Power of two choices  pick 2 backends at random; route to the lighter one (90% of &#34;perfect&#34; load balance, O(1) cost)
+Consistent hash       hash(client IP / path) -&gt; backend (sticky for cache locality)
+Maglev hash           Google&#39;s bounded-disruption consistent hash (used in Cloud Load Balancing)
+</code></pre><p>For most stateless web traffic, <em>power-of-two-choices</em> (P2C) is empirically near-optimal and trivial to implement. For cache-sensitive workloads (anything in front of a key-value store), use a consistent or Maglev hash so the same key keeps hitting the same backend.</p>
+<h3 id="23-alb-with-path--host-routing-terraform">2.3 ALB with path + host routing (Terraform)</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_lb&#34; &#34;app&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>                             <span class="o">=</span> <span class="s2">&#34;app-alb&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  load_balancer_type</span>               <span class="o">=</span> <span class="s2">&#34;application&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  security_groups</span>                  <span class="o">=</span> <span class="p">[</span><span class="k">aws_security_group</span><span class="p">.</span><span class="k">alb</span><span class="p">.</span><span class="k">id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">  subnets</span>                          <span class="o">=</span> <span class="p">[</span><span class="k">for</span> <span class="k">s</span> <span class="k">in</span> <span class="k">aws_subnet</span><span class="p">.</span><span class="k">public</span> <span class="err">:</span> <span class="k">s</span><span class="p">.</span><span class="k">id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">  enable_cross_zone_load_balancing</span> <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl"><span class="n">  enable_deletion_protection</span>       <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl"><span class="n">  idle_timeout</span>                     <span class="o">=</span> <span class="m">60</span>
+</span></span><span class="line"><span class="cl"><span class="n">  drop_invalid_header_fields</span>       <span class="o">=</span> <span class="kt">true</span><span class="c1">     # mitigate request smuggling
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_lb_target_group&#34; &#34;web&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>        <span class="o">=</span> <span class="s2">&#34;web-tg&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  port</span>        <span class="o">=</span> <span class="m">8080</span>
+</span></span><span class="line"><span class="cl"><span class="n">  protocol</span>    <span class="o">=</span> <span class="s2">&#34;HTTP&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>      <span class="o">=</span> <span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  target_type</span> <span class="o">=</span> <span class="s2">&#34;ip&#34;</span><span class="c1">      # pods/Fargate-friendly
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">  <span class="k">health_check</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    path</span>                <span class="o">=</span> <span class="s2">&#34;/healthz&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    interval</span>            <span class="o">=</span> <span class="m">15</span>
+</span></span><span class="line"><span class="cl"><span class="n">    timeout</span>             <span class="o">=</span> <span class="m">5</span>
+</span></span><span class="line"><span class="cl"><span class="n">    healthy_threshold</span>   <span class="o">=</span> <span class="m">2</span>
+</span></span><span class="line"><span class="cl"><span class="n">    unhealthy_threshold</span> <span class="o">=</span> <span class="m">3</span>
+</span></span><span class="line"><span class="cl"><span class="n">    matcher</span>             <span class="o">=</span> <span class="s2">&#34;200-299&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  deregistration_delay</span> <span class="o">=</span> <span class="m">30</span><span class="c1">   # match graceful shutdown window
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">stickiness</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    type</span>            <span class="o">=</span> <span class="s2">&#34;app_cookie&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    cookie_name</span>     <span class="o">=</span> <span class="s2">&#34;JSESSIONID&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    cookie_duration</span> <span class="o">=</span> <span class="m">3600</span>
+</span></span><span class="line"><span class="cl"><span class="n">    enabled</span>         <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_lb_listener&#34; &#34;https&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  load_balancer_arn</span> <span class="o">=</span> <span class="k">aws_lb</span><span class="p">.</span><span class="k">app</span><span class="p">.</span><span class="k">arn</span>
+</span></span><span class="line"><span class="cl"><span class="n">  port</span>              <span class="o">=</span> <span class="m">443</span>
+</span></span><span class="line"><span class="cl"><span class="n">  protocol</span>          <span class="o">=</span> <span class="s2">&#34;HTTPS&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  ssl_policy</span>        <span class="o">=</span> <span class="s2">&#34;ELBSecurityPolicy-TLS13-1-2-2021-06&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  certificate_arn</span>   <span class="o">=</span> <span class="k">aws_acm_certificate</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">arn</span>
+</span></span><span class="line"><span class="cl"><span class="n">  default_action { type</span> <span class="o">=</span><span class="n"> &#34;forward&#34;  target_group_arn</span> <span class="o">=</span> <span class="k">aws_lb_target_group</span><span class="p">.</span><span class="k">web</span><span class="p">.</span><span class="k">arn</span> }
+</span></span><span class="line"><span class="cl">}<span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1"># Path-based routing: /api/* to a different target group
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">resource</span> <span class="s2">&#34;aws_lb_listener_rule&#34; &#34;api&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  listener_arn</span> <span class="o">=</span> <span class="k">aws_lb_listener</span><span class="p">.</span><span class="k">https</span><span class="p">.</span><span class="k">arn</span>
+</span></span><span class="line"><span class="cl"><span class="n">  priority</span>     <span class="o">=</span> <span class="m">100</span>
+</span></span><span class="line"><span class="cl"><span class="n">  action       { type</span> <span class="o">=</span><span class="n"> &#34;forward&#34;  target_group_arn</span> <span class="o">=</span> <span class="k">aws_lb_target_group</span><span class="p">.</span><span class="k">api</span><span class="p">.</span><span class="k">arn</span> }
+</span></span><span class="line"><span class="cl"><span class="n">  condition    { path_pattern { values</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;/api/*&#34;</span><span class="p">]</span> } }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The non-obvious knobs:</p>
+<ul>
+<li><code>deregistration_delay</code> should match your application&rsquo;s graceful-shutdown window. The default 300 s blocks deploys; setting it lower than your in-flight request timeout drops connections.</li>
+<li><code>drop_invalid_header_fields = true</code> mitigates HTTP request-smuggling attacks (CVE-2019-18860 class).</li>
+<li><code>enable_cross_zone_load_balancing</code> ensures even spread when AZs have unequal target counts. Off by default on NLB, on by default on ALB.</li>
+</ul>
+<h3 id="24-health-checks-that-do-not-lie">2.4 Health checks that do not lie</h3>
+<p>A health check that hits <code>/</code> and runs a database query <em>does</em> tell you when the database is down &ndash; but it also marks the entire fleet unhealthy on the first DB blip, taking the whole site offline. The pattern that survives production:</p>
+<ul>
+<li><strong><code>/livez</code></strong> &ndash; &ldquo;the process is alive&rdquo; (no dependencies). LB checks this.</li>
+<li><strong><code>/readyz</code></strong> &ndash; &ldquo;this instance can serve traffic right now&rdquo; (cache warmed, DB pool open). Kubernetes checks this.</li>
+<li>Application metrics, traces, and logs check the rest &ndash; not the load balancer.</li>
+</ul>
+<hr>
+<h2 id="3-content-delivery-networks-cdn">3. Content Delivery Networks (CDN)</h2>
+<p>A CDN is geography turned into a cache. Static content is replicated to edge PoPs near users; the origin (often an S3 bucket) is hit only on a cache miss. Latency drops from 200 ms to under 30 ms; origin egress drops by 10x or more.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig4_cdn_edge.png" alt="CDN edge distribution" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="31-what-actually-happens-on-a-request">3.1 What actually happens on a request</h3>
+<ol>
+<li><strong>DNS</strong> &ndash; the user resolves <code>cdn.example.com</code> to an anycast IP that lands at the closest healthy PoP.</li>
+<li><strong>TLS termination</strong> &ndash; the TLS handshake completes at the edge (much shorter RTT) and the PoP holds a session ticket.</li>
+<li><strong>Cache lookup</strong> &ndash; the PoP keys on URL + Vary headers. On HIT, return immediately.</li>
+<li><strong>MISS path</strong> &ndash; the PoP fetches from a <em>parent</em> (regional cache) which may itself fetch from origin (the hierarchical/tiered cache reduces origin load even for unique content).</li>
+<li><strong>Cache fill</strong> &ndash; the PoP stores the response per its TTL (<code>Cache-Control: max-age</code>, <code>s-maxage</code>, <code>stale-while-revalidate</code>).</li>
+</ol>
+<h3 id="32-cache-headers-that-work">3.2 Cache headers that work</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="c1"># Static, content-addressed assets (hash in filename) -- cache forever
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">location</span> <span class="p">~</span><span class="sr">*</span> <span class="s">\.[a-f0-9]</span><span class="p">{</span><span class="kn">8,}\.(js|css|woff2|png|jpg|svg)$</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">add_header</span> <span class="s">Cache-Control</span> <span class="s">&#34;public,</span> <span class="s">max-age=31536000,</span> <span class="s">immutable&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># API responses -- short TTL, allow stale on origin trouble
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kn">location</span> <span class="s">/api/products/</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">add_header</span> <span class="s">Cache-Control</span> <span class="s">&#34;public,</span> <span class="s">max-age=60,</span> <span class="s">s-maxage=300,</span> <span class="s">stale-while-revalidate=86400&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># User-specific responses -- never cache
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kn">location</span> <span class="s">/api/me</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">add_header</span> <span class="s">Cache-Control</span> <span class="s">&#34;no-store&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Three rules of thumb:</p>
+<ul>
+<li><strong><code>immutable</code></strong> is the single biggest win on static assets (no revalidation traffic at all).</li>
+<li><strong><code>stale-while-revalidate</code></strong> lets the CDN serve a stale copy while it asynchronously refreshes &ndash; origin pain becomes invisible to users.</li>
+<li><strong>Vary on the bare minimum.</strong> <code>Vary: Accept-Encoding</code> is fine; <code>Vary: User-Agent</code> blows up the cache key space and your hit ratio.</li>
+</ul>
+<h3 id="33-beyond-static-dynamic-acceleration">3.3 Beyond static: dynamic acceleration</h3>
+<p>Modern CDNs also accelerate <em>uncacheable</em> traffic. The mechanisms:</p>
+<ul>
+<li><strong>TLS / TCP termination at the edge</strong> cuts the client-side handshake from <code>4 × RTT_to_origin</code> to <code>4 × RTT_to_edge</code>.</li>
+<li><strong>Pre-warmed long-haul connections</strong> between PoPs and origin reuse keepalive (no re-handshake per request).</li>
+<li><strong>Anycast DNS + BGP optimisation</strong> routes the client to the lowest-latency PoP, not just the closest by mileage.</li>
+</ul>
+<p>The combination &ndash; CloudFront&rsquo;s &ldquo;CloudFront Functions&rdquo;, Aliyun DCDN, Cloudflare Workers &ndash; moves the <em>line</em> between &ldquo;static&rdquo; and &ldquo;dynamic&rdquo; further into the application than most teams realise.</p>
+<hr>
+<h2 id="4-software-defined-networking-sdn">4. Software-Defined Networking (SDN)</h2>
+<p>Traditional networks bound the <em>control</em> (routing, ACLs, QoS) tightly to each device. SDN separates the <strong>control plane</strong> (decisions, programmable from above) from the <strong>data plane</strong> (line-rate forwarding). The result is a network that you can manage like software: declarative, version-controlled, observable.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig2_sdn_planes.png" alt="SDN control plane vs data plane" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="41-the-split">4.1 The split</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Plane</th>
+          <th>Responsibility</th>
+          <th>Implementation</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Control plane</strong></td>
+          <td>Build the topology, compute paths, enforce policy, expose APIs</td>
+          <td>Logically centralised controller (ONOS, OpenDaylight, hyperscaler proprietary)</td>
+      </tr>
+      <tr>
+          <td><strong>Data plane</strong></td>
+          <td>Match -&gt; action on every packet at line rate</td>
+          <td>ASIC switches with a flow table, or eBPF/XDP/DPDK in software</td>
+      </tr>
+      <tr>
+          <td><strong>Southbound API</strong></td>
+          <td>Controller pushes flow rules to switches</td>
+          <td>OpenFlow 1.3+, NETCONF/YANG, gNMI, P4Runtime</td>
+      </tr>
+      <tr>
+          <td><strong>Northbound API</strong></td>
+          <td>Apps program the controller</td>
+          <td>REST / gRPC, GraphQL</td>
+      </tr>
+  </tbody>
+</table>
+<p>Inside a hyperscaler&rsquo;s region, <strong>everything</strong> is SDN: Hyper-V Virtual Switch, Open vSwitch, Cisco ACI, AWS&rsquo;s &ldquo;Mapping Service&rdquo; + &ldquo;Hyperplane&rdquo; implement what you experience as a VPC. Your security-group rules are compiled into ACL entries pushed to the host&rsquo;s vswitch on the path your packet takes &ndash; not enforced at the destination instance.</p>
+<h3 id="42-why-operators-love-it">4.2 Why operators love it</h3>
+<ul>
+<li><strong>Centralised intent.</strong> &ldquo;All traffic from PCI-tagged subnets must pass through inspection&rdquo; is one policy, applied everywhere, instead of 200 device configs.</li>
+<li><strong>Traffic engineering.</strong> A controller seeing the whole topology can route around congestion that distributed routing protocols (OSPF, IS-IS) react to with a 30-second delay.</li>
+<li><strong>Programmable packet processing.</strong> P4 lets the data plane parse new protocols (e.g. SRv6, custom in-band telemetry) without an ASIC respin.</li>
+<li><strong>Fast failure recovery.</strong> SDN-precomputed alternate paths + BFD failure detection reduces MTTR to milliseconds.</li>
+</ul>
+<h3 id="43-network-functions-virtualisation-nfv">4.3 Network Functions Virtualisation (NFV)</h3>
+<p>NFV is SDN&rsquo;s sibling: <em>replace dedicated network appliances with software running on commodity x86 servers</em>. A firewall, a load balancer, a WAN optimiser &ndash; each becomes a VNF that you can spin up, scale, and chain like any other workload.</p>
+<pre tabindex="0"><code>Traditional:   [Router HW] -&gt; [Firewall HW] -&gt; [LB HW] -&gt; [WAN-opt HW]
+NFV:           x86 server: [Router VNF] -&gt; [Firewall VNF] -&gt; [LB VNF] -&gt; [WAN-opt VNF]
+</code></pre><p>A representative VNF &ndash; HAProxy as the load balancer in a service chain:</p>
+<pre tabindex="0"><code>frontend public_https
+    bind *:443 ssl crt /etc/haproxy/star.example.com.pem alpn h2,http/1.1
+    http-request set-header X-Forwarded-Proto https
+    default_backend api_pool
+
+backend api_pool
+    balance               leastconn
+    option                httpchk GET /healthz HTTP/1.1\r\nHost:\ api.example.com
+    http-check expect     status 200
+    default-server        check inter 2s fall 3 rise 2 maxconn 256
+    server api1 10.0.10.11:8080
+    server api2 10.0.11.11:8080
+    server api3 10.0.12.11:8080
+</code></pre><p><strong>Service chaining</strong> (sometimes called <em>service function chaining</em>, SFC) is the topology by which traffic walks through the VNFs in order. In a Kubernetes mesh, this is what an Envoy sidecar + mesh policy does for east-west traffic.</p>
+<hr>
+<h2 id="5-hybrid-connectivity-vpn-direct-connect-transit-gateway">5. Hybrid connectivity: VPN, Direct Connect, Transit Gateway</h2>
+<p>Most enterprises live in hybrid topologies: cloud workloads need to reach on-prem databases, identity providers, or partner networks. There are three layers of connectivity tooling.</p>
+<h3 id="51-vpn-vs-direct-connect">5.1 VPN vs Direct Connect</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Feature</th>
+          <th>Site-to-site VPN</th>
+          <th>Direct Connect / Express Connect / Cloud Interconnect</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Path</td>
+          <td>Encrypted tunnel over the public internet</td>
+          <td>Dedicated physical fibre to a provider POP</td>
+      </tr>
+      <tr>
+          <td>Bandwidth</td>
+          <td>up to ~10 Gbit/s, jitter-prone</td>
+          <td>1 / 10 / 100 Gbit/s, deterministic</td>
+      </tr>
+      <tr>
+          <td>Latency</td>
+          <td>variable (tens of ms + jitter)</td>
+          <td>low, single-digit ms within metro, stable</td>
+      </tr>
+      <tr>
+          <td>Setup time</td>
+          <td>minutes</td>
+          <td>weeks (carrier provisioning)</td>
+      </tr>
+      <tr>
+          <td>Cost</td>
+          <td>hourly + per-GB egress</td>
+          <td>port hourly + per-GB egress (cheaper at scale)</td>
+      </tr>
+      <tr>
+          <td>Encryption</td>
+          <td>IPsec mandatory</td>
+          <td>optional MACsec; usually you run IPsec on top for confidentiality</td>
+      </tr>
+      <tr>
+          <td>Best for</td>
+          <td>low / variable volume, dev environments</td>
+          <td>production data flows, low-latency sync, regulatory needs</td>
+      </tr>
+  </tbody>
+</table>
+<p>A common layered approach: <strong>DX as the primary</strong> with a <strong>VPN as the encrypted backup</strong> that activates on DX failure. Both terminate on the same Virtual Private Gateway / Transit Gateway.</p>
+<h3 id="52-transit-gateway">5.2 Transit Gateway</h3>
+<p>A Transit Gateway (TGW) is the regional hub: every VPC, every VPN, every DX connection attaches once and gains reachability to everything else, governed by <em>route tables on the TGW itself</em>. It replaces the N²-peering problem with N attachments.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_ec2_transit_gateway&#34; &#34;main&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  description</span>                     <span class="o">=</span> <span class="s2">&#34;prod-tgw&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  default_route_table_association</span> <span class="o">=</span> <span class="s2">&#34;disable&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  default_route_table_propagation</span> <span class="o">=</span> <span class="s2">&#34;disable&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_ec2_transit_gateway_vpc_attachment&#34; &#34;prod&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  transit_gateway_id</span> <span class="o">=</span> <span class="k">aws_ec2_transit_gateway</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>             <span class="o">=</span> <span class="k">aws_vpc</span><span class="p">.</span><span class="k">prod</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  subnet_ids</span>         <span class="o">=</span> <span class="p">[</span><span class="k">for</span> <span class="k">s</span> <span class="k">in</span> <span class="k">aws_subnet</span><span class="p">.</span><span class="k">tgw_private</span> <span class="err">:</span> <span class="k">s</span><span class="p">.</span><span class="k">id</span><span class="p">]</span><span class="c1">   # one /28 per AZ
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>}<span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1"># Two route tables: prod and shared services
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">resource &#34;aws_ec2_transit_gateway_route_table&#34; &#34;prod&#34;   { transit_gateway_id</span> <span class="o">=</span> <span class="k">aws_ec2_transit_gateway</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span> }
+</span></span><span class="line"><span class="cl"><span class="n">resource &#34;aws_ec2_transit_gateway_route_table&#34; &#34;shared&#34; { transit_gateway_id</span> <span class="o">=</span> <span class="k">aws_ec2_transit_gateway</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span> }<span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1">
+</span></span></span><span class="line"><span class="cl"><span class="c1"># Prod can reach shared, shared can reach prod, prod cannot reach prod
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">resource</span> <span class="s2">&#34;aws_ec2_transit_gateway_route&#34; &#34;prod_to_shared&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  destination_cidr_block</span>         <span class="o">=</span> <span class="s2">&#34;10.10.0.0/16&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  transit_gateway_route_table_id</span> <span class="o">=</span> <span class="k">aws_ec2_transit_gateway_route_table</span><span class="p">.</span><span class="k">prod</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  transit_gateway_attachment_id</span>  <span class="o">=</span> <span class="k">aws_ec2_transit_gateway_vpc_attachment</span><span class="p">.</span><span class="k">shared</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The pattern &ndash; <strong>disable default association/propagation, then write the routes you want</strong> &ndash; is how you turn a TGW from a flat-mesh footgun into an enforceable segmentation boundary.</p>
+<hr>
+<h2 id="6-security-in-the-network">6. Security in the network</h2>
+<h3 id="61-security-groups-vs-network-acls">6.1 Security Groups vs Network ACLs</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Feature</th>
+          <th>Security Group</th>
+          <th>Network ACL</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Attached to</td>
+          <td>ENI / instance</td>
+          <td>Subnet</td>
+      </tr>
+      <tr>
+          <td>State</td>
+          <td><strong>Stateful</strong> (return traffic auto-allowed)</td>
+          <td><strong>Stateless</strong> (must allow both directions)</td>
+      </tr>
+      <tr>
+          <td>Rules</td>
+          <td>Allow only</td>
+          <td>Allow + Deny</td>
+      </tr>
+      <tr>
+          <td>Default</td>
+          <td>Deny all inbound, allow all outbound</td>
+          <td>Allow all both ways</td>
+      </tr>
+      <tr>
+          <td>Rule evaluation</td>
+          <td>All rules union</td>
+          <td>First match wins (numeric order)</td>
+      </tr>
+      <tr>
+          <td>Quota (AWS)</td>
+          <td>60 inbound + 60 outbound, 5 SGs per ENI</td>
+          <td>20 inbound + 20 outbound rules per NACL</td>
+      </tr>
+      <tr>
+          <td>Best for</td>
+          <td>App-to-app authorisation</td>
+          <td>Blast-radius limits, deny-listing IPs</td>
+      </tr>
+  </tbody>
+</table>
+<p>The robust pattern is <strong>SG-to-SG references</strong>: instead of opening port 3306 from a CIDR, open port 3306 from <code>aws_security_group.app.id</code>. The rule remains correct as the app fleet scales and IPs churn; auditors see <em>intent</em>, not infrastructure.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;aws_security_group&#34; &#34;db&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span> <span class="o">=</span> <span class="k">aws_vpc</span><span class="p">.</span><span class="k">main</span><span class="p">.</span><span class="k">id</span>
+</span></span><span class="line"><span class="cl">  <span class="k">ingress</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    from_port</span>       <span class="o">=</span> <span class="m">3306</span>
+</span></span><span class="line"><span class="cl"><span class="n">    to_port</span>         <span class="o">=</span> <span class="m">3306</span>
+</span></span><span class="line"><span class="cl"><span class="n">    protocol</span>        <span class="o">=</span> <span class="s2">&#34;tcp&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    security_groups</span> <span class="o">=</span> <span class="p">[</span><span class="k">aws_security_group</span><span class="p">.</span><span class="k">app</span><span class="p">.</span><span class="k">id</span><span class="p">]</span><span class="c1">   # not a CIDR
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">    description</span>     <span class="o">=</span> <span class="s2">&#34;MySQL from app tier&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">  <span class="k">egress</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    from_port</span> <span class="o">=</span><span class="n"> 0  to_port</span> <span class="o">=</span><span class="n"> 0  protocol</span> <span class="o">=</span> <span class="s2">&#34;-1&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    cidr_blocks</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;0.0.0.0/0&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="62-vpc-flow-logs">6.2 VPC Flow Logs</h3>
+<p>Flow Logs record every accepted/rejected 5-tuple to S3 or CloudWatch. Three queries you will run within a week of enabling them:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- 1. Top REJECTed source IPs in the last hour (probably scanners / misconfigured clients)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">SELECT</span><span class="w"> </span><span class="n">srcaddr</span><span class="p">,</span><span class="w"> </span><span class="k">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">c</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">FROM</span><span class="w"> </span><span class="s2">&#34;vpc_flow_logs&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">action</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;REJECT&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">start_time</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">interval</span><span class="w"> </span><span class="s1">&#39;1&#39;</span><span class="w"> </span><span class="n">hour</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">srcaddr</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- 2. Egress to unexpected destinations (data exfiltration hunting)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">SELECT</span><span class="w"> </span><span class="n">dstaddr</span><span class="p">,</span><span class="w"> </span><span class="n">dstport</span><span class="p">,</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">bytes</span><span class="p">)</span><span class="w"> </span><span class="n">bytes_out</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">FROM</span><span class="w"> </span><span class="s2">&#34;vpc_flow_logs&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">direction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;egress&#39;</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">dstaddr</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;10.%&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">dstaddr</span><span class="p">,</span><span class="w"> </span><span class="n">dstport</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">bytes_out</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- 3. Cross-AZ traffic (often unintentional, always billed)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">SELECT</span><span class="w"> </span><span class="n">srcsubnet</span><span class="p">,</span><span class="w"> </span><span class="n">dstsubnet</span><span class="p">,</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">bytes</span><span class="p">)</span><span class="w"> </span><span class="n">bytes</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">FROM</span><span class="w"> </span><span class="s2">&#34;vpc_flow_logs&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">az_id_src</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">az_id_dst</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">srcsubnet</span><span class="p">,</span><span class="w"> </span><span class="n">dstsubnet</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">bytes</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="63-zero-trust-at-the-network-layer">6.3 Zero trust at the network layer</h3>
+<p>The &ldquo;soft chewy interior&rdquo; model &ndash; a hard perimeter, trusted internal network &ndash; is gone. Modern designs assume the network is hostile and enforce identity per request. Practical building blocks:</p>
+<ul>
+<li><strong>mTLS everywhere</strong> (service-to-service via a mesh: Istio, Linkerd, App Mesh).</li>
+<li><strong>Short-lived workload identity</strong> (SPIFFE/SPIRE, IAM Roles for Service Accounts, GCP Workload Identity).</li>
+<li><strong>Per-flow policy</strong> evaluated by the SDN (security groups + Cilium NetworkPolicies + service-mesh L7 RBAC layered together).</li>
+</ul>
+<hr>
+<h2 id="7-bgp-and-global-routing">7. BGP and global routing</h2>
+<p>When a request leaves your region and crosses the public internet &ndash; or when you fail over from one region to another &ndash; the system that gets it there is <strong>BGP</strong>, the Border Gateway Protocol. BGP is the routing protocol <em>between</em> autonomous systems (ASes); within a region your provider runs OSPF or IS-IS, but the moment you step out, BGP is in charge.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/networking-sdn/fig5_bgp_multi_region.png" alt="BGP across multiple regions" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="71-the-route-selection-algorithm-simplified">7.1 The route-selection algorithm (simplified)</h3>
+<p>Given multiple paths to the same prefix, BGP picks one by walking down a long tiebreak list. The first five rungs cover 99% of cases:</p>
+<ol>
+<li><strong>Highest LOCAL_PREF</strong> &ndash; &ldquo;internal preference&rdquo;; how <em>we</em> want to leave our network. Operator-set.</li>
+<li><strong>Shortest AS_PATH</strong> &ndash; fewer ASes to traverse.</li>
+<li><strong>Lowest MED</strong> &ndash; &ldquo;I&rsquo;d prefer you enter my AS this way&rdquo;; honoured between peers, not always between providers.</li>
+<li><strong>eBGP &gt; iBGP</strong> &ndash; prefer routes learned from external peers over internal.</li>
+<li><strong>Lowest IGP cost to the next hop</strong> &ndash; shortest <em>internal</em> path to the chosen exit.</li>
+</ol>
+<h3 id="72-ecmp-and-anycast">7.2 ECMP and anycast</h3>
+<ul>
+<li><strong>ECMP (Equal-Cost Multi-Path)</strong> &ndash; when several paths tie on all the above, hash the 5-tuple of each flow and spread them across the equal-cost neighbours. ECMP is how a 100 Gbit/s logical link is built from ten 10 Gbit/s physical links, and how a multi-region anycast service spreads load across its PoPs.</li>
+<li><strong>Anycast</strong> &ndash; announce the <em>same</em> IP from many locations; BGP delivers each user to the topologically closest one. Anycast is the foundation of every CDN, every DNS root, every public DoH resolver.</li>
+</ul>
+<h3 id="73-multi-region-failover">7.3 Multi-region failover</h3>
+<p>A common pattern for global services:</p>
+<ul>
+<li>Primary region serves writes; secondary regions serve reads.</li>
+<li>The DNS name is anycast or a Route 53 / Aliyun GTM <strong>failover record set</strong> keyed off health checks.</li>
+<li>Database replication is async cross-region; on failover the standby is promoted (RPO of seconds to minutes).</li>
+<li>On recovery, traffic is <em>manually</em> shifted back &ndash; automatic flap-back has burned almost everyone who has tried it.</li>
+</ul>
+<p>The BGP details rarely intrude on the application &ndash; but when something is mis-announced upstream (the <a href="https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/" target="_blank" rel="noopener noreferrer">Facebook 2021 outage <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ or any of the hundreds of route leaks per year) every layer above goes dark. RPKI route-origin validation and a careful prefix list at the ingress edge are mandatory hygiene at any meaningful scale.</p>
+<hr>
+<h2 id="8-troubleshooting-in-production">8. Troubleshooting in production</h2>
+<h3 id="81-the-triage-order">8.1 The triage order</h3>
+<p>When traffic is broken, walk <em>up</em> from the wire:</p>
+<ol>
+<li><strong>Reachability</strong> &ndash; can the source ARP/ND the gateway? <code>ip neigh</code>, <code>arping</code>. If not, it is L2 / SG / NACL.</li>
+<li><strong>Routing</strong> &ndash; does the route table have a path? <code>aws ec2 describe-route-tables</code>, <code>ip route</code>.</li>
+<li><strong>Filters</strong> &ndash; is the SG / NACL allowing the 5-tuple? Check both directions if NACL is involved.</li>
+<li><strong>DNS</strong> &ndash; is the name resolving to the IP you think? <code>dig +short</code>, beware of split-horizon DNS.</li>
+<li><strong>TLS</strong> &ndash; <code>openssl s_client -connect host:443 -servername host</code>. Half of &ldquo;API down&rdquo; is a stale cert.</li>
+<li><strong>Application</strong> &ndash; <code>curl -vvv https://...</code>. Log shows <code>200 OK</code>? It&rsquo;s not the network.</li>
+</ol>
+<h3 id="82-the-swiss-army-cli">8.2 The Swiss-army CLI</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Where are packets actually going?</span>
+</span></span><span class="line"><span class="cl">mtr -rwn -c <span class="m">100</span> example.com           <span class="c1"># combine traceroute + ping with stats</span>
+</span></span><span class="line"><span class="cl">ss -tunap                              <span class="c1"># what is listening / connected and to whom</span>
+</span></span><span class="line"><span class="cl">ss -i                                  <span class="c1"># per-socket congestion window, RTT</span>
+</span></span><span class="line"><span class="cl">tcpdump -ni any -s <span class="m">96</span> <span class="s1">&#39;port 443 and tcp[tcpflags] &amp; (tcp-syn|tcp-fin) != 0&#39;</span>   <span class="c1"># SYN/FIN summary</span>
+</span></span><span class="line"><span class="cl">nft list ruleset                       <span class="c1"># current netfilter rules (modern iptables)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># DNS</span>
+</span></span><span class="line"><span class="cl">dig +trace example.com
+</span></span><span class="line"><span class="cl">dig @8.8.8.8 example.com               <span class="c1"># bypass local resolver to isolate split-horizon</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Path MTU</span>
+</span></span><span class="line"><span class="cl">ip -6 route get 2606:4700::6810:84e5    <span class="c1"># confirm next hop + MTU</span>
+</span></span><span class="line"><span class="cl">ping -M <span class="k">do</span> -s <span class="m">1472</span> 8.8.8.8              <span class="c1"># detect black-holed PMTUD</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="83-the-five-most-expensive-misconfigurations">8.3 The five most expensive misconfigurations</h3>
+<table>
+  <thead>
+      <tr>
+          <th>Symptom</th>
+          <th>Usual cause</th>
+          <th>Fix</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Lambda in VPC cannot reach the internet</td>
+          <td>Default route missing or NAT GW down</td>
+          <td><code>0.0.0.0/0 -&gt; nat-...</code> on the function&rsquo;s subnet</td>
+      </tr>
+      <tr>
+          <td>Sudden NAT GW bill spike</td>
+          <td>App pulled large object from S3 over NAT instead of via Gateway Endpoint</td>
+          <td>Add <code>aws_vpc_endpoint.s3</code></td>
+      </tr>
+      <tr>
+          <td>Random TCP resets after seconds</td>
+          <td>SG / NACL allows new flows but stateful tracking dropped (idle timeout)</td>
+          <td>Tune keepalive, increase <code>tcp-keepalive-time</code></td>
+      </tr>
+      <tr>
+          <td>Cross-AZ data transfer cost dwarfs compute</td>
+          <td>LB cross-zone off, or services not AZ-aware</td>
+          <td>Enable cross-zone LB; topology-aware routing in K8s</td>
+      </tr>
+      <tr>
+          <td>Asymmetric routing on multi-homed VPC</td>
+          <td>SG stateful tracking sees only one direction</td>
+          <td>Route both directions through the same TGW attachment</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="9-common-questions">9. Common questions</h2>
+<p><strong>Q: Should we run our own load balancer (HAProxy / NGINX) or use the cloud LB?</strong></p>
+<p>Use the cloud LB unless you have a specific reason not to (custom routing logic, sticky on a header the cloud LB does not support, tight latency budget). Cloud LBs are HA, auto-scaling, integrated with TLS / WAF / IAM; you get back the engineer who would have run HAProxy.</p>
+<p><strong>Q: NLB or ALB?</strong></p>
+<p>ALB for HTTP/gRPC services (path/host routing, OIDC auth, redirects). NLB for non-HTTP TCP/UDP, for static-IP requirements (each NLB has a per-AZ EIP), or when you need extreme PPS.</p>
+<p><strong>Q: How many subnets per VPC?</strong></p>
+<p>At least one public + one private + one DB subnet per AZ. A 3-AZ VPC therefore has 9 subnets. More if you separate by tier (web/app/db/mgmt) or by sensitivity (PCI/non-PCI). Keep <code>/16</code> per VPC and <code>/22</code>-<code>/24</code> per subnet so you have room to grow.</p>
+<p><strong>Q: When does my workload need its own SDN controller (vs the cloud&rsquo;s)?</strong></p>
+<p>Almost never on the cloud &ndash; you are renting the controller and you cannot replace it. On-prem with OpenStack or VMware NSX, yes. Edge / 5G operators who build their own DC fabric, yes. Most application teams should not even think about SDN below the VPC abstraction.</p>
+<hr>
+<h2 id="series-navigation">Series Navigation</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Part</th>
+          <th>Topic</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td><a href="/en/cloud-computing-fundamentals/">Fundamentals and Architecture</a>
+</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td><a href="/en/cloud-computing-virtualization/">Virtualization Technology Deep Dive</a>
+</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td><a href="/en/cloud-computing-storage-systems/">Storage Systems and Distributed Architecture</a>
+</td>
+      </tr>
+      <tr>
+          <td><strong>4</strong></td>
+          <td><strong>Network Architecture and SDN (you are here)</strong></td>
+      </tr>
+      <tr>
+          <td>5</td>
+          <td><a href="/en/cloud-computing-security-privacy/">Security and Privacy Protection</a>
+</td>
+      </tr>
+      <tr>
+          <td>6</td>
+          <td><a href="/en/cloud-computing-operations-devops/">Operations and DevOps Practices</a>
+</td>
+      </tr>
+      <tr>
+          <td>7</td>
+          <td><a href="/en/cloud-computing-cloud-native-containers/">Cloud-Native and Container Technologies</a>
+</td>
+      </tr>
+      <tr>
+          <td>8</td>
+          <td><a href="/en/cloud-computing-multi-cloud-hybrid/">Multi-Cloud and Hybrid Architecture</a>
+</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#1-virtual-private-cloud-vpc">1. Virtual Private Cloud (VPC)</a>
+      <ul>
+        <li><a href="#11-anatomy-of-a-production-vpc">1.1 Anatomy of a production VPC</a></li>
+        <li><a href="#12-terraform-a-real-multi-az-vpc">1.2 Terraform: a real, multi-AZ VPC</a></li>
+        <li><a href="#13-connecting-vpcs-peering-tgw-privatelink">1.3 Connecting VPCs: peering, TGW, PrivateLink</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-load-balancing">2. Load Balancing</a>
+      <ul>
+        <li><a href="#21-l4-vs-l7">2.1 L4 vs L7</a></li>
+        <li><a href="#22-algorithms">2.2 Algorithms</a></li>
+        <li><a href="#23-alb-with-path--host-routing-terraform">2.3 ALB with path + host routing (Terraform)</a></li>
+        <li><a href="#24-health-checks-that-do-not-lie">2.4 Health checks that do not lie</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-content-delivery-networks-cdn">3. Content Delivery Networks (CDN)</a>
+      <ul>
+        <li><a href="#31-what-actually-happens-on-a-request">3.1 What actually happens on a request</a></li>
+        <li><a href="#32-cache-headers-that-work">3.2 Cache headers that work</a></li>
+        <li><a href="#33-beyond-static-dynamic-acceleration">3.3 Beyond static: dynamic acceleration</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-software-defined-networking-sdn">4. Software-Defined Networking (SDN)</a>
+      <ul>
+        <li><a href="#41-the-split">4.1 The split</a></li>
+        <li><a href="#42-why-operators-love-it">4.2 Why operators love it</a></li>
+        <li><a href="#43-network-functions-virtualisation-nfv">4.3 Network Functions Virtualisation (NFV)</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-hybrid-connectivity-vpn-direct-connect-transit-gateway">5. Hybrid connectivity: VPN, Direct Connect, Transit Gateway</a>
+      <ul>
+        <li><a href="#51-vpn-vs-direct-connect">5.1 VPN vs Direct Connect</a></li>
+        <li><a href="#52-transit-gateway">5.2 Transit Gateway</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-security-in-the-network">6. Security in the network</a>
+      <ul>
+        <li><a href="#61-security-groups-vs-network-acls">6.1 Security Groups vs Network ACLs</a></li>
+        <li><a href="#62-vpc-flow-logs">6.2 VPC Flow Logs</a></li>
+        <li><a href="#63-zero-trust-at-the-network-layer">6.3 Zero trust at the network layer</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-bgp-and-global-routing">7. BGP and global routing</a>
+      <ul>
+        <li><a href="#71-the-route-selection-algorithm-simplified">7.1 The route-selection algorithm (simplified)</a></li>
+        <li><a href="#72-ecmp-and-anycast">7.2 ECMP and anycast</a></li>
+        <li><a href="#73-multi-region-failover">7.3 Multi-region failover</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-troubleshooting-in-production">8. Troubleshooting in production</a>
+      <ul>
+        <li><a href="#81-the-triage-order">8.1 The triage order</a></li>
+        <li><a href="#82-the-swiss-army-cli">8.2 The Swiss-army CLI</a></li>
+        <li><a href="#83-the-five-most-expensive-misconfigurations">8.3 The five most expensive misconfigurations</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-common-questions">9. Common questions</a></li>
+    <li><a href="#series-navigation">Series Navigation</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Cloud Computing</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>20 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4300</strong></div>
+      <div class="row"><span>Published</span><strong>Apr 2023</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

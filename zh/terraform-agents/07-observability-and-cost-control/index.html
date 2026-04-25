@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="zh" data-translation="/en/terraform-agents/07-observability-and-cost-control/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警 · Chen Kai Blog</title>
+<meta name="description" content="日志进 SLS、Trace 进 ARMS、指标进 CloudMonitor——全部用 HCL 配，新环境天生带观测。真实救过我项目的四条告警，加上 SLS 驱动的成本看板，发薪日之前告诉你哪个 Agent 在烧预算。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/">
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/">
+
+<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/">
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警">
+<meta property="og:description" content="日志进 SLS、Trace 进 ARMS、指标进 CloudMonitor——全部用 HCL 配，新环境天生带观测。真实救过我项目的四条告警，加上 SLS 驱动的成本看板，发薪日之前告诉你哪个 Agent 在烧预算。">
+<meta property="og:url" content="https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-3);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Terraform Agents</a>
+         · Chapter 7
+      </div>
+      <h1>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警</h1>
+      <p class="deck">日志进 SLS、Trace 进 ARMS、指标进 CloudMonitor——全部用 HCL 配，新环境天生带观测。真实救过我项目的四条告警，加上 SLS 驱动的成本看板，发薪日之前告诉你哪个 Agent 在烧预算。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2026-03-24">March 24, 2026</time> · 7 min read · 3500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/terraform/" class="tag">#Terraform</a><a href="/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91/" class="tag">#阿里云</a><a href="/zh/tags/sls/" class="tag">#SLS</a><a href="/zh/tags/arms/" class="tag">#ARMS</a><a href="/zh/tags/cloudmonitor/" class="tag">#CloudMonitor</a><a href="/zh/tags/ai-agent/" class="tag">#AI Agent</a>
+          
+        </div>
+        
+          <a class="pill pill-outline" href="/en/terraform-agents/07-observability-and-cost-control/">
+            Read in English →
+          </a>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Agent 是非确定的、多步的、调昂贵 API 的。这组合意味着如果你不在第一天 instrument 它，事后没法 debug。本篇用 Terraform 打通三条管道——日志、Trace、指标——汇成一个统一看板，再叠四条真正在生产环境救过我项目的告警。</p>
+<p>读完之后你拥有一个钉钉群，账单爆掉之前、延迟挂掉之前、错误率飙升之前、某个 Agent 自循环之前，它都会先 ping 你。</p>
+<h2 id="三条管道">三条管道</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig1_obs_pipeline.png" alt="三种信号、三条管道：日志、Trace、指标" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>三种信号、三个阿里云服务，最终都汇到 SLS 给人类看：</p>
+<ul>
+<li><strong>日志</strong>——Agent stdout/stderr → ECS 上的 Logtail → SLS Logstore</li>
+<li><strong>Trace</strong>——Agent 代码里的 OpenTelemetry SDK → ARMS APM（OTel 兼容）</li>
+<li><strong>指标</strong>——CloudMonitor agent 的主机指标 + Agent 代码自定义指标 → CloudMonitor → 可选转发到 SLS</li>
+</ul>
+<p>不要&quot;只要日志&quot;或&quot;只要指标&quot;。三个都要：</p>
+<ul>
+<li>日志回答&quot;Agent 做了什么？&quot;</li>
+<li>Trace 回答&quot;时间花到哪去了？&quot;</li>
+<li>指标回答&quot;这件事比平时频率高吗？&quot;</li>
+</ul>
+<h2 id="第-1-步sls-项目和-logstore">第 1 步：SLS 项目和 logstore</h2>
+<p>所有可观测的东西从一个 SLS 项目开始。每环境一个项目是对的；每 Agent 一个就太碎了。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_project&#34; &#34;agents&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>        <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace} 的日志和指标&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    Environment</span> <span class="o">=</span> <span class="k">terraform</span><span class="p">.</span><span class="k">workspace</span>
+</span></span><span class="line"><span class="cl"><span class="n">    ManagedBy</span>   <span class="o">=</span> <span class="s2">&#34;terraform&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">locals</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  logstores</span> <span class="o">=</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    &#34;agent-runs&#34;</span>        <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 30, shard_count</span> <span class="o">=</span> <span class="m">4</span> }
+</span></span><span class="line"><span class="cl"><span class="n">    &#34;gateway-requests&#34;</span>  <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 90, shard_count</span> <span class="o">=</span> <span class="m">4</span> }
+</span></span><span class="line"><span class="cl"><span class="n">    &#34;ecs-syslog&#34;</span>        <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 14, shard_count</span> <span class="o">=</span> <span class="m">2</span> }
+</span></span><span class="line"><span class="cl"><span class="n">    &#34;ack-cluster&#34;</span>       <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 30, shard_count</span> <span class="o">=</span> <span class="m">4</span> }
+</span></span><span class="line"><span class="cl"><span class="n">    &#34;audit&#34;</span>             <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 365, shard_count</span> <span class="o">=</span> <span class="m">2</span> }
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_store&#34; &#34;this&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">logstores</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  project</span>          <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>             <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span>
+</span></span><span class="line"><span class="cl"><span class="n">  shard_count</span>      <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span><span class="p">.</span><span class="k">shard_count</span>
+</span></span><span class="line"><span class="cl"><span class="n">  retention_period</span> <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span><span class="p">.</span><span class="k">ttl</span>
+</span></span><span class="line"><span class="cl"><span class="n">  auto_split</span>       <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl"><span class="n">  max_split_shard_count</span> <span class="o">=</span> <span class="m">16</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">encrypt_conf</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    enable</span>      <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl"><span class="n">    encrypt_type</span> <span class="o">=</span> <span class="s2">&#34;default&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">user_cmk_info</span> {
+</span></span><span class="line"><span class="cl"><span class="n">      cmk_key_id</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;logs&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">      arn</span>        <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;logs&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">      region_id</span>  <span class="o">=</span> <span class="s2">&#34;cn-shanghai&#34;</span>
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>五个 logstore 覆盖实际需要：</p>
+<ul>
+<li><code>agent-runs</code>——每个 Agent 每一步（消防水管）</li>
+<li><code>gateway-requests</code>——每次 LLM API 调用一行，带 model、tokens、latency、cost</li>
+<li><code>ecs-syslog</code>——ECS 实例底层 OS 日志</li>
+<li><code>ack-cluster</code>——Kubernetes 事件和 Pod 日志（仅 ACK 时）</li>
+<li><code>audit</code>——Terraform 的每次变更，留 1 年合规</li>
+</ul>
+<p><code>audit</code> 留一年因为它体积小，几年后&quot;3 月 12 日是谁改了 prod ALB&quot;会问到。</p>
+<h2 id="第-2-步从-ecs-推日志">第 2 步：从 ECS 推日志</h2>
+<p>Logtail 是阿里云官方日志采集器。cloud-init 里装（加进第四篇的 <code>cloud-init.sh</code>）：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 装 Logtail</span>
+</span></span><span class="line"><span class="cl">wget http://logtail-release-cn-shanghai.oss-cn-shanghai.aliyuncs.com/linux64/logtail.sh
+</span></span><span class="line"><span class="cl">chmod +x logtail.sh <span class="o">&amp;&amp;</span> ./logtail.sh install cn-shanghai
+</span></span><span class="line"><span class="cl">service ilogtaild start
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 给这台机打标，挂到 SLS machine group</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;</span><span class="si">${</span><span class="nv">sls_user_id</span><span class="si">}</span><span class="s2">::</span><span class="si">${</span><span class="nv">sls_machine_group</span><span class="si">}</span><span class="s2">&#34;</span> &gt; /etc/ilogtail/user_log_config.json
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Logtail 配置——抓哪些文件、怎么解析——是 Terraform resource：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_machine_group&#34; &#34;agent&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  project</span>       <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>          <span class="o">=</span> <span class="s2">&#34;agent-runtime-machines&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  identify_type</span> <span class="o">=</span> <span class="s2">&#34;userdefined&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  identify_list</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;agent-runtime-${terraform.workspace}&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="n">  topic</span>         <span class="o">=</span> <span class="s2">&#34;agent-runs&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_logtail_config&#34; &#34;agent&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  project</span>      <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  logstore</span>     <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;agent-runs&#34;</span><span class="p">].</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  input_type</span>   <span class="o">=</span> <span class="s2">&#34;file&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  log_sample</span>   <span class="o">=</span> <span class="err">&lt;&lt;-</span><span class="k">SAMPLE</span>
+</span></span><span class="line"><span class="cl">    {<span class="s2">&#34;ts&#34;:&#34;2026-03-24T09:15:23Z&#34;,&#34;agent&#34;:&#34;research&#34;,&#34;step&#34;:&#34;plan&#34;,&#34;tokens&#34;:420,&#34;latency_ms&#34;</span><span class="err">:</span><span class="m">1200</span>}
+</span></span><span class="line"><span class="cl">  <span class="k">SAMPLE</span>
+</span></span><span class="line"><span class="cl"><span class="n">  name</span>         <span class="o">=</span> <span class="s2">&#34;agent-runs-collector&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  output_type</span>  <span class="o">=</span> <span class="s2">&#34;LogService&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  input_detail</span> <span class="o">=</span> <span class="k">jsonencode</span><span class="p">(</span>{
+</span></span><span class="line"><span class="cl"><span class="n">    logType</span>        <span class="o">=</span> <span class="s2">&#34;json_log&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    logPath</span>        <span class="o">=</span> <span class="s2">&#34;/var/log/agents&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    filePattern</span>    <span class="o">=</span> <span class="s2">&#34;*.log&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    localStorage</span>   <span class="o">=</span> <span class="kt">true</span>
+</span></span><span class="line"><span class="cl"><span class="n">    enableRawLog</span>   <span class="o">=</span> <span class="kt">false</span>
+</span></span><span class="line"><span class="cl"><span class="n">    timeKey</span>        <span class="o">=</span> <span class="s2">&#34;ts&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    timeFormat</span>     <span class="o">=</span> <span class="s2">&#34;%Y-%m-%dT%H:%M:%S%z&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    discardUnmatch</span> <span class="o">=</span> <span class="kt">false</span>
+</span></span><span class="line"><span class="cl"><span class="n">    maxDepth</span>       <span class="o">=</span> <span class="m">10</span>
+</span></span><span class="line"><span class="cl">  }<span class="p">)</span>
+</span></span><span class="line"><span class="cl">}
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_logtail_attachment&#34; &#34;agent&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  project</span>              <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  logtail_config_name</span>  <span class="o">=</span> <span class="k">alicloud_logtail_config</span><span class="p">.</span><span class="k">agent</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  machine_group_name</span>   <span class="o">=</span> <span class="k">alicloud_log_machine_group</span><span class="p">.</span><span class="k">agent</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>现在任何打了标的机器上 <code>/var/log/agents/*.log</code> 都流进 SLS，作为 JSON 按字段可查。Agent 代码只 <code>logger.info(json.dumps({...}))</code>，其余自动。</p>
+<h2 id="第-3-步opentelemetry--arms-trace">第 3 步：OpenTelemetry → ARMS Trace</h2>
+<p>Trace 用 ARMS APM，OpenTelemetry 兼容。Terraform 一侧很小——开 ARMS 实例和环境：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_arms_environment&#34; &#34;agents&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  environment_name</span>      <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  bind_resource_id</span>      <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">vpc_id</span>
+</span></span><span class="line"><span class="cl"><span class="n">  environment_type</span>      <span class="o">=</span> <span class="s2">&#34;CS&#34;</span><span class="c1">             # cloud service
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">  environment_sub_type</span>  <span class="o">=</span> <span class="s2">&#34;ECS&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  payment_type</span>          <span class="o">=</span> <span class="s2">&#34;POSTPAY&#34;</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Agent 代码用标准 OpenTelemetry——不用阿里云特定 SDK：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">opentelemetry</span> <span class="kn">import</span> <span class="n">trace</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">opentelemetry.exporter.otlp.proto.http.trace_exporter</span> <span class="kn">import</span> <span class="n">OTLPSpanExporter</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">opentelemetry.sdk.trace</span> <span class="kn">import</span> <span class="n">TracerProvider</span>
+</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">opentelemetry.sdk.trace.export</span> <span class="kn">import</span> <span class="n">BatchSpanProcessor</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">trace</span><span class="o">.</span><span class="n">set_tracer_provider</span><span class="p">(</span><span class="n">TracerProvider</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl"><span class="n">trace</span><span class="o">.</span><span class="n">get_tracer_provider</span><span class="p">()</span><span class="o">.</span><span class="n">add_span_processor</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">BatchSpanProcessor</span><span class="p">(</span><span class="n">OTLPSpanExporter</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">endpoint</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;ARMS_OTLP_ENDPOINT&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;Authentication&#34;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;ARMS_LICENSE_KEY&#34;</span><span class="p">]},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">tracer</span> <span class="o">=</span> <span class="n">trace</span><span class="o">.</span><span class="n">get_tracer</span><span class="p">(</span><span class="s2">&#34;research-agent&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="n">tracer</span><span class="o">.</span><span class="n">start_as_current_span</span><span class="p">(</span><span class="s2">&#34;research_loop&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">span</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">span</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="s2">&#34;agent.name&#34;</span><span class="p">,</span> <span class="s2">&#34;research-agent&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">span</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="s2">&#34;session.id&#34;</span><span class="p">,</span> <span class="n">session_id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># ... Agent 工作 ...</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>两个环境变量来自 ARMS——<code>ARMS_OTLP_ENDPOINT</code> 在 ARMS 控制台，<code>ARMS_LICENSE_KEY</code> 来自账号。两个都通过 Terraform 输出接入 cloud-init 模板。</p>
+<p>回报：在 ARMS 里你能看到&quot;这次 Agent run 12 秒；其中 9 秒在第三次调 qwen-max&quot;。这种可见性真正改变你怎么造 Agent。</p>
+<h2 id="第-4-步cloudmonitor-拿指标">第 4 步：CloudMonitor 拿指标</h2>
+<p>CloudMonitor 装 cloud-monitor agent 之后自动拿主机级指标（CPU、内存、网络）——ACK node pool 上 <code>install_cloud_monitor</code> flag 已经做了。ECS 上加进 cloud-init：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget http://cms-agent-cn-shanghai.oss-cn-shanghai.aliyuncs.com/release/cms_go_agent_install.sh
+</span></span><span class="line"><span class="cl">chmod +x cms_go_agent_install.sh <span class="o">&amp;&amp;</span> ./cms_go_agent_install.sh
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>应用级自定义指标——&ldquo;research-agent 消耗的 token&rdquo;——以结构化字段写成 SLS 日志，再用 SLS query 告警。SLS-as-metrics 是阿里云推的模式；CloudMonitor 自定义指标也可以，但从 Terraform 配比较别扭。</p>
+<h2 id="第-5-步成本看板">第 5 步：成本看板</h2>
+<p>这里开始有意思。每次 LLM 请求打到网关，网关每请求一行写到 <code>gateway-requests</code>，字段如：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;ts&#34;</span><span class="p">:</span> <span class="s2">&#34;2026-03-24T09:15:23Z&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;agent&#34;</span><span class="p">:</span> <span class="s2">&#34;research-agent&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;model&#34;</span><span class="p">:</span> <span class="s2">&#34;qwen-max&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;input_tokens&#34;</span><span class="p">:</span> <span class="mi">1820</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;output_tokens&#34;</span><span class="p">:</span> <span class="mi">412</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;latency_ms&#34;</span><span class="p">:</span> <span class="mi">1230</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;cost_cny&#34;</span><span class="p">:</span> <span class="mf">0.087</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>SLS 能跑 SQL。&ldquo;按 Agent 看每日成本&quot;的查询：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="o">*</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">date_trunc</span><span class="p">(</span><span class="s1">&#39;day&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">__time__</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">day</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="n">agent</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="k">SUM</span><span class="p">(</span><span class="n">cost_cny</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">daily_cost</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">log</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">day</span><span class="p">,</span><span class="w"> </span><span class="n">agent</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">day</span><span class="p">,</span><span class="w"> </span><span class="n">daily_cost</span><span class="w"> </span><span class="k">DESC</span><span class="w">
+</span></span></span></code></pre></td></tr></table>
+</div>
+</div><p>通过 Terraform 配看板：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_dashboard&#34; &#34;cost&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  project_name</span>   <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  dashboard_name</span> <span class="o">=</span> <span class="s2">&#34;agent-cost-overview&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  display_name</span>   <span class="o">=</span> <span class="s2">&#34;Agent 成本总览&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  char_list</span> <span class="o">=</span> <span class="k">jsonencode</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl"><span class="n">      title</span> <span class="o">=</span> <span class="s2">&#34;按 Agent 看每日成本&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      type</span>  <span class="o">=</span> <span class="s2">&#34;line&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      query</span> <span class="o">=</span> <span class="s2">&#34;* | SELECT date_trunc(&#39;day&#39;, __time__) AS day, agent, SUM(cost_cny) AS cost FROM log GROUP BY day, agent ORDER BY day&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      logstore</span> <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">      display</span> <span class="o">=</span><span class="n"> { xAxis</span> <span class="o">=</span><span class="n"> [&#34;day&#34;], yAxis</span> <span class="o">=</span><span class="n"> [&#34;cost&#34;], yKey</span> <span class="o">=</span> <span class="s2">&#34;agent&#34;</span> }
+</span></span><span class="line"><span class="cl">    }<span class="p">,</span>
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl"><span class="n">      title</span> <span class="o">=</span> <span class="s2">&#34;近 24 小时按模型看 token&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      type</span>  <span class="o">=</span> <span class="s2">&#34;pie&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      query</span> <span class="o">=</span> <span class="s2">&#34;* | SELECT model, SUM(input_tokens + output_tokens) AS tokens FROM log WHERE __time__ &gt; now() - INTERVAL &#39;24&#39; HOUR GROUP BY model&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      logstore</span> <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl">    }<span class="p">,</span>
+</span></span><span class="line"><span class="cl">    {
+</span></span><span class="line"><span class="cl"><span class="n">      title</span> <span class="o">=</span> <span class="s2">&#34;按 Agent 看 p95 延迟&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      type</span>  <span class="o">=</span> <span class="s2">&#34;line&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      query</span> <span class="o">=</span> <span class="s2">&#34;* | SELECT date_trunc(&#39;hour&#39;, __time__) AS hour, agent, approx_percentile(latency_ms, 0.95) AS p95 FROM log GROUP BY hour, agent ORDER BY hour&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">      logstore</span> <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl">    }
+</span></span><span class="line"><span class="cl">  <span class="p">])</span>
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>打开 SLS 控制台你就有一个实时看板：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig2_cost_dashboard.png" alt="按类别堆叠的每日成本" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>看板就是&quot;哪个 Agent 在烧我的预算？&ldquo;的答案——一个你每月会被问的问题。</p>
+<h2 id="第-6-步四条告警">第 6 步：四条告警</h2>
+<p>四条告警在我交付过的多个 Agent stack 里挣得了它们的位置：</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/07-observability-and-cost-control/fig3_alert_rules.png" alt="第一天就该配的四条告警" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h3 id="告警-1成本上限">告警 1：成本上限</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_alert&#34; &#34;cost_ceiling&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  project_name</span>   <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  alert_name</span>     <span class="o">=</span> <span class="s2">&#34;daily-cost-ceiling&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  alert_displayname</span> <span class="o">=</span> <span class="s2">&#34;每日 LLM 花费 &gt; ¥800&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">query_list</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    chart_title</span> <span class="o">=</span> <span class="s2">&#34;today_cost&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    logstore</span>    <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">    query</span>       <span class="o">=</span> <span class="s2">&#34;* | SELECT SUM(cost_cny) AS today FROM log WHERE __time__ &gt; to_unixtime(date_trunc(&#39;day&#39;, now()))&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    start</span>       <span class="o">=</span> <span class="s2">&#34;-1m&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    end</span>         <span class="o">=</span> <span class="s2">&#34;now&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    time_span_type</span> <span class="o">=</span> <span class="s2">&#34;Truncated&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  condition</span>  <span class="o">=</span> <span class="s2">&#34;today &gt; 800&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  schedule_interval</span> <span class="o">=</span> <span class="s2">&#34;5m&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  notify_threshold</span>  <span class="o">=</span> <span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="n">  throttling</span>        <span class="o">=</span> <span class="s2">&#34;30m&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">notification_list</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    type</span>           <span class="o">=</span> <span class="s2">&#34;DingTalk&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    service_uri</span>    <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">dingtalk_webhook</span>
+</span></span><span class="line"><span class="cl"><span class="n">    content</span>        <span class="o">=</span> <span class="s2">&#34;今日 LLM 成本 ¥${&#34;{{today}}&#34;} 超 ¥800 预算。看 SLS 成本看板。&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">severity_configurations</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    severity</span>      <span class="o">=</span> <span class="m">8</span>
+</span></span><span class="line"><span class="cl"><span class="n">    eval_condition</span> <span class="o">=</span><span class="n"> { condition</span> <span class="o">=</span> <span class="s2">&#34;today &gt; 800&#34;</span> }
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>如果当日 LLM 花费过 ¥800，每 30 分钟响一次。按你的真实预算调阈值。throttling 重要——不设的话每 5 分钟响一次，团队会把群消息免打扰。</p>
+<h3 id="告警-2延迟">告警 2：延迟</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_alert&#34; &#34;latency&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  project_name</span>   <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  alert_name</span>     <span class="o">=</span> <span class="s2">&#34;agent-step-latency&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  alert_displayname</span> <span class="o">=</span> <span class="s2">&#34;p95 Agent step &gt; 8s&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">query_list</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    chart_title</span> <span class="o">=</span> <span class="s2">&#34;p95_step&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    logstore</span>    <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;agent-runs&#34;</span><span class="p">].</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">    query</span>       <span class="o">=</span> <span class="s2">&#34;* | SELECT approx_percentile(latency_ms, 0.95) / 1000.0 AS p95s FROM log WHERE __time__ &gt; now() - INTERVAL &#39;5&#39; MINUTE&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    start</span>       <span class="o">=</span> <span class="s2">&#34;-5m&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    end</span>         <span class="o">=</span> <span class="s2">&#34;now&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  condition</span>         <span class="o">=</span> <span class="s2">&#34;p95s &gt; 8&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  schedule_interval</span> <span class="o">=</span> <span class="s2">&#34;1m&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  notify_threshold</span>  <span class="o">=</span> <span class="m">3</span>
+</span></span><span class="line"><span class="cl"><span class="n">  throttling</span>        <span class="o">=</span> <span class="s2">&#34;15m&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">notification_list</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    type</span>        <span class="o">=</span> <span class="s2">&#34;DingTalk&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    service_uri</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">dingtalk_webhook</span>
+</span></span><span class="line"><span class="cl"><span class="n">    content</span>     <span class="o">=</span> <span class="s2">&#34;Agent p95 step 延迟 ${&#34;{{p95s}}&#34;}s——用户发现之前去看。&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>notify_threshold = 3</code> 意味着连续三分钟超阈值才响——把单次慢 LLM 调用的噪声压住。</p>
+<h3 id="告警-3错误率">告警 3：错误率</h3>
+<p>形状一样，query 是 <code>SUM(IF(status &gt;= 500, 1, 0)) * 1.0 / COUNT(*) AS err_ratio</code>，condition <code>err_ratio &gt; 0.02</code>。throttling 短一些（5 分钟）因为错误通常是真正持续的事件。</p>
+<h3 id="告警-4token-漏失控循环">告警 4：token 漏（失控循环）</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_alert&#34; &#34;token_spike&#34;</span> {
+</span></span><span class="line"><span class="cl"><span class="n">  project_name</span>   <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">  alert_name</span>     <span class="o">=</span> <span class="s2">&#34;token-anomaly&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  alert_displayname</span> <span class="o">=</span> <span class="s2">&#34;Tokens/min &gt; 24h 滚动均值的 2 倍&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">query_list</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    chart_title</span> <span class="o">=</span> <span class="s2">&#34;current&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    logstore</span>    <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">    query</span>       <span class="o">=</span> <span class="s2">&#34;* | SELECT SUM(input_tokens + output_tokens) AS now_tpm FROM log WHERE __time__ &gt; now() - INTERVAL &#39;1&#39; MINUTE&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    start</span>       <span class="o">=</span> <span class="s2">&#34;-1m&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    end</span>         <span class="o">=</span> <span class="s2">&#34;now&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">query_list</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    chart_title</span> <span class="o">=</span> <span class="s2">&#34;baseline&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    logstore</span>    <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
+</span></span><span class="line"><span class="cl"><span class="n">    query</span>       <span class="o">=</span> <span class="s2">&#34;* | SELECT AVG(per_min) AS baseline FROM (SELECT date_trunc(&#39;minute&#39;, __time__) AS m, SUM(input_tokens + output_tokens) AS per_min FROM log WHERE __time__ &gt; now() - INTERVAL &#39;24&#39; HOUR GROUP BY m)&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    start</span>       <span class="o">=</span> <span class="s2">&#34;-24h&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    end</span>         <span class="o">=</span> <span class="s2">&#34;now&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">  condition</span>         <span class="o">=</span> <span class="s2">&#34;now_tpm &gt; 2 * baseline&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  schedule_interval</span> <span class="o">=</span> <span class="s2">&#34;1m&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">  notify_threshold</span>  <span class="o">=</span> <span class="m">2</span>
+</span></span><span class="line"><span class="cl"><span class="n">  throttling</span>        <span class="o">=</span> <span class="s2">&#34;10m&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">notification_list</span> {
+</span></span><span class="line"><span class="cl"><span class="n">    type</span>        <span class="o">=</span> <span class="s2">&#34;DingTalk&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="n">    service_uri</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">dingtalk_webhook</span>
+</span></span><span class="line"><span class="cl"><span class="n">    content</span>     <span class="o">=</span> <span class="s2">&#34;Token 消耗 ${&#34;{{now_tpm}}&#34;} tpm vs 24h 均 ${&#34;{{baseline}}&#34;}。可能 Agent 失控。&#34;</span>
+</span></span><span class="line"><span class="cl">  }
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>这是最值回票价的那条。一个停止条件有 bug 的 Agent 一夜之间能烧 ¥10,000 token；这条告警 2 分钟内抓到，给你时间杀进程。</p>
+<h2 id="为什么钉钉">为什么钉钉？</h2>
+<p>国内多数工程团队默认钉钉。SLS 原生支持钉钉 webhook。也能扇出到邮件、短信、（通过 webhook）Slack/Teams/飞书。挑你团队凌晨两点会看的那个。</p>
+<h2 id="arms-那边的告警呢">ARMS 那边的告警呢？</h2>
+<p>ARMS 自己也有告警——对 trace 级条件有用（&ldquo;任何超过 30 个 span 的 trace&rdquo;）。上面四条 SLS 端就够了，且避免把告警故事拆到两个系统。SLS 表达不了的需求才用 ARMS 告警。</p>
+<h2 id="成本">成本</h2>
+<p>可观测有真实成本——通常是其他账单的 10-15%：</p>
+<ul>
+<li>SLS：~¥0.35/GB ingest + ¥0.15/GB 存储。中等流量 Agent stack 每天 ingest ~5 GB → ¥50/月 ingest，30 天保留 ¥20/月</li>
+<li>ARMS APM：~¥600/月，1 个环境最多 100M span</li>
+<li>CloudMonitor：标准指标免费，自定义指标 ¥0.005/指标/天</li>
+</ul>
+<p>完整可观测在生产 Agent stack 上预算 ¥1000-1500/月。比一次错过的成本失控告警便宜得多。</p>
+<h2 id="下一篇">下一篇</h2>
+<p>第八篇是端到端 walkthrough。我们把第二到第七篇的所有 module——vpc-baseline、compute、storage、gateway、observability——组合成一个 <code>research-agent-stack</code> 项目，看它从一次 <code>terraform apply</code> 中起来。真实的 apply 输出、真实的耗时、完整的 module DAG。最后那个起手仓库可以 fork。</p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/"><span class="title">用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next →</div>
+      <a href="https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/"><span class="title">用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></a>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#三条管道">三条管道</a></li>
+    <li><a href="#第-1-步sls-项目和-logstore">第 1 步：SLS 项目和 logstore</a></li>
+    <li><a href="#第-2-步从-ecs-推日志">第 2 步：从 ECS 推日志</a></li>
+    <li><a href="#第-3-步opentelemetry--arms-trace">第 3 步：OpenTelemetry → ARMS Trace</a></li>
+    <li><a href="#第-4-步cloudmonitor-拿指标">第 4 步：CloudMonitor 拿指标</a></li>
+    <li><a href="#第-5-步成本看板">第 5 步：成本看板</a></li>
+    <li><a href="#第-6-步四条告警">第 6 步：四条告警</a>
+      <ul>
+        <li><a href="#告警-1成本上限">告警 1：成本上限</a></li>
+        <li><a href="#告警-2延迟">告警 2：延迟</a></li>
+        <li><a href="#告警-3错误率">告警 3：错误率</a></li>
+        <li><a href="#告警-4token-漏失控循环">告警 4：token 漏（失控循环）</a></li>
+      </ul>
+    </li>
+    <li><a href="#为什么钉钉">为什么钉钉？</a></li>
+    <li><a href="#arms-那边的告警呢">ARMS 那边的告警呢？</a></li>
+    <li><a href="#成本">成本</a></li>
+    <li><a href="#下一篇">下一篇</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Terraform Agents</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>7 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3500</strong></div>
+      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

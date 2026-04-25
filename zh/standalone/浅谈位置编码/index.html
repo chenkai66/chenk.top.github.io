@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>浅谈位置编码：从 Sinusoidal 到 RoPE 与 ALiBi · Chen Kai Blog</title>
+<meta name="description" content="系统梳理 Transformer 位置编码：为什么 Attention 需要它、绝对/相对/RoPE/ALiBi 各方案怎么算、长上下文外推时哪种最稳，以及如何为新模型选型。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈位置编码：从 Sinusoidal 到 RoPE 与 ALiBi">
+<meta property="og:description" content="系统梳理 Transformer 位置编码：为什么 Attention 需要它、绝对/相对/RoPE/ALiBi 各方案怎么算、长上下文外推时哪种最稳，以及如何为新模型选型。">
+<meta property="og:url" content="https://www.chenk.top/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
+        
+      </div>
+      <h1>浅谈位置编码：从 Sinusoidal 到 RoPE 与 ALiBi</h1>
+      <p class="deck">系统梳理 Transformer 位置编码：为什么 Attention 需要它、绝对/相对/RoPE/ALiBi 各方案怎么算、长上下文外推时哪种最稳，以及如何为新模型选型。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2025-06-03">June 3, 2025</time> · 11 min read · 5300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/nlp/" class="tag">#NLP</a><a href="/zh/tags/transformer/" class="tag">#Transformer</a><a href="/zh/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/zh/tags/llm/" class="tag">#LLM</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>第一次手动算 Self-Attention，多数人都会被一件事吓一跳：它<strong>完全不在乎输入顺序</strong>。把 token 重新排一下，每个注意力分数也跟着排，函数本身严格满足置换等变。所以在让 Transformer 干任何&quot;正经事&quot;之前，必须从外部把&quot;位置&quot;信息塞进去。</p>
+<p>这一个设计选择，&ldquo;怎么塞&rdquo;，催生了一整片研究小生态：Sinusoidal、Learned、Relative、T5 bucket、RoPE、ALiBi、NoPE……本文是写给工程师的一篇 brief：每种方案给到刚好够看懂的数学，再加足够的横向比较去做选型，重点放在 LLM 时代最关键的一项指标——<strong>长度外推</strong>（length extrapolation），即在比训练上下文更长的输入上还能不能用。</p>
+<h2 id="你将学到什么">你将学到什么</h2>
+<ul>
+<li>Attention 为什么是置换等变的，这个性质如何决定了位置编码的设计空间</li>
+<li>两大主流家族：<strong>绝对位置编码</strong> 与 <strong>相对位置编码</strong></li>
+<li>Sinusoidal、Learned、T5 bucket、RoPE、ALiBi 究竟在算什么</li>
+<li>哪些方案能优雅外推到更长上下文，哪些会直接崩</li>
+<li>给新架构选型时的一份决策清单</li>
+</ul>
+<h2 id="前置知识">前置知识</h2>
+<ul>
+<li>熟悉 Self-Attention（$Q$、$K$、$V$、softmax 那一套）</li>
+<li>会一点线性代数（矩阵、内积、旋转）</li>
+</ul>
+<hr>
+<h1 id="为什么-attention-一定要位置信息">为什么 Attention 一定要位置信息</h1>
+<p>设输入嵌入为 $X = [x_1, x_2, \ldots, x_n] \in \mathbb{R}^{n \times d}$，缩放点积注意力是：</p>
+$$
+\text{Attn}(X) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}}\right) V,
+\quad Q = XW_Q,\; K = XW_K,\; V = XW_V.
+$$<p>如果用任意置换矩阵 $P$ 把 $X$ 的行打乱，那么 $Q$、$K$、$V$ 都跟着以同样的方式被打乱，输出也只是按 $P$ 重排。形式化写就是 $\text{Attn}(PX) = P\,\text{Attn}(X)$。</p>
+<p>这就是&quot;模型不知道顺序&quot;在数学上的精确含义：注意力函数对输入的置换是<strong>等变的</strong>。它把&quot;猫坐在垫子上&quot;和&quot;垫子坐在猫上&quot;看成同一份多重集 token 的不同排列——同一组向量进，同一组向量出，只是顺序换了。要让模型分得清这两句，我们必须显式注入顺序，否则它永远做不到。</p>
+<p>而注入方式这件事，可以非常干净地拆成两类。</p>
+<hr>
+<h1 id="第一类绝对位置编码">第一类：绝对位置编码</h1>
+<p>最朴素的想法：给每个位置 $p$ 配一个独立的位置向量 $e_p \in \mathbb{R}^d$，在第一个注意力层之前直接加到 token 嵌入上：</p>
+$$
+\tilde{x}_p = x_p + e_p.
+$$<p>这样位置 1 的输入和位置 2 的输入就真的不一样了，哪怕两个 token 都是 &ldquo;the&rdquo;。注意力可以读到这种差异，从而捕捉顺序。</p>
+<p>剩下的问题就是：$e_p$ 从哪儿来？</p>
+<h2 id="11-可学习位置编码learned-pe">1.1 可学习位置编码（Learned PE）</h2>
+<p>最直接的做法：让 $E \in \mathbb{R}^{L_{\max} \times d}$ 也是一组可训练参数，交给反向传播自己优化。BERT、GPT-2 用的就是这个。</p>
+<p><strong>优点。</strong></p>
+<ul>
+<li>灵活到极致：模型自己学最适合数据的位置表示。</li>
+<li>实现极简：就一个 <code>nn.Embedding(L_max, d)</code>。</li>
+</ul>
+<p><strong>缺点。</strong></p>
+<ul>
+<li><strong>序列长度被钉死。</strong> $L_{\max}$ 在训练前就定好了，超出这个范围的行根本不存在。要更长就只能从头训练或继续预训练。</li>
+<li><strong>没有外推能力。</strong> 即使在 $L_{\max}$ 内部，训练样本里很少出现的位置也没机会学到合理表示；超过 $L_{\max}$ 就完全失效。</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/fig2_learned.png" alt="可学习位置编码：随机初始化经过训练后呈现平滑结构，但一旦超出训练长度，性能直接断崖式下降" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>上图右侧那条红色曲线就是要害：可学习的绝对 PE 在分布内表现稳定，分布外<strong>几乎是未定义的函数</strong>。对一个动辄要处理几万 token 的对话模型来说，这是致命的。</p>
+<h2 id="12-三角函数位置编码sinusoidal">1.2 三角函数位置编码（Sinusoidal）</h2>
+<p>《Attention Is All You Need》给出了一种手工设计的替代方案。对位置 $p$ 与维度索引 $i$（$d$ 偶数）：</p>
+$$
+\text{PE}(p, 2i)   = \sin\!\bigl(p / 10000^{2i/d}\bigr), \qquad
+\text{PE}(p, 2i+1) = \cos\!\bigl(p / 10000^{2i/d}\bigr).
+$$<p>每对维度 $(2i, 2i+1)$ 是一对 sin/cos，频率随 $i$ 几何衰减。低维抖得最快（周期 $2\pi$），高维几乎在整个序列上都接近常数（周期 $\sim 2\pi \cdot 10000$）。每个位置因此得到一份<strong>多尺度指纹</strong>。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/fig1_sinusoidal.png" alt="Sinusoidal 位置编码：左图是位置 × 维度的热力图，右图是单个位置的多尺度指纹" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><strong>为什么偏偏是这套频率？</strong> 两个原因。</p>
+<ol>
+<li>
+<p><strong>线性相对性。</strong> 因为 $\sin(p+k)$、$\cos(p+k)$ 都是 $\sin(p)$、$\cos(p)$ 的线性组合（系数只依赖 $k$），位置 $p+k$ 的编码就是位置 $p$ 编码的一个固定线性变换。注意力对 $Q$、$K$ 做的也是线性投影，理论上能&quot;读&quot;出相对偏移。这就是大家常说的&quot;自带相对位置信息&quot;。</p>
+</li>
+<li>
+<p><strong>没有长度上限。</strong> 公式对任意实数 $p$ 都有定义，训练只见过 512 也能直接问位置 100,000 的编码。</p>
+</li>
+</ol>
+<p><strong>优点。</strong></p>
+<ul>
+<li>无参数、无嵌入表。</li>
+<li>任意位置都有定义，外推平滑且原理清晰。</li>
+<li>线性相对性给了注意力一个&quot;开局加成&quot;。</li>
+</ul>
+<p><strong>缺点。</strong></p>
+<ul>
+<li><strong>&ldquo;自带相对信息&quot;基本是理论上的。</strong> LayerNorm 与 FFN 会破坏掉那层线性结构，一两层之后就所剩无几。</li>
+<li><strong>实测外推不行。</strong> 公式优雅归优雅，超出训练长度后困惑度上升得比 ALiBi 还猛。原因是真正需要保持合理的是<strong>注意力分数本身</strong>，而 sinusoidal 没有任何机制保证这一点。</li>
+</ul>
+<p>实践层面：sinusoidal 是个漂亮的设计，但已经被后来者全面接管。</p>
+<h2 id="13-其他绝对编码简述">1.3 其他绝对编码（简述）</h2>
+<p>再快速点两个名字，认得就够了。</p>
+<ul>
+<li><strong>递归式 / FLOATER（Liu et al., 2020）。</strong> 把查表换成一个学到的 ODE：$e_{p+1} = e_p + f_\theta(e_p, p)$。递归带来外推，但破坏并行——这恰恰是 Transformer 想躲开的代价。</li>
+<li><strong>相乘式编码。</strong> 把加法 $\tilde{x}_p = x_p + e_p$ 换成逐元素乘 $\tilde{x}_p = x_p \odot e_p$。基本只在论文里见到，训练稳定性差。</li>
+</ul>
+<p>绝对编码这一族的天花板都被同一个事实卡住：位置只在第一层注意力之前注入一次，几层之后&quot;这个 token 距离那个 token $k$ 步&quot;的信号基本就稀释没了。</p>
+<hr>
+<h1 id="第二类相对位置编码">第二类：相对位置编码</h1>
+<p>这是支撑现代 LLM 的关键观念转变：<strong>在自然语言里，重要的通常是两个 token 之间的距离 $i-j$，而不是它们各自坐在第几页。</strong> &ldquo;猫坐在垫子上&quot;出现在第 1 页和第 47 页是同一件事。所以<strong>直接把相对偏移注入到注意力打分里</strong>，注入到它真正被用的地方。</p>
+<h2 id="21-shaw-原始方案">2.1 Shaw 原始方案</h2>
+<p>Shaw et al.（2018）首次把相对位置作为对 key 的可学习偏置加入注意力：</p>
+$$
+\text{score}(i, j) = \frac{q_i^\top \bigl(k_j + r_{i-j}\bigr)}{\sqrt{d_k}},
+$$<p>其中 $r_{i-j} \in \mathbb{R}^{d_k}$ 是按<strong>有符号偏移</strong> $i-j$ 索引的可学习向量。超过截断半径 $K$ 的偏移共享同一个桶，于是有限个偏移向量就能覆盖任意长度。</p>
+<p><strong>这为什么有效。</strong> 模型可以直接学到&quot;相邻 token 比 5 步远的 token 更重要&rdquo;，完全不依赖绝对位置。而且每个偏移值的训练样本来自所有间隔为该值的 token 对，数据效率极高。</p>
+<p><strong>局限。</strong> 每层多出一张 $|R| \times d_k$ 的表，注意力里还多出一组逐对查询，难以与矩阵乘法融合。</p>
+<h2 id="22-t5-偏置极简主义">2.2 T5 偏置：极简主义</h2>
+<p>T5（Raffel et al., 2020）把简化推到极致：扔掉 $r_{i-j}$ 向量，直接用一个<strong>标量</strong>偏置加到打分上：</p>
+$$
+\text{score}(i, j) = \frac{q_i^\top k_j}{\sqrt{d_k}} + b_{B(i-j)},
+$$<p>其中 $B(\cdot)$ 是&quot;分桶函数&rdquo;：小偏移直接用，大偏移按对数映射到很少的几个桶（典型 32 个）。每个 head 学自己那 32 个标量。就这么多。</p>
+<p>T5 还顺手把 value 上的位置偏置也整个去掉，实测毫无副作用，公式干净到令人发指。</p>
+<h2 id="23-deberta解耦注意力">2.3 DeBERTa：解耦注意力</h2>
+<p>DeBERTa（He et al., 2021）走的是相反方向，<strong>展开</strong>相对编码。把 $(x_i + e_i)^\top (x_j + e_j)$ 展开会得到四项：内容–内容、内容–位置、位置–内容、位置–位置。T5 留下&quot;内容–内容 + 一个位置标量&quot;；DeBERTa 留下两个&quot;交叉项&quot;（内容–位置、位置–内容），扔掉了&quot;位置–位置&quot;。直觉是&quot;在相对距离 $k$ 处，这个 token 该看什么&quot;是真正信息丰富的，而内容相关版本的同一句话应该更强。</p>
+<p>DeBERTa 短暂占据过 SuperGLUE 榜首；代价是参数和注意力复杂度都更高。</p>
+<hr>
+<h1 id="rope把绝对编码伪装成相对编码">RoPE：把绝对编码&quot;伪装&quot;成相对编码</h1>
+<p>RoPE（Su et al., 2021）是当下几乎所有开源 LLM 的标配——LLaMA、Qwen、Mistral、Yi、DeepSeek、Gemma 全是 RoPE。它值得单开一节，因为做了一个魔术：看上去是<strong>绝对编码</strong>（基于 token 的绝对位置对它的 $q$、$k$ 做变换），结果出来的注意力分数却<strong>只依赖相对偏移</strong>。两全其美。</p>
+<h2 id="31-构造">3.1 构造</h2>
+<p>把 query/key 向量的每两维看作一个 2D 平面。对位置 $m$，把第 $g$ 对维度旋转角度 $m\theta_g$（$\theta_g$ 用和 sinusoidal 相同的几何衰减频率）：</p>
+$$
+R_m^{(g)} =
+\begin{pmatrix}
+  \cos m\theta_g & -\sin m\theta_g \\
+  \sin m\theta_g &  \cos m\theta_g
+\end{pmatrix}.
+$$<p>把这组分块对角旋转作用到 $q$、$k$ 上：</p>
+$$
+\tilde q_m = R_m\, q_m, \qquad \tilde k_n = R_n\, k_n.
+$$<p>然后算内积：</p>
+$$
+\tilde q_m^\top \tilde k_n
+= q_m^\top R_m^\top R_n\, k_n
+= q_m^\top R_{n-m}\, k_n.
+$$<p>两个<strong>绝对</strong>旋转坍缩成一个<strong>相对</strong>旋转 $R_{n-m}$。注意力分数现在只跟偏移 $n-m$ 有关。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/fig3_rope.png" alt="RoPE 把每对 (q, k) 按其绝对位置旋转一个角度，最终的内积只依赖于相对偏移" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<h2 id="32-它为什么这么好用">3.2 它为什么这么好用</h2>
+<p>三点让 RoPE 成了现代 LLM 的默认选择：</p>
+<ol>
+<li><strong>天生相对。</strong> Sinusoidal 的&quot;相对信息&quot;要靠线性投影去抠出来，LayerNorm 还会顺手破坏。RoPE 直接把相对依赖<strong>烧进打分本身</strong>，每一层都成立。</li>
+<li><strong>长度无关。</strong> 旋转矩阵 $R_m$ 对任意实数 $m$ 都有定义，跟 $\sin(m\theta)$ 一样。没有嵌入表要扩。</li>
+<li><strong>几乎免费。</strong> 块旋转的成本相当于每对维度做一次复数乘法，代码里就是几个 <code>cos</code>/<code>sin</code> 加逐元素乘，与 attention 矩阵乘相比可以忽略。</li>
+</ol>
+<h2 id="33-把-rope-拉到更长上下文">3.3 把 RoPE 拉到更长上下文</h2>
+<p>RoPE 在超出训练长度时也并非完美——困惑度还是会涨，只是没 sinusoidal 那么剧烈。社区于是发展出一连串&quot;长度扩展&quot;技巧：</p>
+<ul>
+<li><strong>位置插值（PI, Chen et al., 2023）。</strong> 在喂给 RoPE 之前把所有位置缩放 $L_{\text{train}} / L_{\text{test}}$ 倍，这样比如位置 4096 用的就是训练时位置 2048 见过的角度。便宜，需要短期微调。</li>
+<li><strong>NTK-aware scaling 与 YaRN（Peng et al., 2023）。</strong> 只缩放<strong>低频维度</strong>（在训练区间内角度变化极小的那些），不动高频维度。长上下文还原度更好。</li>
+<li><strong>LongRoPE（Ding et al., 2024）。</strong> 搜索每个维度独立的非均匀缩放因子。在最少微调的情况下把可用上下文推到 200 万 token。</li>
+</ul>
+<p>这就是为什么每个新 LLM 的 config 里都有 <code>RoPE base = 10000</code>，推理时还要再写一行 <code>RoPE scaling = ...</code>。</p>
+<hr>
+<h1 id="alibi最务实的外推方案">ALiBi：最务实的外推方案</h1>
+<p>ALiBi（Press et al., 2022）可能是名单里最反直觉的一个，因为它简单到不像话：没有嵌入、没有旋转，<strong>直接在注意力分数上加一项固定的、按 head 区分的线性距离惩罚</strong>：</p>
+$$
+\text{score}(i, j) = \frac{q_i^\top k_j}{\sqrt{d_k}} - m_h \cdot |i - j|.
+$$<p>斜率 $m_h$ 按几何衰减预先固定（head 1：$m_1 = 1/2$；head 2：$m_2 = 1/4$；……），<strong>啥都不学</strong>。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/fig4_alibi.png" alt="ALiBi：每个 head 在注意力分数上加一项线性距离惩罚，不同 head 衰减速率不同" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>就这。上图右侧揭示了设计意图：head 1 斜率最陡，专注局部（&ldquo;刚刚发生了什么&rdquo;）；head 8 斜率最缓，几乎全局（&ldquo;整篇文档&rdquo;）。</p>
+<p><strong>为什么能外推。</strong> 偏置是关于偏移的闭式函数。推理时给 32K 上下文，哪怕训练只到 2K，它依然按线性继续衰减——没有任何&quot;魔法&quot;，也不需要微调。</p>
+<p><strong>取舍。</strong> 实测上，ALiBi 在训练长度上的语言建模略弱于 RoPE，超出训练长度后则远胜——BLOOM、MPT 选它就是冲着这一点。</p>
+<hr>
+<h1 id="综合长度外推全景">综合：长度外推全景</h1>
+<p>2026 年最实际的问题是：<strong>当推理上下文超过训练上下文时，困惑度变成什么样？</strong></p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B5%85%E8%B0%88%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81/fig5_compare.png" alt="长度外推：sinusoidal 直接崩，RoPE 平滑下降，ALiBi 几乎无代价" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>定性结论——绝对 PE 崩溃、RoPE 渐进式下降、ALiBi 几乎免费——在文献里高度一致（Press et al. 2022；RoFormer 论文；以及一系列 RoPE 长度扩展报告）。图是示意性的，绝对数字会随模型、数据、解码设置变化。</p>
+<p>从这张图能抽出几个工程层面的判断：</p>
+<ul>
+<li><strong>如果你不打算超出训练上下文</strong>（例如 BERT 风格的分类/抽取），可学习绝对 PE 就够，简单稳定。</li>
+<li><strong>如果想兼顾外推与分布内质量</strong>，RoPE + 一种长度扩展技巧（PI、NTK-aware、YaRN）是当下默认，几乎所有开源 LLM 都这么做。</li>
+<li><strong>如果你必须服务远超训练长度的请求且不想微调</strong>，ALiBi 是最可预测的选择。BLOOM、MPT、Falcon-RW 都选它。</li>
+<li><strong>混合方案</strong>（RoPE + 小型可学偏置，或 NoPE 在部分层完全去掉位置信息）是活跃方向，结果有潜力但跨规模复现不稳。</li>
+</ul>
+<hr>
+<h1 id="选型清单">选型清单</h1>
+<p>一个简短的决策树：</p>
+<ol>
+<li><strong>最大上下文 $\leq$ 训练上下文，编码器风格（分类/QA，输入有界）</strong>：可学习绝对 PE。打住。</li>
+<li><strong>解码器风格 LM，自己控制训练长度，要分布内质量最好</strong>：RoPE。需要更长就推理时叠 YaRN/PI。</li>
+<li><strong>解码器风格 LM，必须服务远超训练长度的上下文，没时间微调</strong>：ALiBi。</li>
+<li><strong>小型 T5 风格 encoder-decoder</strong>：T5 bucket 偏置。说真的够用了。</li>
+<li><strong>想发论文</strong>：搞个新组合，在 64K 上跑一下，报困惑度。</li>
+</ol>
+<hr>
+<h1 id="常见误解">常见误解</h1>
+<p>我自己被坑过、也看到很多人混淆的几个点：</p>
+<ul>
+<li><strong>&ldquo;Sinusoidal 是相对的。&rdquo;</strong> 它在线性代数意义上<strong>含有</strong>相对信息，但模型必须靠投影把它抠出来，而 LayerNorm 会把那种线性结构破坏掉。实测它的行为更接近绝对编码。</li>
+<li><strong>&ldquo;RoPE 没有长度上限。&rdquo;</strong> 公式没有上限，但模型有：训练里没见过的偏移对应的注意力分数本质上是分布外样本，所以才需要 PI/YaRN。</li>
+<li><strong>&ldquo;ALiBi 只是个启发式。&rdquo;</strong> 它确实是启发式，但<strong>这个启发式编码了一个很强的归纳偏置——越近的 token 越重要</strong>——而这件事在自然语言里恰好成立。仅这一条先验就足以撑起强外推。</li>
+<li><strong>&ldquo;训练完可以换位置编码。&rdquo;</strong> 不行。整张网络（包括 LayerNorm 增益、注意力 head 的专门化、FFN 偏置）都和原本的位置信号联合优化过。换 PE 至少要长时间微调，多数情况下要重训。</li>
+</ul>
+<hr>
+<h1 id="参考">参考</h1>
+<ul>
+<li>Vaswani et al., 2017. <em>Attention Is All You Need.</em> <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener noreferrer">arXiv:1706.03762 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Shaw et al., 2018. <em>Self-Attention with Relative Position Representations.</em> <a href="https://arxiv.org/abs/1803.02155" target="_blank" rel="noopener noreferrer">arXiv:1803.02155 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Dai et al., 2019. <em>Transformer-XL.</em> <a href="https://arxiv.org/abs/1901.02860" target="_blank" rel="noopener noreferrer">arXiv:1901.02860 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Raffel et al., 2020. <em>Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer (T5).</em> <a href="https://arxiv.org/abs/1910.10683" target="_blank" rel="noopener noreferrer">arXiv:1910.10683 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Liu et al., 2020. <em>Learning to Encode Position for Transformer with Continuous Dynamical Model (FLOATER).</em> <a href="https://arxiv.org/abs/2003.09229" target="_blank" rel="noopener noreferrer">arXiv:2003.09229 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>He et al., 2021. <em>DeBERTa: Decoding-enhanced BERT with Disentangled Attention.</em> <a href="https://arxiv.org/abs/2006.03654" target="_blank" rel="noopener noreferrer">arXiv:2006.03654 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Su et al., 2021. <em>RoFormer: Enhanced Transformer with Rotary Position Embedding.</em> <a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noopener noreferrer">arXiv:2104.09864 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+ —— 苏神博文 <a href="https://spaces.ac.cn/archives/8130" target="_blank" rel="noopener noreferrer">《让研究人员绞尽脑汁的 Transformer 位置编码》 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+。</li>
+<li>Press et al., 2022. <em>Train Short, Test Long: Attention with Linear Biases (ALiBi).</em> <a href="https://arxiv.org/abs/2108.12409" target="_blank" rel="noopener noreferrer">arXiv:2108.12409 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Chen et al., 2023. <em>Extending Context Window of Large Language Models via Positional Interpolation.</em> <a href="https://arxiv.org/abs/2306.15595" target="_blank" rel="noopener noreferrer">arXiv:2306.15595 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Peng et al., 2023. <em>YaRN: Efficient Context Window Extension of Large Language Models.</em> <a href="https://arxiv.org/abs/2309.00071" target="_blank" rel="noopener noreferrer">arXiv:2309.00071 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+<li>Ding et al., 2024. <em>LongRoPE: Extending LLM Context Window Beyond 2 Million Tokens.</em> <a href="https://arxiv.org/abs/2402.13753" target="_blank" rel="noopener noreferrer">arXiv:2402.13753 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
+</li>
+</ul>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#你将学到什么">你将学到什么</a></li>
+    <li><a href="#前置知识">前置知识</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#11-可学习位置编码learned-pe">1.1 可学习位置编码（Learned PE）</a></li>
+    <li><a href="#12-三角函数位置编码sinusoidal">1.2 三角函数位置编码（Sinusoidal）</a></li>
+    <li><a href="#13-其他绝对编码简述">1.3 其他绝对编码（简述）</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#21-shaw-原始方案">2.1 Shaw 原始方案</a></li>
+    <li><a href="#22-t5-偏置极简主义">2.2 T5 偏置：极简主义</a></li>
+    <li><a href="#23-deberta解耦注意力">2.3 DeBERTa：解耦注意力</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#31-构造">3.1 构造</a></li>
+    <li><a href="#32-它为什么这么好用">3.2 它为什么这么好用</a></li>
+    <li><a href="#33-把-rope-拉到更长上下文">3.3 把 RoPE 拉到更长上下文</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5300</strong></div>
+      <div class="row"><span>Published</span><strong>Jun 2025</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

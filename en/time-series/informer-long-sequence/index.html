@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Time Series Forecasting (8): Informer -- Efficient Long-Sequence Forecasting · Chen Kai Blog</title>
+<meta name="description" content="Informer reduces Transformer complexity from O(L^2) to O(L log L) via ProbSparse attention, distilling, and a one-shot generative decoder. Full math, PyTorch code, and ETT/weather benchmarks.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/time-series/informer-long-sequence/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/time-series/informer-long-sequence/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Time Series Forecasting (8): Informer -- Efficient Long-Sequence Forecasting">
+<meta property="og:description" content="Informer reduces Transformer complexity from O(L^2) to O(L log L) via ProbSparse attention, distilling, and a one-shot generative decoder. Full math, PyTorch code, and ETT/weather benchmarks.">
+<meta property="og:url" content="https://www.chenk.top/en/time-series/informer-long-sequence/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Time series forecasting</a>
+         · Chapter 8
+      </div>
+      <h1>Time Series Forecasting (8): Informer -- Efficient Long-Sequence Forecasting</h1>
+      <p class="deck">Informer reduces Transformer complexity from O(L^2) to O(L log L) via ProbSparse attention, distilling, and a one-shot generative decoder. Full math, PyTorch code, and ETT/weather benchmarks.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-12-15">December 15, 2024</time> · 17 min read · 3500 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/time-series/" class="tag">#Time Series</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/informer/" class="tag">#Informer</a><a href="/en/tags/transformer/" class="tag">#Transformer</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>The Transformer is wonderful at sequence modeling &ndash; right up to the moment your sequence gets long. Vanilla self-attention costs $\mathcal{O}(L^2)$ in both compute and memory, so a one-week hourly window (168 steps) is fine, a one-month window (720 steps) is painful, and a three-month window (2160 steps) is essentially impossible on a single GPU. That is exactly the regime real-world long-horizon forecasting lives in: weather, energy, finance, IoT.</p>
+<p><strong>Informer</strong> (Zhou et al., AAAI 2021 best paper) is the architecture that finally made Transformers practical for these settings. It does three things, each of which would be a contribution on its own:</p>
+<ol>
+<li><strong>ProbSparse self-attention</strong> keeps only the $\mathcal{O}(\log L)$ most informative queries, dropping per-layer cost from $\mathcal{O}(L^2)$ to $\mathcal{O}(L \log L)$.</li>
+<li><strong>Self-attention distilling</strong> halves the sequence length between encoder layers, so memory shrinks geometrically with depth.</li>
+<li><strong>A generative decoder</strong> predicts the entire forecast horizon in one forward pass instead of running $H$ autoregressive steps.</li>
+</ol>
+<p>Combined, the three changes deliver about a 6-10x speedup and 5-10% better MSE than a vanilla Transformer on long-horizon ETT/weather/electricity benchmarks. This chapter unpacks the math behind each one and walks through the implementation.</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<ul>
+<li>The exact $\mathcal{O}(L^2)$ pain points in vanilla self-attention for long sequences.</li>
+<li>ProbSparse&rsquo;s KL-divergence sparsity measure and its $\max - \mathrm{mean}$ approximation.</li>
+<li>How encoder distilling exchanges sequence length for depth without losing dominant patterns.</li>
+<li>Why the generative decoder is much faster <em>and</em> slightly more accurate than autoregressive decoding.</li>
+<li>A complete PyTorch implementation, plus how Informer scores on the ETT and weather benchmarks.</li>
+</ul>
+<p><strong>Prerequisites</strong>: Part 5 (Transformer architecture). Comfort with Big-O reasoning and basic information theory (entropy, KL divergence).</p>
+<hr>
+<h2 id="why-long-sequences-kill-the-vanilla-transformer">Why long sequences kill the vanilla Transformer</h2>
+<p>Self-attention computes, for each query $q_i$:</p>
+$$
+\mathrm{Attn}(q_i, K, V) = \sum_{j=1}^{L} \mathrm{softmax}\!\left(\frac{q_i^\top k_j}{\sqrt{d}}\right) v_j.
+$$<p>To do this for every query you need the full $L \times L$ score matrix. Three costs scale as $\mathcal{O}(L^2)$:</p>
+<ul>
+<li>$L$ query-key dot products of dimension $d$: $L^2 d$ FLOPs.</li>
+<li>$L^2$ softmax operations.</li>
+<li>$L^2$ floats of attention-matrix storage during the backward pass.</li>
+</ul>
+<p>Concrete numbers for a forecast horizon of $L = 720$ with $d = 64$ and 8 heads on a single sample:</p>
+<ul>
+<li>Attention scores: $720 \times 720 = 518\text{K}$ entries per head per layer.</li>
+<li>Memory: ~16 MB just for attention weights at batch 32 (float32, 8 heads, 3 layers). Activations during backprop push that an order of magnitude higher.</li>
+<li>FLOPs: ~33 M per head per layer, dominated by the $L^2 d$ matmul.</li>
+</ul>
+<p>Push to $L = 2160$ and you are looking at almost 5 M attention entries per head, which is enough to OOM a 24 GB GPU at batch sizes anyone uses for training.</p>
+<p>Several papers tried to attack this with structural sparsity (Longformer&rsquo;s local + global windows, BigBird&rsquo;s random + global) or low-rank approximation (Linformer, Performer). Informer&rsquo;s pitch is different: <strong>let the data tell you which queries deserve full attention</strong>.</p>
+<hr>
+<h2 id="probsparse-the-queries-that-matter-the-queries-that-dont">ProbSparse: the queries that matter, the queries that don&rsquo;t</h2>
+<h3 id="the-intuition">The intuition</h3>
+<p>If you plot the attention distribution of a typical query $q_i$ over the keys, you see two qualitatively different shapes:</p>
+<ul>
+<li><strong>Peaked.</strong> A handful of keys get most of the probability mass. This query is &ldquo;selective&rdquo; &ndash; it knows what it is looking for.</li>
+<li><strong>Uniform.</strong> Probability is spread evenly across all keys. This query is &ldquo;vague&rdquo; &ndash; it would benefit from looking at everything.</li>
+</ul>
+<p>Peaked queries can be approximated very efficiently by computing attention only over their top few keys. Uniform queries cannot. The trick is to identify which is which <strong>without</strong> computing the full attention matrix first.</p>
+<h3 id="the-kl-based-sparsity-measure">The KL-based sparsity measure</h3>
+<p>A natural way to measure how peaked a distribution is to compare it to uniform via KL divergence. Let</p>
+$$
+p(k_j \mid q_i) = \mathrm{softmax}_j\!\left(\frac{q_i^\top k_j}{\sqrt{d}}\right).
+$$<p>Then</p>
+$$
+\mathrm{KL}(q_i \,\|\, U) = \log L + \frac{1}{L}\sum_{j=1}^{L} \log p(k_j \mid q_i).
+$$<p>After dropping constants and substituting the softmax, Zhou et al. show that</p>
+$$
+\mathrm{KL}(q_i \,\|\, U) \;\propto\; \log\!\left(\sum_{j=1}^{L} e^{q_i^\top k_j / \sqrt{d}}\right) - \frac{1}{L}\sum_{j=1}^{L} \frac{q_i^\top k_j}{\sqrt{d}}.
+$$<p>Call this quantity $M(q_i, K)$. High $M$ means peaked distribution &ndash; selective query, deserves full attention. Low $M$ means uniform &ndash; vague query, can be skipped.</p>
+<p>But computing $M$ exactly still requires the $L$ inner products, defeating the point. Informer&rsquo;s second trick is to approximate $M$ from a <strong>random sample</strong> of $u = c \log L$ keys (with $c$ a constant, typically 5):</p>
+$$
+\bar{M}(q_i, K) \;=\; \max_{j \in \mathcal{S}} \frac{q_i^\top k_j}{\sqrt{d}} \;-\; \frac{1}{|\mathcal{S}|} \sum_{j \in \mathcal{S}} \frac{q_i^\top k_j}{\sqrt{d}}.
+$$<p>The $\max$ here replaces the LogSumExp because under the concentration of measure that holds for high-dimensional Gaussian-like vectors, LogSumExp is dominated by its largest term. Empirically, $\bar{M}$ ranks queries almost identically to the exact $M$ at a fraction of the cost.</p>
+<h3 id="what-probsparse-actually-computes">What ProbSparse actually computes</h3>
+<p>The procedure for a single attention head:</p>
+<ol>
+<li>Sample $u = c \log L$ keys uniformly at random.</li>
+<li>Compute $\bar{M}(q_i, K)$ for every query $q_i$ &ndash; $\mathcal{O}(L \log L)$ work.</li>
+<li>Pick the top $u$ queries by $\bar{M}$.</li>
+<li>For those $u$ queries, compute attention over the <strong>full</strong> $L$ keys. For the remaining $L - u$ queries, fill in the mean of $V$ as the output.</li>
+</ol>
+<p>Total cost: $\mathcal{O}(L \log L)$. Memory: also $\mathcal{O}(L \log L)$.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/fig1_probsparse_vs_full.png" alt="ProbSparse attention vs full attention" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>In the figure, the right panel keeps only the rows corresponding to high-$M$ queries. The other rows are not zero in practice &ndash; they are filled with the mean value of $V$, which is a reasonable approximation for a uniform attention distribution.</p>
+<p>A clean implementation:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ProbSparseAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">assert</span> <span class="n">d_model</span> <span class="o">%</span> <span class="n">n_heads</span> <span class="o">==</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span> <span class="o">=</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span> <span class="o">=</span> <span class="n">d_model</span> <span class="o">//</span> <span class="n">n_heads</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">=</span> <span class="n">factor</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_q</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_k</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_v</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_o</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_prob_QK</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">,</span> <span class="n">n_top</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># Q, K: (B, H, L, d_k)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">L_K</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">L_Q</span> <span class="o">=</span> <span class="n">Q</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 1) Sample u keys uniformly from K</span>
+</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L_K</span><span class="p">,</span> <span class="p">(</span><span class="n">sample_size</span><span class="p">,),</span> <span class="n">device</span><span class="o">=</span><span class="n">K</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">K_sample</span> <span class="o">=</span> <span class="n">K</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">idx</span><span class="p">,</span> <span class="p">:]</span>                                  <span class="c1"># (B, H, u, d_k)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 2) Sparsity measure M_bar(q, K_sample) = max - mean</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Q_K_s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">K_sample</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>         <span class="c1"># (B, H, L_Q, u)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">M_bar</span> <span class="o">=</span> <span class="n">Q_K_s</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span> <span class="o">-</span> <span class="n">Q_K_s</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>       <span class="c1"># (B, H, L_Q)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 3) Pick top-n_top queries</span>
+</span></span><span class="line"><span class="cl">        <span class="n">top_idx</span> <span class="o">=</span> <span class="n">M_bar</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">n_top</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">indices</span>                 <span class="c1"># (B, H, n_top)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># 4) Full attention only for those queries</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Q_top</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">Q</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">top_idx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>                                                           <span class="c1"># (B, H, n_top, d_k)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Q_top</span><span class="p">,</span> <span class="n">K</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">scores</span><span class="p">,</span> <span class="n">top_idx</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queries</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">attn_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">B</span><span class="p">,</span> <span class="n">L_Q</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">queries</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">L_K</span> <span class="o">=</span> <span class="n">keys</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">Q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_q</span><span class="p">(</span><span class="n">queries</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">L_Q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">K</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_k</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">L_K</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">V</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_v</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">L_K</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">u</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">L_K</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">L_K</span><span class="p">)))))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">scores</span><span class="p">,</span> <span class="n">top_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prob_QK</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">sample_size</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">n_top</span><span class="o">=</span><span class="n">u</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">attn_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">scores</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="o">~</span><span class="n">attn_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mf">1e9</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">attn</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">attn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">attn</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">out_top</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">attn</span><span class="p">,</span> <span class="n">V</span><span class="p">)</span>                              <span class="c1"># (B, H, n_top, d_k)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1"># Initialise non-selected query outputs with V&#39;s mean</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">L_Q</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ctx</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">top_idx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">out_top</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">ctx</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">L_Q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_o</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>A few subtleties:</p>
+<ul>
+<li>The $u = c \ln L$ formula uses natural log; with <code>numpy</code> use <code>np.log</code> and round up.</li>
+<li>The &ldquo;fill non-selected queries with mean of V&rdquo; step is the mathematically correct treatment, not a hack. It corresponds to the unique distribution that maximises entropy subject to the constraint that the unselected queries have uniform attention.</li>
+<li>For decoder masked self-attention, you must mask out future keys <em>before</em> the softmax. The implementation above does the mask as <code>-1e9</code> which is the standard trick.</li>
+</ul>
+<hr>
+<h2 id="encoder-distilling-pyramidal-sequence-compression">Encoder distilling: pyramidal sequence compression</h2>
+<p>Even with ProbSparse, three encoder layers each operating on $L = 720$ are expensive. Informer adds a <strong>distilling</strong> operation between encoder layers that halves the sequence length:</p>
+$$
+X_{\ell+1} = \mathrm{MaxPool}_{k=3, s=2}\!\Big(\mathrm{ELU}\big(\mathrm{Conv1d}_{k=3, s=2}(X_\ell)\big)\Big).
+$$<p>The Conv1d with stride 2 acts as a learned downsampler; the MaxPool keeps the dominant value at each pair of adjacent positions; the ELU non-linearity in between gives the operator some expressivity beyond pure pooling.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/fig3_encoder_distilling.png" alt="Encoder distilling pyramid" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The effect compounds: a 3-layer encoder takes a 720-step input through layers of length $720 \to 360 \to 180 \to 90$. Memory is geometric in depth, not linear. And because lower layers see longer history, the receptive field at the top layer easily covers thousands of original time steps.</p>
+<p>Two things to be careful about:</p>
+<ul>
+<li><strong>Last layer should not distil.</strong> The decoder&rsquo;s cross-attention reads from the encoder output; if you distil the very last encoder layer, you halve the resolution again and lose information. The standard recipe is &ldquo;distil after every layer except the last.&rdquo;</li>
+<li><strong>Stack two encoders for robustness.</strong> The original paper runs two encoders in parallel, one over the full input and one over a halved version of the input, then concatenates the outputs. The redundancy guards against unlucky distilling decisions on a particular sequence.</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DistillingLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                              <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">act</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ELU</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool1d</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># x: (B, L, D)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">act</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="generative-decoder-one-shot-for-the-whole-horizon">Generative decoder: one shot for the whole horizon</h2>
+<p>A vanilla Transformer decoder generates the forecast autoregressively: predict $\hat{y}_1$, feed it back, predict $\hat{y}_2$, and so on. For a horizon of $H = 168$ that means 168 sequential decoder forward passes. Latency aside, this also makes errors compound: a mistake at step 5 is fed back as input for step 6.</p>
+<p>Informer&rsquo;s generative decoder takes a different approach. The decoder input is constructed as</p>
+$$
+X_\text{dec} = \big[\, X_\text{token} \;;\; X_0 \,\big],
+$$<p>where $X_\text{token}$ is the last <code>label_len</code> time steps of the encoder input (acting as a &ldquo;prompt&rdquo;) and $X_0$ is <code>out_len</code> placeholder tokens (typically zero vectors of the right dimension). The decoder runs <strong>once</strong> over this entire $\text{label\_len} + \text{out\_len}$ sequence, and the last <code>out_len</code> outputs are the forecast.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/fig2_generative_decoder.png" alt="Autoregressive vs generative decoder" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Three benefits:</p>
+<ul>
+<li><strong>Speed.</strong> $H$ sequential passes $\to$ 1 pass. Inference latency drops by a factor of $H$.</li>
+<li><strong>No error compounding.</strong> All horizon predictions are produced from the same encoder context; no prediction depends on a previous prediction.</li>
+<li><strong>Better long-horizon accuracy.</strong> Counter-intuitively, the generative decoder tends to be <em>more</em> accurate than autoregressive decoding for long horizons. The intuition is that the autoregressive decoder is forced into a &ldquo;myopic&rdquo; optimisation: each step is trained to match the next token assuming the previous tokens were perfect. The generative decoder optimises the joint forecast directly.</li>
+</ul>
+<p>The label tokens are essential: they give the decoder a few &ldquo;real&rdquo; data points at the start, which anchors the placeholder tokens. Empirically <code>label_len = out_len / 2</code> works well.</p>
+<hr>
+<h2 id="putting-it-together-the-informer-model">Putting it together: the Informer model</h2>
+<p>The full model is encoder + decoder, with embeddings that combine value, position, and time-feature information.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
+</span><span class="lnt">  2
+</span><span class="lnt">  3
+</span><span class="lnt">  4
+</span><span class="lnt">  5
+</span><span class="lnt">  6
+</span><span class="lnt">  7
+</span><span class="lnt">  8
+</span><span class="lnt">  9
+</span><span class="lnt"> 10
+</span><span class="lnt"> 11
+</span><span class="lnt"> 12
+</span><span class="lnt"> 13
+</span><span class="lnt"> 14
+</span><span class="lnt"> 15
+</span><span class="lnt"> 16
+</span><span class="lnt"> 17
+</span><span class="lnt"> 18
+</span><span class="lnt"> 19
+</span><span class="lnt"> 20
+</span><span class="lnt"> 21
+</span><span class="lnt"> 22
+</span><span class="lnt"> 23
+</span><span class="lnt"> 24
+</span><span class="lnt"> 25
+</span><span class="lnt"> 26
+</span><span class="lnt"> 27
+</span><span class="lnt"> 28
+</span><span class="lnt"> 29
+</span><span class="lnt"> 30
+</span><span class="lnt"> 31
+</span><span class="lnt"> 32
+</span><span class="lnt"> 33
+</span><span class="lnt"> 34
+</span><span class="lnt"> 35
+</span><span class="lnt"> 36
+</span><span class="lnt"> 37
+</span><span class="lnt"> 38
+</span><span class="lnt"> 39
+</span><span class="lnt"> 40
+</span><span class="lnt"> 41
+</span><span class="lnt"> 42
+</span><span class="lnt"> 43
+</span><span class="lnt"> 44
+</span><span class="lnt"> 45
+</span><span class="lnt"> 46
+</span><span class="lnt"> 47
+</span><span class="lnt"> 48
+</span><span class="lnt"> 49
+</span><span class="lnt"> 50
+</span><span class="lnt"> 51
+</span><span class="lnt"> 52
+</span><span class="lnt"> 53
+</span><span class="lnt"> 54
+</span><span class="lnt"> 55
+</span><span class="lnt"> 56
+</span><span class="lnt"> 57
+</span><span class="lnt"> 58
+</span><span class="lnt"> 59
+</span><span class="lnt"> 60
+</span><span class="lnt"> 61
+</span><span class="lnt"> 62
+</span><span class="lnt"> 63
+</span><span class="lnt"> 64
+</span><span class="lnt"> 65
+</span><span class="lnt"> 66
+</span><span class="lnt"> 67
+</span><span class="lnt"> 68
+</span><span class="lnt"> 69
+</span><span class="lnt"> 70
+</span><span class="lnt"> 71
+</span><span class="lnt"> 72
+</span><span class="lnt"> 73
+</span><span class="lnt"> 74
+</span><span class="lnt"> 75
+</span><span class="lnt"> 76
+</span><span class="lnt"> 77
+</span><span class="lnt"> 78
+</span><span class="lnt"> 79
+</span><span class="lnt"> 80
+</span><span class="lnt"> 81
+</span><span class="lnt"> 82
+</span><span class="lnt"> 83
+</span><span class="lnt"> 84
+</span><span class="lnt"> 85
+</span><span class="lnt"> 86
+</span><span class="lnt"> 87
+</span><span class="lnt"> 88
+</span><span class="lnt"> 89
+</span><span class="lnt"> 90
+</span><span class="lnt"> 91
+</span><span class="lnt"> 92
+</span><span class="lnt"> 93
+</span><span class="lnt"> 94
+</span><span class="lnt"> 95
+</span><span class="lnt"> 96
+</span><span class="lnt"> 97
+</span><span class="lnt"> 98
+</span><span class="lnt"> 99
+</span><span class="lnt">100
+</span><span class="lnt">101
+</span><span class="lnt">102
+</span><span class="lnt">103
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TemporalEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Embeds (hour, day_of_week, month) into d_model.&#34;&#34;&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hour</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="mi">24</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dow</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">month</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time_feat</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># time_feat: (B, L, 3) integer values</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="p">(</span><span class="n">time_feat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dow</span><span class="p">(</span><span class="n">time_feat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="p">(</span><span class="n">time_feat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">InformerEncoderLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">distil</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">ProbSparseAttention</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ffn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_ff</span><span class="p">,</span> <span class="n">d_model</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">distil</span> <span class="o">=</span> <span class="n">DistillingLayer</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span> <span class="k">if</span> <span class="n">distil</span> <span class="k">else</span> <span class="kc">None</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffn</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">distil</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distil</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">InformerDecoderLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">self_attn</span> <span class="o">=</span> <span class="n">ProbSparseAttention</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">cross_attn</span> <span class="o">=</span> <span class="n">ProbSparseAttention</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ffn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_ff</span><span class="p">,</span> <span class="n">d_model</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">        <span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">norm3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">,</span> <span class="n">self_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">self_attn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">attn_mask</span><span class="o">=</span><span class="n">self_mask</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cross_attn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">)))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm3</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffn</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Informer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_in</span><span class="p">,</span> <span class="n">dec_in</span><span class="p">,</span> <span class="n">c_out</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">seq_len</span><span class="p">,</span> <span class="n">label_len</span><span class="p">,</span> <span class="n">out_len</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">d_model</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">n_heads</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">e_layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">d_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                 <span class="n">d_ff</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">seq_len</span> <span class="o">=</span> <span class="n">seq_len</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">label_len</span> <span class="o">=</span> <span class="n">label_len</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">out_len</span> <span class="o">=</span> <span class="n">out_len</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">enc_value</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">enc_in</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dec_value</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">dec_in</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pos_enc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pos_dec</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">label_len</span> <span class="o">+</span> <span class="n">out_len</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">t_emb</span> <span class="o">=</span> <span class="n">TemporalEmbedding</span><span class="p">(</span><span class="n">d_model</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">InformerEncoderLayer</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                 <span class="n">distil</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">e_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">e_layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
+</span></span><span class="line"><span class="cl">            <span class="n">InformerDecoderLayer</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">d_layers</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">])</span>
+</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">c_out</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_embed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_value</span><span class="p">,</span> <span class="n">time_feat</span><span class="p">,</span> <span class="n">embed_value</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">B</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">x_value</span><span class="o">.</span><span class="n">shape</span>
+</span></span><span class="line"><span class="cl">        <span class="n">positions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x_value</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">embed_value</span><span class="p">(</span><span class="n">x_value</span><span class="p">)</span> <span class="o">+</span> <span class="n">pos_emb</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_emb</span><span class="p">(</span><span class="n">time_feat</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_enc</span><span class="p">,</span> <span class="n">t_enc</span><span class="p">,</span> <span class="n">x_dec</span><span class="p">,</span> <span class="n">t_dec</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">enc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embed</span><span class="p">(</span><span class="n">x_enc</span><span class="p">,</span> <span class="n">t_enc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_enc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">enc</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embed</span><span class="p">(</span><span class="n">x_dec</span><span class="p">,</span> <span class="n">t_dec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_dec</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">L_dec</span> <span class="o">=</span> <span class="n">dec</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># causal mask for decoder self-attention</span>
+</span></span><span class="line"><span class="cl">        <span class="n">causal</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">L_dec</span><span class="p">,</span> <span class="n">L_dec</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dec</span><span class="o">.</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">            <span class="n">dec</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">dec</span><span class="p">,</span> <span class="n">enc</span><span class="p">,</span> <span class="n">self_mask</span><span class="o">=</span><span class="n">causal</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">dec</span><span class="p">[:,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">out_len</span><span class="p">:,</span> <span class="p">:])</span>  <span class="c1"># (B, out_len, c_out)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>For training data construction, the decoder input is built by concatenating the last <code>label_len</code> real values with <code>out_len</code> zero placeholders:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_decoder_input</span><span class="p">(</span><span class="n">x_enc</span><span class="p">,</span> <span class="n">label_len</span><span class="p">,</span> <span class="n">out_len</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="c1"># x_enc: (B, seq_len, F)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">start</span> <span class="o">=</span> <span class="n">x_enc</span><span class="p">[:,</span> <span class="o">-</span><span class="n">label_len</span><span class="p">:,</span> <span class="p">:]</span>
+</span></span><span class="line"><span class="cl">    <span class="n">placeholder</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x_enc</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">out_len</span><span class="p">,</span> <span class="n">x_enc</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">x_enc</span><span class="o">.</span><span class="n">device</span>
+</span></span><span class="line"><span class="cl">    <span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">start</span><span class="p">,</span> <span class="n">placeholder</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><hr>
+<h2 id="long-horizon-performance">Long-horizon performance</h2>
+<p>The headline visual: ground truth, vanilla Transformer, and Informer on a 480-step horizon.</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/fig4_long_sequence_forecast.png" alt="Long-horizon forecast: vanilla Transformer drifts, Informer hugs the truth" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The vanilla Transformer&rsquo;s autoregressive errors compound around step 100 and drift increasingly far from the truth. Informer&rsquo;s one-shot generative decoder produces a coherent forecast across the full window because all output tokens were optimised jointly.</p>
+<p>The numbers from the paper on the canonical ETT (Electricity Transformer Temperature) benchmark:</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/informer-long-sequence/fig5_ett_benchmark.png" alt="ETTh1 univariate MSE and resource cost at L = 720" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Two takeaways:</p>
+<ul>
+<li><strong>Accuracy at long horizons.</strong> At horizon 720, Informer&rsquo;s MSE is 0.235 vs the vanilla Transformer&rsquo;s 0.269. Modest in absolute terms, but the vanilla Transformer at horizon 720 is already at the edge of trainability.</li>
+<li><strong>Resource cost.</strong> At $L = 720$, Informer uses 1.8 GB peak GPU memory and 9.5 s per epoch on a single V100; the vanilla Transformer needs 10.5 GB and 104 s per epoch. The difference is the entire reason Informer exists.</li>
+</ul>
+<hr>
+<h2 id="hyperparameter-cheat-sheet">Hyperparameter cheat sheet</h2>
+<table>
+  <thead>
+      <tr>
+          <th>Hyperparameter</th>
+          <th>Default</th>
+          <th>Notes</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><code>d_model</code></td>
+          <td>512</td>
+          <td>Standard; 256 if memory-constrained.</td>
+      </tr>
+      <tr>
+          <td><code>n_heads</code></td>
+          <td>8</td>
+          <td>$d_k = d_\text{model} / n_\text{heads}$, so 64 here.</td>
+      </tr>
+      <tr>
+          <td><code>e_layers</code></td>
+          <td>3</td>
+          <td>More layers $\to$ more aggressive distilling; rarely worth it.</td>
+      </tr>
+      <tr>
+          <td><code>d_layers</code></td>
+          <td>2</td>
+          <td>Asymmetric: encoder does the heavy lifting.</td>
+      </tr>
+      <tr>
+          <td><code>d_ff</code></td>
+          <td>2048</td>
+          <td>4x <code>d_model</code> is standard.</td>
+      </tr>
+      <tr>
+          <td><code>factor</code> ($c$ in $u = c \log L$)</td>
+          <td>5</td>
+          <td>3 for speed, 7 for accuracy; rarely change.</td>
+      </tr>
+      <tr>
+          <td><code>seq_len</code></td>
+          <td>96 to 720</td>
+          <td>Roughly equal to your weekly/monthly cycle length.</td>
+      </tr>
+      <tr>
+          <td><code>label_len</code></td>
+          <td><code>out_len / 2</code></td>
+          <td>Anchors decoder; do not zero it out.</td>
+      </tr>
+      <tr>
+          <td><code>out_len</code></td>
+          <td>task-driven</td>
+          <td>What you actually want to forecast.</td>
+      </tr>
+      <tr>
+          <td><code>dropout</code></td>
+          <td>0.05-0.1</td>
+          <td>More on small datasets.</td>
+      </tr>
+      <tr>
+          <td>Optimizer</td>
+          <td>Adam, lr 1e-4</td>
+          <td>Half the learning rate of a &ldquo;normal&rdquo; Transformer.</td>
+      </tr>
+      <tr>
+          <td>LR schedule</td>
+          <td>StepLR, gamma 0.5 every 30 epochs</td>
+          <td>Or cosine annealing.</td>
+      </tr>
+      <tr>
+          <td>Loss</td>
+          <td>MSE</td>
+          <td>L1 (MAE) is more robust to outliers.</td>
+      </tr>
+  </tbody>
+</table>
+<hr>
+<h2 id="common-pitfalls">Common pitfalls</h2>
+<ul>
+<li><strong>Forgetting to mask the decoder self-attention.</strong> Without the causal mask, the decoder can peek at future placeholder tokens during training. Output looks miraculous at training time and garbage at test time.</li>
+<li><strong>Distilling on a too-short input.</strong> If <code>seq_len</code> is short (e.g. 24), three layers of distilling collapse the encoder output to a length of 3, throwing away most of the context. Turn off distilling when <code>seq_len &lt; 96</code>.</li>
+<li><strong>Skipping per-window normalisation.</strong> Same issue as N-BEATS: standardise each window before feeding the model, inverse-transform at output.</li>
+<li><strong>Not encoding time features.</strong> The temporal embedding (hour-of-day, day-of-week, month) is a major contributor to performance; without it the model has to infer time-of-day from raw data.</li>
+<li><strong>Tiny <code>label_len</code>.</strong> Some implementations default to <code>label_len = 0</code>, which destroys decoder anchoring. The paper uses <code>label_len = out_len / 2</code>.</li>
+</ul>
+<hr>
+<h2 id="when-not-to-use-informer">When <em>not</em> to use Informer</h2>
+<ul>
+<li><strong>Short sequences ($L < 96$).</strong> ProbSparse and distilling have constant overhead; for short sequences a vanilla Transformer or an LSTM is simpler and just as fast.</li>
+<li><strong>Cross-feature interactions are the main signal</strong> (multivariate with strong inter-feature dependencies). Informer attends along the time axis; for cross-feature attention, look at TFT or TimesNet.</li>
+<li><strong>You need exact attention patterns for interpretability.</strong> ProbSparse loses the row-wise attention map for non-selected queries. If you must visualise full attention, use a vanilla Transformer.</li>
+<li><strong>Streaming inference at high frequency</strong> (kHz, MHz). Informer is built for batch forecasting; streaming requires more specialised architectures.</li>
+<li><strong>Very small datasets (&lt;1k samples).</strong> Informer has tens of millions of parameters and will overfit. Use a smaller, less expressive model.</li>
+</ul>
+<hr>
+<h2 id="qa">Q&amp;A</h2>
+<h3 id="why-u--c-log-l-specifically">Why $u = c \log L$ specifically?</h3>
+<p>The bound comes from the expected probability that a &ldquo;selective&rdquo; query has its top key sampled. With $u = c \log L$ and $c = 5$, the probability that we miss the top-1 key for any given query is $\leq 1/L^4$. In practice $c = 3$ also works fine.</p>
+<h3 id="does-probsparse-actually-identify-the-right-queries">Does ProbSparse actually identify the <em>right</em> queries?</h3>
+<p>Empirically yes &ndash; the $\max - \mathrm{mean}$ approximation correlates near-perfectly (&gt;0.95 Spearman) with the exact KL divergence on attention distributions seen during training. The paper has the full ablation.</p>
+<h3 id="why-use-the-mean-of-v-for-non-selected-queries-instead-of-zero">Why use the <em>mean</em> of $V$ for non-selected queries instead of zero?</h3>
+<p>Because a uniform attention distribution evaluates to exactly $\frac{1}{L}\sum_j v_j$. The mean is the analytically correct fill-in for queries we have classified as &ldquo;uniform attention&rdquo;.</p>
+<h3 id="how-is-informer-different-from-reformer--performer--linformer">How is Informer different from Reformer / Performer / Linformer?</h3>
+<ul>
+<li><strong>Reformer</strong> uses LSH-bucketed attention. Cost $\mathcal{O}(L \log L)$ but the bucketing is data-independent.</li>
+<li><strong>Performer</strong> uses random-feature kernel approximation. Cost $\mathcal{O}(L)$ but accuracy degrades on long sequences with sharp attention.</li>
+<li><strong>Linformer</strong> projects keys/values to a fixed low-rank dimension. Cost $\mathcal{O}(L)$ but the projection is fixed at training time.</li>
+<li><strong>Informer</strong> picks queries adaptively based on data. Cost $\mathcal{O}(L \log L)$, best accuracy retention on time-series benchmarks.</li>
+</ul>
+<h3 id="can-i-use-informer-for-multivariate-input-with-variable-encoderdecoder-feature-dimensions">Can I use Informer for multivariate input with variable encoder/decoder feature dimensions?</h3>
+<p>Yes &ndash; <code>enc_in</code> and <code>dec_in</code> are independent. A common pattern is to feed all variables into the encoder and only the target variable into the decoder.</p>
+<h3 id="what-about-autoformer--fedformer">What about Autoformer / FEDformer?</h3>
+<p>Both are direct successors. Autoformer (2021) replaces self-attention with autocorrelation along the series and adds an explicit decomposition layer. FEDformer (2022) adds frequency-domain attention. Both beat Informer on the same benchmarks but are more complex to implement; Informer is the right starting point.</p>
+<h3 id="should-i-always-pre-train-on-a-large-multi-series-dataset">Should I always pre-train on a large multi-series dataset?</h3>
+<p>Helpful but not required. Unlike NLP, the domain gap between time-series datasets is large, and naive pre-training often hurts more than it helps. Domain-specific fine-tuning from scratch is usually the better default.</p>
+<hr>
+<h2 id="summary">Summary</h2>
+<p>Informer is the architecture that made Transformers practical for long-horizon time-series forecasting. The three core ideas &ndash; ProbSparse self-attention, encoder distilling, and a generative decoder &ndash; compose into an end-to-end $\mathcal{O}(L \log L)$ system that beats the vanilla $\mathcal{O}(L^2)$ Transformer in both accuracy and wall-clock time on every long-horizon benchmark.</p>
+<p>For a forecasting task with $L > 96$ on a single GPU, Informer is the obvious starting point. Newer architectures (Autoformer, FEDformer, PatchTST) refine the recipe further, but each builds on Informer&rsquo;s central observation that <strong>not every query needs full attention</strong> and that <strong>autoregressive decoding is a self-imposed bottleneck</strong>.</p>
+<p>This concludes the time-series forecasting series. Across eight chapters we walked from classical ARIMA to LSTM to Transformer to TCN to N-BEATS to Informer; pick the architecture that matches your data, ensemble when it counts, and remember that simple baselines often beat fashionable models on small problems.</p>
+<hr>
+<h2 id="references-and-further-reading">References and further reading</h2>
+<ul>
+<li>Zhou, H. et al. (2021). <em>Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting.</em> AAAI Best Paper.</li>
+<li>Wu, H. et al. (2021). <em>Autoformer: Decomposition Transformers with Auto-Correlation for Long-Term Series Forecasting.</em> NeurIPS.</li>
+<li>Zhou, T. et al. (2022). <em>FEDformer: Frequency Enhanced Decomposed Transformer for Long-term Series Forecasting.</em> ICML.</li>
+<li>Nie, Y. et al. (2023). <em>A Time Series is Worth 64 Words: Long-term Forecasting with Transformers (PatchTST).</em> ICLR.</li>
+<li>Wang, S. et al. (2020). <em>Linformer: Self-Attention with Linear Complexity.</em> arXiv:2006.04768.</li>
+<li>Choromanski, K. et al. (2021). <em>Rethinking Attention with Performers.</em> ICLR.</li>
+</ul>
+<p><em>This article concludes the Time Series Forecasting series. Use the navigation at the top to revisit earlier chapters.</em></p>
+
+    </div>
+
+    <nav class="series-nav" aria-label="In this series">
+  <div class="nav-item prev-item">
+    
+      <div class="label">← Previous</div>
+      <a href="https://www.chenk.top/en/time-series/n-beats/"><span class="title">Time Series Forecasting (7): N-BEATS -- Interpretable Deep Architecture</span></a>
+    
+  </div>
+  <div class="nav-item next-item">
+    
+      <div class="label">Next</div>
+      <span class="title" style="color: var(--ink-faint)">—</span>
+    
+  </div>
+</nav>
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-learn">What you will learn</a></li>
+    <li><a href="#why-long-sequences-kill-the-vanilla-transformer">Why long sequences kill the vanilla Transformer</a></li>
+    <li><a href="#probsparse-the-queries-that-matter-the-queries-that-dont">ProbSparse: the queries that matter, the queries that don&rsquo;t</a>
+      <ul>
+        <li><a href="#the-intuition">The intuition</a></li>
+        <li><a href="#the-kl-based-sparsity-measure">The KL-based sparsity measure</a></li>
+        <li><a href="#what-probsparse-actually-computes">What ProbSparse actually computes</a></li>
+      </ul>
+    </li>
+    <li><a href="#encoder-distilling-pyramidal-sequence-compression">Encoder distilling: pyramidal sequence compression</a></li>
+    <li><a href="#generative-decoder-one-shot-for-the-whole-horizon">Generative decoder: one shot for the whole horizon</a></li>
+    <li><a href="#putting-it-together-the-informer-model">Putting it together: the Informer model</a></li>
+    <li><a href="#long-horizon-performance">Long-horizon performance</a></li>
+    <li><a href="#hyperparameter-cheat-sheet">Hyperparameter cheat sheet</a></li>
+    <li><a href="#common-pitfalls">Common pitfalls</a></li>
+    <li><a href="#when-not-to-use-informer">When <em>not</em> to use Informer</a></li>
+    <li><a href="#qa">Q&amp;A</a>
+      <ul>
+        <li><a href="#why-u--c-log-l-specifically">Why  specifically?</a></li>
+        <li><a href="#does-probsparse-actually-identify-the-right-queries">Does ProbSparse actually identify the <em>right</em> queries?</a></li>
+        <li><a href="#why-use-the-mean-of-v-for-non-selected-queries-instead-of-zero">Why use the <em>mean</em> of  for non-selected queries instead of zero?</a></li>
+        <li><a href="#how-is-informer-different-from-reformer--performer--linformer">How is Informer different from Reformer / Performer / Linformer?</a></li>
+        <li><a href="#can-i-use-informer-for-multivariate-input-with-variable-encoderdecoder-feature-dimensions">Can I use Informer for multivariate input with variable encoder/decoder feature dimensions?</a></li>
+        <li><a href="#what-about-autoformer--fedformer">What about Autoformer / FEDformer?</a></li>
+        <li><a href="#should-i-always-pre-train-on-a-large-multi-series-dataset">Should I always pre-train on a large multi-series dataset?</a></li>
+      </ul>
+    </li>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#references-and-further-reading">References and further reading</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Time series forecasting</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>17 min</strong></div>
+      <div class="row"><span>Word count</span><strong>3500</strong></div>
+      <div class="row"><span>Published</span><strong>Dec 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

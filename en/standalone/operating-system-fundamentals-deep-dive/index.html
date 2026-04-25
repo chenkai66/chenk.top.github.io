@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>Operating System Fundamentals: A Deep Dive · Chen Kai Blog</title>
+<meta name="description" content="Walk through processes, virtual memory, file systems, the I/O stack, system calls and schedulers, with the actual numbers and the commands you can verify each claim with on a Linux box.">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/en/standalone/operating-system-fundamentals-deep-dive/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/operating-system-fundamentals-deep-dive/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Operating System Fundamentals: A Deep Dive">
+<meta property="og:description" content="Walk through processes, virtual memory, file systems, the I/O stack, system calls and schedulers, with the actual numbers and the commands you can verify each claim with on a Linux box.">
+<meta property="og:url" content="https://www.chenk.top/en/standalone/operating-system-fundamentals-deep-dive/">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/en/">Home</a>
+      <a href="/en/series/">Series</a>
+      <a href="/en/projects/">Projects</a>
+      <a href="/en/archives/">Archives</a>
+      <a href="/en/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>中文</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/en/">Home</a>
+    <a href="/en/series/">Series</a>
+    <a href="/en/projects/">Projects</a>
+    <a href="/en/archives/">Archives</a>
+    <a href="/en/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
+        
+      </div>
+      <h1>Operating System Fundamentals: A Deep Dive</h1>
+      <p class="deck">Walk through processes, virtual memory, file systems, the I/O stack, system calls and schedulers, with the actual numbers and the commands you can verify each claim with on a Linux box.</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2022-08-01">August 1, 2022</time> · 20 min read · 4300 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/en/tags/operating-system/" class="tag">#Operating System</a><a href="/en/tags/linux/" class="tag">#Linux</a><a href="/en/tags/kernel/" class="tag">#Kernel</a><a href="/en/tags/computer-fundamentals/" class="tag">#Computer Fundamentals</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <p>Open a terminal and type <code>cat hello.txt</code>. The instant you press Enter, at least seven layers of machinery wake up: bash parses the line, fork+execve launches the cat process, the kernel hands it a virtual address space, cat issues a <code>read()</code> syscall, the CPU traps into kernel mode, VFS dispatches to ext4, the block layer queues an NVMe request, the SSD DMA-writes the bytes back, an interrupt wakes cat, the bytes are copied through the page cache into the user buffer, and finally something appears on your screen.</p>
+<p>That whole round trip takes about 100 microseconds. You see only the last frame. The goal of this article is to take that path apart layer by layer, so that the next time you debug a strange permission, a wedged process, or unexplained latency, you can name exactly which layer owns the problem.</p>
+<h2 id="what-you-will-be-able-to-do">What you will be able to do</h2>
+<ul>
+<li>Explain monolithic vs microkernel honestly, and why Linux still has not gone microkernel after thirty years.</li>
+<li>Read a <code>D</code>/<code>S</code>/<code>R</code>/<code>Z</code> in <code>ps</code> output and say which slot in the process lifecycle it sits in and what event releases it.</li>
+<li>Trace one variable access through the MMU, TLB, page table, page-fault handler, and (if needed) swap, and quote the latency at each level.</li>
+<li>Read <code>ls -li</code> output and explain the inode, nlink, and blocks columns &ndash; including why <code>rm</code> sometimes does not free space.</li>
+<li>Follow one <code>read()</code> syscall from glibc all the way down to an NVMe submission queue, and locate &ldquo;why is this I/O slow&rdquo; at the right layer.</li>
+<li>Compare FCFS, SJF, Round Robin and CFS, and articulate why Linux chose CFS over RR.</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Some C, or enough Python to have called <code>os.read</code> / <code>os.fork</code>.</li>
+<li>Comfortable on Linux: you know what <code>top</code>, <code>ps</code>, <code>strace</code>, and <code>/proc</code> are for.</li>
+<li>Having read OSTEP helps but is not required.</li>
+</ul>
+<hr>
+<h1 id="1-what-an-operating-system-actually-does">1. What an operating system actually does</h1>
+<p>The name &ldquo;operating system&rdquo; is misleading &ndash; it sounds monolithic, but it is really a pile of code solving one fundamental problem: <strong>multiple things sharing one machine</strong>. If only one program ever ran, only one user ever logged in, and hardware never failed, you could delete most of the kernel. The OS is complex because reality is not that:</p>
+<ul>
+<li><strong>CPU has dozens of cores, but hundreds of processes want to run</strong> -&gt; scheduler.</li>
+<li><strong>Physical memory is tens of GB, but every process wants to think it owns the machine</strong> -&gt; virtual memory.</li>
+<li><strong>Thousands of hardware models exist, but apps don&rsquo;t want to know NVMe vs SATA</strong> -&gt; drivers + VFS.</li>
+<li><strong>Many processes share files, memory, and sockets, but must not corrupt each other</strong> -&gt; permissions + isolation.</li>
+</ul>
+<p>Hold those four onto, and every section below hangs off them. We move from closest-to-the-CPU outward: kernel architecture, processes, memory, files, I/O, system calls, scheduling.</p>
+<h1 id="2-kernel-architecture-monolithic-vs-microkernel">2. Kernel architecture: monolithic vs microkernel</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig1_kernel_architectures.png" alt="Monolithic vs microkernel: where does the code live?" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>&ldquo;Kernel mode&rdquo; and &ldquo;user mode&rdquo; are CPU hardware features (ring 0 vs ring 3 on x86). In kernel mode you can execute privileged instructions, touch any physical memory, and control interrupts. In user mode you cannot &ndash; your browser, your database, your shell all run in ring 3 and must <strong>borrow</strong> access to hardware through the kernel.</p>
+<p>Once that line is drawn, the question becomes: how much code do you put on the kernel side? That is the monolithic vs microkernel split.</p>
+<h2 id="21-monolithic-stuff-everything-in">2.1 Monolithic: stuff everything in</h2>
+<p>Linux, FreeBSD, and Windows NT (technically a hybrid) take this approach. <strong>Scheduler, memory management, file systems, the TCP/IP stack, device drivers</strong> all live in the kernel address space and call each other as plain functions, with no isolation overhead.</p>
+<ul>
+<li><strong>Pro: fast.</strong> A file system module handing data to the network stack is a function call. No boundary cost.</li>
+<li><strong>Con: fragile.</strong> Any driver crash equals a kernel panic. About 70% of Linux source is drivers; every new piece of hardware is a new risk.</li>
+<li><strong>Mitigation: modules.</strong> Linux ships drivers as loadable modules (<code>*.ko</code>) that you <code>insmod</code>/<code>rmmod</code> at runtime. But modules <strong>still live in the kernel address space</strong> &ndash; a buggy module can still crash the kernel; modules just decouple build and shipping.</li>
+</ul>
+<h2 id="22-microkernel-only-the-bare-essentials">2.2 Microkernel: only the bare essentials</h2>
+<p>Mach, L4, seL4, QNX go the other way. The kernel keeps only <strong>inter-process communication (IPC), the scheduler, and minimal memory management</strong>. File systems, network stacks, drivers all become <strong>ordinary user-mode processes</strong>.</p>
+<ul>
+<li><strong>Pro: isolation.</strong> A NIC driver crash is a user process crash; restart it, kernel is fine. seL4 has even been formally proven correct: under its specification, the kernel cannot crash.</li>
+<li><strong>Con: slow.</strong> What used to be a function call (&ldquo;open this file&rdquo;) is now app -&gt; kernel IPC -&gt; file server -&gt; kernel IPC -&gt; block service. Every hop is a context switch.</li>
+<li><strong>Where they live in production:</strong> QNX has run cars, medical devices, and industrial controllers for decades; macOS / iOS use XNU, which is Mach (microkernel) plus a BSD layer (monolithic) glued together. Pure microkernels remain a minority on general-purpose desktops and servers.</li>
+</ul>
+<h2 id="23-why-linux-did-not-switch">2.3 Why Linux did not switch</h2>
+<p>In the famous Tanenbaum-vs-Linus debate of 1992, Tanenbaum argued that Linux&rsquo;s monolithic design was already obsolete. Thirty years later, Linux is still monolithic. The reasons are unromantic:</p>
+<ul>
+<li><strong>Performance numbers.</strong> Even L4-class IPC is an order of magnitude more expensive than a function call.</li>
+<li><strong>Ecosystem inertia.</strong> Rewriting hundreds of thousands of Linux drivers as user-mode services is a non-starter.</li>
+<li><strong>&ldquo;Good enough&rdquo; middle paths.</strong> KASLR (kernel address space randomization), module signing, eBPF (sandboxing untrusted code in the kernel), and FUSE (user-mode file systems) all let monolithic kernels approximate microkernel-style isolation in the cases that matter.</li>
+</ul>
+<p>Once this picture is in your head, every kernel oops or BSOD is &ldquo;the cost of monolithic&rdquo;; every piece of hardware that crashes without taking down the system (your phone&rsquo;s wifi driver restarting silently) is &ldquo;microkernel ideas leaking in&rdquo;.</p>
+<h1 id="3-processes-and-the-state-machine">3. Processes and the state machine</h1>
+<p>A process is the OS&rsquo;s accounting unit for a &ldquo;running program&rdquo;. Each one has its own address space, file descriptor table, signal handler table, CPU context (registers), and scheduling state. When the OS decides to take one off the CPU and put another on, it saves the first&rsquo;s registers to memory and restores the second&rsquo;s from memory &ndash; that is a <strong>context switch</strong>, about 1-5 microseconds each.</p>
+<h2 id="31-five-state-lifecycle">3.1 Five-state lifecycle</h2>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig2_process_states.png" alt="Five-state process lifecycle" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>At any instant, every process is in exactly one of five states:</p>
+<table>
+  <thead>
+      <tr>
+          <th>State</th>
+          <th><code>ps</code> letter</th>
+          <th>Meaning</th>
+          <th>Event that releases it</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>NEW</strong></td>
+          <td>(transient)</td>
+          <td>Being created (between <code>fork</code> and <code>execve</code>)</td>
+          <td>Kernel finishes setup -&gt; READY</td>
+      </tr>
+      <tr>
+          <td><strong>READY</strong></td>
+          <td><code>R</code> (Runnable)</td>
+          <td>Everything ready, waiting for CPU</td>
+          <td>Scheduler picks me -&gt; RUNNING</td>
+      </tr>
+      <tr>
+          <td><strong>RUNNING</strong></td>
+          <td><code>R</code> (actually on CPU)</td>
+          <td>Executing user or kernel code</td>
+          <td>Time slice up / blocking syscall / exit</td>
+      </tr>
+      <tr>
+          <td><strong>BLOCKED</strong></td>
+          <td><code>S</code> (interruptible) / <code>D</code> (uninterruptible)</td>
+          <td>Waiting on I/O, lock, child</td>
+          <td>Event arrives -&gt; READY</td>
+      </tr>
+      <tr>
+          <td><strong>TERMINATED</strong></td>
+          <td><code>Z</code> (Zombie)</td>
+          <td>Done, but PCB still around for parent&rsquo;s wait()</td>
+          <td>Parent reaps exit code -&gt; gone</td>
+      </tr>
+  </tbody>
+</table>
+<p>Two non-obvious facts worth memorising:</p>
+<ol>
+<li><strong>READY and RUNNING both show as <code>R</code> in ps.</strong> Linux merges &ldquo;could run&rdquo; with &ldquo;is running&rdquo; because the time resolution is too short to be meaningful.</li>
+<li><strong><code>D</code> state cannot be killed.</strong> Not even with <code>kill -9</code>. A <code>D</code> process is stuck inside the kernel waiting on a hardware operation that cannot be cancelled (typically NFS or a hung disk). Lots of <code>D</code> processes? Your first suspect is the storage or network layer.</li>
+</ol>
+<h2 id="32-the-real-cost-of-a-context-switch">3.2 The real cost of a context switch</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Switch frequency, in switches/sec (cs column)</span>
+</span></span><span class="line"><span class="cl">vmstat <span class="m">1</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Cycles per switch</span>
+</span></span><span class="line"><span class="cl">perf stat -e context-switches,task-clock sleep <span class="m">1</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Direct cost is 1-5 us (saving and restoring registers, switching the page table, updating scheduler stats). Indirect cost is <strong>cache pollution</strong> &ndash; the new process&rsquo;s working set has to be reloaded into L1/L2, which can add tens of microseconds. So <strong>threads vastly outnumbering cores almost always loses</strong>, not because the CPU runs out, but because switching burns time.</p>
+<h2 id="33-process-vs-thread-vs-coroutine">3.3 Process vs thread vs coroutine</h2>
+<p>These three words get muddled daily. One sentence each:</p>
+<ul>
+<li><strong>Process</strong>: separate address space. Best isolation, most expensive to create (fork has to clone page tables).</li>
+<li><strong>Thread</strong>: same address space. Sharing memory is trivial, but you own the synchronisation. On Linux a thread is just a &ldquo;process that shares more things&rdquo; &ndash; <code>clone()</code> is the single underlying syscall, and what is shared is a flag.</li>
+<li><strong>Coroutine</strong>: user-mode scheduling. The OS does not see them. No syscall overhead, but the program must voluntarily yield (<code>await</code>). One machine can run hundreds of thousands.</li>
+</ul>
+<table>
+  <thead>
+      <tr>
+          <th>Dimension</th>
+          <th>Process</th>
+          <th>Thread</th>
+          <th>Coroutine</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Scheduler</td>
+          <td>OS kernel</td>
+          <td>OS kernel</td>
+          <td>User-mode runtime</td>
+      </tr>
+      <tr>
+          <td>Switch cost</td>
+          <td>~5 us</td>
+          <td>~3 us</td>
+          <td>~100 ns</td>
+      </tr>
+      <tr>
+          <td>Memory isolation</td>
+          <td>Strong</td>
+          <td>None (same proc)</td>
+          <td>None</td>
+      </tr>
+      <tr>
+          <td>Best for</td>
+          <td>Multiple services, security boundary</td>
+          <td>CPU-bound + shared memory</td>
+          <td>High-concurrency I/O</td>
+      </tr>
+  </tbody>
+</table>
+<h1 id="4-virtual-memory-every-process-believes-it-owns-the-machine">4. Virtual memory: every process believes it owns the machine</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig3_virtual_memory.png" alt="Virtual memory &#43; paging" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Letting processes touch physical addresses directly has three unsolvable problems:</p>
+<ol>
+<li><strong>Conflict.</strong> Two programs both want address 0x1000. Who wins?</li>
+<li><strong>Isolation.</strong> Can process A read process B&rsquo;s password?</li>
+<li><strong>Overcommit.</strong> 32 processes each want 4 GB; the machine has 16 GB.</li>
+</ol>
+<p>Virtual memory dissolves all three. Each process gets its own <strong>virtual address space</strong> (256 TB on 64-bit), and a hardware MMU plus a kernel-maintained <strong>page table</strong> translates virtual addresses to physical ones at every access.</p>
+<h2 id="41-the-translation">4.1 The translation</h2>
+<p>Addresses are split into <strong>pages</strong> (typically 4 KiB). A virtual address is <code>[VPN | offset]</code>; the page table maps VPN to a PFN (physical frame number); the physical address is <code>[PFN | offset]</code>.</p>
+<ul>
+<li><strong>TLB (Translation Lookaside Buffer)</strong>: a small cache on the MMU, hundreds to a few thousand entries. A hit is one cycle; a miss walks the page table (4-level table = 4 memory accesses, ~100 cycles).</li>
+<li><strong>Multi-level page tables</strong>: a flat 64-bit page table would take petabytes. Linux now uses 5-level page tables (PML5), expanded on demand so only the actually-used virtual address ranges have entries.</li>
+<li><strong>PTE flag bits</strong>: R/W/X (permissions), Present (is the page in RAM?), Dirty, Accessed, User/Supervisor. <strong>All of memory safety and most of memory optimisation rests on these bits</strong> &ndash; COW, mmap, swap, KSM all use them.</li>
+</ul>
+<h2 id="42-the-page-fault-path">4.2 The page-fault path</h2>
+<p>If a PTE has Present=0, the CPU raises a <strong>page fault</strong> and jumps into the kernel. Three common cases:</p>
+<ol>
+<li><strong>Minor fault (lazy allocation).</strong> The process <code>malloc</code>&rsquo;d 1 GB but never touched it &ndash; the kernel allocates a physical page now, fills in the PTE, returns. Microseconds.</li>
+<li><strong>Major fault (swap-in).</strong> That page is on disk in swap. Read it back. Milliseconds.</li>
+<li><strong>Segfault (illegal access).</strong> The address is not in any legal mapping for this process. Kernel raises SIGSEGV; the process usually dies.</li>
+</ol>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ps -o min_flt,maj_flt,cmd -p &lt;pid&gt;   <span class="c1"># per-process fault counts</span>
+</span></span><span class="line"><span class="cl">sar -B <span class="m">1</span>                              <span class="c1"># system-wide fault rate</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p><code>maj_flt</code> climbing means active swapping; performance will collapse. That is the hard signal that the machine is &ldquo;in swap&rdquo;, much more direct than reading the <code>free</code> column.</p>
+<h2 id="43-things-you-use-every-day-that-are-silently-virtual-memory">4.3 Things you use every day that are silently virtual memory</h2>
+<ul>
+<li><strong><code>fork()</code>&rsquo;s copy-on-write.</strong> Fork does not actually copy 4 GB. It marks every page in both parent and child as read-only and shared; the first writer triggers a fault and only that page gets copied.</li>
+<li><strong><code>mmap()</code>-ing a file.</strong> You think you are reading memory; the OS is reading the disk on demand. <code>/usr/bin/python</code> mapped by every Python process points to the same physical pages.</li>
+<li><strong>OOM killer.</strong> When physical + swap runs out, the kernel picks the process with the highest &ldquo;score&rdquo; and shoots it. <code>/proc/&lt;pid&gt;/oom_score</code> decides who dies.</li>
+<li><strong>Huge pages.</strong> Bumping page size from 4 KiB to 2 MiB or 1 GiB makes a single TLB entry cover 512x more memory. Databases (PostgreSQL, Redis) routinely enable this.</li>
+</ul>
+<p>Latency hierarchy worth memorising:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Event</th>
+          <th>Time</th>
+          <th>Slowdown</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>L1 cache hit</td>
+          <td>1 ns</td>
+          <td>1x</td>
+      </tr>
+      <tr>
+          <td>TLB hit + L1 hit</td>
+          <td>~1 ns</td>
+          <td>1x</td>
+      </tr>
+      <tr>
+          <td>TLB miss + page walk</td>
+          <td>~30 ns</td>
+          <td>30x</td>
+      </tr>
+      <tr>
+          <td>RAM access</td>
+          <td>~100 ns</td>
+          <td>100x</td>
+      </tr>
+      <tr>
+          <td>Page fault (minor, no I/O)</td>
+          <td>~1 us</td>
+          <td>1,000x</td>
+      </tr>
+      <tr>
+          <td>Page fault (major, SSD swap)</td>
+          <td>~80 us</td>
+          <td>80,000x</td>
+      </tr>
+      <tr>
+          <td>Page fault (major, HDD swap)</td>
+          <td>~10 ms</td>
+          <td>10,000,000x</td>
+      </tr>
+  </tbody>
+</table>
+<p>&ldquo;Slow&rdquo; comes in orders of magnitude. The first step of any optimisation is naming which order of magnitude you are stuck in.</p>
+<h1 id="5-file-systems-name-metadata-and-data-are-three-different-things">5. File systems: name, metadata, and data are three different things</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig4_file_system.png" alt="Inode-based file system" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>Most users think &ldquo;a file = some bytes + a name&rdquo;. The kernel splits it into three layers:</p>
+<ol>
+<li><strong>Directory entry (dirent)</strong>: name -&gt; inode number. A directory is just a special file containing a list of dirents.</li>
+<li><strong>Inode</strong>: metadata + pointers to data blocks. <strong>No name lives here.</strong></li>
+<li><strong>Data block</strong>: where the bytes actually live, usually 4 KiB chunks.</li>
+</ol>
+<p>This three-layer split is the heart of Unix file system design and explains a pile of otherwise-puzzling behaviours.</p>
+<h2 id="51-why-is-mv-instant-within-the-same-partition">5.1 Why is <code>mv</code> instant within the same partition?</h2>
+<p><code>mv a.txt b.txt</code>: the only change is &ldquo;a.txt -&gt; ino 42&rdquo; becoming &ldquo;b.txt -&gt; ino 42&rdquo; in the directory. The inode does not move. The data does not move. Zero bytes copied. Across partitions it is a real copy because each file system has its own independent inode table.</p>
+<h2 id="52-why-does-rm-not-always-free-space">5.2 Why does <code>rm</code> not always free space?</h2>
+<p><code>rm</code> removes the dirent and decrements <code>nlink</code>. The inode (and its blocks) are released only when <strong><code>nlink</code> hits 0 AND no process still has the file open</strong>.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">lsof <span class="p">|</span> grep deleted  <span class="c1"># find files that were unlinked but are still open</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>This is the canonical &ldquo;disk full but I cannot find the big file&rdquo;: a log got rotated and unlinked, but the application still has the file descriptor open and is still writing. Restarting that application releases the space.</p>
+<h2 id="53-hard-link-vs-symlink">5.3 Hard link vs symlink</h2>
+<ul>
+<li><strong>Hard link (<code>ln a b</code>)</strong>: another name on the same inode. <code>nlink++</code>. Deleting either name leaves the other intact. <strong>Cannot cross partitions</strong> (inode numbers are partition-local) and <strong>cannot link directories</strong> (would create cycles).</li>
+<li><strong>Symlink (<code>ln -s a b</code>)</strong>: a separate inode whose contents are just a path string. Crosses partitions, can point at non-existent targets (dangling), breaks if the target moves.</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls -li     <span class="c1"># second column is nlink</span>
+</span></span><span class="line"><span class="cl">stat foo
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="54-block-pointers-how-a-fixed-size-inode-addresses-huge-files">5.4 Block pointers: how a fixed-size inode addresses huge files</h2>
+<p>A classic Unix inode has 12 direct block pointers, 1 single-indirect, 1 double-indirect, 1 triple-indirect. With 4 KiB blocks:</p>
+<ul>
+<li>direct: 12 * 4 KiB = 48 KiB</li>
+<li>single indirect: (4 KiB / 4 B) * 4 KiB = 4 MiB</li>
+<li>double indirect: ~4 GiB</li>
+<li>triple indirect: ~4 TiB</li>
+</ul>
+<p>Most files are small (&lt; 48 KiB) and resolve in zero extra reads. Big files cost 1-3 extra reads to find any 4 KiB inside. Classic &ldquo;optimise the common case&rdquo;.</p>
+<p>Modern file systems (ext4, xfs, btrfs, ZFS) replace per-block pointers with <strong>extents</strong> (contiguous ranges) to shrink metadata further, but the structural idea &ndash; inode is metadata + locator &ndash; is unchanged.</p>
+<h2 id="55-vfs-everything-that-looks-like-a-file">5.5 VFS: everything that looks like a file</h2>
+<p>Linux puts a <strong>VFS (Virtual File System)</strong> layer on top, so all file systems, network mounts, and pseudo file systems expose the same <code>open/read/write/seek/close</code> API. That is why you can:</p>
+<ul>
+<li><code>cat /proc/cpuinfo</code> to read CPU info (procfs, totally synthesised)</li>
+<li><code>cat /sys/class/net/eth0/address</code> to get the MAC</li>
+<li><code>echo mem &gt; /sys/power/state</code> to suspend the machine</li>
+<li>Use FUSE to mount a remote SSH directory as a local path</li>
+</ul>
+<p>&ldquo;Everything is a file&rdquo; is not a slogan. It is the engineering output of VFS.</p>
+<h1 id="6-the-io-subsystem-one-read-drills-down-seven-layers">6. The I/O subsystem: one read() drills down seven layers</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig5_io_subsystem.png" alt="The I/O stack" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p><code>read(fd, buf, 4096)</code> looks like one line of code. It is a seven-layer descent followed by an interrupt-driven completion. Layer by layer:</p>
+<ol>
+<li><strong>Application.</strong> Calls glibc&rsquo;s <code>read()</code> wrapper.</li>
+<li><strong>Syscall interface.</strong> Wrapper sets up registers, executes <code>syscall</code>, CPU drops to ring 0, lands at <code>entry_SYSCALL_64</code>.</li>
+<li><strong>VFS.</strong> Uses fd to find <code>struct file *</code>, dispatches via its <code>file_operations.read</code> to the right file system.</li>
+<li><strong>File system (ext4).</strong> Translates file offset to block number via the inode&rsquo;s extent tree.</li>
+<li><strong>Page cache.</strong> Is this block already in memory? <strong>Hit</strong> -&gt; <code>copy_to_user(buf)</code> and return in microseconds. <strong>This is the path 99% of hot data takes.</strong></li>
+<li><strong>Block layer.</strong> Miss. Build a BIO (block I/O descriptor), hand to the block-layer scheduler. The scheduler <strong>merges</strong> adjacent BIOs (elevator / mq-deadline / kyber) to cut seeks.</li>
+<li><strong>Device driver.</strong> NVMe driver translates BIO into NVMe commands, posts to a hardware submission queue.</li>
+<li><strong>Hardware.</strong> SSD controller executes the command, <strong>DMA</strong>&rsquo;s data straight into a kernel-allocated physical page (no CPU involvement), then <strong>raises an interrupt</strong>.</li>
+</ol>
+<p>The interrupt handler copies the data into the user buf and wakes the sleeping process. Control returns to the read() caller.</p>
+<h2 id="61-why-so-many-layers">6.1 Why so many layers</h2>
+<p>Each layer abstracts something real:</p>
+<table>
+  <thead>
+      <tr>
+          <th>Layer</th>
+          <th>Abstracts</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Syscall interface</td>
+          <td>User/kernel privilege boundary</td>
+      </tr>
+      <tr>
+          <td>VFS</td>
+          <td>Differences between file systems</td>
+      </tr>
+      <tr>
+          <td>File system</td>
+          <td>Byte stream -&gt; on-disk blocks</td>
+      </tr>
+      <tr>
+          <td>Page cache</td>
+          <td>Slow device + fast memory speed gap</td>
+      </tr>
+      <tr>
+          <td>Block layer</td>
+          <td>Reordering for device efficiency</td>
+      </tr>
+      <tr>
+          <td>Driver</td>
+          <td>Hardware-specific command sets</td>
+      </tr>
+  </tbody>
+</table>
+<p>Strip a layer and the application has to solve the abstraction itself. That is why bypassing the OS to write your own database engine does not magically make it faster &ndash; the OS already encodes decades of these optimisations.</p>
+<h2 id="62-sync-async-io_uring">6.2 Sync, async, io_uring</h2>
+<p>Classic <code>read()</code> is <strong>synchronous-blocking</strong>: the caller is parked until data arrives. Fine for one-thing-at-a-time programs; fatal for a server juggling 10,000 connections (10,000 threads -&gt; context-switch storm).</p>
+<p>The historical answers:</p>
+<ul>
+<li><strong><code>select</code>/<code>poll</code>/<code>epoll</code></strong>: one thread watches many fds and learns which are ready. <strong>Tells you when read() will not block; the read itself is still synchronous.</strong></li>
+<li><strong><code>aio</code></strong>: Linux&rsquo;s earlier real-async API. Direct-I/O only, buggy, never quite caught on.</li>
+<li><strong><code>io_uring</code> (Linux 5.1+)</strong>: the modern answer. User space and kernel share two ring buffers (submission and completion); one syscall can submit dozens of I/Os; the kernel posts results to the completion ring; user space reads them back. Syscall counts drop dramatically. It is now the default for high-performance I/O libraries (QUIC servers, next-generation databases).</li>
+</ul>
+<h2 id="63-diagnosing-slow-io-top-down">6.3 Diagnosing &ldquo;slow I/O&rdquo; top-down</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. application view</span>
+</span></span><span class="line"><span class="cl">strace -e <span class="nv">trace</span><span class="o">=</span>read,write -T -p &lt;pid&gt;   <span class="c1"># -T shows time per syscall</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 2. block-layer view</span>
+</span></span><span class="line"><span class="cl">iostat -x <span class="m">1</span>                              <span class="c1"># await column = avg I/O time</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 3. device view</span>
+</span></span><span class="line"><span class="cl">iostat -x <span class="m">1</span> <span class="p">|</span> awk <span class="s1">&#39;/nvme|sda/&#39;</span>           <span class="c1"># %util, svctm</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 4. page-cache hit signal</span>
+</span></span><span class="line"><span class="cl">cat /proc/meminfo <span class="p">|</span> grep -E <span class="s1">&#39;Cached|Buffers&#39;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Walk it from app to device. Common trap: you see CPU is 5% busy and assume the box is idle &ndash; it might be entirely waiting on I/O. The <code>wa</code> column in <code>vmstat</code> is the truth.</p>
+<h1 id="7-system-calls-the-only-legal-cry-for-help-from-user-mode">7. System calls: the only legal cry for help from user mode</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig6_syscall_interface.png" alt="The system call boundary" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>A user-mode program that wants to do anything privileged (read a file, send a packet, allocate memory, fork) must go through a system call. This is the bedrock of OS security: the CPU literally refuses certain instructions in ring 3, and the only way to switch to ring 0 is a <strong>trap</strong> instruction &ndash; <code>syscall</code>, <code>int 0x80</code>, <code>sysenter</code>.</p>
+<h2 id="71-steps-in-one-syscall">7.1 Steps in one syscall</h2>
+<ol>
+<li><strong>C library wrapper.</strong> <code>read(fd, buf, n)</code> in your code is a plain glibc function.</li>
+<li><strong>Register setup.</strong> glibc puts the syscall number in <code>rax</code> (Linux x86_64 convention), arguments in <code>rdi</code>, <code>rsi</code>, <code>rdx</code>, <code>r10</code>, <code>r8</code>, <code>r9</code>.</li>
+<li><strong><code>syscall</code> instruction.</strong> CPU saves RIP/RSP/EFLAGS to MSRs, switches to ring 0, jumps to the kernel&rsquo;s pre-registered <code>entry_SYSCALL_64</code>.</li>
+<li><strong>Dispatch.</strong> Kernel uses <code>rax</code> as an index into <code>sys_call_table</code>, jumps to the right kernel function (<code>sys_read</code>).</li>
+<li><strong>Execute.</strong> Walk VFS, file system, block layer &hellip; (chapter 6).</li>
+<li><strong>Return.</strong> Result in <code>rax</code>, <code>sysret</code> flips back to ring 3.</li>
+</ol>
+<h2 id="72-the-real-cost-of-a-syscall">7.2 The real cost of a syscall</h2>
+<p>A no-op syscall (a <code>getpid()</code> that does nothing) is ~100 ns on a modern CPU. Sounds small, but in context:</p>
+<ul>
+<li><strong>Plain function call</strong>: ~1 ns. <strong>A syscall is 100x more expensive than a function call.</strong></li>
+<li><strong>Cache impact</strong>: mode switch pollutes L1/L2; subsequent IPC drops for a few hundred instructions.</li>
+<li><strong>Spectre/Meltdown mitigations (KPTI)</strong>: page tables are flushed across the boundary, adding 30-50%.</li>
+</ul>
+<p>This is exactly why every high-performance I/O library <strong>batches</strong> syscalls: <code>sendmmsg</code> (many packets per call), <code>io_uring</code> (many I/Os per call), <code>vmsplice</code> (move pages directly). The whole game is amortising those 100 ns.</p>
+<h2 id="73-strace-as-your-microscope">7.3 strace as your microscope</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">strace -c ls /tmp                  <span class="c1"># which syscalls, how many, how slow (cumulative)</span>
+</span></span><span class="line"><span class="cl">strace -p &lt;pid&gt; -e <span class="nv">trace</span><span class="o">=</span>network    <span class="c1"># live attach</span>
+</span></span><span class="line"><span class="cl">strace -f ./run.sh                  <span class="c1"># follow forks</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>For most performance investigations, <code>strace -c</code> tells you the bottleneck in 30 seconds. <code>read</code> 80% -&gt; I/O bound. <code>futex</code> 80% -&gt; lock contention. <code>epoll_wait</code> 80% -&gt; probably healthy (waiting on events).</p>
+<h1 id="8-schedulers-four-policies-the-same-workload">8. Schedulers: four policies, the same workload</h1>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/operating-system-fundamentals-deep-dive/fig7_schedulers.png" alt="Four schedulers, same workload" loading="lazy" decoding="async">
+  
+</figure>
+</p>
+<p>The scheduler decides who gets the CPU next. Run the same three jobs (P1 burst=8, P2 burst=4, P3 burst=2, arriving in order) through four classic policies and the contrast jumps out.</p>
+<h2 id="81-fcfs----first-come-first-served">8.1 FCFS &ndash; first come first served</h2>
+<p>Whoever arrives first runs to completion. One line of code to implement. The pathology is the <strong>convoy effect</strong>: one CPU-bound long job in front and every short job behind it starves. In the diagram, P3 doesn&rsquo;t even start until t=12, and the average wait is 5.67.</p>
+<p>Use case: batch back-end. <strong>Never use for interactive systems.</strong></p>
+<h2 id="82-sjf----shortest-job-first">8.2 SJF &ndash; shortest job first</h2>
+<p>Always pick the runnable job with the smallest remaining burst. <strong>Provably optimal average wait time.</strong> Two real problems:</p>
+<ol>
+<li><strong>Who knows future bursts?</strong> You don&rsquo;t. You can only estimate via history (Linux&rsquo;s old nice + ageing).</li>
+<li><strong>Starvation.</strong> A long job may never run if short jobs keep arriving.</li>
+</ol>
+<h2 id="83-round-robin----time-slice-rotation">8.3 Round Robin &ndash; time-slice rotation</h2>
+<p>Each process runs for a fixed quantum (typically 10-100 ms), then is preempted to the back of the queue. <strong>No starvation, even response.</strong> This is what made early time-sharing possible &ndash; 20 people sharing one machine without any of them feeling the others.</p>
+<p>The whole game is choosing the quantum:</p>
+<ul>
+<li>Too small (&lt; 1 ms): switching overhead dominates, throughput tanks.</li>
+<li>Too large (&gt; 1 s): interactive feel dies, long jobs camp the CPU, degenerates to FCFS.</li>
+</ul>
+<p>In the diagram, quantum=2 gives average wait 4.33.</p>
+<h2 id="84-cfs----linux-today">8.4 CFS &ndash; Linux today</h2>
+<p>Linux switched to CFS (Completely Fair Scheduler) in 2.6.23. Core idea: <strong>maintain a <code>vruntime</code> for each process; always schedule the smallest one</strong>. <code>vruntime</code> is weighted by nice value &ndash; niced-down processes accumulate vruntime faster, so they run less often.</p>
+<p>Implementation:</p>
+<ul>
+<li>vruntime is kept in a red-black tree; picking the smallest is O(log n).</li>
+<li>No fixed quantum &ndash; divide a target latency (say 6 ms) by the number of runnable tasks. 8 runnables -&gt; 0.75 ms each.</li>
+<li>I/O-bound processes spend most of their time asleep, so their vruntime barely grows &ndash; meaning they <strong>automatically get high priority</strong> when they wake up. Interactivity falls out for free, with no special &ldquo;interactive class&rdquo;.</li>
+</ul>
+<p>In the diagram, CFS finishes with the lowest and most even waits (4.0). The short P3 is done in one unit of waiting.</p>
+<blockquote>
+<p>Linux 6.6 (2024) introduced EEVDF (Earliest Eligible Virtual Deadline First), a CFS successor that handles modern NUMA + many-small-tasks workloads better. Same lineage, different bookkeeping.</p>
+</blockquote>
+<h2 id="85-real-time-scheduling">8.5 Real-time scheduling</h2>
+<p>CFS is <em>fair</em>, not <em>real-time</em>. For audio/video, robotics, automotive, Linux also has:</p>
+<ul>
+<li><strong><code>SCHED_FIFO</code></strong>: strict priorities; the highest-priority RT task runs until it blocks or yields.</li>
+<li><strong><code>SCHED_RR</code></strong>: same priority round-robined.</li>
+<li><strong><code>SCHED_DEADLINE</code></strong> (3.14+): you declare (runtime, deadline, period); the kernel guarantees you that runtime before each deadline. EDF-based.</li>
+</ul>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">chrt -p &lt;pid&gt;            <span class="c1"># see a process&#39;s scheduling class</span>
+</span></span><span class="line"><span class="cl">chrt -f <span class="m">50</span> ./mybin       <span class="c1"># run with SCHED_FIFO priority 50</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="9-stitching-the-seven-figures-back-together-one-full-cat-hellotxt">9. Stitching the seven figures back together: one full <code>cat hello.txt</code></h1>
+<p>Back to the opening example, narrated with everything we have built:</p>
+<ol>
+<li><strong>bash parses</strong> -&gt; calls <code>fork()</code>. Kernel allocates a PCB, COW-clones the address space (instant). Both parent and child return.</li>
+<li><strong>Child calls <code>execve(&quot;/bin/cat&quot;, ...)</code>.</strong> Wipes its current address space, mmaps cat&rsquo;s text segment, loads the dynamic linker, jumps into main(). <strong>Many minor page faults follow</strong> &ndash; cat&rsquo;s code pages are populated lazily.</li>
+<li><strong>cat calls <code>open(&quot;hello.txt&quot;)</code></strong> -&gt; syscall (user/kernel transition, ~100 ns) -&gt; VFS -&gt; ext4 -&gt; finds the dirent &ldquo;hello.txt -&gt; ino 1234&rdquo; -&gt; reads inode 1234 -&gt; returns an fd.</li>
+<li><strong>cat calls <code>read(fd, buf, 4096)</code></strong> -&gt; syscall -&gt; VFS -&gt; ext4 -&gt; file offset 0 maps to LBA 19528 -&gt; page cache lookup: <strong>miss</strong> -&gt; build BIO -&gt; block layer -&gt; NVMe driver -&gt; hardware DMA writes 4096 bytes into a kernel page.</li>
+<li><strong>Interrupt fires.</strong> cat is moved BLOCKED -&gt; READY. CFS picks it. Context switch. Kernel runs <code>copy_to_user(buf, page, 4096)</code>. Returns to user mode.</li>
+<li><strong>cat calls <code>write(1, buf, n)</code></strong> -&gt; syscall -&gt; VFS -&gt; /dev/pts/0 (pseudo terminal) -&gt; tty subsystem -&gt; terminal emulator -&gt; screen.</li>
+<li><strong>cat calls <code>_exit(0)</code></strong> -&gt; syscall -&gt; kernel reclaims resources, parks the exit code in the PCB (now ZOMBIE) -&gt; bash&rsquo;s <code>wait()</code> reaps it.</li>
+</ol>
+<p>In total: 4 main syscalls, several page faults, one full NVMe round trip, several context switches, several CFS scheduling decisions. <strong>Every step maps to one of the figures above.</strong> That is what &ldquo;understanding the OS&rdquo; means &ndash; not memorising terminology, but watching a concrete action and being able to name what is happening at every level beneath it.</p>
+<h1 id="10-where-to-read-next">10. Where to read next</h1>
+<p>In rough order of how deep you want to go:</p>
+<ul>
+<li><strong>Entry</strong>: <em>Operating Systems: Three Easy Pieces</em> (OSTEP, free online &ndash; strongly recommended).</li>
+<li><strong>Linux internals</strong>: <em>Understanding the Linux Kernel</em> (older but classical); <em>Linux Kernel Development</em> by Robert Love (newer, more readable).</li>
+<li><strong>Performance lens</strong>: Brendan Gregg&rsquo;s <em>Systems Performance</em> and his website &ndash; the bible of modern systems performance.</li>
+<li><strong>Microkernel / formal verification</strong>: the seL4 paper, <em>seL4: Formal Verification of an OS Kernel</em>.</li>
+<li><strong>Hands on</strong>: xv6 (MIT&rsquo;s 6.S081 teaching kernel) &ndash; 10k lines of C and you have a real multi-process kernel running.</li>
+<li><strong>Linux subsystems</strong>: the in-tree <code>Documentation/</code> directory is the most underrated reference; <code>/proc</code> and <code>/sys</code> are the live documentation.</li>
+</ul>
+<blockquote>
+<p>The lovely thing about operating systems is that the concepts have been stable for fifty years. The process model, virtual memory, and file system abstractions you learn today were just as true in 1985 BSD and will almost certainly still be true in 2050. Few subjects pay back the time investment as well.</p>
+</blockquote>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-you-will-be-able-to-do">What you will be able to do</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#21-monolithic-stuff-everything-in">2.1 Monolithic: stuff everything in</a></li>
+    <li><a href="#22-microkernel-only-the-bare-essentials">2.2 Microkernel: only the bare essentials</a></li>
+    <li><a href="#23-why-linux-did-not-switch">2.3 Why Linux did not switch</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#31-five-state-lifecycle">3.1 Five-state lifecycle</a></li>
+    <li><a href="#32-the-real-cost-of-a-context-switch">3.2 The real cost of a context switch</a></li>
+    <li><a href="#33-process-vs-thread-vs-coroutine">3.3 Process vs thread vs coroutine</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#41-the-translation">4.1 The translation</a></li>
+    <li><a href="#42-the-page-fault-path">4.2 The page-fault path</a></li>
+    <li><a href="#43-things-you-use-every-day-that-are-silently-virtual-memory">4.3 Things you use every day that are silently virtual memory</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#51-why-is-mv-instant-within-the-same-partition">5.1 Why is <code>mv</code> instant within the same partition?</a></li>
+    <li><a href="#52-why-does-rm-not-always-free-space">5.2 Why does <code>rm</code> not always free space?</a></li>
+    <li><a href="#53-hard-link-vs-symlink">5.3 Hard link vs symlink</a></li>
+    <li><a href="#54-block-pointers-how-a-fixed-size-inode-addresses-huge-files">5.4 Block pointers: how a fixed-size inode addresses huge files</a></li>
+    <li><a href="#55-vfs-everything-that-looks-like-a-file">5.5 VFS: everything that looks like a file</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#61-why-so-many-layers">6.1 Why so many layers</a></li>
+    <li><a href="#62-sync-async-io_uring">6.2 Sync, async, io_uring</a></li>
+    <li><a href="#63-diagnosing-slow-io-top-down">6.3 Diagnosing &ldquo;slow I/O&rdquo; top-down</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#71-steps-in-one-syscall">7.1 Steps in one syscall</a></li>
+    <li><a href="#72-the-real-cost-of-a-syscall">7.2 The real cost of a syscall</a></li>
+    <li><a href="#73-strace-as-your-microscope">7.3 strace as your microscope</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#81-fcfs----first-come-first-served">8.1 FCFS &ndash; first come first served</a></li>
+    <li><a href="#82-sjf----shortest-job-first">8.2 SJF &ndash; shortest job first</a></li>
+    <li><a href="#83-round-robin----time-slice-rotation">8.3 Round Robin &ndash; time-slice rotation</a></li>
+    <li><a href="#84-cfs----linux-today">8.4 CFS &ndash; Linux today</a></li>
+    <li><a href="#85-real-time-scheduling">8.5 Real-time scheduling</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>20 min</strong></div>
+      <div class="row"><span>Word count</span><strong>4300</strong></div>
+      <div class="row"><span>Published</span><strong>Aug 2022</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
+          
+            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
+          
+          <li><a href="/en/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/en/about/">About</a></li>
+          <li><a href="/en/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="zh" data-translation="">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<title>PDE与机器学习（六）：连续归一化流与Neural ODE · Chen Kai Blog</title>
+<meta name="description" content="如何把高斯变成数据分布？本文从 ODE/PDE 理论出发，系统推导 Neural ODE、伴随方法、连续归一化流（FFJORD）与 Flow Matching，并用 7 张图把核心机制画清楚。">
+<meta name="author" content="Chen Kai">
+<link rel="canonical" href="https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
+
+
+
+<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/">
+
+
+
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="PDE与机器学习（六）：连续归一化流与Neural ODE">
+<meta property="og:description" content="如何把高斯变成数据分布？本文从 ODE/PDE 理论出发，系统推导 Neural ODE、伴随方法、连续归一化流（FFJORD）与 Flow Matching，并用 7 张图把核心机制画清楚。">
+<meta property="og:url" content="https://www.chenk.top/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8Eneural-ode/">
+<meta property="og:locale" content="zh">
+<meta name="twitter:card" content="summary_large_image">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+
+<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
+<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
+
+
+<script>
+  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
+</script>
+
+
+
+</head>
+<body class="article-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
+      <span class="brand-mark"></span>
+      <span>chenk<span class="brand-dot">.</span>top</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="/zh/">Home</a>
+      <a href="/zh/series/">Series</a>
+      <a href="/zh/projects/">Projects</a>
+      <a href="/zh/archives/">Archives</a>
+      <a href="/zh/about/">About</a>
+      
+    </nav>
+
+    <div class="header-tools">
+      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a class="lang-switch" href="#" data-lang-switch>EN</a>
+      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<aside class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
+    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav>
+    <a href="/zh/">Home</a>
+    <a href="/zh/series/">Series</a>
+    <a href="/zh/projects/">Projects</a>
+    <a href="/zh/archives/">Archives</a>
+    <a href="/zh/about/">About</a>
+    
+  </nav>
+</aside>
+
+
+<div class="search-overlay" aria-hidden="true">
+  <div class="search-modal">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
+      <span class="kbd">esc</span>
+    </div>
+    <div class="search-results">
+      <div class="search-empty">Search articles, series, and tags…</div>
+    </div>
+  </div>
+</div>
+
+<div class="read-progress" aria-hidden="true"></div>
+<main>
+<article class="article-shell" style="--accent: var(--hue-1);">
+  <div class="article-main">
+    <header class="article-header">
+      <div class="crumbs">
+        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Pde与机器学习</a>
+         · Chapter 6
+      </div>
+      <h1>PDE与机器学习（六）：连续归一化流与Neural ODE</h1>
+      <p class="deck">如何把高斯变成数据分布？本文从 ODE/PDE 理论出发，系统推导 Neural ODE、伴随方法、连续归一化流（FFJORD）与 Flow Matching，并用 7 张图把核心机制画清楚。</p>
+      <div class="byline">
+        <div class="avatar">CK</div>
+        <div class="byline-info">
+          <span class="name">Chen Kai</span>
+          <span class="meta-line"><time datetime="2024-07-15">July 15, 2024</time> · 11 min read · 5100 words</span>
+        </div>
+      </div>
+      <div class="article-meta-row">
+        <div class="meta">
+          
+            <a href="/zh/tags/neural-ode/" class="tag">#Neural ODE</a><a href="/zh/tags/%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81/" class="tag">#归一化流</a><a href="/zh/tags/pde/" class="tag">#PDE</a><a href="/zh/tags/%E8%BF%9E%E7%BB%AD%E5%8A%A8%E5%8A%9B%E7%B3%BB%E7%BB%9F/" class="tag">#连续动力系统</a><a href="/zh/tags/%E7%94%9F%E6%88%90%E6%A8%A1%E5%9E%8B/" class="tag">#生成模型</a>
+          
+        </div>
+        
+      </div>
+    </header>
+
+    <div class="prose">
+      <h2 id="这一篇要讲什么">这一篇要讲什么</h2>
+<p>生成建模的本质问题非常几何：<strong>如何把一个简单分布（高斯）变成一个复杂分布（人脸、分子、动作）？</strong> 离散归一化流一层一层堆可逆变换，但每层要算 Jacobian 行列式，代价 $O(d^3)$。<strong>Neural ODE</strong> 把&quot;离散深度&quot;换成连续 ODE；<strong>连续归一化流（CNF）</strong> 借用<em>瞬时</em>变量替换公式，把密度计算降到 $O(d)$；<strong>Flow Matching</strong> 进一步去掉散度积分，把训练变成对目标速度场的回归。</p>
+<p>整篇文章三条线并行：</p>
+<ol>
+<li><strong>PDE 这一侧</strong> —— 连续性方程 $\partial_t\rho+\nabla\!\cdot(\rho v)=0$ 控制速度场 $v$ 如何输运密度 $\rho$。</li>
+<li><strong>ODE 这一侧</strong> —— Picard-Lindelof 给解的存在唯一性；Liouville 把体积变化和 $\nabla\!\cdot v$ 联系起来；伴随方程让反向传播在内存上变成 $O(1)$。</li>
+<li><strong>ML 这一侧</strong> —— Neural ODE、FFJORD、Flow Matching 都用神经网络参数化 $v$，从数据中学出来。</li>
+</ol>
+<p><strong>前置知识</strong>：ODE 基础、概率密度变量替换、自动微分。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8ENeural-ODE/fig1_density_transformation.png" alt="连续流把高斯逐步变成两月牙目标分布。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 1：连续时间流把高斯基分布输运成两月牙目标。每个面板都是用大约 4000 个粒子求解 ODE 到时间 $t$ 之后做 KDE 得到的密度 $\rho_t$。每个 $t$ 共用同一个 $v_\theta$，只是积分上限不同。</em></p>
+<hr>
+<h2 id="1-ode-基础存在唯一性体积演化">1. ODE 基础：存在唯一性、体积演化</h2>
+<h3 id="11-picard-lindelof解什么时候存在且唯一">1.1 Picard-Lindelof：解什么时候存在且唯一？</h3>
+$$\|f(\mathbf{z}_1,t)-f(\mathbf{z}_2,t)\|\le L\,\|\mathbf{z}_1-\mathbf{z}_2\|,$$<p>
+则在某个区间 $[0,T]$ 上存在唯一解。</p>
+<p><em>为什么 ML 关心这个。</em> 如果 $f_\theta$ 是带 Lipschitz 激活（ReLU、tanh、GELU）且权重有界的神经网络，那么局部 Lipschitz 自然成立。所以只要网络本身行为正常，Neural ODE 就是适定的——这正是它能稳定地反向传播的根本原因。</p>
+<h3 id="12-liouville-定理流如何改变体积">1.2 Liouville 定理：流如何改变体积</h3>
+$$\frac{d}{dt}\,\mathrm{vol}(\phi_t(\Omega))=\int_{\phi_t(\Omega)}\nabla\!\cdot f\,d\mathbf{z}.$$<p>
+所以 $\nabla\!\cdot f=0$ 保体积，$\nabla\!\cdot f<0$ 压缩，$\nabla\!\cdot f>0$ 膨胀。在归一化流里，我们<em>希望</em>散度非零——它正是重排概率质量的杠杆。</p>
+<p><em>直觉图像。</em> 散度为零的 $f$ 像不可压缩流（哈密顿/辛——见第 5 篇）。散度非零的 $f$ 像可压缩流，可以把概率质量挤进一条窄带，再到别处膨胀回来——这正是生成建模需要的。</p>
+<h3 id="13-瞬时变量替换公式">1.3 瞬时变量替换公式</h3>
+$$\boxed{\;\frac{d}{dt}\log\rho_t(\mathbf{z}(t))=-\nabla\!\cdot f(\mathbf{z}(t),t).\;}\tag{1}$$<p><em>证明思路。</em> 连续性方程 $\partial_t\rho+\nabla\!\cdot(\rho f)=0$ 展开为 $\partial_t\rho+f\!\cdot\!\nabla\rho=-\rho\,\nabla\!\cdot f$。左边正是沿 $\mathbf{z}(t)$ 的物质导数 $D\rho/Dt$。两边除以 $\rho$ 得 (1)。</p>
+<p><strong>这一个公式为什么如此关键。</strong> 离散归一化流要付 $O(d^3)$ 算 $\log|\det\partial\phi/\partial\mathbf{z}|$。公式 (1) 只需要 Jacobian 的<strong>迹</strong>（即散度），用一次 vector-Jacobian product 就能算到 $O(d)$（见 3.2 节）。这是 CNF 存在的唯一计算上的理由。</p>
+<hr>
+<h2 id="2-neural-ode从离散到连续深度">2. Neural ODE：从离散到连续深度</h2>
+<h3 id="21-残差网络就是前向-euler">2.1 残差网络就是前向 Euler</h3>
+$$\frac{d\mathbf{h}}{dt}=f_\theta(\mathbf{h}(t),t),\qquad \mathbf{h}(T)=\mathbf{h}(0)+\int_0^T f_\theta(\mathbf{h}(t),t)\,dt. \tag{2}$$<p>立刻收获三件好事：</p>
+<ul>
+<li><strong>参数效率。</strong> 一个网络 $f_\theta$ 取代了&quot;每层一份参数&quot;。</li>
+<li><strong>自适应深度。</strong> dopri5 之类的自适应 Runge-Kutta 求解器，自动在动力学剧烈处加密、平缓处稀疏。</li>
+<li><strong>内存。</strong> 伴随方法把反向传播内存从 $O(L)$ 降到 $O(L)$ 之外的 $O(1)$——随深度增加的只有时间，不再是显存。</li>
+</ul>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8ENeural-ODE/fig2_neural_ode_vs_resnet.png" alt="ResNet（离散深度，固定步）vs Neural ODE（连续深度，自适应求解器）。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 2：左侧是 ResNet——每层一组参数的 $h_{l+1}=h_l+f_l(h_l)$ Euler 步，反向传播必须存所有中间激活。右侧是 Neural ODE——单个 $f_\theta$ 驱动的 ODE，自适应求解器决定在哪里采样，伴随方法以 $O(1)$ 内存恢复梯度。</em></p>
+<h3 id="22-伴随方法">2.2 伴随方法</h3>
+<p>直接对 ODE 求解器走标准 backprop，需要存每一步中间状态，是 $O(L)$（自适应求解器很容易上百步）。伴随方法完全绕开这件事。</p>
+$$\frac{d\mathbf{a}}{dt}=-\,\mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\mathbf{h}}, \tag{3}$$$$\frac{d\mathcal{L}}{d\theta}=-\int_T^0 \mathbf{a}(t)^\top\frac{\partial f_\theta}{\partial\theta}\,dt. \tag{4}$$<p><strong>算法。</strong></p>
+<ol>
+<li><em>前向。</em> 求解 (2)，从 $0\to T$，只存 $\mathbf{h}(T)$。</li>
+<li><em>初始化。</em> $\mathbf{a}(T)=\partial\mathcal{L}/\partial\mathbf{h}(T)$。</li>
+<li><em>反向。</em> 把 $\mathbf{h}$ 和 $\mathbf{a}$ 一起从 $T\to 0$ 反向求解，沿途累加 (4)。</li>
+</ol>
+<p>内存是 $O(1)$，与求解步数无关。代价是反向多解一次 ODE——大约 2 倍计算换无限大内存节省。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8ENeural-ODE/fig3_adjoint_method.png" alt="伴随方法：在二维向量场上的正反两条轨迹，以及不同深度下的内存对比。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 3：左：同一个螺旋 ODE 先正向积分（蓝色）拿到 $h(T)$，再连同伴随一起反向积分（红虚线）回到起点恢复梯度。右：随求解步数 $L$ 增加的内存代价。标准 backprop 是 $O(L)$；伴随永远是 $O(1)$——$L{=}1000$ 时是 1000 倍节省。</em></p>
+<h3 id="23-表达能力">2.3 表达能力</h3>
+<p>Neural ODE 在 $\mathbb{R}^d$ 的同胚映射空间中是稠密的（Zhang et al. 2020）。但它<strong>不能改变拓扑</strong>——单个 $\mathbb{R}^d$ 上的 Neural ODE 没法解开两条相扣的环。这是 <strong>Augmented Neural ODE</strong> 的动机：把状态升到 $\mathbb{R}^{d+k}$，多出来的维度给流&quot;腾出地方&quot;去解扣。</p>
+<hr>
+<h2 id="3-连续归一化流cnf">3. 连续归一化流（CNF）</h2>
+<h3 id="31-从离散流到连续流">3.1 从离散流到连续流</h3>
+$$\mathbf{z}_K=f_K\circ\cdots\circ f_1(\mathbf{z}_0),\qquad \log p_K=\log p_0-\sum_{k=1}^K\log\!\bigl|\det\partial f_k/\partial\mathbf{z}_{k-1}\bigr|.$$<p>
+每个 $\det$ 都是 $O(d^3)$，除非用专门设计的架构（耦合层、自回归等）压成 $O(d)$——但代价是表达力受限。</p>
+$$\frac{d\mathbf{z}}{dt}=f_\theta(\mathbf{z}(t),t),\qquad \frac{d\log p}{dt}=-\nabla\!\cdot f_\theta(\mathbf{z}(t),t). \tag{5}$$<p>
+<strong>网络无需任何可逆约束</strong>——ODE 反向积分自然就是逆映射。<strong>没有行列式</strong>——只要迹。</p>
+<h3 id="32-ffjord用-hutchinson-估计迹">3.2 FFJORD：用 Hutchinson 估计迹</h3>
+$$\nabla\!\cdot f=\mathbb{E}_{\boldsymbol\epsilon}\!\left[\boldsymbol\epsilon^\top\!\frac{\partial f}{\partial\mathbf{z}}\,\boldsymbol\epsilon\right],\qquad \boldsymbol\epsilon\sim\mathcal{N}(0,\mathbf{I}). \tag{6}$$<p>
+这就是 <strong>Hutchinson 迹估计</strong>：每个采样向量只要<em>一次</em> vector-Jacobian product，与 $d$ 无关。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8ENeural-ODE/fig4_ffjord_trace.png" alt="Hutchinson 迹估计：方差以 1/sqrt(K) 收缩，单步代价从 O(d^2) 降为 O(d)。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 4：左：$d{=}64$ 下 Hutchinson 估计在 400 次试验上的方差，随采样向量个数 $K$ 变化，虚线是教科书 $1/\sqrt{K}$ 包络。右：随维度 $d$ 增加的单步散度代价对比。完整 Jacobian 是 $O(d^2)$ 次 AD 调用；$K{=}4$ 的 Hutchinson 是 $O(Kd)$——在 $d{=}1024$ 时便宜三个数量级。</em></p>
+<h3 id="33-训练与采样">3.3 训练与采样</h3>
+$$\log p_1(\mathbf{x})=\log p_0(\mathbf{z}_0)+\int_0^1 \nabla\!\cdot f_\theta(\mathbf{z}(t),t)\,dt,$$<p>
+其中 $\mathbf{z}_0$ 通过把 $\mathbf{x}$ 反向积分到 $t=0$ 得到。用伴随方法最大化对数似然。要<strong>采样</strong>就反过来：抽 $\mathbf{z}_0\sim p_0$，正向积分。</p>
+<p><strong>权衡。</strong> CNF 给出精确似然，但每次前向/反向都要解 ODE——典型几十到几百次网络评估。训练也比较脆：求解容差、$f_\theta$ 的正则化、Hutchinson 方差三者互相影响。</p>
+<hr>
+<h2 id="4-最优传输与-flow-matching">4. 最优传输与 Flow Matching</h2>
+<h3 id="41-benamou-brenier-联系">4.1 Benamou-Brenier 联系</h3>
+$$\min_{v_t}\,\int_0^1\!\!\int \|v_t(\mathbf{z})\|^2\,\rho_t(\mathbf{z})\,d\mathbf{z}\,dt
+\quad\text{s.t.}\quad \partial_t\rho+\nabla\!\cdot(\rho v)=0,\;\rho_0,\rho_1\text{ 给定}.$$<p>
+极小化的 $v_t^\star$ 正是某个 CNF 的速度场——而且是<strong>轨迹为直线</strong>的（在欧氏 OT 情形下）。这是 CNF 与 OT 结合最干净的几何理由。</p>
+<h3 id="42-flow-matching">4.2 Flow Matching</h3>
+<p><strong>Flow Matching</strong>（Lipman 等 2022）是杀手级简化。它既不通过 ODE 求解器优化 NLL，也不真正去解 OT 问题，而是先选一条<em>条件概率路径</em>，再回归对应的速度场。</p>
+$$u_t^\star(\mathbf{z}_t\mid\mathbf{z}_0,\mathbf{z}_1)=\mathbf{z}_1-\mathbf{z}_0. \tag{7}$$$$\mathcal{L}_{\text{FM}}=\mathbb{E}_{t,\,\mathbf{z}_0,\,\mathbf{z}_1}\Bigl[\,\|v_\theta(\mathbf{z}_t,t)-(\mathbf{z}_1-\mathbf{z}_0)\|^2\,\Bigr]. \tag{8}$$<p><strong>关键定理（Lipman 等）。</strong> <em>边缘</em>速度 $\mathbb{E}[u_t^\star\mid\mathbf{z}_t]$ 满足把 $p_0$ 输运到 $p_1$ 的连续性方程。所以在足够灵活的 $v_\theta$ 上极小化 (8)，就恢复了一个合法的 CNF——而且训练时根本不用算散度。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8ENeural-ODE/fig5_flow_matching.png" alt="Flow Matching：成对样本之间的线性条件路径；对比 CNF 的训练曲线。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 5：左：随机样本对 $(\mathbf{z}_0,\mathbf{z}_1)$ 之间的线性条件路径。在任意 $\mathbf{z}_t$ 处的目标速度都是 $\mathbf{z}_1-\mathbf{z}_0$——训练时无散度，无 ODE 求解。右：示意性的损失曲线对比。FM 比 CNF 直接最大似然大约快一个数量级收敛，并且收敛到更低的稳定平台。</em></p>
+<h3 id="43-2024-年实际怎么用">4.3 2024 年实际怎么用</h3>
+<table>
+  <thead>
+      <tr>
+          <th>方法</th>
+          <th>训练成本</th>
+          <th>优点</th>
+          <th>缺点</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>离散 NF（RealNVP/Glow）</td>
+          <td>便宜，无 ODE</td>
+          <td>采样和似然都快</td>
+          <td>架构受限</td>
+      </tr>
+      <tr>
+          <td>CNF / FFJORD</td>
+          <td>ODE + Hutchinson</td>
+          <td>$f_\theta$ 自由形式，精确 NLL</td>
+          <td>慢，对调参敏感</td>
+      </tr>
+      <tr>
+          <td>OT-Flow</td>
+          <td>OT 代价 + 匹配</td>
+          <td>路径直、最优</td>
+          <td>两个损失要平衡</td>
+      </tr>
+      <tr>
+          <td><strong>Flow Matching</strong></td>
+          <td>纯回归</td>
+          <td>稳定、快、可扩展到图像</td>
+          <td>需要设计条件路径</td>
+      </tr>
+      <tr>
+          <td>Rectified Flow / 一致性</td>
+          <td>迭代拉直</td>
+          <td>极少步采样</td>
+          <td>多阶段训练</td>
+      </tr>
+  </tbody>
+</table>
+<p>到 2024 年，绝大多数生产规模的连续流系统（图像、音频、分子）都属于某种 Flow Matching 或 Rectified Flow 变体。</p>
+<hr>
+<h2 id="5-连续深度的图像">5. &ldquo;连续深度&quot;的图像</h2>
+<p>&ldquo;连续深度&quot;是把整章串起来的概念——Neural ODE <em>就是</em>深度网络的连续极限，CNF <em>就是</em>归一化流的连续极限。两者在图上是同一张图。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8ENeural-ODE/fig6_continuous_depth.png" alt="连续轨迹 h(t) 分别由固定深度的 ResNet 和自适应 ODE 求解器近似。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 6：蓝色是底层 Neural ODE 给出的真实连续轨迹 $h(t)$。红虚线是固定深度 $L{=}4$ 的 ResNet——在 $|\dot h|$ 大的地方欠拟合（红色误差片）。橙色 $L{=}8$ 仍然抓不住高频振荡。紫色菱形是自适应求解器的检查点：<strong>动力学硬的地方多采、柔的地方少采</strong>，用更少的总评估达到同样精度，无需手调&quot;深度&rdquo;。</em></p>
+<p>这也是为什么深 ResNet 中&quot;几百层&quot;在 Neural ODE 里会被一个 $f_\theta$ 替代——<em>时间变量</em>接管了层下标的角色，离散化由求解器决定。</p>
+<hr>
+<h2 id="6-把整条管线放到一起二维密度估计">6. 把整条管线放到一起：二维密度估计</h2>
+<p>为了把整个流程看具体，我们用经典的两月牙数据走一遍端到端的密度估计。</p>
+<p><figure>
+  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-%E8%BF%9E%E7%BB%AD%E5%BD%92%E4%B8%80%E5%8C%96%E6%B5%81%E4%B8%8ENeural-ODE/fig7_density_estimation.png" alt="二维玩具数据上的密度估计：目标样本、经验 KDE、CNF 拟合密度、生成样本与 ODE 轨迹。" loading="lazy" decoding="async">
+  
+</figure>
+
+<em>图 7：(a) 4000 个两月牙目标样本。(b) KDE 经验密度。(c) 连续流学到的密度——把高斯沿训练好的 $v_\theta$ 正向输运得到。(d) 紫色是生成样本，绿色是若干条 ODE 轨迹，展示每个基点如何从单位高斯（绿点）流到对应月牙。同一个网络 $v_\theta$ 既用于密度估计（把 $\mathbf{x}$ 反向积分），也用于采样（把噪声正向积分）。</em></p>
+<p>这种&quot;一个网络 $v_\theta$ + 一个 ODE $\dot{\mathbf{z}}=v_\theta(\mathbf{z},t)$&ldquo;既能精确估计似然又能采样的双重身份，正是连续流在理论上吸引人的根本原因。</p>
+<hr>
+<h2 id="7-实验">7. 实验</h2>
+<h3 id="71-螺旋-ode-拟合">7.1 螺旋 ODE 拟合</h3>
+<p>3 层 MLP（隐藏维 64，tanh）参数化 $f_\theta$，用伴随方法在二维阻尼螺旋目标上以 dopri5（rtol $=10^{-5}$）训练。1000 步后平均轨迹误差 $<10^{-3}$，峰值 GPU 内存约 40 MB——与求解器内部 ~80 步无关。</p>
+<h3 id="72-高斯--两月牙-cnf">7.2 高斯 → 两月牙 CNF</h3>
+<p>4 层 MLP（隐藏维 128，softplus），按 FFJORD 训练，Hutchinson 迹估计，dopri5，5000 步。生成样本覆盖两条月牙、抓到了月牙的弯月厚度；与目标的 KDE 比较给出 Wasserstein-2 $\approx 0.07$。</p>
+<h3 id="73-伴随-vs-标准-backprop数据来自-neural-ode-原论文外推到-1024-维隐藏态">7.3 伴随 vs 标准 backprop（数据来自 Neural ODE 原论文，外推到 1024 维隐藏态）</h3>
+<table>
+  <thead>
+      <tr>
+          <th>方法</th>
+          <th>内存 (MB)</th>
+          <th>时间 (s)</th>
+          <th>测试准确率</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>标准 backprop，固定 $L=100$</td>
+          <td>2450</td>
+          <td>2.3</td>
+          <td>85.2%</td>
+      </tr>
+      <tr>
+          <td>伴随，固定 $L=100$</td>
+          <td>320</td>
+          <td>3.1</td>
+          <td>85.1%</td>
+      </tr>
+      <tr>
+          <td>伴随，自适应（dopri5）</td>
+          <td>310</td>
+          <td>2.8</td>
+          <td>85.3%</td>
+      </tr>
+  </tbody>
+</table>
+<p>内存降约 87%，挂钟时间增加 20-30%。</p>
+<h3 id="74-flow-matching-vs-cnf二维-moons">7.4 Flow Matching vs CNF（二维 moons）</h3>
+<table>
+  <thead>
+      <tr>
+          <th>方法</th>
+          <th>样本质量（越低越好）</th>
+          <th>收敛迭代数</th>
+          <th>采样时间</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>CNF (FFJORD)</td>
+          <td>12.3</td>
+          <td>8000</td>
+          <td>2.1 s / 1k 样本</td>
+      </tr>
+      <tr>
+          <td>Flow Matching</td>
+          <td>8.7</td>
+          <td>3000</td>
+          <td>1.8 s / 1k 样本</td>
+      </tr>
+  </tbody>
+</table>
+<p>FM 收敛快约 $2.7\times$，月牙更干净。在真实图像上差距更大（训练时间和采样 NFE 都能差一两个数量级）。</p>
+<hr>
+<h2 id="8-习题">8. 习题</h2>
+<p><strong>习题 1.</strong> 直接从连续性方程推出瞬时变量替换公式 (1)。</p>
+<blockquote>
+<p><em>解。</em> 连续性方程：$\partial_t\rho+\nabla\!\cdot(\rho f)=0$，即 $\partial_t\rho+f\!\cdot\!\nabla\rho+\rho\,\nabla\!\cdot f=0$。沿 $\mathbf{z}(t)$，$\frac{d}{dt}\rho(\mathbf{z}(t),t)=\partial_t\rho+f\!\cdot\!\nabla\rho=-\rho\,\nabla\!\cdot f$。除以 $\rho$ 得证。</p>
+</blockquote>
+<p><strong>习题 2.</strong> 为什么伴随方法的内存是 $O(1)$？</p>
+<blockquote>
+<p><em>解。</em> 它只存当前的 $\mathbf{h}(t)$、$\mathbf{a}(t)$ 以及参数梯度累加器。反向求解器需要旧的 $\mathbf{h}(s)$ 时，靠把前向 ODE 反向积分重新算出——求解器内部的中间状态都不存。这里的 $O(1)$ 指的是不随深度增长，空间维度 $d$ 还是要付的。</p>
+</blockquote>
+<p><strong>习题 3.</strong> 证明 Hutchinson 估计 (6) 是无偏的。</p>
+<blockquote>
+<p><em>解。</em> 对任意矩阵 $A$ 和满足 $\mathbb{E}[\boldsymbol\epsilon]=0$、$\mathrm{Cov}[\boldsymbol\epsilon]=\mathbf{I}$ 的 $\boldsymbol\epsilon$：$\mathbb{E}[\boldsymbol\epsilon^\top A\,\boldsymbol\epsilon]=\sum_{i,j}A_{ij}\mathbb{E}[\epsilon_i\epsilon_j]=\sum_i A_{ii}=\mathrm{tr}\,A$。</p>
+</blockquote>
+<p><strong>习题 4.</strong> 在高层次上比较 Flow Matching 与 DDPM。</p>
+<blockquote>
+<p><em>解。</em> 两者都是噪声 → 数据。DDPM 在一个随机前向加噪（SDE）过程上做 score matching 学去噪器；采样解反向 SDE 或对应的概率流 ODE。Flow Matching 在确定性 ODE 上学一个匹配某条条件路径的速度场 $v_\theta$；采样就积分该 ODE。FM 训练损失是纯回归，没有时变噪声调度。</p>
+</blockquote>
+<p><strong>习题 5.</strong> 证明对线性条件路径 $\mathbf{z}_t=(1-t)\mathbf{z}_0+t\mathbf{z}_1$，边缘速度 $\mathbb{E}[\mathbf{z}_1-\mathbf{z}_0\mid\mathbf{z}_t]$ 通过连续性方程把 $p_0$ 推到 $p_1$。</p>
+<blockquote>
+<p><em>解（要点）。</em> 写 $\rho_t(\mathbf{z})=\int q(\mathbf{z}_0,\mathbf{z}_1)\,\delta(\mathbf{z}-(1-t)\mathbf{z}_0-t\mathbf{z}_1)\,d\mathbf{z}_0\,d\mathbf{z}_1$。对 $t$ 求导，使用恒等式 $\partial_t\delta=-\nabla\!\cdot[(\mathbf{z}_1-\mathbf{z}_0)\delta]$；在 $\mathbf{z}_t$ 给定下对 $\mathbf{z}_0,\mathbf{z}_1$ 边缘化即得 $\partial_t\rho_t+\nabla\!\cdot(\rho_t\,\bar v_t)=0$，其中 $\bar v_t(\mathbf{z})=\mathbb{E}[\mathbf{z}_1-\mathbf{z}_0\mid\mathbf{z}_t=\mathbf{z}]$。</p>
+</blockquote>
+<hr>
+<h2 id="参考文献">参考文献</h2>
+<p>[1] Chen, R. T. Q., Rubanova, Y., Bettencourt, J., &amp; Duvenaud, D. (2018). Neural ordinary differential equations. <em>NeurIPS</em>.</p>
+<p>[2] Grathwohl, W., Chen, R. T. Q., Bettencourt, J., Sutskever, I., &amp; Duvenaud, D. (2018). FFJORD: Free-form continuous dynamics for scalable reversible generative models. <em>ICLR</em>.</p>
+<p>[3] Onken, D., Fung, S. W., Li, X., &amp; Ruthotto, L. (2021). OT-Flow: Fast and accurate continuous normalizing flows via optimal transport. <em>AAAI</em>.</p>
+<p>[4] Lipman, Y., Chen, R. T. Q., Ben-Hamu, H., Nickel, M., &amp; Le, M. (2022). Flow matching for generative modeling. <em>ICLR</em>.</p>
+<p>[5] Liu, X., Gong, C., &amp; Liu, Q. (2022). Flow straight and fast: Learning to generate and transfer data with rectified flow. <em>ICLR</em>.</p>
+<p>[6] Tzen, B., &amp; Raginsky, M. (2019). Theoretical guarantees for sampling and inference in generative models with latent diffusions. <em>COLT</em>.</p>
+<p>[7] Zhang, H., Gao, X., Unterman, J., &amp; Arodz, T. (2020). Approximation capabilities of neural ODEs and invertible residual networks. <em>ICML</em>.</p>
+<hr>
+<h2 id="系列导航">系列导航</h2>
+<table>
+  <thead>
+      <tr>
+          <th>部分</th>
+          <th>主题</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e7%89%a9%e7%90%86%e4%bf%a1%e6%81%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c/">1</a>
+</td>
+          <td>物理信息神经网络</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/">2</a>
+</td>
+          <td>神经算子理论</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%8f%98%e5%88%86%e5%8e%9f%e7%90%86%e4%b8%8e%e4%bc%98%e5%8c%96/">3</a>
+</td>
+          <td>变分原理与优化</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/">4</a>
+</td>
+          <td>变分推断与Fokker-Planck方程</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/">5</a>
+</td>
+          <td>辛几何与保结构网络</td>
+      </tr>
+      <tr>
+          <td><strong>6</strong></td>
+          <td><strong>连续归一化流与Neural ODE（本文）</strong></td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/">7</a>
+</td>
+          <td>扩散模型与Score Matching</td>
+      </tr>
+      <tr>
+          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%8f%8d%e5%ba%94%e6%89%a9%e6%95%a3%e7%b3%bb%e7%bb%9f%e4%b8%8eGNN/">8</a>
+</td>
+          <td>反应扩散系统与GNN</td>
+      </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    
+
+    <div class="article-end">
+      <h4>Liked this piece?</h4>
+      <p>Follow on GitHub for the next one — usually one a week.</p>
+      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <aside class="article-aside">
+    <nav class="toc" aria-label="Table of contents">
+  <div class="toc-title">In this article</div>
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#这一篇要讲什么">这一篇要讲什么</a></li>
+    <li><a href="#1-ode-基础存在唯一性体积演化">1. ODE 基础：存在唯一性、体积演化</a>
+      <ul>
+        <li><a href="#11-picard-lindelof解什么时候存在且唯一">1.1 Picard-Lindelof：解什么时候存在且唯一？</a></li>
+        <li><a href="#12-liouville-定理流如何改变体积">1.2 Liouville 定理：流如何改变体积</a></li>
+        <li><a href="#13-瞬时变量替换公式">1.3 瞬时变量替换公式</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-neural-ode从离散到连续深度">2. Neural ODE：从离散到连续深度</a>
+      <ul>
+        <li><a href="#21-残差网络就是前向-euler">2.1 残差网络就是前向 Euler</a></li>
+        <li><a href="#22-伴随方法">2.2 伴随方法</a></li>
+        <li><a href="#23-表达能力">2.3 表达能力</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-连续归一化流cnf">3. 连续归一化流（CNF）</a>
+      <ul>
+        <li><a href="#31-从离散流到连续流">3.1 从离散流到连续流</a></li>
+        <li><a href="#32-ffjord用-hutchinson-估计迹">3.2 FFJORD：用 Hutchinson 估计迹</a></li>
+        <li><a href="#33-训练与采样">3.3 训练与采样</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-最优传输与-flow-matching">4. 最优传输与 Flow Matching</a>
+      <ul>
+        <li><a href="#41-benamou-brenier-联系">4.1 Benamou-Brenier 联系</a></li>
+        <li><a href="#42-flow-matching">4.2 Flow Matching</a></li>
+        <li><a href="#43-2024-年实际怎么用">4.3 2024 年实际怎么用</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-连续深度的图像">5. &ldquo;连续深度&quot;的图像</a></li>
+    <li><a href="#6-把整条管线放到一起二维密度估计">6. 把整条管线放到一起：二维密度估计</a></li>
+    <li><a href="#7-实验">7. 实验</a>
+      <ul>
+        <li><a href="#71-螺旋-ode-拟合">7.1 螺旋 ODE 拟合</a></li>
+        <li><a href="#72-高斯--两月牙-cnf">7.2 高斯 → 两月牙 CNF</a></li>
+        <li><a href="#73-伴随-vs-标准-backprop数据来自-neural-ode-原论文外推到-1024-维隐藏态">7.3 伴随 vs 标准 backprop（数据来自 Neural ODE 原论文，外推到 1024 维隐藏态）</a></li>
+        <li><a href="#74-flow-matching-vs-cnf二维-moons">7.4 Flow Matching vs CNF（二维 moons）</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-习题">8. 习题</a></li>
+    <li><a href="#参考文献">参考文献</a></li>
+    <li><a href="#系列导航">系列导航</a></li>
+  </ul>
+</nav>
+</nav>
+    <div class="aside-block">
+      <div class="label">In the series</div>
+      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Pde与机器学习</a></p>
+    </div>
+    <div class="aside-block aside-stat">
+      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
+      <div class="row"><span>Word count</span><strong>5100</strong></div>
+      <div class="row"><span>Published</span><strong>Jul 2024</strong></div>
+    </div>
+  </aside>
+</article>
+
+</main>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>About this site</h5>
+        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Series</h5>
+        <ul>
+          
+            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
+          
+            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
+          
+          <li><a href="/zh/series/">All series →</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Elsewhere</h5>
+        <ul>
+          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
+          <li><a href="/zh/about/">About</a></li>
+          <li><a href="/zh/me/">Chen Kai</a></li>
+          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+      <span class="signature">Made in Beijing &amp; Shanghai.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
