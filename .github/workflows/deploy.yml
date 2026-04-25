@@ -1,0 +1,76 @@
+name: Deploy chenk.top
+
+on:
+  push:
+    branches:
+      - optimize
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source (optimize)
+        uses: actions/checkout@v4
+        with:
+          ref: optimize
+          fetch-depth: 1
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          # Ensure required plugins (in case package.json drift)
+          npm install --no-save --no-audit --no-fund @neilsustc/markdown-it-katex hexo-generator-sitemap
+
+      - name: Clean stray files that break Hexo
+        run: |
+          # Remove macOS metadata, broken symlinks, python cache, stray scripts
+          find . -name '._*' -delete 2>/dev/null || true
+          find . -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+          find . -name '*.pyc' -delete 2>/dev/null || true
+          find scripts -name '_style.py' -delete 2>/dev/null || true
+          find scripts -maxdepth 2 -type d \( -name 'extraction' -o -name 'figures' -o -name 'images' \) -exec rm -rf {} + 2>/dev/null || true
+          # Broken symlinks
+          find source -type l ! -exec test -e {} \; -delete 2>/dev/null || true
+
+      - name: Hexo generate
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: npx hexo generate
+
+      - name: Verify output
+        run: |
+          html_count=$(find public -name '*.html' | wc -l)
+          echo "Generated $html_count HTML files"
+          if [ "$html_count" -lt 1000 ]; then
+            echo "::error::Suspiciously few HTML files generated ($html_count)"
+            exit 1
+          fi
+
+      - name: Deploy to master branch (GitHub Pages)
+        env:
+          GIT_USER_NAME: chenk
+          GIT_USER_EMAIL: chenk@chenk.top
+        run: |
+          cd public
+          # Carry over CNAME so custom domain stays live
+          if [ -f ../source/CNAME ]; then cp ../source/CNAME .; fi
+          if [ ! -f CNAME ] && [ -f ../public/CNAME ]; then cp ../public/CNAME .; fi
+          echo "www.chenk.top" > CNAME
+          git init -b master
+          git config user.name "$GIT_USER_NAME"
+          git config user.email "$GIT_USER_EMAIL"
+          git add -A
+          git commit -m "Site updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) [actions]" --allow-empty
+          # Push using the workflow token to the same repo's master branch
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:master
