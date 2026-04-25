@@ -633,22 +633,28 @@ if __name__ == '__main__':
 
 ## FAQ
 
-**Q: When should I reach for MTL in the first place?**
+### When should I reach for MTL in the first place?
+
 Three honest reasons: (1) tasks share low-level features and you want regularization, (2) the main task is data-starved and an auxiliary task can lend supervision through the shared encoder, (3) you need to serve multiple predictions cheaply at inference. If none of those apply, MTL is the wrong tool.
 
-**Q: How do I diagnose whether tasks are conflicting?**
+### How do I diagnose whether tasks are conflicting?
+
 Two cheap checks. (a) Log $\cos(\nabla \mathcal{L}_A, \nabla \mathcal{L}_B)$ on the shared parameters — persistently negative values mean conflict (Figure 3 right). (b) Compare per-task accuracy in the multi-task model to single-task baselines. If any task drops, you have negative transfer.
 
-**Q: Hard sharing or soft sharing?**
+### Hard sharing or soft sharing?
+
 Start with hard sharing — it is simpler, gives stronger regularization, and uses fewer parameters. Move to cross-stitch / MTAN only after you observe negative transfer that survives PCGrad and GradNorm.
 
-**Q: My loss scales differ by 100x. What do I do?**
+### My loss scales differ by 100x. What do I do?
+
 Don't hand-tune weights — it never converges. Use Uncertainty Weighting (Figure 5) as the lowest-effort fix; switch to GradNorm if you also need to track training-speed differences across tasks.
 
-**Q: Can I combine PCGrad with GradNorm?**
+### Can I combine PCGrad with GradNorm?
+
 Yes — they are orthogonal. GradNorm controls magnitudes, PCGrad controls directions. The standard combination is: (1) use GradNorm to compute $w_t$, (2) form weighted per-task gradients $w_t g_t$, (3) apply PCGrad to those. For 3+ tasks with mismatched scales this is the sane default.
 
-**Q: How many auxiliary tasks should I add?**
+### How many auxiliary tasks should I add?
+
 1-2 to start, never more than 4 without first checking the affinity matrix. Beyond ~10 tasks, cluster them (Figure 7) and train one shared encoder per cluster.
 
 ---

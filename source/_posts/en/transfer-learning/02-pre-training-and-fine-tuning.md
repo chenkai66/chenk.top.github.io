@@ -527,19 +527,24 @@ if __name__ == "__main__":
 
 ## FAQ
 
-**Why does warmup help so much during fine-tuning?**
+### Why does warmup help so much during fine-tuning?
+
 The freshly-attached head produces noisy gradients in the first few steps. Pushing those gradients into the pre-trained backbone at full LR partially overwrites useful weights before the head has stabilised. Warmup keeps the LR small while the head settles, then ramps up.
 
-**How much pre-training data do I need?**
+### How much pre-training data do I need?
+
 At minimum: hundreds of MB of text for NLP, or millions of images for vision. But *diversity* matters more than raw size. 10 M images of one species is worse than 1 M images covering many. Scaling laws (Kaplan et al., 2020) say performance grows roughly as a power of corpus size, but only when the data stays diverse and the model grows alongside.
 
-**How do I detect overfitting during fine-tuning?**
+### How do I detect overfitting during fine-tuning?
+
 Three signals: (1) train loss falls while validation loss rises; (2) train accuracy is high but validation accuracy plateaus; (3) the model becomes overconfident, with predicted probabilities clustering near 0 or 1. Remedies: more dropout, early stopping, data augmentation, freeze more layers, or switch to LoRA.
 
-**LoRA vs. full fine-tuning - when to use which?**
+### LoRA vs. full fine-tuning - when to use which?
+
 Use LoRA when you serve many tasks from one base model (swap a small delta per task), when GPU memory is tight, or when you want to iterate quickly. Use full fine-tuning when you have a single target task, plenty of labels, and you care about the last point of accuracy.
 
-**Why do bottom layers get such a small LR under discriminative fine-tuning?**
+### Why do bottom layers get such a small LR under discriminative fine-tuning?
+
 Bottom layers encode features that are nearly task-independent - subword statistics, low-level grammar, simple visual primitives. Moving them costs you transferability with little gain on the target task. The top, where task-specific decisions live, is where most of the learning should happen.
 
 ---

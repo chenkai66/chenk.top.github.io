@@ -491,28 +491,36 @@ a hyperplane in the feature space. They can represent diagonal boundaries with o
 
 ## Q&A Highlights
 
-**Q1. Why can decision trees model non-linear relationships?**
+### Why can decision trees model non-linear relationships?
+
 Each individual split is linear, but the *composition* of axis-aligned splits is a piecewise-constant function on a recursive partition. Any continuous function can be approximated arbitrarily well in $L^1$ by such piecewise constants — so trees are universal approximators for bounded, integrable functions.
 
-**Q2. Why does information gain favour many-valued features?**
+### Why does information gain favour many-valued features?
+
 Because finer partitions are mechanically more pure: in the limit of one sample per child, every child entropy is zero and the gain equals the parent entropy. This says nothing about generalisation. C4.5's gain ratio divides by $IV(X)$ — itself an entropy term — to normalise away this artefact.
 
-**Q3. Gini or entropy — does it matter?**
+### Gini or entropy — does it matter?
+
 Almost never. Their second-order Taylor expansions around $p = 1/2$ agree, and empirically the resulting trees differ in only a small minority of splits. Gini is slightly faster (no log) and is the default in scikit-learn's CART.
 
-**Q4. How are categorical features handled?**
+### How are categorical features handled?
+
 Three options: (i) one-hot encode and let the tree split each indicator; (ii) multi-way split with one branch per category (ID3/C4.5); (iii) optimal binary split — for binary classification this reduces to sorting categories by their mean response and choosing the best ordered cut, an $O(K)$ rather than $O(2^K)$ search.
 
-**Q5. Multi-output trees?**
+### Multi-output trees?
+
 Yes. For multi-output regression, leaves store mean vectors and impurity is the trace of the within-leaf covariance. For multi-label classification, leaves store class-probability vectors and impurity is the average per-label Gini. sklearn supports both natively.
 
-**Q6. Pre-pruning or post-pruning?**
+### Pre-pruning or post-pruning?
+
 Pre-pruning is fast and good for prototyping. Post-pruning (cost-complexity) is more accurate because it sees the fully grown tree before deciding what to remove, but it is more expensive. In practice many people just tune `max_depth` and `min_samples_leaf` because trees are usually inside an ensemble that absorbs the rest of the variance.
 
-**Q7. Why are trees scale-invariant?**
+### Why are trees scale-invariant?
+
 Splits compare $x_j \leq \tau$ — only the *ordering* of values matters. Any monotone transform of a feature leaves the tree unchanged. This is also why one-hot encoding categorical variables works without further preprocessing.
 
-**Q8. How do I visualise a tree?**
+### How do I visualise a tree?
+
 ```python
 from sklearn.tree import plot_tree
 import matplotlib.pyplot as plt
@@ -521,16 +529,20 @@ plot_tree(clf, feature_names=iris.feature_names,
           class_names=iris.target_names, filled=True, rounded=True)
 ```
 
-**Q9. Can a tree do feature selection?**
+### Can a tree do feature selection?
+
 Yes — sort by `feature_importances_` and threshold. But the rankings are unstable on a single tree. Use a random forest or permutation importance for production feature selection.
 
-**Q10. Can tree training be parallelised?**
+### Can tree training be parallelised?
+
 A single tree's growth is sequential by node. Within a node, candidate splits across features are embarrassingly parallel; across trees in a forest, the trees themselves are independent. XGBoost and LightGBM additionally pipeline split-finding by histograms over feature buckets.
 
-**Q11. What is a sensible search range for `max_depth`?**
+### What is a sensible search range for `max_depth`?
+
 A practical default is $3 \leq d \leq 12$ for tabular data with $n$ in the thousands. Cross-validate. For ensembles, use shallower trees — depth 4–8 is typical for boosting.
 
-**Q12. Do trees scale to high-dimensional data?**
+### Do trees scale to high-dimensional data?
+
 Naively, yes — but split-finding cost is $O(d \cdot n \log n)$ per node, and with sparse signals most features add noise. In high $d$, prefer regularised linear models, or random forests with feature subsampling at each split (controlled by `max_features`).
 
 ## Variants and Extensions

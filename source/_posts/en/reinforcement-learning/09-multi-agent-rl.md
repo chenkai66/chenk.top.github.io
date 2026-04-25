@@ -233,19 +233,24 @@ These ideas are migrating outside games. RLHF (Part 12) and tool-use agent orche
 
 ## Frequently asked questions
 
-**Why does QMIX need the monotonicity constraint?**
+### Why does QMIX need the monotonicity constraint?
+
 So that decentralised greedy execution is consistent with centralised joint optimisation. If $\partial Q_\text{tot}/\partial Q_i$ could go negative, an agent acting greedily on its own $Q_i$ might *lower* the team value. Monotonicity makes the per-agent argmax and the joint argmax coincide.
 
-**When do MARL systems get stuck in suboptimal equilibria?**
+### When do MARL systems get stuck in suboptimal equilibria?
+
 Whenever the optimal joint action requires *coordinated* exploration — both agents must simultaneously try the risky move for it to look good. If random exploration almost never produces that joint action, the system converges to a safer but Pareto-dominated equilibrium. The fixes are joint exploration (committed-exploration schedules), explicit communication, and opponent modelling.
 
-**How does sample complexity scale with the number of agents?**
+### How does sample complexity scale with the number of agents?
+
 For cooperative tasks where value decomposition holds, sample complexity grows roughly linearly in $n$ — that is the entire point of QMIX. Without decomposition, learning $Q(s, \mathbf{a})$ over the joint action space is exponential in $n$.
 
-**Independent learners vs CTDE — is CTDE always worth it?**
+### Independent learners vs CTDE — is CTDE always worth it?
+
 For very small populations or when global state is genuinely unavailable, independent Q-learning can work and is much simpler to implement. As soon as credit assignment matters or the team is more than 3–4 agents, CTDE methods pull ahead and the gap widens fast.
 
-**Does any of this transfer to multi-LLM-agent systems?**
+### Does any of this transfer to multi-LLM-agent systems?
+
 Yes. Centralised critics map onto outer evaluators, decentralised actors onto sub-agents, attention-based communication onto tool routing, and league training onto the population-of-evaluators pattern that is becoming standard in agentic RLHF.
 
 ---

@@ -509,23 +509,23 @@ Fairness is not a launch checkbox — it is an ongoing measurement. Set up dashb
 
 ## Q&A
 
-**Q: I am a small team. What is the minimum debiasing I should do?**
+### I am a small team. What is the minimum debiasing I should do?
 
 Two things. First, instrument the bias metrics from Part 1 — you cannot fix what you do not measure. Second, add IPS for position bias in your learning-to-rank loss. Both are cheap and both ship measurable wins.
 
-**Q: How big is the accuracy cost of fairness?**
+### How big is the accuracy cost of fairness?
 
 It depends on where you are on the frontier. From a low-fairness baseline you can usually buy 30% fairness improvement for 1–3% NDCG. The expensive part is the last 10% of fairness, which often costs 10%+ accuracy. Pick a target, do not chase perfection.
 
-**Q: LIME or SHAP?**
+### LIME or SHAP?
 
 LIME for fast local debugging during development. SHAP for anything that goes in front of an auditor or a user. If you are using tree models, TreeSHAP is fast enough that there is no reason to use anything else.
 
-**Q: My discriminator in adversarial debiasing keeps converging to chance. Is that good?**
+### My discriminator in adversarial debiasing keeps converging to chance. Is that good?
 
 Yes — chance accuracy means the embedding leaks no protected information. But verify with downstream metrics: train a new classifier from scratch on the embeddings and check it cannot do better than chance either. The discriminator inside the GAN-style loop sometimes underfits.
 
-**Q: How do I handle intersectional fairness (e.g. Black women, not just race or gender)?**
+### How do I handle intersectional fairness (e.g. Black women, not just race or gender)?
 
 Single-attribute fairness can hide disparities at intersections. The minimum is to report metrics on intersection cells, not just marginals. The advanced fix is *intersectional debiasing* — adversarial losses on tuples of attributes — but watch out: cell sizes shrink fast and statistical power drops.
 

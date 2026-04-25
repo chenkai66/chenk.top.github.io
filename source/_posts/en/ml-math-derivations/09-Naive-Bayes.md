@@ -493,22 +493,28 @@ So $\hat\sigma_1 = \hat\sigma_2 = \sqrt{2/3} \approx 0.816$. Gaussian NB has *no
 
 ## Q&A
 
-**Q: Why "naive"?**
+### Why "naive"?
+
 The conditional-independence assumption is rarely literally true — words co-occur, symptoms cluster — yet the model is built as if they did. The label refers to that strong, almost ostentatiously simple, assumption.
 
-**Q: How is Naive Bayes related to logistic regression?**
+### How is Naive Bayes related to logistic regression?
+
 Under Gaussian features with shared per-feature variance, Gaussian NB produces a linear decision boundary $\mathbf{w}^\top\mathbf{x} + b = 0$ — the same form as logistic regression. The coefficients differ because NB estimates $\mathbf{w}$ by *generative* MLE on $P(\mathbf{x}, y)$, while LR estimates it *discriminatively* on $P(y \mid \mathbf{x})$. Asymptotically LR is at least as good; NB converges with fewer samples.
 
-**Q: Are Naive Bayes probability outputs trustworthy?**
+### Are Naive Bayes probability outputs trustworthy?
+
 No. Because correlated features get their log-likelihoods double-counted, the posteriors are typically too extreme (close to 0 or 1). For ranking tasks (argmax, top-$K$, ROC) this is fine. For decisions that depend on the magnitude (cost-sensitive thresholds, risk computations) calibrate with **Platt scaling** or **isotonic regression** on a held-out set.
 
-**Q: What is the time complexity?**
+### What is the time complexity?
+
 Training: $\mathcal{O}(Nd)$ — one pass through the training data. Prediction: $\mathcal{O}(Kd)$ per sample. There are no iterations and no hyperparameters whose tuning costs more than a CV sweep over $\alpha$.
 
-**Q: How does Naive Bayes handle missing features?**
+### How does Naive Bayes handle missing features?
+
 Naturally: when feature $j$ is missing for sample $i$, omit the term $\ln P(x_i^{(j)} \mid c_k)$ from the sum. This is mathematically equivalent to marginalising over the missing feature and is a real advantage of generative modelling.
 
-**Q: When should I *not* use Naive Bayes?**
+### When should I *not* use Naive Bayes?
+
 When (i) features are heavily correlated *and* the correlation differs across classes (so error cancellation fails), (ii) the application needs calibrated probabilities, or (iii) you have plenty of data and a discriminative model is feasible — logistic regression, gradient boosting, or transformers will usually pull ahead.
 
 ---

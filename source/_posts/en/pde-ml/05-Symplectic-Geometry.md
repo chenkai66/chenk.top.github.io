@@ -166,7 +166,7 @@ $$
 \mathbf{p}_{k+1/2} &= \mathbf{p}_k - \tfrac{h}{2}\,V'(\mathbf{q}_k), \\
 \mathbf{q}_{k+1} &= \mathbf{q}_k + h\,\mathbf{p}_{k+1/2}, \\
 \mathbf{p}_{k+1} &= \mathbf{p}_{k+1/2} - \tfrac{h}{2}\,V'(\mathbf{q}_{k+1}).
-\end{aligned} \tag{7}
+\end{aligned} 
 $$
 
 Second-order accurate, *symmetric* in time, and symplectic. Figure 4 shows the staggered grid: positions live at integer steps and momenta at half-integer steps. The structure ensures that there exists a **modified Hamiltonian** $\tilde H_h = H + h^2 H_2 + h^4 H_4 + \cdots$ that is *exactly* conserved by the discrete map. The energy you measure does not drift; it oscillates with bounded amplitude $\mathcal{O}(h^2)$ around the true value forever.

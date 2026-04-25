@@ -443,16 +443,20 @@ You can swap the synthetic 2D data for any real pair of datasets (Office-31, Dom
 
 ## FAQ
 
-**Q: Is transfer learning always better than training from scratch?**
+### Is transfer learning always better than training from scratch?
+
 No. It depends on domain relatedness, target-data quantity, and task similarity. The honest rule of thumb: consider transfer whenever target data is below roughly 10% of what you would need to train competitively from scratch. Above that threshold, gains shrink and the engineering overhead may not be worth it.
 
-**Q: How do I pick a good source domain?**
+### How do I pick a good source domain?
+
 Pick something large, diverse, and in the same modality. For vision the default is ImageNet; for NLP, a strong pretrained Transformer (BERT, GPT, Llama). Sanity-check overlap by t-SNE on shallow features and by computing MMD: under 0.1 is a green light, over 0.5 is a red flag.
 
-**Q: Which layers should I freeze?**
+### Which layers should I freeze?
+
 Start by freezing the bottom 30-50% of the network and fine-tuning the rest. For NLP it is more common to fine-tune *all* layers but with a learning rate one order of magnitude smaller than pretraining. With very little data (under 100 examples), only train the final 1-2 layers; everything else will overfit.
 
-**Q: How do I detect negative transfer?**
+### How do I detect negative transfer?
+
 Always run a from-scratch baseline. If the transfer model underperforms it, or if validation loss climbs during fine-tuning, or if MMD between source and target embeddings stays above 0.5 after pretraining, you have negative transfer. Remedies in order of cost: transfer fewer layers, switch source dataset, or move to adversarial domain adaptation (covered in part 3).
 
 ---

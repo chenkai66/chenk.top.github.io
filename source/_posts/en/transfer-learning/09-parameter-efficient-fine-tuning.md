@@ -287,15 +287,25 @@ The bubble chart sums up the design space. With RoBERTa-base on GLUE:
 
 ## Q&A
 
-**Q1: How much do you give up vs full fine-tuning?** For models above ~10B parameters, less than 1 point on most benchmarks (often within noise). Below ~1B, gaps of 2-5 points are common, especially on small datasets.
+### How much do you give up vs full fine-tuning?
 
-**Q2: What learning rate should LoRA use?** One to two orders of magnitude higher than full fine-tuning. The trainable parameters start near zero, so they can take much larger steps without diverging. A typical schedule is $\text{lr} = 1\text{e-}4$ to $5\text{e-}4$ with cosine decay.
+For models above ~10B parameters, less than 1 point on most benchmarks (often within noise). Below ~1B, gaps of 2-5 points are common, especially on small datasets.
 
-**Q3: Can I combine PEFT with quantisation?** Yes -- that is exactly QLoRA. NF4 + double quantisation + bf16 LoRA fine-tunes 65B models on a single 48 GB GPU with <2% performance drop.
+### What learning rate should LoRA use?
 
-**Q4: Should I apply LoRA to all linear layers?** Not necessary. The original paper finds query + value already captures most of the gain; adding key and output gives marginal improvement at 2x the parameters. For decoder-only LLMs, also adding the MLP up/down projections sometimes helps on long-context tasks.
+One to two orders of magnitude higher than full fine-tuning. The trainable parameters start near zero, so they can take much larger steps without diverging. A typical schedule is $\text{lr} = 1\text{e-}4$ to $5\text{e-}4$ with cosine decay.
 
-**Q5: Adapter vs LoRA at serving time?** LoRA wins after merging: the model is a single weight matrix, identical to full fine-tuning at inference. Adapters add 1-3% latency per block due to the extra serial sub-layer; with parallel adapters this drops to under 1%.
+### Can I combine PEFT with quantisation?
+
+Yes -- that is exactly QLoRA. NF4 + double quantisation + bf16 LoRA fine-tunes 65B models on a single 48 GB GPU with <2% performance drop.
+
+### Should I apply LoRA to all linear layers?
+
+Not necessary. The original paper finds query + value already captures most of the gain; adding key and output gives marginal improvement at 2x the parameters. For decoder-only LLMs, also adding the MLP up/down projections sometimes helps on long-context tasks.
+
+### Adapter vs LoRA at serving time?
+
+LoRA wins after merging: the model is a single weight matrix, identical to full fine-tuning at inference. Adapters add 1-3% latency per block due to the extra serial sub-layer; with parallel adapters this drops to under 1%.
 
 ---
 

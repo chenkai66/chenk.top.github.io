@@ -472,17 +472,21 @@ This is exactly the "TRS" pattern (Translate * Rotate * Scale) used by Unity, Un
 
 ## Frequently Asked Questions
 
-**Q: Is translation a linear transformation?**
-A: No -- it moves the origin, so $T(\vec{0}) \neq \vec{0}$. To handle translation with matrices, computer graphics uses **homogeneous coordinates**: a 2D point $(x, y)$ becomes the 3D vector $(x, y, 1)$, and a translation by $(t_{x}, t_{y})$ becomes the $3 \times 3$ matrix that adds $t_{x}$ and $t_{y}$ to the first two coordinates. Translation is not linear in $\mathbb{R}^{2}$, but it *is* linear in $\mathbb{R}^{3}$ when we restrict attention to the plane $z = 1$.
+### Is translation a linear transformation?
 
-**Q: Why is matrix multiplication defined this strange way?**
-A: Because the rule was *engineered* to make "product of matrices = composition of transformations" true. You start by demanding $(BA)\vec{v} = B(A\vec{v})$, work out what each entry must be, and the row-times-column formula falls out. It is not arbitrary; it is forced.
+No -- it moves the origin, so $T(\vec{0}) \neq \vec{0}$. To handle translation with matrices, computer graphics uses **homogeneous coordinates**: a 2D point $(x, y)$ becomes the 3D vector $(x, y, 1)$, and a translation by $(t_{x}, t_{y})$ becomes the $3 \times 3$ matrix that adds $t_{x}$ and $t_{y}$ to the first two coordinates. Translation is not linear in $\mathbb{R}^{2}$, but it *is* linear in $\mathbb{R}^{3}$ when we restrict attention to the plane $z = 1$.
 
-**Q: Why are rotation matrices special?**
-A: They preserve length and angle. Algebraically, $R^{\!\top} R = I$ (they are *orthogonal*) and $\det R = +1$ (they preserve orientation -- no flipping). Together these properties define the special orthogonal group $\mathrm{SO}(2)$, which is the mathematical object behind every smooth spinning animation you have ever seen.
+### Why is matrix multiplication defined this strange way?
 
-**Q: How can I tell at a glance whether a matrix is a rotation, scaling, shear, or projection?**
-A: Look at the determinant and the columns:
+Because the rule was *engineered* to make "product of matrices = composition of transformations" true. You start by demanding $(BA)\vec{v} = B(A\vec{v})$, work out what each entry must be, and the row-times-column formula falls out. It is not arbitrary; it is forced.
+
+### Why are rotation matrices special?
+
+They preserve length and angle. Algebraically, $R^{\!\top} R = I$ (they are *orthogonal*) and $\det R = +1$ (they preserve orientation -- no flipping). Together these properties define the special orthogonal group $\mathrm{SO}(2)$, which is the mathematical object behind every smooth spinning animation you have ever seen.
+
+### How can I tell at a glance whether a matrix is a rotation, scaling, shear, or projection?
+
+Look at the determinant and the columns:
 - $\det = +1$ and columns orthonormal $\Rightarrow$ rotation.
 - $\det = -1$ and columns orthonormal $\Rightarrow$ reflection.
 - Columns parallel to the axes $\Rightarrow$ axis-aligned scaling.

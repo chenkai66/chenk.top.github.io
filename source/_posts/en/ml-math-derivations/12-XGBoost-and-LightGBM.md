@@ -381,22 +381,27 @@ The whole second-order machinery fits in fewer than 100 lines because once you h
 
 ## Q&A highlights
 
-**Q1: Why second-order information at all?**
+### Why second-order information at all?
+
 The first-order term tells you the direction; the second-order term tells you the curvature, i.e. how big a step is safe. Newton's method converges quadratically near the optimum exactly because of this. On a per-leaf basis it gives a *closed-form* optimal weight $-G/(H+\lambda)$ instead of a learning-rate-sensitive guess.
 
-**Q2: Why does XGBoost prune through $\gamma$ rather than after the fact?**
+### Why does XGBoost prune through $\gamma$ rather than after the fact?
+
 Because the structure score is exactly the loss with $\gamma T$ subtracted. A split that fails to beat $\gamma$ is a split that *increases* the regularised loss. Refusing it is not a heuristic --- it is the correct decision under the objective.
 
-**Q3: When does leaf-wise hurt you?**
+### When does leaf-wise hurt you?
+
 On small datasets where the highest-gain leaf can chase noise. The fix is `max_depth` plus `min_data_in_leaf` (sometimes 100--1000 on small data). On large datasets leaf-wise is almost free lunch.
 
-**Q4: Tuning order?**
+### Tuning order?
+
 1. Set `learning_rate = 0.05`--`0.1` and use early stopping to pick `n_estimators`.
 2. Tune tree shape: `max_depth` (or `num_leaves` for LightGBM), `min_child_weight` / `min_data_in_leaf`.
 3. Tune regularisation: `gamma`, `lambda`, plus subsampling (`subsample`, `colsample_bytree`).
 4. If still under-fitting, drop `learning_rate` and grow `n_estimators`.
 
-**Q5: GBDT vs deep learning?**
+### GBDT vs deep learning?
+
 Tabular: GBDT wins almost always. Unstructured (image, text, audio): deep learning wins. The crossover lives somewhere around "you have a learned representation" --- once features are dense and continuous, deep nets become competitive.
 
 ---

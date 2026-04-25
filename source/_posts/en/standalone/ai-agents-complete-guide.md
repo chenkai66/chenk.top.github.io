@@ -682,22 +682,28 @@ To productionise this, add the cost cap, structured logging of every tool call, 
 
 ## FAQ
 
-**Agent vs chatbot?**
+### Agent vs chatbot?
+
 A chatbot reacts. An agent decides. The same LLM can be either, depending on whether you wrap it in a loop with tools.
 
-**CoT vs ReAct vs ToT -- how do I choose?**
+### CoT vs ReAct vs ToT -- how do I choose?
+
 Default to CoT. Move to ReAct when you need tools. Reach for ToT only when ReAct fails consistently and you can afford 10x the calls.
 
-**Single agent or multi-agent?**
+### Single agent or multi-agent?
+
 Single agent until the prompt becomes unmanageable or the trajectory exceeds your context budget. Then split along *artifact boundaries* (PRD -> design -> code -> tests), not along arbitrary role boundaries.
 
-**How do I stop hallucinations in production?**
+### How do I stop hallucinations in production?
+
 Ground every fact through a tool call. Require citations for non-trivial claims. Add an "I don't know" exit path and reward it. Sample outputs offline and label hallucinations -- you cannot fix what you do not measure.
 
-**What are the most common failure modes?**
+### What are the most common failure modes?
+
 Loops, tool argument errors, context overflow from unsummarised tool output, goal drift on long tasks, and silent cost blow-ups. Every one has a one-line fix that nobody puts in until it ships once.
 
-**Should I use a hosted agent platform or build my own?**
+### Should I use a hosted agent platform or build my own?
+
 Hosted (OpenAI Assistants, Bedrock Agents, etc.) for prototypes and low-traffic internal tools. Build on a framework like LangGraph or AutoGen when you need control over routing, retries, observability, or cost. Do not write your own agent framework from scratch unless you have a strong reason -- the boring parts are surprisingly deep.
 
 ---

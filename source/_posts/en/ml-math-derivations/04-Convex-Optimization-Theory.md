@@ -240,9 +240,9 @@ Plain gradient descent uses one global step size for every coordinate. In practi
 
 $$
 \begin{aligned}
-m^{(k+1)} &= \beta_1 m^{(k)} + (1-\beta_1)\, g^{(k)} \tag{15} \\
-v^{(k+1)} &= \beta_2 v^{(k)} + (1-\beta_2)\, (g^{(k)})^{\odot 2} \tag{16} \\
-x^{(k+1)} &= x^{(k)} \;-\; \frac{\alpha\, \hat m^{(k+1)}}{\sqrt{\hat v^{(k+1)}} + \varepsilon} \tag{17}
+m^{(k+1)} &= \beta_1 m^{(k)} + (1-\beta_1)\, g^{(k)}  \\
+v^{(k+1)} &= \beta_2 v^{(k)} + (1-\beta_2)\, (g^{(k)})^{\odot 2}  \\
+x^{(k+1)} &= x^{(k)} \;-\; \frac{\alpha\, \hat m^{(k+1)}}{\sqrt{\hat v^{(k+1)}} + \varepsilon} 
 \end{aligned}
 $$
 
@@ -382,9 +382,9 @@ The augmented Lagrangian adds a quadratic penalty to the standard Lagrangian, $\
 
 $$
 \begin{aligned}
-x^{(k+1)} &= \arg\min_x\, \Big[f(x) + \tfrac{\rho}{2}\|Ax + Bz^{(k)} - c + u^{(k)}\|^2\Big], \tag{25} \\
-z^{(k+1)} &= \arg\min_z\, \Big[g(z) + \tfrac{\rho}{2}\|Ax^{(k+1)} + Bz - c + u^{(k)}\|^2\Big], \tag{26} \\
-u^{(k+1)} &= u^{(k)} + Ax^{(k+1)} + Bz^{(k+1)} - c. \tag{27}
+x^{(k+1)} &= \arg\min_x\, \Big[f(x) + \tfrac{\rho}{2}\|Ax + Bz^{(k)} - c + u^{(k)}\|^2\Big],  \\
+z^{(k+1)} &= \arg\min_z\, \Big[g(z) + \tfrac{\rho}{2}\|Ax^{(k+1)} + Bz - c + u^{(k)}\|^2\Big],  \\
+u^{(k+1)} &= u^{(k)} + Ax^{(k+1)} + Bz^{(k+1)} - c. 
 \end{aligned}
 $$
 

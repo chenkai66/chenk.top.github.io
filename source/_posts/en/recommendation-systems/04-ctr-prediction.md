@@ -996,43 +996,43 @@ def evaluate(model, loader):
 
 ## Frequently Asked Questions
 
-### Q1: Why is CTR prediction binary classification, not regression?
+### Why is CTR prediction binary classification, not regression?
 
 The target is a probability (the chance of a click), and Bernoulli is the right likelihood. Binary classification has well-established metrics (AUC, Logloss), handles imbalance gracefully, and produces interpretable scores between 0 and 1. Regression on click counts is sometimes used for revenue or watch-time estimation, but for click prediction specifically, BCE is the standard.
 
-### Q2: How do I choose the embedding dimension?
+### How do I choose the embedding dimension?
 
 Start with 16. For small datasets (< 1M samples), 4-8 is usually enough. For huge datasets (> 100M), try 16-64. Run a quick ablation: if doubling the dimension lifts AUC by less than 0.001, go back to the smaller value. Embedding tables dominate model memory and serving cost.
 
-### Q3: What is the difference between FM and matrix factorisation?
+### What is the difference between FM and matrix factorisation?
 
 Matrix factorisation decomposes a *single* user-item rating matrix into user and item embeddings. FM is strictly more general: it factorises pairwise interactions among *any* features, so it can absorb side information (age, city, time of day) into the same factorised form. MF is the special case of FM with two fields.
 
-### Q4: When should I use DeepFM vs xDeepFM?
+### When should I use DeepFM vs xDeepFM?
 
 Default to **DeepFM**. Try xDeepFM only after DeepFM clearly plateaus and your dataset is rich enough that the *third*- and *fourth*-order interactions plausibly matter. The CIN component nearly doubles inference cost.
 
-### Q5: How do I handle cold-start items?
+### How do I handle cold-start items?
 
 Four levers, usually combined: (1) initialise embeddings from content features (text/image encoders); (2) fall back to popularity for the first few impressions; (3) explore via a contextual bandit so new items get *some* impressions; (4) pre-train embeddings on a related task. The rule of thumb: *never* let a model see only the item id of a new item.
 
-### Q6: Feature engineering vs model architecture -- which matters more?
+### Feature engineering vs model architecture -- which matters more?
 
 Almost always feature engineering, by 2-3x. Good cross features, sensible bucketisation, proper missing-value handling, and rolling user/item statistics typically yield 10-30% AUC improvement. Switching architectures within the deep CTR family yields 2-10%. Do feature engineering first; reach for fancier architectures last.
 
-### Q7: How do I handle missing features?
+### How do I handle missing features?
 
 Four options: (1) default value (0, mean, mode); (2) add a binary `is_missing` indicator; (3) reserve a special "missing" embedding for categorical features; (4) impute with KNN or a simple model. Choose based on whether *missingness itself is informative* -- if a logged-out user is missing demographics, that fact predicts behaviour and should be a feature.
 
-### Q8: How do I evaluate offline vs online?
+### How do I evaluate offline vs online?
 
 **Offline:** time-based train/validation/test split (never random!). Metrics: AUC and Logloss. Fast and cheap, but downstream effects (diversity, freshness, position bias) are invisible. **Online:** A/B test with real users. Metrics: realised CTR, conversions, revenue, retention. Slow and expensive but the only authoritative signal. Always validate offline first; never ship without an online test.
 
-### Q9: How do I deploy CTR models in production?
+### How do I deploy CTR models in production?
 
 The big four: (1) serve from TorchServe / Triton / TF-Serving with batched requests; (2) target < 10 ms p99 via INT8 quantisation, embedding sharding, and pre-fetching; (3) monitor predicted-CTR distribution drift -- if the histogram shifts, retrain or roll back; (4) version your models *and your feature pipelines together* -- a feature schema mismatch silently destroys AUC.
 
-### Q10: What are the latest trends (2024-2025)?
+### What are the latest trends (2024-2025)?
 
 Transformer-based interaction stacks at scale, multi-task learning (jointly predicting CTR + conversion + watch time), graph neural networks over user-item graphs, AutoML for embedding dimension and architecture search, debiasing via causal inference and inverse-propensity weighting, and federated learning for privacy. The fundamentals -- feature quality, interaction modelling, calibration, freshness -- remain the dominant levers regardless of the trend.
 

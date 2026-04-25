@@ -498,14 +498,16 @@ A short checklist of the bugs that show up over and over:
 
 ## Q&A
 
-**How do I recognize a DP problem?**
+### How do I recognize a DP problem?
+
 Look for an optimization word ("max", "min", "count", "longest",
 "fewest"), a structure that lets you commit to one decision and recurse
 on a smaller version of the same problem, and a small enough state
 space that caching is feasible. If your first instinct is a recursion
 that branches a lot, suspect DP.
 
-**Top-down or bottom-up?**
+### Top-down or bottom-up?
+
 Top-down for trees and irregular state graphs, bottom-up when you want
 to space-optimize. Either gets full credit in an interview as long as
 the analysis is correct.
@@ -522,13 +524,15 @@ Python), or a bug in your space-optimized version that the 2D version
 didn't have. Run the unoptimized version on the failing case and
 compare.
 
-**How is DP different from greedy?**
+### How is DP different from greedy?
+
 Greedy commits to a local choice and never reconsiders. DP enumerates
 every reasonable choice at each step and takes the best, possibly
 overruling earlier decisions. Activity selection works greedy; coin
 change in arbitrary denominations does not.
 
-**Can DP always be space-optimized?**
+### Can DP always be space-optimized?
+
 No. The optimization works only when the transition reads from a
 bounded slice of the table. Problems that need the entire table - for
 example, ones that reconstruct the optimal sequence by backtracking

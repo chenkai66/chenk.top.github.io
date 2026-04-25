@@ -742,31 +742,31 @@ The matrix on the right side of the figure shows primary owners by pipeline stag
 
 ## Q&A: Common Questions
 
-**Q: How many recall channels should we use?**
+### How many recall channels should we use?
 
 Start with three: collaborative filtering, two-tower deep, and real-time behaviour. Add specialised channels (graph, content, geo, social) only when an offline gap analysis shows they would catch items the existing channels miss. Beyond ten channels you spend more on plumbing than on quality.
 
-**Q: What is the right coarse-to-fine reduction ratio?**
+### What is the right coarse-to-fine reduction ratio?
 
 Typically 10:1 (2,000 → 200 → 20). Monitor recall@K end-to-end: too aggressive a coarse stage drops good candidates that the fine ranker would have surfaced; too lax wastes the fine ranker's compute budget.
 
-**Q: How complex should the fine ranker be?**
+### How complex should the fine ranker be?
 
 Start with Wide & Deep or DeepFM. Add DIN-style attention over user history only after you have measured that the existing model under-uses sequential information (look for users with rich history but flat predictions). Each step up in complexity needs to justify its serving cost.
 
-**Q: Model-based or rule-based reranking?**
+### Model-based or rule-based reranking?
 
 Hybrid. Hard constraints (compliance, stock, blocklists) belong in deterministic rules where you can audit them. Soft optimisation (diversity, freshness, exploration) is where learned rerankers add value. Mixing them is normal.
 
-**Q: How to choose between quantisation, pruning, and distillation?**
+### How to choose between quantisation, pruning, and distillation?
 
 Quantisation gives the biggest speed-up per unit of effort (2-4x on CPU). Distillation is the right tool when you also need a smaller model footprint, not just a faster one. Pruning is the most fragile -- it works but needs careful retraining. The recommended sequence is distill → prune → quantise.
 
-**Q: How do you handle new users?**
+### How do you handle new users?
 
 Multi-stage fallback: (1) popular and trending items for truly new users; (2) demographics-based content recommendations once minimal profile is known; (3) bandit-style exploration to bootstrap signal in 3-10 interactions; (4) the full personalised model after ~50 interactions. See Part 14 for the meta-learning angle.
 
-**Q: How do you decide to retire a model?**
+### How do you decide to retire a model?
 
 A model is retired when (a) a successor wins an A/B test on the primary metric *and* does not regress any guardrail, *and* (b) the operational cost of the new model is acceptable. Always keep the previous model deployable for 30 days in case of a delayed regression.
 

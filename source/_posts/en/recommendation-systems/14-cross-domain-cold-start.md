@@ -369,27 +369,27 @@ Keep a popularity baseline running in parallel as a circuit breaker — if any o
 
 ## Q&A
 
-**Q: My platform has no related domain to transfer from. Where do I start?**
+### My platform has no related domain to transfer from. Where do I start?
 
 Lead with content-based fallback for items and a popularity prior for users, then meta-train MeLU on whatever interaction data you accumulate. Cross-domain is a 10–20% relative boost when available, not a prerequisite.
 
-**Q: How many interactions before MeLU outperforms a content baseline?**
+### How many interactions before MeLU outperforms a content baseline?
 
 In published benchmarks (MovieLens, Bookcrossing) MeLU starts winning at 2–3 interactions and dominates by 5. Your mileage depends on how informative your support interactions are — diverse genres beat homogeneous ones.
 
-**Q: Is FOMAML really good enough, or should I bite the bullet on second-order MAML?**
+### Is FOMAML really good enough, or should I bite the bullet on second-order MAML?
 
 For recommendation, FOMAML is within 1–2% of MAML on standard metrics and trains 3× faster. Use second-order MAML only when you've measured that the gap matters for your business metric.
 
-**Q: How do I detect negative transfer in cross-domain?**
+### How do I detect negative transfer in cross-domain?
 
 Run a target-only baseline alongside the cross-domain model. If target performance on cold users does not improve, the domains are too distant. Common culprit: aligning users by ID across domains where the same user has wildly different behavior (work account vs personal account).
 
-**Q: Are bandits worth it for top-K recommendation, or just for single-pick problems?**
+### Are bandits worth it for top-K recommendation, or just for single-pick problems?
 
 Worth it for the **first slot or two** of a feed — that's where exploration value is highest. After the first few items, switch to ranking. Combinatorial bandits exist but are operationally expensive.
 
-**Q: How do I evaluate a cold-start system offline?**
+### How do I evaluate a cold-start system offline?
 
 Hold out users entirely (not random interactions). For each held-out user, expose only their first $K$ interactions to the model as "support" and predict on the rest. Report metrics stratified by $K \in \{1, 3, 5, 10\}$ — a single number hides the cold-to-warm transition.
 

@@ -601,19 +601,23 @@ if __name__ == '__main__':
 
 ## FAQ
 
-**How do I pick the temperature?**
+### How do I pick the temperature?
+
 Start at $\tau = 4$. The more classes you have and the more similar they are to each other (e.g. fine-grained species classification), the higher you should go -- up to $\tau = 20$ for ImageNet-scale problems. Grid-search $\{2, 4, 8, 12, 20\}$ on a held-out set.
 
-**How small can the student get?**
+### How small can the student get?
+
 You can compress 4-10x with very little loss. Past 50x even distillation cannot save you -- expect 5-10% drops. The general rule: distillation buys you the most when the student has just enough capacity to *represent* what the teacher knows but not enough to learn it from labels alone.
 
 **Why does self-distillation work at all? The student has the same capacity as the teacher.**
 Two reasons. (1) The soft targets are a stronger regulariser than one-hot labels, especially on small datasets. (2) Each generation lands in a slightly different basin of the loss landscape, so iterating is an implicit ensemble at zero inference cost. Expect 1-2% gains on CIFAR-100, with diminishing returns after 3 generations.
 
-**Can I use multiple teachers?**
+### Can I use multiple teachers?
+
 Yes -- average their soft outputs (uniformly or weighted by validation accuracy). This usually buys robustness more than headline accuracy, at the cost of training each teacher.
 
-**Distil first or prune first?**
+### Distil first or prune first?
+
 Both, in this order: train teacher -> prune to define the student architecture -> distil to recover accuracy -> quantise. Each step preserves more knowledge than doing them independently because every later step still has the teacher to lean on.
 
 ---

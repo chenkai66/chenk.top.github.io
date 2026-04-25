@@ -451,28 +451,35 @@ Two takeaways:
 
 ## Q&A
 
-**Why $u = c \log L$ specifically?**
+### Why $u = c \log L$ specifically?
+
 The bound comes from the expected probability that a "selective" query has its top key sampled. With $u = c \log L$ and $c = 5$, the probability that we miss the top-1 key for any given query is $\leq 1/L^4$. In practice $c = 3$ also works fine.
 
-**Does ProbSparse actually identify the *right* queries?**
+### Does ProbSparse actually identify the *right* queries?
+
 Empirically yes -- the $\max - \mathrm{mean}$ approximation correlates near-perfectly (>0.95 Spearman) with the exact KL divergence on attention distributions seen during training. The paper has the full ablation.
 
-**Why use the *mean* of $V$ for non-selected queries instead of zero?**
+### Why use the *mean* of $V$ for non-selected queries instead of zero?
+
 Because a uniform attention distribution evaluates to exactly $\frac{1}{L}\sum_j v_j$. The mean is the analytically correct fill-in for queries we have classified as "uniform attention".
 
-**How is Informer different from Reformer / Performer / Linformer?**
+### How is Informer different from Reformer / Performer / Linformer?
+
 - **Reformer** uses LSH-bucketed attention. Cost $\mathcal{O}(L \log L)$ but the bucketing is data-independent.
 - **Performer** uses random-feature kernel approximation. Cost $\mathcal{O}(L)$ but accuracy degrades on long sequences with sharp attention.
 - **Linformer** projects keys/values to a fixed low-rank dimension. Cost $\mathcal{O}(L)$ but the projection is fixed at training time.
 - **Informer** picks queries adaptively based on data. Cost $\mathcal{O}(L \log L)$, best accuracy retention on time-series benchmarks.
 
-**Can I use Informer for multivariate input with variable encoder/decoder feature dimensions?**
+### Can I use Informer for multivariate input with variable encoder/decoder feature dimensions?
+
 Yes -- `enc_in` and `dec_in` are independent. A common pattern is to feed all variables into the encoder and only the target variable into the decoder.
 
-**What about Autoformer / FEDformer?**
+### What about Autoformer / FEDformer?
+
 Both are direct successors. Autoformer (2021) replaces self-attention with autocorrelation along the series and adds an explicit decomposition layer. FEDformer (2022) adds frequency-domain attention. Both beat Informer on the same benchmarks but are more complex to implement; Informer is the right starting point.
 
-**Should I always pre-train on a large multi-series dataset?**
+### Should I always pre-train on a large multi-series dataset?
+
 Helpful but not required. Unlike NLP, the domain gap between time-series datasets is large, and naive pre-training often hurts more than it helps. Domain-specific fine-tuning from scratch is usually the better default.
 
 ---

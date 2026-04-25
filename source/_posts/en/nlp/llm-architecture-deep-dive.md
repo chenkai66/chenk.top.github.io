@@ -424,22 +424,28 @@ In practice, a single A100 80 GB serves a 7B AWQ model at 3000–5000 tokens/s a
 
 ## Frequently asked questions
 
-**Why decoder-only and not encoder–decoder?**
+### Why decoder-only and not encoder–decoder?
+
 A causal decoder-only model trained to predict the next token can be turned into a classifier, a translator, or a chatbot by changing the prompt. Encoder–decoder models need separate cross-attention parameters and a more complex training pipeline, and they don't benefit from cheap prefix caching during generation. Decoder-only also scales more cleanly because every token in the corpus is a training signal.
 
-**RoPE or ALiBi — which one wins in practice?**
+### RoPE or ALiBi — which one wins in practice?
+
 RoPE for almost everything: it gives the model true relative-phase information and supports clean post-training context extension via NTK / YaRN scaling. ALiBi is appealing if you need extrapolation without any fine-tuning, but at the cost of weaker in-distribution quality. Every leading open-weight LLM today uses RoPE.
 
-**Does FlashAttention change the model output?**
+### Does FlashAttention change the model output?
+
 No. FlashAttention is exact attention, modulo floating-point reduction order. The numerical differences vs the naive kernel are well below training noise.
 
-**Is MoE always cheaper than dense?**
+### Is MoE always cheaper than dense?
+
 Cheaper in compute, more expensive in memory. If you are GPU-memory-bound (e.g., serving on a single 24 GB card), a quantized dense model usually beats an MoE. If you have multi-GPU memory but are FLOPs-bound at decode time, MoE wins.
 
-**How much accuracy does INT4 cost on a 7B?**
+### How much accuracy does INT4 cost on a 7B?
+
 With GPTQ or AWQ on a calibration set of ~128 samples, you should see <2% perplexity increase and indistinguishable quality on most downstream tasks. For 70B models the gap is usually <1%. Below 7B, quantization gets noticeably more painful.
 
-**Why is the KV cache the bottleneck for long contexts?**
+### Why is the KV cache the bottleneck for long contexts?
+
 Cache size scales as $2 \cdot L \cdot H_{kv} \cdot d_h \cdot T \cdot \mathrm{bytes}$. For a 70B-class model at 32K tokens with MHA, that's ~80 GB — bigger than the model weights. GQA brings it to ~10 GB, and PagedAttention keeps fragmentation under 5%, which together unlock long-context serving on commodity hardware.
 
 ---

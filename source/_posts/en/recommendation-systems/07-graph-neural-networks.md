@@ -989,11 +989,11 @@ print("Training complete!")
 
 ## Frequently Asked Questions
 
-### Q1: Why do GNNs outperform matrix factorisation for recommendation?
+### Why do GNNs outperform matrix factorisation for recommendation?
 
 Matrix factorisation learns each embedding independently — it never asks "what do my neighbours look like?" GNNs explicitly propagate collaborative signals through the graph, so similar users (connected through shared items) end up with similar embeddings as a side-effect of the architecture. Multi-layer GNNs capture higher-order patterns ("users who liked items similar to items you liked") that matrix factorisation cannot express in a single dot product.
 
-### Q2: GCN vs. GAT vs. GraphSAGE — when do I use which?
+### GCN vs. GAT vs. GraphSAGE — when do I use which?
 
 | | GCN | GAT | GraphSAGE |
 |---|---|---|---|
@@ -1003,7 +1003,7 @@ Matrix factorisation learns each embedding independently — it never asks "what
 
 **Rule of thumb:** start with LightGCN (simplified GCN) for collaborative filtering. Reach for GraphSAGE when you need inductive learning, and GAT when different neighbours carry very different importance.
 
-### Q3: How many GNN layers should I use?
+### How many GNN layers should I use?
 
 Two to three layers is standard for recommendation:
 
@@ -1014,7 +1014,7 @@ Two to three layers is standard for recommendation:
 
 Use layer combination (LightGCN-style) to get the benefit of multiple scales without committing to a single deep stack.
 
-### Q4: How do I handle cold-start users in a GNN?
+### How do I handle cold-start users in a GNN?
 
 1. **GraphSAGE-style induction.** Aggregation works for any node with at least one neighbour.
 2. **Feature initialisation.** Initialise the new user's embedding from side features (demographics, device) or the mean of similar users.
@@ -1023,7 +1023,7 @@ Use layer combination (LightGCN-style) to get the benefit of multiple scales wit
 
 See the cold-start figure above for the inductive case.
 
-### Q5: What about computational cost?
+### What about computational cost?
 
 | Model | Forward pass | Memory |
 |---|---|---|
@@ -1033,11 +1033,11 @@ See the cold-start figure above for the inductive case.
 
 with $L$ = layers, $|E|$ = edges, $d$ = embedding dim, $H$ = attention heads, $k$ = sampled neighbours. For graphs with billions of edges, sampling (GraphSAGE, PinSage) or subgraph partitioning (Cluster-GCN) is mandatory.
 
-### Q6: Does social recommendation always help?
+### Does social recommendation always help?
 
 Only when social ties genuinely reflect shared preferences. Empirical studies show 5–15% NDCG lift on informative social graphs. Noisy social connections (random follower lists) can hurt. Use attention to down-weight irrelevant edges, or pre-filter the social graph by interaction overlap.
 
-### Q7: Can GNNs handle dynamic graphs?
+### Can GNNs handle dynamic graphs?
 
 Yes, with modifications:
 
@@ -1055,7 +1055,7 @@ def temporal_aggregate(neighbor_embs, timestamps, current_time, decay_rate=0.1):
     return (neighbor_embs * weights.unsqueeze(1)).sum(dim=0)
 ```
 
-### Q8: How do I prevent over-smoothing?
+### How do I prevent over-smoothing?
 
 1. **Limit depth** to 2–3 layers.
 2. **Layer combination** (LightGCN-style) — equal-weight all layers so the final representation still contains the original embedding.

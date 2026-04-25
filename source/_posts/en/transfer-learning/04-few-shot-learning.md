@@ -429,22 +429,28 @@ Two implementation notes worth highlighting:
 
 ## FAQ
 
-**How is few-shot learning different from ordinary transfer learning?**
+### How is few-shot learning different from ordinary transfer learning?
+
 It is the limit case. Transfer learning assumes you have at least hundreds of target labels, so a fine-tuned head can do most of the work. Few-shot learning has 1-10. That gap is large enough that you need *training-time machinery* -- episodic sampling, metric or meta objectives -- not just a downstream training trick.
 
-**Why do Prototypical networks use the mean as the prototype?**
+### Why do Prototypical networks use the mean as the prototype?
+
 Under Gaussian class-conditionals with shared isotropic covariance, the class mean is the Bayes-optimal classifier. The mean is also robust enough to be useful even when that assumption fails -- especially for $K \ge 5$.
 
-**MAML or Prototypical Networks -- which should I use?**
+### MAML or Prototypical Networks -- which should I use?
+
 Default to Prototypical Networks: simpler, faster, the prototypes are interpretable, and they tend to match or beat MAML on standard image benchmarks. Reach for MAML when (a) the tasks are diverse and look qualitatively different from one another, (b) the data is non-image and you do not have a great pretrained embedding, or (c) you specifically need adaptation that updates the *entire* network rather than just a final classifier.
 
-**How many base classes do I need?**
+### How many base classes do I need?
+
 More is always better for generalization. Standard benchmarks use 64 base classes (miniImageNet) up to 1200+ (Omniglot). With fewer than ~30 base classes you tend to see severe overfitting to the base set itself, and novel-class accuracy collapses.
 
-**Does any of this work for non-image data?**
+### Does any of this work for non-image data?
+
 Yes. Prototypical Networks work for anything with a meaningful embedding -- text (use a transformer encoder), graphs (use a GNN), audio (use a spectrogram CNN). MAML and Reptile are model-agnostic by design. The episodic protocol does not care about modality.
 
-**Why are confidence intervals always reported?**
+### Why are confidence intervals always reported?
+
 The per-episode accuracy variance is large -- a single hard episode can swing 10-20 points. Reporting the mean over a few hundred episodes plus a 95% CI is the only way to make numbers comparable across papers.
 
 ---

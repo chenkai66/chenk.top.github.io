@@ -456,22 +456,28 @@ A few hard-won lessons from shipping MLLM systems:
 
 ## Frequently Asked Questions
 
-**Q: CLIP vs BLIP vs LLaVA — when do I pick each?**
+### CLIP vs BLIP vs LLaVA — when do I pick each?
+
 Use **CLIP** for retrieval, zero-shot classification, and any system that needs only a fixed embedding. Use **BLIP-2** when you want VQA / captioning with a frozen LLM and tight compute. Use **LLaVA-style** instruction-tuned MLLMs when you need conversational, instruction-following multimodal interaction.
 
-**Q: Why does BLIP-2 train so few parameters?**
+### Why does BLIP-2 train so few parameters?
+
 The expensive parts — a 1 B-parameter ViT and a 7 B-parameter LLM — are frozen. Only the 188 M-parameter Q-Former bridges them. The two-stage curriculum keeps the bridge focused: stage 1 grounds it in vision, stage 2 aligns its output to the LLM's vocabulary.
 
-**Q: How much data do I need to fine-tune?**
+### How much data do I need to fine-tune?
+
 For domain adaptation of a pre-trained MLLM (LLaVA, Qwen-VL), 5 K – 50 K high-quality image–instruction pairs are typically enough with LoRA on the LLM and full training of the projector. For pre-training from scratch, think 10⁸–10⁹ pairs.
 
-**Q: How do I keep VRAM under 24 GB?**
+### How do I keep VRAM under 24 GB?
+
 Combine three things: 4-bit quantisation of the LLM (`bitsandbytes` or AWQ), LoRA on attention projections, and gradient checkpointing. A 7B LLaVA fine-tunes comfortably on a single RTX 4090.
 
-**Q: How do I evaluate honestly?**
+### How do I evaluate honestly?
+
 Pick a *primary* benchmark aligned with your use case (e.g., DocVQA for documents), a *hallucination* benchmark (POPE), and a held-out internal test set. Always report at least three benchmarks — single-number rankings hide trade-offs.
 
-**Q: Can I use CLIP on Chinese text?**
+### Can I use CLIP on Chinese text?
+
 Original OpenAI CLIP is 95% English. For Chinese, use **Chinese-CLIP** (OFA-Sys), **Qwen-VL**, or **Wukong-CLIP**. They are drop-in replacements with the same API.
 
 ---

@@ -52,6 +52,33 @@
     });
   })();
 
+  // === Reading time on listing cards (home, archives) — fetch + estimate ===
+  (function() {
+    var cards = document.querySelectorAll('[data-auto-reading-card]');
+    if (cards.length === 0) return;
+    cards.forEach(function(card) {
+      var url = card.getAttribute('data-post-url');
+      if (!url) return;
+      // Fetch article HTML, parse out body text, count
+      fetch(url, { credentials: 'same-origin' }).then(function(r){
+        if (!r.ok) return null;
+        return r.text();
+      }).then(function(html) {
+        if (!html) return;
+        var p = new DOMParser().parseFromString(html, 'text/html');
+        var md = p.querySelector('.markdown-body');
+        if (!md) return;
+        md.querySelectorAll('pre, code, .katex, .katex-display, mjx-container, img, svg').forEach(function(n){ n.remove(); });
+        var text = md.textContent || '';
+        var matches = text.match(/[A-Za-z0-9]+|[一-鿿㐀-䶿]/g);
+        var wc = matches ? matches.length : 0;
+        var min = Math.max(1, Math.ceil(wc / 250));
+        var num = card.querySelector('.rt-num');
+        if (num) num.textContent = min;
+      }).catch(function(){});
+    });
+  })();
+
   // === Reading Progress Bar ===
   var progressBar = document.getElementById('reading-progress');
   if (progressBar) {

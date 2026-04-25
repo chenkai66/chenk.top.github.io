@@ -512,25 +512,32 @@ Notice how every section from this article appears: a role (system), a format sp
 
 ## FAQ
 
-**Is a longer prompt always better?**
+### Is a longer prompt always better?
+
 No. After a point, extra context distracts the model and bloats latency and cost. Start short, add only what measurably helps on your eval set.
 
-**How many shots should I use?**
+### How many shots should I use?
+
 Two to five for classification, one to three for generation. More than eight rarely helps and often adds variance from format issues. Always test, do not assume.
 
-**Does CoT help on every task?**
+### Does CoT help on every task?
+
 No. It shines on multi-step reasoning (math, logic, code, multi-hop QA). On simple classification or fact lookup it adds noise and tokens for no gain.
 
-**What temperature should I use?**
+### What temperature should I use?
+
 For deterministic outputs (classification, extraction): $T \in [0.0, 0.2]$. For balanced generation: $T \in [0.5, 0.7]$. For self-consistency sampling: $T \in [0.7, 0.9]$ -- you *want* path diversity.
 
-**Does prompt engineering replace fine-tuning?**
+### Does prompt engineering replace fine-tuning?
+
 It replaces a lot of the cases that used to need fine-tuning, especially for instruction-following tasks. Reach for fine-tuning when you need (a) consistent behaviour at scale where prompt drift is unacceptable, (b) a smaller / cheaper model that matches the big one on your domain, or (c) a behavioural change the base model resists.
 
-**Does example order matter?**
+### Does example order matter?
+
 A lot more than it should. The recency bias is real -- the last example influences the model most. Always evaluate at multiple orderings and report the median.
 
-**Should I worry about prompt injection?**
+### Should I worry about prompt injection?
+
 Yes, the moment your prompt includes any text from outside your control (user input, retrieved documents, tool outputs). Treat untrusted text as data and never let it modify your instructions; this is its own topic and we will return to it in the agents and safety material.
 
 ---

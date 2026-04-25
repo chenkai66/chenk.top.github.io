@@ -493,19 +493,24 @@ TCN 不是万能：
 
 ## Q&A
 
-**TCN 和 WaveNet 是什么关系？**
+### TCN 和 WaveNet 是什么关系？
+
 WaveNet（2016）本质上是一个 TCN，激活换成了门控的 $\tanh(W_f x) \odot \sigma(W_g x)$，并且为音频生成加了更复杂的条件机制。TCN 把这些去掉，留下 ReLU + 残差，作为通用序列模型。
 
-**用 BatchNorm 还是 WeightNorm？**
+### 用 BatchNorm 还是 WeightNorm？
+
 WeightNorm。BatchNorm 的 running statistics 在长序列上漂得厉害；WeightNorm 直接绕开这个问题。LayerNorm 也行，但 1D 卷积的张量布局要 transpose 一下。
 
-**需要像 Transformer 那样加位置编码吗？**
+### 需要像 Transformer 那样加位置编码吗？
+
 不需要。卷积本身就是位置等变的，位置信息隐含在感受野结构里。
 
-**直接多步预测还是递归多步？**
+### 直接多步预测还是递归多步？
+
 直接预测（一次输出整个 horizon）更准，因为误差不会累积，但参数多一点而且训练时就锁定了 horizon。递归（预测一步、喂回去、再预测）更灵活但会累积误差。默认选直接。
 
-**想要分位数预测怎么办？**
+### 想要分位数预测怎么办？
+
 把 L2 损失换成多个分位的 pinball loss，head 输出每个分位一通道。TCN 主体不变。
 
 ---

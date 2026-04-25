@@ -350,25 +350,32 @@ Three takeaways:
 
 ## Q&A
 
-**Q1. How should I pick EWC's $\lambda$?**
+### How should I pick EWC's $\lambda$?
+
 Start at 100 for MNIST-scale problems and 1-10 for CIFAR-scale. Run a sweep on the average accuracy *and* forgetting metric; the right $\lambda$ is the one that maximises Avg subject to Forgetting under your tolerance.
 
-**Q2. Why does my EWC degenerate to "freeze everything" after many tasks?**
+### Why does my EWC degenerate to "freeze everything" after many tasks?
+
 Accumulated Fisher matrices keep growing -- every parameter eventually gets a large $\sum_t F_{t,i}$. Use **Online EWC** with $\gamma \approx 0.95$ to forget old Fisher contributions exponentially.
 
-**Q3. EWC vs MAS vs SI -- which one in practice?**
+### EWC vs MAS vs SI -- which one in practice?
+
 EWC for clean supervised tasks. MAS when you have unlabelled streams (it does not need labels). SI when you cannot afford a second pass over data after each task -- it is the cheapest because it is computed online.
 
-**Q4. How big should the replay buffer be?**
+### How big should the replay buffer be?
+
 On Split-CIFAR-style benchmarks the curve typically saturates around 200-500 samples per task. The interesting regime is "as small as you can afford" -- if you can afford more, replay just keeps winning.
 
-**Q5. Continual learning vs multi-task learning -- aren't they the same?**
+### Continual learning vs multi-task learning -- aren't they the same?
+
 No. Multi-task has *all* data simultaneously, so you optimise a fixed objective; the only challenge is task balancing. CL has tasks one at a time and forbids re-access to past data; the challenge is forgetting. CL with infinite memory and no order constraint reduces to multi-task -- this is exactly the joint upper bound in the benchmark figure.
 
-**Q6. Does replay leak data?**
+### Does replay leak data?
+
 Yes -- the buffer is literal training data. In privacy-sensitive deployments use **generative replay** (train a generator on past data, then sample from it for replay) or **dark experience** (store only logits, not inputs).
 
-**Q7. Why is Class-IL so much harder than Task-IL?**
+### Why is Class-IL so much harder than Task-IL?
+
 Class-IL requires *cross-task* discrimination at inference time. Even with perfect retention on each task, the per-task softmax heads have not seen each other's classes during training, so their logits are not calibrated against one another -- new-class outputs typically swamp old-class ones. iCaRL (Rebuffi et al., 2017) addresses exactly this with a nearest-class-mean classifier on top of the learned features.
 
 ---

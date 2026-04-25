@@ -447,19 +447,33 @@ Frameworks like vLLM and S-LoRA push this further: batch requests targeting diff
 
 ## FAQ
 
-**When is full fine-tuning worth it?** When you have abundant compute, $\geq$100K high-quality examples, and need every fraction of a point — e.g. base-model providers shipping a flagship instruct model. For everyone else: LoRA or QLoRA.
+### When is full fine-tuning worth it?
 
-**LoRA rank — how to pick?** Start at 16. If it underfits (training loss plateaus high), bump to 32 or 64. If overfits and you have little data, drop to 4–8. For classification tasks 8 is usually plenty.
+When you have abundant compute, $\geq$100K high-quality examples, and need every fraction of a point — e.g. base-model providers shipping a flagship instruct model. For everyone else: LoRA or QLoRA.
 
-**Which target modules?** `q_proj` and `v_proj` give you 80% of the gain. Add `k_proj` and `o_proj` for the rest. Add the FFN trio (`gate/up/down_proj`) only if you have a generation-heavy task and the budget for 3× more trainable parameters.
+### LoRA rank — how to pick?
 
-**Does LoRA cost inference?** No, after merging. Before merging there is one tiny extra matmul per LoRA-wrapped layer — negligible but nonzero.
+Start at 16. If it underfits (training loss plateaus high), bump to 32 or 64. If overfits and you have little data, drop to 4–8. For classification tasks 8 is usually plenty.
 
-**QLoRA quality drop?** Typically 1–2 points on standard benchmarks compared with fp16 LoRA, often within noise. The memory savings are worth it for almost every practitioner.
+### Which target modules?
 
-**How much instruction data?** LIMA showed 1K hand-curated examples can produce a coherent assistant from a strong base model. Practical floor: 1K–10K high-quality examples; quality matters far more than count.
+`q_proj` and `v_proj` give you 80% of the gain. Add `k_proj` and `o_proj` for the rest. Add the FFN trio (`gate/up/down_proj`) only if you have a generation-heavy task and the budget for 3× more trainable parameters.
 
-**Can I combine PEFT methods?** Yes — LoRA + prompt tuning is a documented combination, and QLoRA is itself a stack (4-bit base + LoRA + paged optimizer). Adapter + LoRA in the same model is unusual.
+### Does LoRA cost inference?
+
+No, after merging. Before merging there is one tiny extra matmul per LoRA-wrapped layer — negligible but nonzero.
+
+### QLoRA quality drop?
+
+Typically 1–2 points on standard benchmarks compared with fp16 LoRA, often within noise. The memory savings are worth it for almost every practitioner.
+
+### How much instruction data?
+
+LIMA showed 1K hand-curated examples can produce a coherent assistant from a strong base model. Practical floor: 1K–10K high-quality examples; quality matters far more than count.
+
+### Can I combine PEFT methods?
+
+Yes — LoRA + prompt tuning is a documented combination, and QLoRA is itself a stack (4-bit base + LoRA + paged optimizer). Adapter + LoRA in the same model is unusual.
 
 ---
 

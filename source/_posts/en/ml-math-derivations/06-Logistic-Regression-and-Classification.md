@@ -605,25 +605,31 @@ structurally identical to the binary gradient.
 
 ## Q&A
 
-**Q: Why is it called "logistic regression" if it does classification?**
-A: Historical accident. The logistic function was first used to *regress* a probability; classification was a later use case. The name stuck.
+### Why is it called "logistic regression" if it does classification?
 
-**Q: What is the essential difference from linear regression?**
-A: Output space and likelihood. Linear regression assumes Gaussian noise on a continuous target (MSE = $-\ln$ Gaussian likelihood). Logistic regression assumes Bernoulli labels (CE = $-\ln$ Bernoulli likelihood). Both are special cases of **generalised linear models**, differing only in their link function and noise distribution.
+Historical accident. The logistic function was first used to *regress* a probability; classification was a later use case. The name stuck.
 
-**Q: Can logistic regression handle nonlinear boundaries?**
-A: Not by itself — its boundary is a hyperplane in input space. But (a) polynomial features, (b) kernels, or (c) stacking inside a neural network give you arbitrarily nonlinear boundaries while keeping the cross-entropy loss intact.
+### What is the essential difference from linear regression?
 
-**Q: Softmax vs. independent sigmoids?**
-A: Softmax enforces $\sum_k P_k = 1$ — use it for **mutually exclusive** classes (single-label). Independent sigmoids let labels coexist — use them for **multi-label** problems (an image being both "outdoor" and "sunny").
+Output space and likelihood. Linear regression assumes Gaussian noise on a continuous target (MSE = $-\ln$ Gaussian likelihood). Logistic regression assumes Bernoulli labels (CE = $-\ln$ Bernoulli likelihood). Both are special cases of **generalised linear models**, differing only in their link function and noise distribution.
 
-**Q: How do I pick the regularisation strength $\lambda$?**
-A: Cross-validation. Sweep $\lambda \in \{10^{-4}, 10^{-3}, \dots, 10^{2}\}$ and pick the one with the lowest validation loss (or best validation AUC for imbalanced problems).
+### Can logistic regression handle nonlinear boundaries?
 
-**Q: Why is logistic regression convex?**
-A: The Hessian $\nabla^2 \mathcal{L} = \tfrac{1}{N}\mathbf{X}^\top \mathbf{S}\,\mathbf{X}$ is PSD because each diagonal entry $\hat y_i(1 - \hat y_i) \in (0, 1/4]$ is non-negative. Convexity ⇒ any local minimum is global.
+Not by itself — its boundary is a hyperplane in input space. But (a) polynomial features, (b) kernels, or (c) stacking inside a neural network give you arbitrarily nonlinear boundaries while keeping the cross-entropy loss intact.
 
-**Q: Logistic regression vs. SVM?**
+### Softmax vs. independent sigmoids?
+
+Softmax enforces $\sum_k P_k = 1$ — use it for **mutually exclusive** classes (single-label). Independent sigmoids let labels coexist — use them for **multi-label** problems (an image being both "outdoor" and "sunny").
+
+### How do I pick the regularisation strength $\lambda$?
+
+Cross-validation. Sweep $\lambda \in \{10^{-4}, 10^{-3}, \dots, 10^{2}\}$ and pick the one with the lowest validation loss (or best validation AUC for imbalanced problems).
+
+### Why is logistic regression convex?
+
+The Hessian $\nabla^2 \mathcal{L} = \tfrac{1}{N}\mathbf{X}^\top \mathbf{S}\,\mathbf{X}$ is PSD because each diagonal entry $\hat y_i(1 - \hat y_i) \in (0, 1/4]$ is non-negative. Convexity ⇒ any local minimum is global.
+
+### Logistic regression vs. SVM?
 
 | Aspect       | Logistic Regression | SVM                   |
 |--------------|---------------------|-----------------------|

@@ -1,13 +1,13 @@
 <div class="series-index-page">
   <h1 class="page-title" data-i18n="series.title">All Series</h1>
-  <p class="page-subtitle"><%= Object.keys(theme.series || {}).length %> <span data-i18n="series.subtitle.suffix">ongoing series covering ML, math, and CS</span></p>
+  <p class="page-subtitle"><span class="count"><%= Object.keys(theme.series || {}).length %></span> <span data-i18n="series.subtitle.suffix">ongoing series covering ML, math, and CS</span></p>
 
   <%
-    // Build series index: count posts by series_key, prefer EN
+    // Build series index: count posts by series_key, track BOTH en and zh first article
     var seriesCounts = {};
-    var seriesFirst = {};
+    var seriesFirstEn = {};
+    var seriesFirstZh = {};
     site.posts.each(function(p) {
-      // Determine series key: prefer string `series:`, then series.slug/key, else infer from path
       var key = null;
       if (typeof p.series === 'string') key = p.series;
       else if (p.series && typeof p.series === 'object') key = p.series.slug || p.series.key || null;
@@ -17,20 +17,15 @@
       }
       if (!key) return;
       var lang = (p.lang || 'en').toLowerCase();
-      // Count once per (key, series_order) — use EN as the canonical counter
       if (!seriesCounts[key]) seriesCounts[key] = { en: 0, zh: 0, orders: {} };
       var ord = p.series_order != null ? p.series_order :
                 (p.series && p.series.part != null ? p.series.part : null);
       if (ord != null) seriesCounts[key].orders[ord] = true;
       if (lang.indexOf('zh') === 0) seriesCounts[key].zh++;
       else seriesCounts[key].en++;
-      // Track first article per series (lowest order, EN preferred)
-      if (lang === 'en') {
-        if (!seriesFirst[key] || (ord != null && ord < (seriesFirst[key].order || 999))) {
-          seriesFirst[key] = { post: p, order: ord || 1 };
-        }
-      } else if (!seriesFirst[key]) {
-        seriesFirst[key] = { post: p, order: ord || 1 };
+      var bucket = lang.indexOf('zh') === 0 ? seriesFirstZh : seriesFirstEn;
+      if (!bucket[key] || (ord != null && ord < (bucket[key].order || 999))) {
+        bucket[key] = { post: p, order: ord || 1 };
       }
     });
   %>
@@ -38,13 +33,18 @@
   <% if (theme.series) { %>
     <% for (var key in theme.series) { var s = theme.series[key];
         var info = seriesCounts[key] || { en: 0, zh: 0, orders: {} };
-        var published = Object.keys(info.orders).length;  // unique parts published
+        var published = Object.keys(info.orders).length;
         var total = s.total || published;
         var progress = total > 0 ? Math.round((published / total) * 100) : 0;
-        var firstPost = seriesFirst[key];
-        var href = firstPost && firstPost.post ? url_for(firstPost.post.path) : ('/categories/' + s.name.replace(/ /g, '-') + '/');
+        var fpEn = seriesFirstEn[key];
+        var fpZh = seriesFirstZh[key];
+        var hrefEn = fpEn && fpEn.post ? url_for(fpEn.post.path) : '';
+        var hrefZh = fpZh && fpZh.post ? url_for(fpZh.post.path) : '';
+        // Default href = EN (will be swapped to ZH by JS if siteLang=zh)
+        var href = hrefEn || hrefZh || ('/categories/' + s.name.replace(/ /g, '-') + '/');
     %>
-      <a href="<%= href %>" class="series-index-card">
+      <a href="<%= href %>" class="series-index-card"
+         data-href-en="<%= hrefEn %>" data-href-zh="<%= hrefZh %>">
         <div class="series-index-card-top">
           <span class="series-index-card-name"><%= s.name %></span>
           <span class="series-index-card-count"><%= published %> / <%= total %></span>
@@ -60,3 +60,16 @@
     <% } %>
   <% } %>
 </div>
+
+<script>
+(function(){
+  var lang = localStorage.getItem('siteLang') || 'en';
+  var wantZh = lang === 'zh';
+  document.querySelectorAll('a.series-index-card[data-href-en][data-href-zh]').forEach(function(a){
+    var en = a.getAttribute('data-href-en');
+    var zh = a.getAttribute('data-href-zh');
+    var target = wantZh ? (zh || en) : (en || zh);
+    if (target) a.setAttribute('href', target);
+  });
+})();
+</script>

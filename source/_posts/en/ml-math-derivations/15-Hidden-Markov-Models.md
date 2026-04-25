@@ -255,19 +255,33 @@ The same engine appears in **speech recognition** (states = phonemes, observatio
 
 ## Q&A
 
-**Q1. Forward vs. Viterbi -- why does swapping operators matter?** Forward returns the marginal $P(\mathbf{O}\mid\lambda) = \sum_{\mathbf{I}} P(\mathbf{O},\mathbf{I})$; Viterbi returns $\max_{\mathbf{I}} P(\mathbf{O},\mathbf{I})$. Same DP skeleton, different semiring (sum-product vs. max-product). Forward answers "*how plausible is this evidence?*"; Viterbi answers "*what story best explains it?*"
+### Forward vs. Viterbi -- why does swapping operators matter?
 
-**Q2. Why does Viterbi maximise the joint instead of the posterior?** Because $P(\mathbf{I}\mid\mathbf{O}) = P(\mathbf{O},\mathbf{I})/P(\mathbf{O})$ and the denominator is a constant in $\mathbf{I}$. Maximising the joint is therefore equivalent and avoids one normalisation.
+Forward returns the marginal $P(\mathbf{O}\mid\lambda) = \sum_{\mathbf{I}} P(\mathbf{O},\mathbf{I})$; Viterbi returns $\max_{\mathbf{I}} P(\mathbf{O},\mathbf{I})$. Same DP skeleton, different semiring (sum-product vs. max-product). Forward answers "*how plausible is this evidence?*"; Viterbi answers "*what story best explains it?*"
 
-**Q3. When does Baum-Welch fail?** Three classic failure modes: (a) bad initialisation -- it lands in a flat or trivial local optimum; (b) **label switching** -- states are only identified up to permutation; (c) **observation collapse** -- a state's emission concentrates on observed symbols only, leaving zero probability for unseen ones. Smooth with a small Dirichlet prior to fix (c).
+### Why does Viterbi maximise the joint instead of the posterior?
 
-**Q4. Why CRFs over HMMs for sequence labelling?** CRFs are *discriminative*: they model $P(\mathbf{I}\mid\mathbf{O})$ directly and can exploit overlapping global features of $\mathbf{O}$ (capitalisation, suffix templates, surrounding words) without the conditional-independence straitjacket. HMMs are still preferred when you need to *generate* sequences or when training data is scarce.
+Because $P(\mathbf{I}\mid\mathbf{O}) = P(\mathbf{O},\mathbf{I})/P(\mathbf{O})$ and the denominator is a constant in $\mathbf{I}$. Maximising the joint is therefore equivalent and avoids one normalisation.
 
-**Q5. Are HMMs obsolete in the deep-learning era?** As stand-alone end-to-end models, mostly yes -- RNN/Transformer encoders dominate. But the *inference algorithms* live on. CTC decoding in modern speech systems is essentially Forward over an alignment lattice; sequence-level distillation uses Viterbi; structured-output Transformers borrow from CRFs which borrow from HMMs.
+### When does Baum-Welch fail?
 
-**Q6. How do I choose $N$?** Start small, then use information criteria ($\text{AIC} = -2\log L + 2|\lambda|$, $\text{BIC} = -2\log L + |\lambda|\log T$) or held-out likelihood. Bayesian non-parametrics (the iHMM with a hierarchical Dirichlet process prior) place a prior over $N$ and let the data decide.
+Three classic failure modes: (a) bad initialisation -- it lands in a flat or trivial local optimum; (b) **label switching** -- states are only identified up to permutation; (c) **observation collapse** -- a state's emission concentrates on observed symbols only, leaving zero probability for unseen ones. Smooth with a small Dirichlet prior to fix (c).
 
-**Q7. How do I handle continuous observations?** Replace the emission matrix with a density: a single Gaussian, a Gaussian mixture (the classical GMM-HMM in speech), or a neural density (Mixture Density Network -> "neural HMM"). The forward-backward recursions are identical; only $b_j(o_t)$ becomes a likelihood evaluation.
+### Why CRFs over HMMs for sequence labelling?
+
+CRFs are *discriminative*: they model $P(\mathbf{I}\mid\mathbf{O})$ directly and can exploit overlapping global features of $\mathbf{O}$ (capitalisation, suffix templates, surrounding words) without the conditional-independence straitjacket. HMMs are still preferred when you need to *generate* sequences or when training data is scarce.
+
+### Are HMMs obsolete in the deep-learning era?
+
+As stand-alone end-to-end models, mostly yes -- RNN/Transformer encoders dominate. But the *inference algorithms* live on. CTC decoding in modern speech systems is essentially Forward over an alignment lattice; sequence-level distillation uses Viterbi; structured-output Transformers borrow from CRFs which borrow from HMMs.
+
+### How do I choose $N$?
+
+Start small, then use information criteria ($\text{AIC} = -2\log L + 2|\lambda|$, $\text{BIC} = -2\log L + |\lambda|\log T$) or held-out likelihood. Bayesian non-parametrics (the iHMM with a hierarchical Dirichlet process prior) place a prior over $N$ and let the data decide.
+
+### How do I handle continuous observations?
+
+Replace the emission matrix with a density: a single Gaussian, a Gaussian mixture (the classical GMM-HMM in speech), or a neural density (Mixture Density Network -> "neural HMM"). The forward-backward recursions are identical; only $b_j(o_t)$ becomes a likelihood evaluation.
 
 ---
 

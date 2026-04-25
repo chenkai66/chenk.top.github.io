@@ -475,22 +475,28 @@ A pragmatic starting point for a new dataset:
 
 ## Q&A
 
-**Why polynomials and Fourier specifically?**
+### Why polynomials and Fourier specifically?
+
 Polynomials are dense in continuous functions on a compact interval (Stone-Weierstrass) and Fourier is dense in periodic functions. Together they form a strong prior for "smooth trend plus periodic component", which matches what most real series look like.
 
-**Can the trend block learn high-order behaviour with a degree-3 polynomial?**
+### Can the trend block learn high-order behaviour with a degree-3 polynomial?
+
 Locally yes, globally no. Each block sees the *residual* after the previous blocks, so a stack of three trend blocks can compose three cubic functions, which is enough to fit any reasonable trend on a forecast horizon.
 
-**Why Adam and not SGD?**
+### Why Adam and not SGD?
+
 Empirically N-BEATS converges much faster with Adam. The paper reports that SGD requires aggressive learning-rate tuning to match Adam's defaults.
 
-**Does N-BEATS need positional encodings?**
+### Does N-BEATS need positional encodings?
+
 No. The MLP sees the entire window as a fixed-size vector; "position" is implicit in the column index of the input, and the basis matrices encode the per-step time index for the output.
 
-**How do I extend N-BEATS to use exogenous variables (weather, holidays)?**
+### How do I extend N-BEATS to use exogenous variables (weather, holidays)?
+
 **N-BEATS-X** is the official extension: concatenate the exogenous covariates to the input window and add an auxiliary input head per block. For most production cases, simply concatenating exogenous time series along the input vector and slightly widening the first MLP layer works fine.
 
-**What is N-HiTS and should I just use that?**
+### What is N-HiTS and should I just use that?
+
 N-HiTS (2023) is by the same authors. It adds multi-rate downsampling and interpolation on the output side, which makes it scale to much longer horizons (720+ steps) and run faster. For short-to-medium horizons (<100 steps), vanilla N-BEATS is still competitive and simpler.
 
 **Why ensemble at all? My single model is fine.**

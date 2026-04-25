@@ -333,15 +333,25 @@ A reasonable default policy: start with AODE; switch to TAN once $N$ comfortably
 
 ## Q&A
 
-**Why not always use a full Bayesian network?** Structure learning is NP-hard and the search space of DAGs is super-exponential. TAN and AODE *constrain* the structure to keep learning tractable while capturing the most informative dependencies.
+### Why not always use a full Bayesian network?
 
-**Do directed edges encode causation?** No. Two DAGs can encode the same conditional-independence structure (an *equivalence class*) and be statistically indistinguishable. Causal claims require interventional or counterfactual assumptions -- Pearl's do-calculus, instrumental variables, etc.
+Structure learning is NP-hard and the search space of DAGs is super-exponential. TAN and AODE *constrain* the structure to keep learning tractable while capturing the most informative dependencies.
 
-**Continuous features in TAN?** Three options: (i) discretise (equal-width or equal-frequency bins), (ii) assume conditional Gaussians (a *Conditional Gaussian Bayesian network*), (iii) use kernel density estimates for the local CPDs.
+### Do directed edges encode causation?
 
-**AODE or TAN -- which?** AODE: simpler, more robust on small samples, no structure-learning step. TAN: faster prediction at high $d$, captures heterogeneous parent choices. In production text classifiers AODE is the more common default; in dense numeric tables, TAN often wins.
+No. Two DAGs can encode the same conditional-independence structure (an *equivalence class*) and be statistically indistinguishable. Causal claims require interventional or counterfactual assumptions -- Pearl's do-calculus, instrumental variables, etc.
 
-**Where do deep generative models fit?** Modern latent-variable models (VAE, normalising flows, autoregressive models like PixelCNN) are continuous Bayesian networks where the CPTs are neural conditional densities. The factorisation idea is identical; only the parametric form of $P(X_i\mid \mathrm{Pa}(X_i))$ has changed.
+### Continuous features in TAN?
+
+Three options: (i) discretise (equal-width or equal-frequency bins), (ii) assume conditional Gaussians (a *Conditional Gaussian Bayesian network*), (iii) use kernel density estimates for the local CPDs.
+
+### AODE or TAN -- which?
+
+AODE: simpler, more robust on small samples, no structure-learning step. TAN: faster prediction at high $d$, captures heterogeneous parent choices. In production text classifiers AODE is the more common default; in dense numeric tables, TAN often wins.
+
+### Where do deep generative models fit?
+
+Modern latent-variable models (VAE, normalising flows, autoregressive models like PixelCNN) are continuous Bayesian networks where the CPTs are neural conditional densities. The factorisation idea is identical; only the parametric form of $P(X_i\mid \mathrm{Pa}(X_i))$ has changed.
 
 ---
 

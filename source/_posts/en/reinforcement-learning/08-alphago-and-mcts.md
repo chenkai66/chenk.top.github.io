@@ -340,19 +340,24 @@ The training loop generates self-play games, stores $(s_t, \boldsymbol{\pi}_t, z
 
 ## Frequently Asked Questions
 
-**Q: Why does AlphaGo Zero not need rollouts?**
+### Why does AlphaGo Zero not need rollouts?
+
 By 2017 deeper residual networks, more self-play data, and a unified policy/value head produced a value function that was on average more accurate than mixing the network with noisy random rollouts. The DeepMind ablations are explicit: pure value evaluation beat the mixture, so the rollout was dropped.
 
-**Q: Can self-play get stuck in a degenerate equilibrium?**
+### Can self-play get stuck in a degenerate equilibrium?
+
 For two-player zero-sum perfect-information games, *fictitious self-play* converges to a Nash equilibrium (Brown, 1951; Heinrich & Silver, 2016). MCTS adds optimistic exploration on top, which prevents premature mode collapse. In imperfect-information games (poker) or cooperative games this is not guaranteed and a population of opponents (PSRO, AlphaStar's league) is needed.
 
-**Q: Why use the *visit-count* distribution as the policy target, not the empirical $Q$?**
+### Why use the *visit-count* distribution as the policy target, not the empirical $Q$?
+
 Visit counts are robust: a child with very few visits can have a noisy mean $Q$, but cannot have many visits unless the search consistently chose it. Cross-entropy against $\boldsymbol{\pi}$ also gives a meaningful gradient even for actions the search rarely tried, which a hard argmax target would not.
 
-**Q: Can MCTS handle continuous action spaces?**
+### Can MCTS handle continuous action spaces?
+
 Not directly — UCT and PUCT assume a finite action set. Extensions like *Progressive Widening* gradually add sampled actions as a node is visited more often, and recent work (e.g., Sampled MuZero, 2021) handles continuous and structured action spaces. For pure continuous control, model-free methods such as SAC and PPO remain more practical.
 
-**Q: Why 800 simulations per move? Could you train with 1?**
+### Why 800 simulations per move? Could you train with 1?
+
 You can. With 1 simulation per move the visit-count target *is* the network policy, no improvement happens, and training stalls. At 800 simulations the search target is meaningfully sharper than the network — that gap is what the network learns from. Diminishing returns kick in around the low thousands; AlphaZero used 800 for Go and chess, MuZero kept the same number.
 
 ---

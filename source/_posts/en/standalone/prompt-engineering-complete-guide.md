@@ -931,23 +931,39 @@ Then attack the largest bucket first.
 
 ## FAQ
 
-**Should I use higher or lower temperature?** 0 for tasks needing consistency (classification, extraction, math, code). 0.7–0.8 for creative tasks. 1.0+ rarely. Default to 0 for structured tasks, 0.7 for creative ones.
+### Should I use higher or lower temperature?
 
-**How many examples in few-shot?** 2–3 for simple tasks, 5–7 is the sweet spot for most, 10+ only if the examples are diverse. Past 50 you should consider fine-tuning.
+0 for tasks needing consistency (classification, extraction, math, code). 0.7–0.8 for creative tasks. 1.0+ rarely. Default to 0 for structured tasks, 0.7 for creative ones.
 
-**When should I fine-tune instead?** When you have 1,000+ high-quality labeled examples, the task is highly specialized, latency or cost are critical, and you have plateaued with prompt engineering. Otherwise, prompt — it iterates 1000x faster.
+### How many examples in few-shot?
 
-**How do I prevent hallucinations?** Ground with retrieved context, instruct the model to say "I don't know," request quoted citations, lower the temperature, and add a verification pass.
+2–3 for simple tasks, 5–7 is the sweet spot for most, 10+ only if the examples are diverse. Past 50 you should consider fine-tuning.
 
-**How do I handle long documents?** Chunk + map-reduce, retrieval-augmented generation, hierarchical summarization, or models with large context windows (Claude 3 200K, Gemini 1.5 1M). RAG is usually the right default.
+### When should I fine-tune instead?
 
-**Do prompts transfer across models?** Universal techniques (clear instructions, few-shot, format specs, CoT) transfer well. Exact phrasing, format preferences (Claude likes XML), and tool-calling syntax do not. Always test on the target model.
+When you have 1,000+ high-quality labeled examples, the task is highly specialized, latency or cost are critical, and you have plateaued with prompt engineering. Otherwise, prompt — it iterates 1000x faster.
 
-**Can I automate optimization?** Yes — APE, DSPy, and genetic search all work. Start manual to understand the task, then automate.
+### How do I prevent hallucinations?
 
-**XML, JSON, or plain text for prompts?** Plain text for simple prompts. JSON for structured I/O. XML for complex multi-part prompts (especially with Claude). All three are fine — pick the one your downstream parser expects.
+Ground with retrieved context, instruct the model to say "I don't know," request quoted citations, lower the temperature, and add a verification pass.
 
-**CoT vs ToT vs GoT — when to use which?**
+### How do I handle long documents?
+
+Chunk + map-reduce, retrieval-augmented generation, hierarchical summarization, or models with large context windows (Claude 3 200K, Gemini 1.5 1M). RAG is usually the right default.
+
+### Do prompts transfer across models?
+
+Universal techniques (clear instructions, few-shot, format specs, CoT) transfer well. Exact phrasing, format preferences (Claude likes XML), and tool-calling syntax do not. Always test on the target model.
+
+### Can I automate optimization?
+
+Yes — APE, DSPy, and genetic search all work. Start manual to understand the task, then automate.
+
+### XML, JSON, or plain text for prompts?
+
+Plain text for simple prompts. JSON for structured I/O. XML for complex multi-part prompts (especially with Claude). All three are fine — pick the one your downstream parser expects.
+
+### CoT vs ToT vs GoT — when to use which?
 
 | Technique | Structure        | When to use                                    | Cost     |
 |-----------|------------------|------------------------------------------------|----------|
@@ -955,7 +971,9 @@ Then attack the largest bucket first.
 | **ToT**   | Tree search      | Multiple solution paths, planning, puzzles     | 5–50x    |
 | **GoT**   | Arbitrary DAG    | Parallel processing, merging insights          | Varies   |
 
-**The future?** Multimodal prompting, tighter automation (DSPy, APE), aggressive compression, meta-prompting (prompts that generate prompts), embodied agents. The skill will not disappear — it will shift from manual crafting to designing optimization objectives, evaluation harnesses, and orchestration.
+### The future?
+
+Multimodal prompting, tighter automation (DSPy, APE), aggressive compression, meta-prompting (prompts that generate prompts), embodied agents. The skill will not disappear — it will shift from manual crafting to designing optimization objectives, evaluation harnesses, and orchestration.
 
 ## Closing
 

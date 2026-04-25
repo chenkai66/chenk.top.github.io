@@ -261,22 +261,28 @@ Practical notes that matter more than the code:
 
 ## Q&A
 
-**Q1: mBERT has no parallel corpus -- why does cross-lingual work?**
+### mBERT has no parallel corpus -- why does cross-lingual work?
+
 Three forces line up: anchor tokens (numbers, punctuation, loanwords) shared across languages, subword overlap on cognates that wires the embedding tables together, and deep parameter sharing that makes language-agnostic features the cheapest representation. Removing any one of these degrades transfer; removing all three breaks it.
 
-**Q2: How do I pick a source language?**
+### How do I pick a source language?
+
 Default to whichever language has the most labels (almost always English). If that gives a poor transfer gap, try a closer-family source: for a Spanish target, fine-tuning on Italian or Portuguese labeled data often beats English. For a Swahili target, English remains the right call simply because no other language has the labels.
 
-**Q3: XLM-R or mBERT?**
+### XLM-R or mBERT?
+
 XLM-R, unless you are inference-bound on a small device. XLM-R-base (270M) costs roughly 1.5x mBERT (110M) at inference and is 5-10 points better on every long-tail language. XLM-R-large is 3x and another 2-4 points on top.
 
-**Q4: Where are the theoretical limits?**
+### Where are the theoretical limits?
+
 Transfer quality is bounded above by the mutual information between source and target distributions in the encoder's representation space. Empirically: same-family Indo-European pairs cap out with a 3-5 point gap; cross-family pairs (English -> Chinese, English -> Arabic) plateau around 8-12; very low-resource targets (Yoruba, Swahili) are limited by how much of the language the encoder ever saw, not by the alignment.
 
-**Q5: Translate-train always wins on accuracy -- why ever ship zero-shot?**
+### Translate-train always wins on accuracy -- why ever ship zero-shot?
+
 Cost. Translate-train requires per-language MT (latency at training time, but you also need to maintain the MT system) and you typically end up shipping a model per target language. Zero-shot is one model serving all 100 languages. The right answer is usually a hybrid: zero-shot baseline + translate-train on the top traffic languages.
 
-**Q6: My target is a low-resource language -- what's the order of operations?**
+### My target is a low-resource language -- what's the order of operations?
+
 (a) Try XLM-R-large zero-shot. (b) If accuracy is unacceptable, do **adaptive pretraining**: continue MLM on monolingual target-language text for a few epochs before fine-tuning. (c) Add translate-train on whatever MT pair is least bad. (d) If you can collect even 100 labeled target-language examples, mix them in -- few-shot data is disproportionately effective on top of zero-shot transfer.
 
 ---

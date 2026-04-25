@@ -417,19 +417,24 @@ since both terms are $\ge 0$ by Mercer applied to $K_1$ and $K_2$. Hence $K$ is 
 
 ## Q&A
 
-**Q. Why maximise the margin?**
+### Why maximise the margin?
+
 Geometrically, a wide margin tolerates noise: any perturbation smaller than the margin keeps the prediction unchanged. Statistically, margin-based bounds (e.g. via Rademacher complexity) show generalisation error decreases with the margin, so SVM is implicitly regularising model complexity.
 
-**Q. Why work with the dual?**
+### Why work with the dual?
+
 Three reasons. (1) Data only enter as inner products, enabling kernels. (2) For $d \gg N$ the dual is much smaller than the primal. (3) The KKT conditions reveal sparsity: most $\alpha_i = 0$, so prediction is cheap.
 
-**Q. What if $\eta = 0$ in SMO?**
+### What if $\eta = 0$ in SMO?
+
 $\eta = \lVert \phi(x_1) - \phi(x_2) \rVert^2$, so $\eta = 0$ means the two points coincide in feature space. The objective is then linear in $\alpha_2$ on the feasibility segment; the optimum is whichever endpoint $L$ or $H$ gives a larger objective.
 
-**Q. Does SVM extend to regression?**
+### Does SVM extend to regression?
+
 Yes -- **support vector regression** uses the $\varepsilon$-insensitive loss $\max(0, |y - f(x)| - \varepsilon)$. Errors smaller than $\varepsilon$ cost nothing, errors larger become support vectors. Same dual machinery, two multipliers per point ($\alpha_i, \alpha_i^\*$ for the upper and lower side).
 
-**Q. Why standardise inputs?**
+### Why standardise inputs?
+
 $\eta$ and the kernel matrix involve $\lVert x \rVert$. A feature with large units overwhelms the others, pulling the boundary toward axis alignment. Standardising (zero mean, unit variance per feature) is a one-line fix that often improves both speed and accuracy.
 
 ---

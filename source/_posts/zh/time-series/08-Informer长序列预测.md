@@ -454,28 +454,35 @@ def build_decoder_input(x_enc, label_len, out_len):
 
 ## Q&A
 
-**为什么偏要 $u = c \log L$？**
+### 为什么偏要 $u = c \log L$？
+
 界来自"挑剔查询的最强键被采样到"的概率。$u = c \log L$、$c = 5$ 时，对任何给定查询漏掉 top-1 键的概率 $\leq 1/L^4$。实际 $c = 3$ 也行。
 
-**ProbSparse 真的能挑对查询吗？**
+### ProbSparse 真的能挑对查询吗？
+
 经验上能——$\max - \mathrm{mean}$ 近似与精确 KL 在训练中观察到的注意力分布上 Spearman 相关 >0.95。论文有完整消融。
 
-**为什么未选查询要用 $V$ 的均值而不是零？**
+### 为什么未选查询要用 $V$ 的均值而不是零？
+
 因为均匀注意力分布的输出正好是 $\frac{1}{L}\sum_j v_j$。"判定为均匀注意力"的查询用均值填，是解析上正确的。
 
-**Informer 与 Reformer / Performer / Linformer 的区别？**
+### Informer 与 Reformer / Performer / Linformer 的区别？
+
 - **Reformer**：LSH 桶化注意力。$\mathcal{O}(L \log L)$，但桶化与数据无关。
 - **Performer**：随机特征核近似。$\mathcal{O}(L)$，但长序列上注意力陡峭时精度退化。
 - **Linformer**：把键/值投到固定低秩维。$\mathcal{O}(L)$，但投影在训练时定死。
 - **Informer**：基于数据自适应选查询。$\mathcal{O}(L \log L)$，在时间序列 benchmark 上精度保留最好。
 
-**多变量时编码器和解码器特征维度可以不同吗？**
+### 多变量时编码器和解码器特征维度可以不同吗？
+
 可以——`enc_in` 和 `dec_in` 独立。常见模式：所有变量喂编码器，仅目标变量喂解码器。
 
-**Autoformer / FEDformer 呢？**
+### Autoformer / FEDformer 呢？
+
 都是直接后继。Autoformer（2021）把 self-attention 换成沿序列的自相关并显式加一层分解。FEDformer（2022）加了频域 attention。两者在同样 benchmark 上都比 Informer 好但实现更复杂；Informer 仍是合适的起点。
 
-**要不要先在多序列大数据集上预训练？**
+### 要不要先在多序列大数据集上预训练？
+
 有用但非必须。和 NLP 不同，时间序列数据集之间的领域差距很大，朴素预训练经常起反作用。从零按领域微调通常是更好的默认。
 
 ---

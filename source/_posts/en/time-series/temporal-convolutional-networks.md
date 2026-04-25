@@ -490,19 +490,24 @@ In every other forecasting situation, TCN is the boring, fast, reliable first th
 
 ## Q&A
 
-**How is TCN different from WaveNet?**
+### How is TCN different from WaveNet?
+
 WaveNet (2016) is essentially a TCN with a gated activation $\tanh(W_f x) \odot \sigma(W_g x)$ instead of ReLU and a richer conditioning mechanism for audio generation. TCN strips it down to ReLU + residual for general sequence modeling.
 
-**Should I use BatchNorm or WeightNorm?**
+### Should I use BatchNorm or WeightNorm?
+
 WeightNorm. BatchNorm's running statistics are noisy on long sequences and tend to drift; WeightNorm sidesteps the issue entirely. LayerNorm is acceptable but adds a transpose for 1-D conv data layouts.
 
-**Do I need positional encodings like in Transformers?**
+### Do I need positional encodings like in Transformers?
+
 No. The convolution itself is translation-equivariant by construction; position is implicit in the receptive-field structure.
 
-**Direct multi-step or recursive multi-step forecasting?**
+### Direct multi-step or recursive multi-step forecasting?
+
 Direct (output the full horizon at once) is more accurate because errors do not compound, but uses more parameters and locks the horizon at training time. Recursive (predict one step, feed it back) is flexible but accumulates error. Default to direct.
 
-**What if I want quantile forecasts (not just point estimates)?**
+### What if I want quantile forecasts (not just point estimates)?
+
 Replace the L2 loss with the pinball loss at multiple quantiles and have the head output one channel per quantile. The TCN backbone is unchanged.
 
 ---

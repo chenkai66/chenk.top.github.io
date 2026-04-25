@@ -324,17 +324,29 @@ class GMM:
 
 ## Q&A
 
-**Q1: Does EM reach the global optimum?** No. Monotone ascent guarantees only a stationary point -- typically a local maximum, sometimes a saddle. Defend yourself with multiple restarts (random or K-means seeded) and keep the run with the highest final log-likelihood.
+### Does EM reach the global optimum?
 
-**Q2: GMM vs K-means -- when does it actually matter?** Use GMM when (i) clusters are clearly elliptical / anisotropic, (ii) you want **soft** membership probabilities for downstream calibration, or (iii) you need a generative density model for sampling or anomaly scoring. K-means is faster and fine for roughly spherical, well-separated clusters.
+No. Monotone ascent guarantees only a stationary point -- typically a local maximum, sometimes a saddle. Defend yourself with multiple restarts (random or K-means seeded) and keep the run with the highest final log-likelihood.
 
-**Q3: Singular covariance / collapsed component?** Add a ridge $\boldsymbol{\Sigma}_k + \epsilon \mathbf{I}$ (the reference implementation does this), tie covariances across components, restrict to diagonal covariance, or restart on detection.
+### GMM vs K-means -- when does it actually matter?
 
-**Q4: Why does the E-step "make the bound tight"?** Because $\log p = \mathcal{L}(q,\boldsymbol{\theta}) + \mathrm{KL}[q\Vert p(z\mid\mathbf{x},\boldsymbol{\theta})]$ and the KL is zero exactly when $q$ equals the posterior.
+Use GMM when (i) clusters are clearly elliptical / anisotropic, (ii) you want **soft** membership probabilities for downstream calibration, or (iii) you need a generative density model for sampling or anomaly scoring. K-means is faster and fine for roughly spherical, well-separated clusters.
 
-**Q5: What is generalised EM?** Replace the M-step's full maximisation with any update that *increases* $Q$ (e.g. one gradient step). The monotone ascent argument still goes through.
+### Singular covariance / collapsed component?
 
-**Q6: How is EM related to variational inference?** Variational EM relaxes the E-step from the exact posterior to a tractable family $q \in \mathcal{Q}$. The decomposition $\log p = \mathcal{L} + \mathrm{KL}$ is identical; the algorithm now alternately minimises KL inside $\mathcal{Q}$ (E) and maximises $\mathcal{L}$ in $\boldsymbol{\theta}$ (M). See Part 14.
+Add a ridge $\boldsymbol{\Sigma}_k + \epsilon \mathbf{I}$ (the reference implementation does this), tie covariances across components, restrict to diagonal covariance, or restart on detection.
+
+### Why does the E-step "make the bound tight"?
+
+Because $\log p = \mathcal{L}(q,\boldsymbol{\theta}) + \mathrm{KL}[q\Vert p(z\mid\mathbf{x},\boldsymbol{\theta})]$ and the KL is zero exactly when $q$ equals the posterior.
+
+### What is generalised EM?
+
+Replace the M-step's full maximisation with any update that *increases* $Q$ (e.g. one gradient step). The monotone ascent argument still goes through.
+
+### How is EM related to variational inference?
+
+Variational EM relaxes the E-step from the exact posterior to a tractable family $q \in \mathcal{Q}$. The decomposition $\log p = \mathcal{L} + \mathrm{KL}$ is identical; the algorithm now alternately minimises KL inside $\mathcal{Q}$ (E) and maximises $\mathcal{L}$ in $\boldsymbol{\theta}$ (M). See Part 14.
 
 ---
 

@@ -945,34 +945,34 @@ if __name__ == "__main__":
 
 ## Frequently Asked Questions
 
-### Q1: How do knowledge graphs help with the cold-start problem?
+### How do knowledge graphs help with the cold-start problem?
 
 Even when a new item has zero interactions, it still has attributes in the knowledge graph (genre, director, cast). These attributes connect it to other items that *do* have interaction history. A user who loved Nolan's films can receive a recommendation for his latest movie on release day, purely through KG connections.
 
-### Q2: RippleNet vs. KGCN -- what is the difference?
+### RippleNet vs. KGCN -- what is the difference?
 
 **RippleNet** is *user-centric*: it starts from the user's history and ripples outward through the KG. **KGCN** is *item-centric*: it builds enriched item representations by aggregating from each item's KG neighborhood. In practice, KGCN tends to scale better because item neighborhoods are more stable than user preference ripples.
 
-### Q3: When should I use KGAT over KGCN?
+### When should I use KGAT over KGCN?
 
 Use KGAT when you want to model the interaction between collaborative signals and semantic signals in a unified graph. KGAT's Collaborative Knowledge Graph merges user-item edges with KG edges, so attention can learn across both types. KGCN keeps them separate.
 
-### Q4: How does CKE compare to graph-based methods?
+### How does CKE compare to graph-based methods?
 
 CKE is simpler and faster -- it pre-learns KG embeddings and combines them additively. Graph-based methods (KGCN, KGAT) are more powerful because they propagate information through the graph at inference time, but they are also more expensive. Start with CKE for a quick baseline, then upgrade to KGAT if you need better accuracy.
 
-### Q5: Can knowledge graphs improve recommendation diversity?
+### Can knowledge graphs improve recommendation diversity?
 
 Yes. Different relation types lead to different kinds of connections. Following `same_director` gives different results than `same_genre` or `same_actor`. By exploring multiple relation paths, the system naturally surfaces diverse recommendations instead of creating a filter bubble.
 
-### Q6: How do I handle noisy or incomplete knowledge graphs?
+### How do I handle noisy or incomplete knowledge graphs?
 
 1. **Attention mechanisms** (KGAT) naturally down-weight noisy connections.
 2. **TransR embeddings** learn to ignore inconsistent triples during training.
 3. **Data augmentation** through relation inference: predict missing edges.
 4. **Multi-task learning** shares information across tasks, making the model more robust to missing data.
 
-### Q7: What are the computational bottlenecks?
+### What are the computational bottlenecks?
 
 The main bottleneck is neighbor aggregation on large KGs (millions of entities). Solutions:
 
@@ -981,11 +981,11 @@ The main bottleneck is neighbor aggregation on large KGs (millions of entities).
 - **Mini-batch training** with subgraph sampling.
 - **Pre-computation** of KG embeddings (CKE approach).
 
-### Q8: Can knowledge graphs provide explainable recommendations?
+### Can knowledge graphs provide explainable recommendations?
 
 This is one of their biggest strengths. Path-based methods generate explanations like: "We recommend Movie X because it shares director Y with Movie Z, which you rated highly." These explanations are concrete, human-readable, and grounded in factual relationships -- much better than "users similar to you also liked this."
 
-### Q9: What is the latest in KG-enhanced recommendation?
+### What is the latest in KG-enhanced recommendation?
 
 Recent trends include:
 
