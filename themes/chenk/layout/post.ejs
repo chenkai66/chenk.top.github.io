@@ -63,24 +63,17 @@
             Updated <%= date(page.updated, 'MMM DD, YYYY') %>
           </span>
           <% } %>
-          <%
-            var wc = (page.content && typeof wordcount === 'function') ? (wordcount(page.content) || 0) : 0;
-            var readingMinutes = wc > 0 ? Math.ceil(wc / 250) : 0;
-          %>
-          <% if (theme.features.reading_time && readingMinutes > 0) { %>
-          <span class="reading-time">
+          <% if (theme.features.reading_time) { %>
+          <span class="reading-time" data-auto-reading>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-            <%= readingMinutes %> min read
+            <span class="rt-num">—</span> <span data-i18n="post.minRead">min read</span>
           </span>
           <% } %>
-          <% if (theme.features.word_count && wc > 0) { %>
-          <span class="word-count">
+          <% if (theme.features.word_count) { %>
+          <span class="word-count" data-auto-wordcount>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
-            <%= wc.toLocaleString() %> words
+            <span class="wc-num">—</span> <span data-i18n="post.words">words</span>
           </span>
-          <% } %>
-          <% if (page.lang) { %>
-          <span class="article-lang"><%= page.lang === 'zh-CN' ? 'Chinese' : 'English' %></span>
           <% } %>
         </div>
 
@@ -112,9 +105,23 @@
       <% } %>
 
       <!-- Post Navigation -->
-      <% var nav = (typeof series_neighbors === 'function') ? series_neighbors(page) : { prev: null, next: null };
-         var prevPost = nav.prev || page.prev;
-         var nextPost = nav.next || page.next; %>
+      <%
+        // Prefer same-series, same-language neighbors. If none, fall back to
+        // hexo's chronological prev/next BUT only when same language.
+        var nav = (typeof series_neighbors === 'function') ? series_neighbors(page) : { prev: null, next: null };
+        var prevPost = nav.prev;
+        var nextPost = nav.next;
+        var pageLang = (page.lang || '').toLowerCase();
+        function sameLang(p) {
+          if (!p) return false;
+          var pl = (p.lang || '').toLowerCase();
+          // 'zh-CN' vs 'zh' tolerated, both start with 'zh'
+          if (pageLang.indexOf('zh') === 0) return pl.indexOf('zh') === 0;
+          return pl === 'en' || pl === '';
+        }
+        if (!prevPost && page.prev && sameLang(page.prev)) prevPost = page.prev;
+        if (!nextPost && page.next && sameLang(page.next)) nextPost = page.next;
+      %>
       <nav class="post-nav">
         <% if (prevPost) { %>
         <a href="<%= url_for(prevPost.path) %>" class="post-nav-item post-nav-prev">

@@ -32,6 +32,26 @@
   if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
   if (mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
 
+  // === Reading time + word count (computed client-side from rendered article) ===
+  (function() {
+    var md = document.querySelector('.markdown-body');
+    if (!md) return;
+    // Strip code, math, images for word counting
+    var clone = md.cloneNode(true);
+    clone.querySelectorAll('pre, code, .katex, .katex-display, mjx-container, img, svg').forEach(function(n){ n.remove(); });
+    var text = clone.innerText || clone.textContent || '';
+    // Count words: alphanumeric runs + each CJK char counts as one
+    var wordCount = 0;
+    var matches = text.match(/[A-Za-z0-9]+|[一-鿿㐀-䶿]/g);
+    if (matches) wordCount = matches.length;
+    // ~250 wpm for mixed content
+    var minRead = Math.max(1, Math.ceil(wordCount / 250));
+    document.querySelectorAll('[data-auto-reading] .rt-num').forEach(function(el){ el.textContent = minRead; });
+    document.querySelectorAll('[data-auto-wordcount] .wc-num').forEach(function(el){
+      el.textContent = wordCount.toLocaleString();
+    });
+  })();
+
   // === Reading Progress Bar ===
   var progressBar = document.getElementById('reading-progress');
   if (progressBar) {
