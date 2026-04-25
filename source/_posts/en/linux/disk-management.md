@@ -1,6 +1,6 @@
 ---
 title: "Linux Disk Management: Partitions, Filesystems, LVM, and the Mount Stack"
-date: 2024-01-25 09:00:00
+date: 2022-01-27 09:00:00
 tags:
   - Linux
   - Cloud

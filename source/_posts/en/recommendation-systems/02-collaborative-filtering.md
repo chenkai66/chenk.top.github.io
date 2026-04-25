@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (2): Collaborative Filtering and Matrix Factorization"
-date: 2025-10-19 09:00:00
+date: 2025-12-04 09:00:00
 tags:
   - Recommendation Systems
   - Collaborative Filtering

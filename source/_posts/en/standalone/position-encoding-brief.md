@@ -1,6 +1,6 @@
 ---
 title: "Position Encoding Brief: From Sinusoidal to RoPE and ALiBi"
-date: 2024-12-30 09:00:00
+date: 2023-09-20 09:00:00
 tags:
   - NLP
   - Transformer

@@ -1,6 +1,6 @@
 ---
 title: "Cloud Storage Systems and Distributed Architecture"
-date: 2024-06-16 09:00:00
+date: 2023-03-30 09:00:00
 tags:
   - Cloud Computing
   - Distributed Storage

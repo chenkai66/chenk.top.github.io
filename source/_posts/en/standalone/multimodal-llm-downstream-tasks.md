@@ -1,6 +1,6 @@
 ---
 title: "Multimodal LLMs and Downstream Tasks: A Practitioner's Guide"
-date: 2024-10-11 09:00:00
+date: 2022-08-05 09:00:00
 tags:
   - NLP
   - Multimodal

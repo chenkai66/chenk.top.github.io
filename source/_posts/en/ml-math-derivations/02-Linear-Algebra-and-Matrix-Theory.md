@@ -1,6 +1,6 @@
 ---
 title: "ML Math Derivations (2): Linear Algebra and Matrix Theory"
-date: 2026-01-19 09:00:00
+date: 2026-01-21 09:00:00
 tags:
   - Machine Learning
   - Linear Algebra

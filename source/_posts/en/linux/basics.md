@@ -1,6 +1,6 @@
 ---
 title: "Linux Basics: Core Concepts and Essential Commands"
-date: 2024-01-15 09:00:00
+date: 2022-01-01 09:00:00
 tags:
   - Linux
   - Cloud

@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (13): Introduction to Partial Differential Equations"
-date: 2024-09-01 09:00:00
+date: 2024-01-21 09:00:00
 tags:
   - Ordinary Differential Equations
   - Partial Differential Equations

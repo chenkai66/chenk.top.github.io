@@ -1,6 +1,6 @@
 ---
 title: "Transfer Learning (10): Continual Learning"
-date: 2025-05-21 09:00:00
+date: 2025-06-24 09:00:00
 categories:
   - Transfer Learning
   - Machine Learning

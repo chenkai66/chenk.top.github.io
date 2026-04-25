@@ -1,6 +1,6 @@
 ---
 title: "LeetCode Patterns: Two Pointers"
-date: 2024-03-05 09:00:00
+date: 2022-05-16 09:00:00
 tags:
   - LeetCode
   - Algorithms

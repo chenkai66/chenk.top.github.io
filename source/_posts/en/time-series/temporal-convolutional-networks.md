@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (6): Temporal Convolutional Networks (TCN)"
-date: 2024-12-10 09:00:00
+date: 2024-11-15 09:00:00
 tags:
   - Time Series
   - Deep Learning

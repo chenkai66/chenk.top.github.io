@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (12): Boundary Value Problems"
-date: 2024-08-28 09:00:00
+date: 2024-01-04 09:00:00
 tags:
   - Ordinary Differential Equations
   - Boundary Value Problems

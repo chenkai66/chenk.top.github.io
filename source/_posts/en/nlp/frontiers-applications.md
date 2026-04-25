@@ -1,6 +1,6 @@
 ---
 title: "NLP (12): Frontiers and Practical Applications"
-date: 2025-09-28 09:00:00
+date: 2025-11-25 09:00:00
 tags:
   - NLP
   - LLM

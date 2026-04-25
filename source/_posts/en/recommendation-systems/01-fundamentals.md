@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (1): Fundamentals and Core Concepts"
-date: 2025-10-15 09:00:00
+date: 2025-12-01 09:00:00
 tags:
   - Recommendation Systems
   - Collaborative Filtering

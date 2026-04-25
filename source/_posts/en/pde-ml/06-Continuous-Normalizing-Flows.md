@@ -1,6 +1,6 @@
 ---
 title: "PDE and Machine Learning (6): Continuous Normalizing Flows and Neural ODE"
-date: 2024-10-26 09:00:00
+date: 2024-07-15 09:00:00
 tags:
   - PDE
   - Machine Learning

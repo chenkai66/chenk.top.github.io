@@ -1,6 +1,6 @@
 ---
 title: "Linear Systems and Column Space"
-date: 2025-01-31 09:00:00
+date: 2025-01-29 09:00:00
 tags:
   - Linear Algebra
   - Column Space

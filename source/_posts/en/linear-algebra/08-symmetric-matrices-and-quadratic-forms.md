@@ -1,6 +1,6 @@
 ---
 title: "Symmetric Matrices and Quadratic Forms -- The Best Matrices in Town"
-date: 2025-02-12 09:00:00
+date: 2025-02-19 09:00:00
 tags:
   - Linear Algebra
   - Symmetric Matrices

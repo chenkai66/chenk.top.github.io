@@ -1,6 +1,6 @@
 ---
 title: "ML Math Derivations (1): Introduction and Mathematical Foundations"
-date: 2026-01-15 09:00:00
+date: 2026-01-20 09:00:00
 tags:
   - Machine Learning
   - Learning Theory

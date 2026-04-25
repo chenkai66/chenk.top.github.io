@@ -1,6 +1,6 @@
 ---
 title: "ODE Chapter 9: Chaos Theory and the Lorenz System"
-date: 2024-08-16 09:00:00
+date: 2023-11-14 09:00:00
 tags:
   - ODE
   - Chaos Theory

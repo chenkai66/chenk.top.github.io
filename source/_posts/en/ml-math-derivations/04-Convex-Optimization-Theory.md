@@ -1,6 +1,6 @@
 ---
 title: "ML Math Derivations (4): Convex Optimization Theory"
-date: 2026-01-27 09:00:00
+date: 2026-01-23 09:00:00
 tags:
   - Machine Learning
   - Convex Optimization

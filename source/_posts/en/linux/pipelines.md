@@ -1,6 +1,6 @@
 ---
 title: "Linux Pipelines and File Operations: Composing Tools into Data Flows"
-date: 2024-02-19 09:00:00
+date: 2022-04-02 09:00:00
 tags:
   - Linux
   - Cloud

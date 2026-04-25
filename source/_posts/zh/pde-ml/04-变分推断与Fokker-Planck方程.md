@@ -1,6 +1,6 @@
 ---
 title: "PDE与机器学习（四）：变分推断与Fokker-Planck方程"
-date: 2024-10-16 09:00:00
+date: 2024-06-15 09:00:00
 tags:
   - 变分推断
   - Fokker-Planck

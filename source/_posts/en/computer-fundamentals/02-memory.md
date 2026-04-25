@@ -1,6 +1,6 @@
 ---
 title: "Computer Fundamentals: Memory and Cache Systems"
-date: 2024-04-22 09:00:00
+date: 2022-10-22 09:00:00
 tags:
   - Computer Hardware
   - System Architecture

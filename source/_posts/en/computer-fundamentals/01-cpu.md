@@ -1,6 +1,6 @@
 ---
 title: "Computer Fundamentals: CPU and the Computing Core"
-date: 2024-04-15 09:00:00
+date: 2022-10-01 09:00:00
 tags:
   - Computer Hardware
   - System Architecture

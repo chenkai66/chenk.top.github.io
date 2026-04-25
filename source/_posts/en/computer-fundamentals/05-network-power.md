@@ -1,6 +1,6 @@
 ---
 title: "Computer Fundamentals: Network, Power, and Troubleshooting"
-date: 2024-05-13 09:00:00
+date: 2022-12-24 09:00:00
 tags:
   - Computer Hardware
   - System Architecture

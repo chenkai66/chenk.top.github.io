@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (6): Sequential Recommendation and Session-based Modeling"
-date: 2025-11-04 09:00:00
+date: 2025-12-16 09:00:00
 tags:
   - Recommendation Systems
   - Sequential Recommendation

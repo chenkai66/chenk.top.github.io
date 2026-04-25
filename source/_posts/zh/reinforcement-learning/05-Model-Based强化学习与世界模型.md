@@ -1,6 +1,6 @@
 ---
 title: "强化学习（五）：Model-Based强化学习与世界模型"
-date: 2025-07-01 09:00:00
+date: 2025-08-21 09:00:00
 tags:
   - 强化学习
   - Model-Based RL

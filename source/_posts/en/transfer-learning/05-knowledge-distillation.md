@@ -1,6 +1,6 @@
 ---
 title: "Transfer Learning (5): Knowledge Distillation"
-date: 2025-05-01 09:00:00
+date: 2025-05-25 09:00:00
 tags:
   - Deep Learning
   - Transfer Learning

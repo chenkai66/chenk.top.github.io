@@ -1,6 +1,6 @@
 ---
 title: "Multi-Cloud and Hybrid Architecture"
-date: 2024-07-06 09:00:00
+date: 2023-06-14 09:00:00
 tags:
   - Cloud Computing
   - Multi-Cloud

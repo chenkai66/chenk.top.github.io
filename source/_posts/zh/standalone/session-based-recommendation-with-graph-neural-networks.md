@@ -1,6 +1,6 @@
 ---
 title: "SR-GNN —— Session-based Recommendation with Graph Neural Networks"
-date: 2025-04-08 09:00:00
+date: 2022-12-27 09:00:00
 tags:
   - 序列推荐
   - GNN

@@ -1,6 +1,6 @@
 ---
 title: "Transfer Learning (12): Industrial Applications and Best Practices"
-date: 2025-05-29 09:00:00
+date: 2025-07-06 09:00:00
 categories:
   - Transfer Learning
   - Machine Learning

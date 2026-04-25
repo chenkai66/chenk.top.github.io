@@ -1,6 +1,6 @@
 ---
 title: "Orthogonality and Projections -- When Vectors Mind Their Own Business"
-date: 2025-02-08 09:00:00
+date: 2025-02-12 09:00:00
 tags:
   - Linear Algebra
   - Orthogonality

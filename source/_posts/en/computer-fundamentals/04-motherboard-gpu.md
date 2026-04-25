@@ -1,6 +1,6 @@
 ---
 title: "Computer Fundamentals: Motherboard, Graphics, and Expansion"
-date: 2024-05-06 09:00:00
+date: 2022-12-03 09:00:00
 tags:
   - Computer Hardware
   - System Architecture

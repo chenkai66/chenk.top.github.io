@@ -1,6 +1,6 @@
 ---
 title: "LeetCode Patterns: Linked List Operations"
-date: 2024-03-09 09:00:00
+date: 2022-05-31 09:00:00
 tags:
   - LeetCode
   - Algorithms

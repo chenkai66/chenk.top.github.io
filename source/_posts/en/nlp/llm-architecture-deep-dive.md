@@ -1,6 +1,6 @@
 ---
 title: "NLP (9): Deep Dive into LLM Architecture"
-date: 2025-09-16 09:00:00
+date: 2025-11-10 09:00:00
 tags:
   - NLP
   - LLM

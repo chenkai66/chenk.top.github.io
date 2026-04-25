@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (6): Logistic Regression and Classification"
-date: 2026-02-04 09:00:00
+date: 2026-01-25 09:00:00
 tags:
   - Machine Learning
   - Logistic Regression

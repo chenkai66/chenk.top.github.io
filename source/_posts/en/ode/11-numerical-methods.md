@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (11): Numerical Methods"
-date: 2024-08-24 09:00:00
+date: 2023-12-18 09:00:00
 tags:
   - Ordinary Differential Equations
   - Numerical Methods

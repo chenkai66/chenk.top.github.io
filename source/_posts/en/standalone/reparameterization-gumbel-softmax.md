@@ -1,6 +1,6 @@
 ---
 title: "Reparameterization Trick & Gumbel-Softmax: A Deep Dive"
-date: 2025-03-08 09:00:00
+date: 2025-07-24 09:00:00
 tags:
   - ML
   - Deep Learning

@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (8): Knowledge Graph-Enhanced Recommendation"
-date: 2025-11-12 09:00:00
+date: 2025-12-22 09:00:00
 tags:
   - Recommendation Systems
   - Knowledge Graph

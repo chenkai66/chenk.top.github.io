@@ -1,6 +1,6 @@
 ---
 title: "Solving Constrained Mean-Variance Portfolio Optimization Using Spiral Optimization"
-date: 2025-04-17 09:00:00
+date: 2026-01-21 09:00:00
 tags:
   - Portfolio Optimization
   - Metaheuristics

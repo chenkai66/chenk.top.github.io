@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (12): XGBoost and LightGBM"
-date: 2026-02-28 09:00:00
+date: 2026-01-31 09:00:00
 categories:
   - Machine Learning
 tags:

@@ -1,6 +1,6 @@
 ---
 title: "ML Math Derivations (17): Dimensionality Reduction and PCA"
-date: 2026-03-20 09:00:00
+date: 2026-02-05 09:00:00
 tags:
   - Machine Learning
   - Dimensionality Reduction

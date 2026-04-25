@@ -1,6 +1,6 @@
 ---
 title: "Essence of Linear Algebra (14): Random Matrix Theory"
-date: 2025-03-08 09:00:00
+date: 2025-04-02 09:00:00
 tags:
   - Linear Algebra
   - random matrices

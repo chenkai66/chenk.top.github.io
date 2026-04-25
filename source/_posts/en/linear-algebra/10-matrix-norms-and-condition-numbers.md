@@ -1,6 +1,6 @@
 ---
 title: "Matrix Norms and Condition Numbers -- Is Your Linear System Healthy?"
-date: 2025-02-20 09:00:00
+date: 2025-03-05 09:00:00
 tags:
   - Linear Algebra
   - Matrix Norms

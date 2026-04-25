@@ -1,6 +1,6 @@
 ---
 title: "Essence of Linear Algebra (18): Frontiers and Summary"
-date: 2025-03-24 09:00:00
+date: 2025-04-30 09:00:00
 tags:
   - Linear Algebra
   - quantum computing

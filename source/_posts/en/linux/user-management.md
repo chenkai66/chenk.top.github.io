@@ -1,6 +1,6 @@
 ---
 title: "Linux User Management: Users, Groups, sudo, and Security"
-date: 2024-02-04 09:00:00
+date: 2022-02-22 09:00:00
 tags:
   - Linux
   - Cloud

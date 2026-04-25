@@ -1,6 +1,6 @@
 ---
 title: "LLMGR: Integrating Large Language Models with Graphical Session-Based Recommendation"
-date: 2024-07-31 09:00:00
+date: 2022-11-26 09:00:00
 tags:
   - LLM
   - Recommender Systems

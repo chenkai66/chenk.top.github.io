@@ -1,5 +1,5 @@
 ---
-date: 2024-10-11 09:00:00
+date: 2024-05-31 09:00:00
 title: "PDE and Machine Learning (3): Variational Principles and Optimization"
 tags:
   - Mean-Field

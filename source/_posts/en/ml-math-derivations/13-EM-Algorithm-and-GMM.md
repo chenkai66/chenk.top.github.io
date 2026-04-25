@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (13): EM Algorithm and GMM"
-date: 2026-03-04 09:00:00
+date: 2026-02-01 09:00:00
 categories:
   - Machine Learning
 tags:

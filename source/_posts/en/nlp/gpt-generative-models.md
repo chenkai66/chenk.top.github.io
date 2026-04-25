@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 6: GPT and Generative Language Models"
-date: 2025-09-04 09:00:00
+date: 2025-10-26 09:00:00
 tags:
   - NLP
   - GPT

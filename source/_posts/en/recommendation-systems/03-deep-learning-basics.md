@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (3): Deep Learning Foundations"
-date: 2025-10-23 09:00:00
+date: 2025-12-07 09:00:00
 tags:
   - Recommendation Systems
   - Deep Learning

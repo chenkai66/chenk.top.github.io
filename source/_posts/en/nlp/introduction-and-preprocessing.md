@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 1: Introduction and Text Preprocessing"
-date: 2025-08-15 09:00:00
+date: 2025-10-01 09:00:00
 tags:
   - NLP
   - Deep Learning

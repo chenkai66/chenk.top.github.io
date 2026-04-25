@@ -1,6 +1,6 @@
 ---
 title: "Aliyun PAI (5): Designer vs QuickStart — When the GUIs Actually Earn Their Keep"
-date: 2026-04-29 09:00:00
+date: 2026-03-09 09:00:00
 tags:
   - Aliyun PAI
   - Machine Learning

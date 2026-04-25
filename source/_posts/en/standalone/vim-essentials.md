@@ -1,6 +1,6 @@
 ---
 title: "Vim Essentials: Modal Editing, Motions, and a Repeatable Workflow"
-date: 2025-07-14 09:00:00
+date: 2024-12-06 09:00:00
 tags:
   - Linux
   - Tools

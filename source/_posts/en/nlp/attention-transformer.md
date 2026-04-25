@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 4: Attention Mechanism and Transformer"
-date: 2025-08-27 09:00:00
+date: 2025-10-16 09:00:00
 tags:
   - NLP
   - Attention

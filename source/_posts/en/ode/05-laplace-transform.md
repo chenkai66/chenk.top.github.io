@@ -1,6 +1,6 @@
 ---
 title: "ODE Chapter 5: Power Series and Special Functions"
-date: 2024-07-31 09:00:00
+date: 2023-09-07 09:00:00
 tags:
   - ODE
   - Series Solutions

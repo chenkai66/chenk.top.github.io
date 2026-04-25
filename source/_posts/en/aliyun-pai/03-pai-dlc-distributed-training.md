@@ -1,6 +1,6 @@
 ---
 title: "Aliyun PAI (3): PAI-DLC — Distributed Training Without the Yak Shaving"
-date: 2026-04-27 09:00:00
+date: 2026-03-07 09:00:00
 tags:
   - Aliyun PAI
   - Machine Learning

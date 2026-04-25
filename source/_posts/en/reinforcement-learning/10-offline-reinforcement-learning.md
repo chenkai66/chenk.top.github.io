@@ -1,6 +1,6 @@
 ---
 title: "Reinforcement Learning (10): Offline Reinforcement Learning"
-date: 2025-07-21 09:00:00
+date: 2025-09-15 09:00:00
 tags:
   - Reinforcement Learning
   - Offline RL

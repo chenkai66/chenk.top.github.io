@@ -1,6 +1,6 @@
 ---
 title: "推荐系统（五）—— Embedding表示学习"
-date: 2025-10-31 09:00:00
+date: 2025-12-13 09:00:00
 tags:
   - 推荐系统
   - Embedding

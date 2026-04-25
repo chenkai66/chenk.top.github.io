@@ -1,6 +1,6 @@
 ---
 title: "Reinforcement Learning (12): RLHF and LLM Applications"
-date: 2025-07-29 09:00:00
+date: 2025-09-25 09:00:00
 tags:
   - Reinforcement Learning
   - RLHF

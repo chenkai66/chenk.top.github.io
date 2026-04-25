@@ -1,6 +1,6 @@
 ---
 title: "Lipschitz Continuity, Strong Convexity & Nesterov Acceleration"
-date: 2024-06-21 09:00:00
+date: 2022-12-27 09:00:00
 tags:
   - ML
   - Optimization

@@ -1,6 +1,6 @@
 ---
 title: "Reinforcement Learning (5): Model-Based RL and World Models"
-date: 2025-07-01 09:00:00
+date: 2025-08-21 09:00:00
 tags:
   - Reinforcement Learning
   - Model-Based RL

@@ -1,6 +1,6 @@
 ---
 title: "Operating System Fundamentals: A Deep Dive"
-date: 2024-10-20 09:00:00
+date: 2022-08-01 09:00:00
 tags:
   - Operating System
   - Linux

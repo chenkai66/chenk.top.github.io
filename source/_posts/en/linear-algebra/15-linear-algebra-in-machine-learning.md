@@ -1,6 +1,6 @@
 ---
 title: "Essence of Linear Algebra (15): Linear Algebra in Machine Learning"
-date: 2025-03-12 09:00:00
+date: 2025-04-09 09:00:00
 tags:
   - Linear Algebra
   - PCA

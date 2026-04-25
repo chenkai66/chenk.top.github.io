@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (5): Embedding and Representation Learning"
-date: 2025-10-31 09:00:00
+date: 2025-12-13 09:00:00
 tags:
   - Recommendation Systems
   - Embedding

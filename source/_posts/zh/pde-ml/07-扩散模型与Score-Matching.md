@@ -1,6 +1,6 @@
 ---
 title: "PDE与机器学习（七）：扩散模型与Score Matching"
-date: 2024-10-31 09:00:00
+date: 2024-07-30 09:00:00
 tags:
   - 扩散模型
   - Score Matching

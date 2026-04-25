@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (16): Fundamentals of Control Theory"
-date: 2024-09-13 09:00:00
+date: 2024-03-12 09:00:00
 tags:
   - Ordinary Differential Equations
   - Control Theory

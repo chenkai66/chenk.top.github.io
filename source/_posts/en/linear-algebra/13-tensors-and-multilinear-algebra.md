@@ -1,6 +1,6 @@
 ---
 title: "Essence of Linear Algebra (13): Tensors and Multilinear Algebra"
-date: 2025-03-04 09:00:00
+date: 2025-03-26 09:00:00
 tags:
   - Linear Algebra
   - tensor decomposition

@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (7): N-BEATS -- Interpretable Deep Architecture"
-date: 2024-12-15 09:00:00
+date: 2024-11-30 09:00:00
 tags:
   - Time Series
   - Deep Learning

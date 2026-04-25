@@ -1,6 +1,6 @@
 ---
 title: "Learning Rate: From Basics to Large-Scale Training"
-date: 2024-06-11 09:00:00
+date: 2023-03-13 09:00:00
 tags:
   - ML
   - Optimization

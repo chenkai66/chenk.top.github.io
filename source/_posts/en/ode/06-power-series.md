@@ -1,6 +1,6 @@
 ---
 title: "ODE Chapter 6: Linear Systems and the Matrix Exponential"
-date: 2024-08-04 09:00:00
+date: 2023-09-24 09:00:00
 tags:
   - ODE
   - Linear Systems

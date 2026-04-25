@@ -1,6 +1,6 @@
 ---
 title: "阿里云 PAI 实战（五）：Designer vs QuickStart——GUI 什么时候真值钱"
-date: 2026-04-29 09:00:00
+date: 2026-03-09 09:00:00
 tags:
   - 阿里云 PAI
   - 机器学习

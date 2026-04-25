@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 5: BERT and Pretrained Models"
-date: 2025-08-31 09:00:00
+date: 2025-10-21 09:00:00
 tags:
   - NLP
   - BERT

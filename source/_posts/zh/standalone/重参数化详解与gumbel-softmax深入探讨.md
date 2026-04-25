@@ -1,6 +1,6 @@
 ---
 title: "重参数化技巧与 Gumbel-Softmax 详解"
-date: 2024-12-30 09:00:00
+date: 2024-01-22 09:00:00
 tags:
   - ML
   - Deep Learning

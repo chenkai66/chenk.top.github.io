@@ -1,6 +1,6 @@
 ---
 title: "NLP (10): RAG and Knowledge Enhancement Systems"
-date: 2025-09-20 09:00:00
+date: 2025-11-15 09:00:00
 tags:
   - NLP
   - RAG

@@ -1,6 +1,6 @@
 ---
 title: "Reinforcement Learning (1): Fundamentals and Core Concepts"
-date: 2025-06-15 09:00:00
+date: 2025-08-01 09:00:00
 tags:
   - Reinforcement Learning
   - MDP

@@ -1,6 +1,6 @@
 ---
 title: "Transfer Learning (1): Fundamentals and Core Concepts"
-date: 2025-04-15 09:00:00
+date: 2025-05-01 09:00:00
 tags:
   - Deep Learning
   - Transfer Learning

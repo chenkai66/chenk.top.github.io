@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (7): Graph Neural Networks and Social Recommendation"
-date: 2025-11-08 09:00:00
+date: 2025-12-19 09:00:00
 tags:
   - Recommendation Systems
   - GNN

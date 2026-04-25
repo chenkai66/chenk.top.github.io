@@ -1,6 +1,6 @@
 ---
 title: "ML Math Derivations (18): Clustering Algorithms"
-date: 2026-03-24 09:00:00
+date: 2026-02-06 09:00:00
 tags:
   - Machine Learning
   - Clustering

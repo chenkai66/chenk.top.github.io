@@ -1,5 +1,5 @@
 ---
-date: 2025-04-17 09:00:00
+date: 2022-12-07 09:00:00
 title: "Solving Constrained Mean-Variance Portfolio Optimization Problems Using Spiral Optimization Algorithm"
 tags:
   - 约束优化

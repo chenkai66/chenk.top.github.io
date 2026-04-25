@@ -1,6 +1,6 @@
 ---
 title: "ODE Chapter 8: Nonlinear Systems and Phase Portraits"
-date: 2024-08-12 09:00:00
+date: 2023-10-28 09:00:00
 tags:
   - ODE
   - Nonlinear Systems

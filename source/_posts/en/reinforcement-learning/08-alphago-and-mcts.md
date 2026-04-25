@@ -1,6 +1,6 @@
 ---
 title: "Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search"
-date: 2025-07-13 09:00:00
+date: 2025-09-05 09:00:00
 tags:
   - Reinforcement Learning
   - AlphaGo

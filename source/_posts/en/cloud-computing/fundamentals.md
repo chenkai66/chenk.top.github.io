@@ -1,6 +1,6 @@
 ---
 title: "Cloud Computing Fundamentals and Architecture"
-date: 2024-06-01 09:00:00
+date: 2023-02-01 09:00:00
 tags:
   - Cloud Computing
   - IaaS

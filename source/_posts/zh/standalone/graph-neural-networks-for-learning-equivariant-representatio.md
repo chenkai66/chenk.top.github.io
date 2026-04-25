@@ -1,6 +1,6 @@
 ---
 title: "Graph Neural Networks for Learning Equivariant Representations of Neural Networks"
-date: 2024-03-10 09:00:00
+date: 2022-06-14 09:00:00
 tags:
   - 神经网络表示
   - GNN

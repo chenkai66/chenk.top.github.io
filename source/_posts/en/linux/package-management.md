@@ -1,6 +1,6 @@
 ---
 title: "Linux Package Management: apt, dnf, pacman, and Building from Source"
-date: 2024-01-30 09:00:00
+date: 2022-02-09 09:00:00
 tags:
   - Linux
   - Cloud

@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (14): Variational Inference and Variational EM"
-date: 2026-03-08 09:00:00
+date: 2026-02-02 09:00:00
 categories:
   - Machine Learning
 tags:

@@ -1,6 +1,6 @@
 ---
 title: "Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods"
-date: 2025-06-23 09:00:00
+date: 2025-08-11 09:00:00
 tags:
   - Reinforcement Learning
   - Policy Gradient

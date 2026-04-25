@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (12): Large Language Models and Recommendation"
-date: 2025-11-28 09:00:00
+date: 2026-01-03 09:00:00
 tags:
   - Recommendation Systems
   - LLM

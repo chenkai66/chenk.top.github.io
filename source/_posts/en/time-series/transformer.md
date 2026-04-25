@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (5): Transformer Architecture for Time Series"
-date: 2024-12-05 09:00:00
+date: 2024-10-31 09:00:00
 tags:
   - Time Series
   - Deep Learning

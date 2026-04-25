@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (10): Semi-Naive Bayes and Bayesian Networks"
-date: 2026-02-20 09:00:00
+date: 2026-01-29 09:00:00
 tags:
   - Machine Learning
   - Semi-Naive Bayes

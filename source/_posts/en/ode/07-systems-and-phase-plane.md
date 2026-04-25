@@ -1,6 +1,6 @@
 ---
 title: "ODE Chapter 7: Stability Theory"
-date: 2024-08-08 09:00:00
+date: 2023-10-11 09:00:00
 tags:
   - ODE
   - Stability

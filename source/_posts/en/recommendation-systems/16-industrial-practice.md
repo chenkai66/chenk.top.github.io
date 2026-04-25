@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (16): Industrial Architecture and Best Practices"
-date: 2025-12-14 09:00:00
+date: 2026-01-15 09:00:00
 tags:
   - Recommendation Systems
   - Industrial Practice

@@ -1,6 +1,6 @@
 ---
 title: "Symplectic Geometry and Structure-Preserving Neural Networks"
-date: 2025-05-13 09:00:00
+date: 2025-06-21 09:00:00
 tags:
   - PDE
   - Machine Learning

@@ -1,6 +1,6 @@
 ---
 title: "Singular Value Decomposition -- The Crown Jewel of Linear Algebra"
-date: 2025-02-16 09:00:00
+date: 2025-02-26 09:00:00
 tags:
   - Linear Algebra
   - SVD

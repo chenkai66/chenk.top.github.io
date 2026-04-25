@@ -1,6 +1,6 @@
 ---
 title: "AI Agents Complete Guide: From Theory to Industrial Practice"
-date: 2024-02-11 09:00:00
+date: 2025-12-31 09:00:00
 tags:
   - LLM
   - AI Agents

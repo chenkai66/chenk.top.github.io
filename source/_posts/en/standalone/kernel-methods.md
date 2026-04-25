@@ -1,6 +1,6 @@
 ---
 title: "Kernel Methods: From Theory to Practice (RKHS, Common Kernels, and Hyperparameter Tuning)"
-date: 2024-04-23 09:00:00
+date: 2023-10-15 09:00:00
 tags:
   - ML
   - Optimization

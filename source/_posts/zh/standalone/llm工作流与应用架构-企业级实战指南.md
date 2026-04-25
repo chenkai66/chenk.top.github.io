@@ -1,6 +1,6 @@
 ---
 title: "LLM 工作流与应用架构：企业级实战指南"
-date: 2024-05-09 09:00:00
+date: 2023-12-22 09:00:00
 tags:
   - Workflow
   - Architecture

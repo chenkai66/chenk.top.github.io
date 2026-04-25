@@ -1,6 +1,6 @@
 ---
 title: "Essence of Linear Algebra (17): Linear Algebra in Computer Vision"
-date: 2025-03-20 09:00:00
+date: 2025-04-23 09:00:00
 tags:
   - Linear Algebra
   - computer vision

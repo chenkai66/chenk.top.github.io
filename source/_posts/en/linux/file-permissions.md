@@ -1,6 +1,6 @@
 ---
 title: "Linux File Permissions: rwx, chmod, chown, and Beyond"
-date: 2024-01-20 09:00:00
+date: 2022-01-14 09:00:00
 tags:
   - Linux
   - Cloud
