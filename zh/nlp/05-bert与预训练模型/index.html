@@ -1,342 +1,912 @@
-<!doctype html><html lang=zh data-translation=/en/nlp/bert-pretrained-models/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>自然语言处理（五）：BERT与预训练模型 · Chen Kai Blog</title>
-<meta name=description content="BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/nlp/bert-pretrained-models/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><meta property="og:type" content="article"><meta property="og:title" content="自然语言处理（五）：BERT与预训练模型"><meta property="og:description" content="BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。"><meta property="og:url" content="https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><meta property="og:image:alt" content="自然语言处理（五）：BERT与预训练模型"><meta property="article:published_time" content="2025-10-21T09:00:00Z"><meta property="article:modified_time" content="2025-10-21T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="NLP"><meta property="article:tag" content="BERT"><meta property="article:tag" content="深度学习"><meta property="article:tag" content="迁移学习"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="自然语言处理（五）：BERT与预训练模型"><meta name=twitter:description content="BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"自然语言处理（五）：BERT与预训练模型\"","description":"\"BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2025-10-21T09:00:00Z\"","dateModified":"\"2025-10-21T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.48695d4598bb53d567624582a86242920731127cc2ae5a4c8eced847d39abcee.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
-<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
-<a href=/zh/series/>Series</a>
-<a href=/zh/projects/>Projects</a>
-<a href=/zh/archives/>Archives</a>
-<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
-<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<!DOCTYPE html>
+
+<html lang="zh-CN" data-theme="light" data-page-lang="zh-CN" data-translation="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <meta name="description" content="BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。">
+  <meta name="author" content="Chen Kai">
+  <meta name="generator" content="Hexo">
+  <title>自然语言处理（五）：BERT与预训练模型 | Chen Kai Blog</title>
+
+  <!-- Preload critical fonts -->
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" as="style">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="自然语言处理（五）：BERT与预训练模型">
+  <meta property="og:description" content="BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。">
+  <meta property="og:url" content="/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/">
+  <meta property="og:site_name" content="Chen Kai Blog">
+  
+  
+  <meta property="article:published_time" content="2025-08-31">
+  <meta property="article:author" content="Chen Kai">
+  
+  <meta property="article:section" content="自然语言处理">
+  
+  
+  <meta property="article:tag" content="NLP">
+  
+  <meta property="article:tag" content="BERT">
+  
+  <meta property="article:tag" content="深度学习">
+  
+  <meta property="article:tag" content="迁移学习">
+  
+  
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="自然语言处理（五）：BERT与预训练模型">
+  <meta name="twitter:description" content="BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。">
+  
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://www.chenk.top/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/">
+
+  <!-- RSS / Atom Feed -->
+  <link rel="alternate" href="/atom.xml" title="Chen Kai Blog" type="application/atom+xml">
+  <link rel="alternate" href="/rss2.xml" title="Chen Kai Blog" type="application/rss+xml">
+
+  <!-- Sitemap -->
+  <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+
+  <!-- Favicon -->
+  <link rel="shortcut icon" href="/images/logo.svg">
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+  <!-- Stylesheets -->
+  
+<link rel="stylesheet" href="/css/main.css">
+
+  
+<link rel="stylesheet" href="/css/article.css">
+
+  
+<link rel="stylesheet" href="/css/code.css">
+
+
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  
+
+  
+  <!-- JSON-LD Structured Data for Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "自然语言处理（五）：BERT与预训练模型",
+    "description": "BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。",
+    "datePublished": "2025-08-31",
+    "dateModified": "2026-05-06",
+    "author": {
+      "@type": "Person",
+      "name": "Chen Kai",
+      "url": "https://www.chenk.top"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Chen Kai Blog",
+      "url": "https://www.chenk.top"
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://www.chenk.top/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/"
+    },
+    "wordCount": "5.1k"
+  }
+  </script>
+  
+
+  <!-- Theme initialization (prevent FOUC) -->
+  <script>
+    (function(){
+      var t = localStorage.getItem('theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+<style>mjx-container[jax="SVG"] {
+  direction: ltr;
+}
+
+mjx-container[jax="SVG"] > svg {
+  overflow: visible;
+}
+
+mjx-container[jax="SVG"][display="true"] {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+}
+
+mjx-container[jax="SVG"][justify="left"] {
+  text-align: left;
+}
+
+mjx-container[jax="SVG"][justify="right"] {
+  text-align: right;
+}
+
+g[data-mml-node="merror"] > g {
+  fill: red;
+  stroke: red;
+}
+
+g[data-mml-node="merror"] > rect[data-background] {
+  fill: yellow;
+  stroke: none;
+}
+
+g[data-mml-node="mtable"] > line[data-line] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > rect[data-frame] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > .mjx-dashed {
+  stroke-dasharray: 140;
+}
+
+g[data-mml-node="mtable"] > .mjx-dotted {
+  stroke-linecap: round;
+  stroke-dasharray: 0,140;
+}
+
+g[data-mml-node="mtable"] > svg {
+  overflow: visible;
+}
+
+[jax="SVG"] mjx-tool {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+[jax="SVG"] mjx-tool > mjx-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+mjx-tool > mjx-tip {
+  display: inline-block;
+  padding: .2em;
+  border: 1px solid #888;
+  font-size: 70%;
+  background-color: #F8F8F8;
+  color: black;
+  box-shadow: 2px 2px 5px #AAAAAA;
+}
+
+g[data-mml-node="maction"][data-toggle] {
+  cursor: pointer;
+}
+
+mjx-status {
+  display: block;
+  position: fixed;
+  left: 1em;
+  bottom: 1em;
+  min-width: 25%;
+  padding: .2em .4em;
+  border: 1px solid #888;
+  font-size: 90%;
+  background-color: #F8F8F8;
+  color: black;
+}
+
+foreignObject[data-mjx-xml] {
+  font-family: initial;
+  line-height: normal;
+  overflow: visible;
+}
+
+.MathJax path {
+  stroke-width: 3;
+}
+
+mjx-container[display="true"] {
+  overflow: auto hidden;
+}
+
+mjx-container[display="true"] + br {
+  display: none;
+}
+</style></head>
+<body>
+  <header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="site-logo">
+      <span class="logo-text">Chen Kai Blog</span>
+    </a>
+
+    <nav class="main-nav">
+      <a href="/" class="nav-link" data-i18n="nav.home">Home</a>
+      <a href="/series/" class="nav-link" data-i18n="nav.series">Series</a>
+      <a href="/projects/" class="nav-link" data-i18n="nav.projects">Projects</a>
+      <a href="/archives/" class="nav-link" data-i18n="nav.archives">Archives</a>
+      <a href="/about/" class="nav-link" data-i18n="nav.about">About</a>
+    </nav>
+
+    <div class="header-actions">
+      
+      <button class="lang-switcher" id="lang-switcher" aria-label="Switch language">
+        <span class="lang-label" id="lang-label">EN</span>
+      </button>
+      
+
+      
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      
+
+      
+      <button class="search-toggle" id="search-toggle" aria-label="Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+      
+
+      <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-container">
+      <div style="position: relative;">
+        <input type="text" class="search-input" id="search-input" placeholder="Search articles..." data-i18n-attr="placeholder:search.placeholder" autocomplete="off">
+        <div class="search-kbd" id="search-kbd-hint">
+          <kbd>Esc</kbd>
+        </div>
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+  </div>
+  
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div class="mobile-drawer-overlay" id="mobile-drawer-overlay"></div>
+<nav class="mobile-drawer" id="mobile-drawer">
+  <div class="mobile-drawer-header">
+    <span class="mobile-drawer-title">Chen Kai Blog</span>
+    <button class="mobile-drawer-close" id="mobile-drawer-close" aria-label="Close menu">&times;</button>
+  </div>
+  <div class="mobile-drawer-nav">
+    <a href="/" class="" data-i18n="nav.home">Home</a>
+    <a href="/series/" class="" data-i18n="nav.series">Series</a>
+    <a href="/projects/" class="" data-i18n="nav.projects">Projects</a>
+    <a href="/archives/" class="" data-i18n="nav.archives">Archives</a>
+    <a href="/about/" class="" data-i18n="nav.about">About</a>
+  </div>
+  <div class="mobile-drawer-actions">
+    
+    <button id="mobile-theme-toggle" aria-label="Toggle dark mode">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Theme
+    </button>
+    
+    
+    <button id="mobile-lang-switcher" aria-label="Switch language">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span id="mobile-lang-label">EN</span>
+    </button>
+    
+  </div>
+</nav>
+
+
+  
+  <div class="reading-progress" id="reading-progress"></div>
+  
+
+  <main class="main-content">
+    
+<article class="article-page">
+  <div class="article-layout has-both-sidebars">
+    <!-- Series Sidebar (left) -->
+    
+    <aside class="series-sidebar" id="series-sidebar">
+      <div class="series-sidebar-inner">
+        <h4 class="series-sidebar-title">自然语言处理</h4>
+        <p class="series-sidebar-progress">Part 5 of 12</p>
+        <div class="series-progress-bar">
+          <div class="series-progress-fill" style="width: 41.66666666666667%"></div>
+        </div>
+        <nav class="series-chapter-list">
+          <!-- Series chapters populated by JS or by listing related posts -->
+        </nav>
+      </div>
+    </aside>
+    
+
+    <!-- Article Content (center) -->
+    <div class="article-main">
+      <!-- Breadcrumb Navigation -->
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/" data-i18n="nav.home">Home</a>
+        <span class="breadcrumb-separator">&#9656;</span>
+        
+          
+          <a href="/categories/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86/">自然语言处理</a>
+          <span class="breadcrumb-separator">&#9656;</span>
+        
+        <span class="breadcrumb-current">自然语言处理（五）：BERT与预训练模型</span>
+      </nav>
+
+      <header class="article-header">
+        
+        <div class="article-category">
+          
+            <a href="/categories/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86/">自然语言处理</a>
+          
+        </div>
+        
+
+        <h1 class="article-title">自然语言处理（五）：BERT与预训练模型</h1>
+
+        <div class="article-meta">
+          <time datetime="2025-08-31">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            八月 31, 2025
+          </time>
+          
+          <span class="update-time" title="Last updated">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Updated 5月 06, 2026
+          </span>
+          
+          
+          <span class="reading-time" data-auto-reading>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span class="rt-num">—</span> <span data-i18n="post.minRead">min read</span>
+          </span>
+          
+          
+          <span class="word-count" data-auto-wordcount>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+            <span class="wc-num">—</span> <span data-i18n="post.words">words</span>
+          </span>
+          
+        </div>
+
+        
+        <p class="article-description">BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。</p>
+        
+      </header>
+
+      <div class="article-content markdown-body">
+        <p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/illustration_1.jpg" alt="概念示意图"></p>
+<p>2018 年 10 月，Google 推出 BERT，在 11 个 NLP 基准测试中一举刷新纪录。方法极其简洁：使用一个 Transformer 编码器，根据上下文左右两侧预测随机遮盖的词；预训练完成后，针对各类下游任务进行轻量微调即可。在 BERT 出现之前，每个任务都需要从零开始训练模型；BERT 之后，“先预训练，再微调”成为整个领域的标准范式。</p>
+<p>过去几年里，如果你用过情感分析 API、能理解意图的搜索引擎，或者稍微靠谱的客服机器人，背后大概率是 BERT 或其某个改进版本在发挥作用。</p>
+<h2 id="这一篇你会学到"><a class="header-anchor" href="#这一篇你会学到">¶</a>这一篇你会学到</h2>
+<ul>
+<li>预训练范式的演进：Word2Vec → ELMo → GPT-1 → BERT</li>
+<li>BERT 的架构：以 WordPiece 输入的双向 Transformer 编码器</li>
+<li>掩码语言建模（MLM）与下一句预测（NSP），以及 80/10/10 比例的原因</li>
+<li>BERT 微调到分类、NER、问答、句对任务的具体方法</li>
+<li>BERT 家族：RoBERTa、ALBERT、ELECTRA 的设计取舍</li>
+<li>真实可用的微调配方（学习率、warmup、梯度累积）</li>
+<li>一份可直接 copy-paste 的完整 HuggingFace 流水线</li>
+</ul>
+<p><strong>前置知识</strong>：第 4 部分（Transformer 架构）以及基本的 PyTorch 使用经验。</p>
+<hr>
+<h2 id="预训练-微调范式是怎么火起来的"><a class="header-anchor" href="#预训练-微调范式是怎么火起来的">¶</a>预训练-微调范式是怎么火起来的</h2>
+<p>BERT 之前，每个 NLP 任务都从随机初始化模型起步，用少量标注数据从零训练。这种方式昂贵（算力成本高）、浪费（任务间不共享知识），而且脆弱（数据不足时模型性能波动大）。整个领域如何摆脱这个困境，可以归结为四个里程碑式的工作。</p>
+<h3 id="一段简短的演进史"><a class="header-anchor" href="#一段简短的演进史">¶</a>一段简短的演进史</h3>
+<p><strong>Word2Vec（2013）</strong>：从无标注文本中学习静态词向量。问题在于，"bank"在 <em>river bank</em> 和 <em>bank account</em> 中得到的向量完全相同——上下文无法改变一个词的含义。</p>
+<p><strong>ELMo（2018 年初）</strong>：通过双向 LSTM 生成上下文相关的向量，最后对每一层的隐藏状态加权求和：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mtext>ELMo</mtext><mi>k</mi></msub><mo>=</mo><mi>γ</mi><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>0</mn></mrow><mi>L</mi></munderover><msub><mi>s</mi><mi>j</mi></msub><mtext> </mtext><msub><mi>h</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\text{ELMo}_k = \gamma \sum_{j=0}^{L} s_j \, h_{k,j}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord text"><span class="mord">ELMo</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:3.2421em;vertical-align:-1.4138em;"></span><span class="mord mathnormal" style="margin-right:0.0556em;">γ</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8283em;"><span style="top:-1.8723em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span><span class="mrel mtight">=</span><span class="mord mtight">0</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">L</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.4138em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span></span></p>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">h_{k,j}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9805em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 是第 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.854em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0572em;">j</span></span></span></span> 层在位置 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span> 的隐藏状态，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">s_j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 是可学习的 softmax 权重。ELMo 的结果证明了"上下文相关的预训练表示"对几乎所有下游任务都有显著提升——但它仍是 RNN，训练慢且难以并行。</p>
+<p><strong>GPT-1（2018 年 6 月）</strong>：首次将 Transformer 用于规模化预训练，目标函数是从左到右的标准语言模型：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><msub><mi>w</mi><mn>1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>w</mi><mi>n</mi></msub><mo stretchy="false">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>P</mi><mo stretchy="false">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>w</mi><mn>1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>w</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">P(w_1, \ldots, w_n) = \prod_{i=1}^{n} P(w_i \mid w_1, \ldots, w_{i-1})
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.9291em;vertical-align:-1.2777em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.6514em;"><span style="top:-1.8723em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∏</span></span></span><span style="top:-4.3em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.2777em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></span></p>
+<p>GPT-1 表现已经很强，但它是单向的：读到 "the bank is closed" 时，模型在 "bank" 这个位置还未看到 "closed"，因此无法利用 "closed" 消除"银行 / 河岸"的歧义。</p>
+<p><strong>BERT（2018 年 10 月）</strong>：突破点是将预训练目标改造成允许每个位置同时看到双向上下文。这一个改动直接带来了横扫所有任务的性能提升。</p>
+<h3 id="为什么这个范式重要"><a class="header-anchor" href="#为什么这个范式重要">¶</a>为什么这个范式重要</h3>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig4_finetune_pipeline.png" alt="预训练一次，微调到各种任务"></p>
+<p>整个流程分为两步：</p>
+<ol>
+<li><strong>预训练</strong>：在海量无标注文本（书籍、维基百科、整个互联网）上用自监督任务训练。这一步成本高，但只需做一次。</li>
+<li><strong>微调</strong>：在每个下游任务上添加一个小型"任务头"，用小学习率端到端微调几轮。</li>
+</ol>
+<p>收益显而易见：</p>
+<ul>
+<li><strong>数据效率高</strong>：底座模型已掌握语法和不少常识，每个任务只需几百到几千条标注即可取得不错的结果。</li>
+<li><strong>通用性强</strong>：同一个底座既能处理分类，也能完成标注、抽取、句对任务。</li>
+<li><strong>基线强大</strong>：朴素的 BERT 微调往往就能超越过去复杂的定制化架构。</li>
+</ul>
+<hr>
+<h2 id="BERT-的架构"><a class="header-anchor" href="#BERT-的架构">¶</a>BERT 的架构</h2>
+<p>BERT 是原始 Transformer 的<strong>编码器</strong>部分，堆叠 12 层或 24 层。没有解码器，没有 causal mask，也不做自回归生成——它就是一叠双向自注意力层，将 token 序列转化为"懂上下文"的向量。</p>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig1_bert_architecture.png" alt="BERT 双向编码器与输入嵌入"></p>
+<h3 id="输入表示：三个嵌入相加"><a class="header-anchor" href="#输入表示：三个嵌入相加">¶</a>输入表示：三个嵌入相加</h3>
+<p>每个 token 的输入向量是三个同维度嵌入的和：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mtext>Input</mtext><mi>i</mi></msub><mo>=</mo><msubsup><mi>E</mi><msub><mi>w</mi><mi>i</mi></msub><mtext>tok</mtext></msubsup><mo>+</mo><msubsup><mi>E</mi><msub><mi>s</mi><mi>i</mi></msub><mtext>seg</mtext></msubsup><mo>+</mo><msubsup><mi>E</mi><mi>i</mi><mtext>pos</mtext></msubsup></mrow><annotation encoding="application/x-tex">\text{Input}_i = E^{\text{tok}}_{w_i} + E^{\text{seg}}_{s_i} + E^{\text{pos}}_{i}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9275em;vertical-align:-0.2441em;"></span><span class="mord"><span class="mord text"><span class="mord">Input</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2175em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.2462em;vertical-align:-0.3471em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8991em;"><span style="top:-2.453em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:-0.0269em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">tok</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3471em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.0615em;vertical-align:-0.3471em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-2.453em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">seg</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3471em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.0592em;vertical-align:-0.2769em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7823em;"><span style="top:-2.4231em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span style="top:-3.1809em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">pos</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2769em;"><span></span></span></span></span></span></span></span></span></span></span></p>
+<ul>
+<li><strong>Token 嵌入</strong>：WordPiece 子词 id，词表大小 30K。</li>
+<li><strong>Segment 嵌入</strong>：第一句用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>E</mi><mi>A</mi></msub></mrow><annotation encoding="application/x-tex">E_A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">A</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，第二句用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>E</mi><mi>B</mi></msub></mrow><annotation encoding="application/x-tex">E_B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0502em;">B</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>。这让 BERT 不改架构就能处理 NLI、QA 等句对任务。</li>
+<li><strong>Position 嵌入</strong>：从 0 到 511 每个绝对位置对应一个<strong>可学习</strong>向量。（不同于原始 Transformer 的正余弦位置，BERT 自己学习。）</li>
+</ul>
+<p>两个特殊 token 是整个协议的关键：</p>
+<ul>
+<li><code>[CLS]</code> 放在输入开头。所有层走完后，它的隐藏状态被当作整段序列的"池化摘要"，送入分类头。</li>
+<li><code>[SEP]</code> 用于分隔句子 A 和 B，也标记输入结束。</li>
+</ul>
+<h3 id="双向自注意力"><a class="header-anchor" href="#双向自注意力">¶</a>双向自注意力</h3>
+<p>每一层编码器内部，多头自注意力让每个 token 都能看到所有其他 token：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mtext>Attention</mtext><mo stretchy="false">(</mo><mi>Q</mi><mo separator="true">,</mo><mi>K</mi><mo separator="true">,</mo><mi>V</mi><mo stretchy="false">)</mo><mo>=</mo><mtext>softmax</mtext><mtext> ⁣</mtext><mrow><mo fence="true">(</mo><mfrac><mrow><mi>Q</mi><msup><mi>K</mi><mi mathvariant="normal">⊤</mi></msup></mrow><msqrt><msub><mi>d</mi><mi>k</mi></msub></msqrt></mfrac><mo fence="true">)</mo></mrow><mi>V</mi></mrow><annotation encoding="application/x-tex">\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord text"><span class="mord">Attention</span></span><span class="mopen">(</span><span class="mord mathnormal">Q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.4761em;vertical-align:-0.95em;"></span><span class="mord text"><span class="mord">softmax</span></span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size3">(</span></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.5261em;"><span style="top:-2.2528em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord sqrt"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8572em;"><span class="svg-align" style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord" style="padding-left:0.833em;"><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span><span style="top:-2.8172em;"><span class="pstrut" style="height:3em;"></span><span class="hide-tail" style="min-width:0.853em;height:1.08em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="1.08em" viewBox="0 0 400000 1080" preserveAspectRatio="xMinYMin slice"><path d="M95,702
+c-2.7,0,-7.17,-2.7,-13.5,-8c-5.8,-5.3,-9.5,-10,-9.5,-14
+c0,-2,0.3,-3.3,1,-4c1.3,-2.7,23.83,-20.7,67.5,-54
+c44.2,-33.3,65.8,-50.3,66.5,-51c1.3,-1.3,3,-2,5,-2c4.7,0,8.7,3.3,12,10
+s173,378,173,378c0.7,0,35.3,-71,104,-213c68.7,-142,137.5,-285,206.5,-429
+c69,-144,104.5,-217.7,106.5,-221
+l0 -0
+c5.3,-9.3,12,-14,20,-14
+H400000v40H845.2724
+s-225.272,467,-225.272,467s-235,486,-235,486c-2.7,4.7,-9,7,-19,7
+c-6,0,-10,-1,-12,-3s-194,-422,-194,-422s-65,47,-65,47z
+M834 80h400000v40h-400000z"></path></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1828em;"><span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal">Q</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">⊤</span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.93em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size3">)</span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span></span></span></span></span></p>
+<p>关键点在于：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Q</mi></mrow><annotation encoding="application/x-tex">Q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">Q</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi></mrow><annotation encoding="application/x-tex">K</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi></mrow><annotation encoding="application/x-tex">V</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span></span></span></span> 都来自同一段输入（自注意力），并且<strong>没有 causal mask</strong>（双向）。因此，位置 3 上的 "bank" 在一次前向中能同时整合左边的 "river" 和右边的 "is closed"。</p>
+<h3 id="两种规格"><a class="header-anchor" href="#两种规格">¶</a>两种规格</h3>
+<p>原文提供了两个沿用至今的配置：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>BERT-Base</th>
+<th>BERT-Large</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>层数</td>
+<td>12</td>
+<td>24</td>
+</tr>
+<tr>
+<td>隐藏维度</td>
+<td>768</td>
+<td>1024</td>
+</tr>
+<tr>
+<td>注意力头数</td>
+<td>12</td>
+<td>16</td>
+</tr>
+<tr>
+<td>参数量</td>
+<td>1.1 亿</td>
+<td>3.4 亿</td>
+</tr>
+</tbody>
+</table>
+<p>BERT-Base 能在一张消费级 GPU 上推理。BERT-Large 是 2018 年那批 SOTA 纪录的主力。</p>
+<h2 id="预训练目标"><a class="header-anchor" href="#预训练目标">¶</a>预训练目标</h2>
+<p>BERT 的预训练结合了两个自监督任务。第一个任务广为人知，第二个任务后来被证明可有可无。</p>
+<h3 id="掩码语言建模（MLM）"><a class="header-anchor" href="#掩码语言建模（MLM）">¶</a>掩码语言建模（MLM）</h3>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig2_mlm_corruption.png" alt="MLM 的 80/10/10 损坏规则"></p>
+<p>对每条输入序列，随机选择 15% 的位置。选中的位置按以下概率处理：</p>
+<ul>
+<li><strong>80%</strong> 的概率替换为 <code>[MASK]</code>；</li>
+<li><strong>10%</strong> 的概率替换为词表中<strong>随机</strong>的一个 token；</li>
+<li><strong>10%</strong> 的概率<strong>保持不变</strong>。</li>
+</ul>
+<p>模型的任务是预测每个被选中位置的<strong>原始</strong>词：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mtext>MLM</mtext></msub><mo>=</mo><mo>−</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi mathvariant="script">M</mi></mrow></munder><mi>log</mi><mo>⁡</mo><mi>P</mi><mo stretchy="false">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>∣</mo><mover accent="true"><mi>x</mi><mo>~</mo></mover><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{L}_{\text{MLM}} = -\sum_{i \in \mathcal{M}} \log P(w_i \mid \tilde{x})
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">MLM</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.3717em;vertical-align:-1.3217em;"></span><span class="mord">−</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.8557em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">∈</span><span class="mord mathcal mtight">M</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.3217em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6679em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3.35em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">~</span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></span></p>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">M</mi></mrow><annotation encoding="application/x-tex">\mathcal{M}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathcal">M</span></span></span></span> 是被选中位置的集合，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>x</mi><mo>~</mo></mover></mrow><annotation encoding="application/x-tex">\tilde{x}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6679em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6679em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3.35em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">~</span></span></span></span></span></span></span></span></span></span> 是经过损坏的输入。</p>
+<p><strong>为什么采用 80/10/10 的比例？</strong> 这个比例经过精心设计，专门用来规避两种失败模式：</p>
+<ul>
+<li>如果只使用 <code>[MASK]</code>，模型在微调时将无法见到 <code>[MASK]</code>（下游真实输入中不会出现），导致训练与推理之间产生分布失配。</li>
+<li>如果只使用随机 token，模型会变得不信任任何输入，转而过度依赖远处信息。</li>
+<li>保留 10% 不变，是为了迫使模型即使看到一个“看似正常”的词，也不能直接复制输出——必须真正通过上下文进行判断。</li>
+</ul>
+<p>MLM 是让 BERT 实现“干净”双向建模的关键：要从左右两侧预测被遮掩的词，编码器必须在每个位置融合整段上下文。</p>
+<h3 id="下一句预测（NSP）"><a class="header-anchor" href="#下一句预测（NSP）">¶</a>下一句预测（NSP）</h3>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig3_nsp.png" alt="NSP：正例 vs 负例"></p>
+<p>加入 NSP 的初衷是让 BERT 学习句间关系，以便迁移到 NLI、QA 等任务。每条训练样本将两个句子打包成 <code>[CLS] A [SEP] B [SEP]</code>，标签通过抛硬币决定：</p>
+<ul>
+<li>50% 的样本中，B 是语料中紧跟 A 的下一句（标签 <code>IsNext</code>）；</li>
+<li>50% 的样本中，B 是从其他文档随机抽取的句子（标签 <code>NotNext</code>）。</li>
+</ul>
+<p>最后一层的 <code>[CLS]</code> 向量通过一个 Linear+softmax 头预测标签：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><mtext>IsNext</mtext><mo stretchy="false">)</mo><mo>=</mo><mtext>softmax</mtext><mo stretchy="false">(</mo><mi>W</mi><mtext> </mtext><msub><mi>h</mi><mtext>[CLS]</mtext></msub><mo>+</mo><mi>b</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">P(\text{IsNext}) = \text{softmax}(W \, h_{\text{[CLS]}} + b)
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord text"><span class="mord">IsNext</span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.1052em;vertical-align:-0.3552em;"></span><span class="mord text"><span class="mord">softmax</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.5198em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">[CLS]</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3552em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">b</span><span class="mclose">)</span></span></span></span></span></p>
+<p>预训练的总损失是 MLM 损失与 NSP 损失之和。</p>
+<blockquote>
+<p>这里有一段后来被打脸的历史：RoBERTa、ALBERT 等后续工作发现 NSP 的作用微乎其微，去掉甚至替换它反而效果更好。后面变体那一节会再讨论。</p>
+</blockquote>
+<h3 id="预训练语料"><a class="header-anchor" href="#预训练语料">¶</a>预训练语料</h3>
+<p>BERT 的训练数据包括 <strong>BooksCorpus</strong>（约 8 亿词）和 <strong>英文维基百科</strong>（约 25 亿词），总计约 33 亿词。从 2026 年的视角来看，这个数量可以忽略不计——现代 LLM 动辄上万亿 token——但在当时已经足以将基线提升到一个新高度。</p>
+<hr>
+<h2 id="WordPiece-分词"><a class="header-anchor" href="#WordPiece-分词">¶</a>WordPiece 分词</h2>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig6_wordpiece.png" alt="WordPiece 子词分词"></p>
+<p>BERT 不处理整词，而是采用 <strong>WordPiece</strong> 子词方案。这种方案在两个极端之间找到了平衡：</p>
+<ul>
+<li>整词词表要覆盖真实语料需要几百万词，推理时还难免遇到 OOV；</li>
+<li>纯字符词表虽小，但模型每次都需要从字符拼出"词义"，效率很低。</li>
+</ul>
+<p>WordPiece 的策略是贪心地合并那些"合并后能最大化训练语料似然"的字符对，最终形成约 30K 个 token 的词表。分词时，将每个词切分为词表中能匹配的最长片段；位于词内部的片段统一加 <code>##</code> 前缀，作为"延续"标记：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">playing       -&gt; play  ##ing</span><br><span class="line">unbelievable  -&gt; un    ##bel  ##iev  ##able</span><br><span class="line">transformer   -&gt; transform  ##er</span><br><span class="line">Tokyo2024     -&gt; tokyo  ##20  ##24</span><br></pre></td></tr></table></figure>
+<p>这种方式既避免了 OOV（任何内容都能拆解为已知子词，最坏情况退化到单字符），又保留了常用词作为单 token 的高效性。</p>
+<h2 id="把-BERT-微调到下游任务"><a class="header-anchor" href="#把-BERT-微调到下游任务">¶</a>把 BERT 微调到下游任务</h2>
+<p>微调的核心思想是：<strong>底座几乎不变，换个头就能换任务</strong>。</p>
+<h3 id="文本分类"><a class="header-anchor" href="#文本分类">¶</a>文本分类</h3>
+<p>整句级标签（情感、垃圾邮件、意图识别）的做法是：把输入过一遍 BERT，取最终的 <code>[CLS]</code> 向量，再过一个线性层。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForSequenceClassification</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForSequenceClassification.from_pretrained(</span><br><span class="line">    <span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">2</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">text = <span class="string">"I love this movie!"</span></span><br><span class="line">inputs = tokenizer(text, return_tensors=<span class="string">'pt'</span>, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">prediction = torch.argmax(outputs.logits, dim=-<span class="number">1</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f"预测: <span class="subst">{prediction.item()}</span>"</span>)  <span class="comment"># 0 或 1</span></span><br></pre></td></tr></table></figure>
+<p>底层发生的事：</p>
+<ol>
+<li>分词，前后加上 <code>[CLS]</code> 和 <code>[SEP]</code>；</li>
+<li>过 12 层 Transformer 编码器；</li>
+<li>取 <code>[CLS]</code> 的隐藏状态（BERT-Base 是 768 维）；</li>
+<li>过一个 768 → num_labels 的线性层。</li>
+</ol>
+<h3 id="命名实体识别（NER）"><a class="header-anchor" href="#命名实体识别（NER）">¶</a>命名实体识别（NER）</h3>
+<p>token 级任务用每个位置的向量，而不是 <code>[CLS]</code>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForTokenClassification</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForTokenClassification.from_pretrained(</span><br><span class="line">    <span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">9</span>,  <span class="comment"># 例如 PER/ORG/LOC/MISC 的 BIO 标签 + O</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">text = <span class="string">"Barack Obama was born in Hawaii"</span></span><br><span class="line">inputs = tokenizer(text, return_tensors=<span class="string">'pt'</span>, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">predictions = torch.argmax(outputs.logits, dim=-<span class="number">1</span>)</span><br><span class="line">tokens = tokenizer.convert_ids_to_tokens(inputs[<span class="string">'input_ids'</span>][<span class="number">0</span>])</span><br><span class="line"><span class="keyword">for</span> token, pred <span class="keyword">in</span> <span class="built_in">zip</span>(tokens, predictions[<span class="number">0</span>]):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f"<span class="subst">{token}</span>: 标签 <span class="subst">{pred.item()}</span>"</span>)</span><br></pre></td></tr></table></figure>
+<p>一个细节：WordPiece 会把词切碎（"Hawaii" 也许整词不切，"Tokyo2024" 会被切成 3 个片段）。在把预测还原成"词级实体"时，惯用的做法是<strong>只取每个词第一个子词的预测</strong>，忽略后面的 <code>##</code> 续接片段。</p>
+<h3 id="抽取式问答"><a class="header-anchor" href="#抽取式问答">¶</a>抽取式问答</h3>
+<p>SQuAD 风格的 QA 是从上下文中预测答案 span 的起止位置：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForQuestionAnswering</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForQuestionAnswering.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line"></span><br><span class="line">question = <span class="string">"Where was Barack Obama born?"</span></span><br><span class="line">context = <span class="string">"Barack Obama was born in Hawaii in 1961."</span></span><br><span class="line"></span><br><span class="line">inputs = tokenizer(question, context, return_tensors=<span class="string">'pt'</span>,</span><br><span class="line">                   padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">start = torch.argmax(outputs.start_logits)</span><br><span class="line">end = torch.argmax(outputs.end_logits)</span><br><span class="line">answer = tokenizer.decode(inputs[<span class="string">'input_ids'</span>][<span class="number">0</span>][start:end + <span class="number">1</span>])</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f"答案: <span class="subst">{answer}</span>"</span>)</span><br></pre></td></tr></table></figure>
+<p>两个头都是建在每个 token 向量上的线性层，分别输出每个位置的 start logit 和 end logit。预测的 span 就是在 start ≤ end 的约束下，使 start + end logits 之和最大的那段连续区间。</p>
+<h3 id="句对分类（NLI、释义判定）"><a class="header-anchor" href="#句对分类（NLI、释义判定）">¶</a>句对分类（NLI、释义判定）</h3>
+<p>把两个句子用 <code>[SEP]</code> 拼起来，再用 <code>[CLS]</code> 头：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForSequenceClassification</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForSequenceClassification.from_pretrained(</span><br><span class="line">    <span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">3</span>,  <span class="comment"># 蕴含 / 中立 / 矛盾</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">premise = <span class="string">"A man is playing guitar"</span></span><br><span class="line">hypothesis = <span class="string">"Someone is making music"</span></span><br><span class="line"></span><br><span class="line">inputs = tokenizer(premise, hypothesis, return_tensors=<span class="string">'pt'</span>,</span><br><span class="line">                   padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">prediction = torch.argmax(outputs.logits, dim=-<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<p>注意架构上几乎没变：同一个 <code>BertForSequenceClassification</code> 类，单句和句对分类只靠分词方式的区别就能切换。</p>
+<hr>
+<h2 id="真正能跑通的微调配方"><a class="header-anchor" href="#真正能跑通的微调配方">¶</a>真正能跑通的微调配方</h2>
+<p>用几千条标注数据微调一个 1.1 亿参数的模型，和从头训练完全是两回事。直接套用从头训练 ResNet 的默认参数，会彻底破坏预训练权重。</p>
+<h3 id="学习率小一点，配上权重衰减"><a class="header-anchor" href="#学习率小一点，配上权重衰减">¶</a>学习率小一点，配上权重衰减</h3>
+<p>预训练权重已经位于一个不错的盆地中，目标是轻微调整，而不是粗暴地推翻重来。常见做法是使用 AdamW 加分组参数：bias 和 LayerNorm 不进行权重衰减，其他参数设置为 0.01 衰减：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> torch.optim <span class="keyword">import</span> AdamW</span><br><span class="line"></span><br><span class="line">no_decay = [<span class="string">"bias"</span>, <span class="string">"LayerNorm.weight"</span>]</span><br><span class="line">optimizer_grouped_parameters = [</span><br><span class="line">    {</span><br><span class="line">        <span class="string">"params"</span>: [p <span class="keyword">for</span> n, p <span class="keyword">in</span> model.named_parameters()</span><br><span class="line">                   <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">any</span>(nd <span class="keyword">in</span> n <span class="keyword">for</span> nd <span class="keyword">in</span> no_decay)],</span><br><span class="line">        <span class="string">"weight_decay"</span>: <span class="number">0.01</span>,</span><br><span class="line">    },</span><br><span class="line">    {</span><br><span class="line">        <span class="string">"params"</span>: [p <span class="keyword">for</span> n, p <span class="keyword">in</span> model.named_parameters()</span><br><span class="line">                   <span class="keyword">if</span> <span class="built_in">any</span>(nd <span class="keyword">in</span> n <span class="keyword">for</span> nd <span class="keyword">in</span> no_decay)],</span><br><span class="line">        <span class="string">"weight_decay"</span>: <span class="number">0.0</span>,</span><br><span class="line">    },</span><br><span class="line">]</span><br><span class="line">optimizer = AdamW(optimizer_grouped_parameters, lr=<span class="number">2e-5</span>)</span><br></pre></td></tr></table></figure>
+<h3 id="先-warmup-再线性衰减"><a class="header-anchor" href="#先-warmup-再线性衰减">¶</a>先 warmup 再线性衰减</h3>
+<p>即使学习率已经很小，第一步直接作用到随机初始化的新参数上仍然过于猛烈。Warmup 是在前 10% 的步数内将学习率线性提升，随后再线性降至 0：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> get_linear_schedule_with_warmup</span><br><span class="line"></span><br><span class="line">total_steps = <span class="built_in">len</span>(dataloader) * num_epochs</span><br><span class="line">scheduler = get_linear_schedule_with_warmup(</span><br><span class="line">    optimizer,</span><br><span class="line">    num_warmup_steps=<span class="built_in">int</span>(<span class="number">0.1</span> * total_steps),</span><br><span class="line">    num_training_steps=total_steps,</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<h3 id="显存不够就梯度累积"><a class="header-anchor" href="#显存不够就梯度累积">¶</a>显存不够就梯度累积</h3>
+<p>GPU 无法容纳 batch size 32 时，可以将其拆分为多个小 batch，累积梯度后统一更新：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">accumulation_steps = <span class="number">4</span></span><br><span class="line">optimizer.zero_grad()</span><br><span class="line"><span class="keyword">for</span> i, batch <span class="keyword">in</span> <span class="built_in">enumerate</span>(dataloader):</span><br><span class="line">    loss = model(**batch).loss / accumulation_steps</span><br><span class="line">    loss.backward()</span><br><span class="line">    <span class="keyword">if</span> (i + <span class="number">1</span>) % accumulation_steps == <span class="number">0</span>:</span><br><span class="line">        optimizer.step()</span><br><span class="line">        scheduler.step()</span><br><span class="line">        optimizer.zero_grad()</span><br></pre></td></tr></table></figure>
+<h3 id="默认配方"><a class="header-anchor" href="#默认配方">¶</a>默认配方</h3>
+<p>如果懒得思考，可以直接参考以下配置，大多数论文也是这么做的：</p>
+<table>
+<thead>
+<tr>
+<th>设置</th>
+<th>推荐值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学习率</td>
+<td>2e-5 ~ 5e-5</td>
+</tr>
+<tr>
+<td>Batch size</td>
+<td>16-32（显存不足时使用梯度累积）</td>
+</tr>
+<tr>
+<td>训练轮数</td>
+<td>2-4（BERT 微调收敛快，过多轮数容易过拟合）</td>
+</tr>
+<tr>
+<td>Warmup</td>
+<td>总步数的 10%</td>
+</tr>
+<tr>
+<td>最大序列长度</td>
+<td>128-512（越短越快，选择刚好能容纳输入的最小值）</td>
+</tr>
+<tr>
+<td>优化器</td>
+<td>AdamW，权重衰减 0.01；bias 与 LayerNorm 设为 0</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/illustration_2.jpg" alt="架构示意图"></p>
+<h2 id="一份完整的-HuggingFace-流水线"><a class="header-anchor" href="#一份完整的-HuggingFace-流水线">¶</a>一份完整的 HuggingFace 流水线</h2>
+<p>把上面这些拼到一起，下面是一份在 IMDB 情感数据集上端到端微调的代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> (</span><br><span class="line">    BertTokenizer, BertForSequenceClassification,</span><br><span class="line">    Trainer, TrainingArguments, DataCollatorWithPadding,</span><br><span class="line">)</span><br><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset</span><br><span class="line"></span><br><span class="line"><span class="comment"># 1. 加载数据和模型</span></span><br><span class="line">dataset = load_dataset(<span class="string">"imdb"</span>)</span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForSequenceClassification.from_pretrained(</span><br><span class="line">    <span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">2</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 分词</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">preprocess</span>(<span class="params">examples</span>):</span><br><span class="line">    <span class="keyword">return</span> tokenizer(examples[<span class="string">'text'</span>], truncation=<span class="literal">True</span>,</span><br><span class="line">                     padding=<span class="literal">True</span>, max_length=<span class="number">512</span>)</span><br><span class="line"></span><br><span class="line">tokenized = dataset.<span class="built_in">map</span>(preprocess, batched=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 训练配置</span></span><br><span class="line">training_args = TrainingArguments(</span><br><span class="line">    output_dir=<span class="string">'./results'</span>,</span><br><span class="line">    num_train_epochs=<span class="number">3</span>,</span><br><span class="line">    per_device_train_batch_size=<span class="number">16</span>,</span><br><span class="line">    per_device_eval_batch_size=<span class="number">16</span>,</span><br><span class="line">    warmup_steps=<span class="number">500</span>,</span><br><span class="line">    weight_decay=<span class="number">0.01</span>,</span><br><span class="line">    logging_steps=<span class="number">100</span>,</span><br><span class="line">    evaluation_strategy=<span class="string">"epoch"</span>,</span><br><span class="line">    save_strategy=<span class="string">"epoch"</span>,</span><br><span class="line">    load_best_model_at_end=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 训练</span></span><br><span class="line">trainer = Trainer(</span><br><span class="line">    model=model,</span><br><span class="line">    args=training_args,</span><br><span class="line">    train_dataset=tokenized[<span class="string">'train'</span>],</span><br><span class="line">    eval_dataset=tokenized[<span class="string">'test'</span>],</span><br><span class="line">    data_collator=DataCollatorWithPadding(tokenizer=tokenizer),</span><br><span class="line">)</span><br><span class="line">trainer.train()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. 评估</span></span><br><span class="line"><span class="built_in">print</span>(trainer.evaluate())</span><br></pre></td></tr></table></figure>
+<p>在一张现代 GPU 上跑几个小时，就能把 IMDB 准确率拉到 92-94% 左右——而在 BERT 之前，这个数字是要靠多年特征工程才能逼近的。</p>
+<hr>
+<h2 id="当年这个跨度有多大？看一眼-GLUE"><a class="header-anchor" href="#当年这个跨度有多大？看一眼-GLUE">¶</a>当年这个跨度有多大？看一眼 GLUE</h2>
+<p>要体会 BERT 带来的冲击，直接看原文中 8 个 GLUE 任务的成绩：</p>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig7_glue_benchmark.png" alt="BERT 与之前 SOTA 在 GLUE 上的对比"></p>
+<p>灰色代表 BERT 之前的最佳模型，蓝色是 BERT-Base，紫色是 BERT-Large。在 CoLA（语言学可接受性）和 RTE（小数据量的文本蕴含）这类结构复杂的任务上，<strong>绝对提升达到两位数</strong>。一个预训练模型，经过几个 epoch 的微调，加上一个简单的头，就击败了过去多年为每个任务专门设计的架构。</p>
+<h2 id="BERT-家族：RoBERTa、ALBERT、ELECTRA"><a class="header-anchor" href="#BERT-家族：RoBERTa、ALBERT、ELECTRA">¶</a>BERT 家族：RoBERTa、ALBERT、ELECTRA</h2>
+<p>BERT 是起点，不是终点。两年内涌现出一批从不同角度改进 BERT 的变体。</p>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig5_variants_comparison.png" alt="BERT vs RoBERTa vs ALBERT vs ELECTRA"></p>
+<h3 id="RoBERTa（Facebook，2019）：把训练流程做对就行"><a class="header-anchor" href="#RoBERTa（Facebook，2019）：把训练流程做对就行">¶</a>RoBERTa（Facebook，2019）：把训练流程做对就行</h3>
+<p>Liu 等人发现 BERT 其实是训练不足的。RoBERTa 一行架构都没改，只调了配方：</p>
+<ul>
+<li><strong>去掉 NSP</strong>：没用，甚至还可能有害。</li>
+<li><strong>动态掩码</strong>：每个 epoch 重新生成掩码，而不是预处理时一次性固定下来。</li>
+<li><strong>更大的 batch</strong>：从 256 提到 8K。</li>
+<li><strong>多得多的数据</strong>：在 BooksCorpus + Wikipedia 之外加上 CC-News、OpenWebText、Stories（约 1600 亿 token，对比 BERT 的 33 亿）。</li>
+</ul>
+<p>仅这些改动就让 GLUE 涨了 2-3 分，而架构跟 BERT-Large 一模一样。</p>
+<h3 id="ALBERT（Google，2019）：把参数压一压"><a class="header-anchor" href="#ALBERT（Google，2019）：把参数压一压">¶</a>ALBERT（Google，2019）：把参数压一压</h3>
+<p>ALBERT 用更少的独立参数达到接近的效果：</p>
+<ul>
+<li><strong>嵌入分解</strong>：把 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mo>×</mo><mi>H</mi></mrow><annotation encoding="application/x-tex">V \times H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span> 的嵌入矩阵拆成 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mo>×</mo><mi>E</mi></mrow><annotation encoding="application/x-tex">V \times E</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">E</span></span></span></span> 和 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo>×</mo><mi>H</mi></mrow><annotation encoding="application/x-tex">E \times H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span>，其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo>≪</mo><mi>H</mi></mrow><annotation encoding="application/x-tex">E \ll H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7224em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≪</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span>。token 嵌入活在低维空间里，再投到隐藏维度。</li>
+<li><strong>跨层参数共享</strong>：所有 Transformer 层共享同一套权重，深度不再随参数量线性放大。</li>
+<li><strong>句子顺序预测（SOP）</strong> 取代 NSP：给两句相邻的句子，判断它们的顺序是否被颠倒过。这比"是否随机配对"难得多，信号也更有用。</li>
+</ul>
+<p>ALBERT-xxlarge 大约 2.35 亿独立参数（对比 BERT-Large 的 3.4 亿），但在 GLUE 上能持平甚至超过。</p>
+<h3 id="ELECTRA（Google，2020）：每个-token-都参与训练"><a class="header-anchor" href="#ELECTRA（Google，2020）：每个-token-都参与训练">¶</a>ELECTRA（Google，2020）：每个 token 都参与训练</h3>
+<p>MLM 只在 15% 的位置上有损失，剩下 85% 的位置纯属"路过"，浪费。ELECTRA 把 MLM 替换成<strong>替换 token 检测（RTD）</strong>：</p>
+<ol>
+<li>一个小型的生成器（一个迷你 MLM）把一些 token 换成"看起来像但不是原版"的词；</li>
+<li>一个更大的判别器逐 token 地判断：这个 token 是原文的，还是被换过的？</li>
+<li>训练完之后，只保留判别器。</li>
+</ol>
+<p>因为判别器在每个位置上都有损失，ELECTRA 用更少的算力就能达到 BERT 级别——ELECTRA-Small 只用四分之一的训练时间就赶上了 BERT-Base。</p>
+<h3 id="对比表"><a class="header-anchor" href="#对比表">¶</a>对比表</h3>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>关键创新</th>
+<th>参数量</th>
+<th>GLUE 相对提升</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BERT</td>
+<td>双向 MLM + NSP</td>
+<td>1.1 亿 / 3.4 亿</td>
+<td>基线</td>
+</tr>
+<tr>
+<td>RoBERTa</td>
+<td>去 NSP、动态掩码、海量数据</td>
+<td>1.1 亿 / 3.55 亿</td>
+<td>+2 ~ +3</td>
+</tr>
+<tr>
+<td>ALBERT</td>
+<td>嵌入分解 + 跨层参数共享</td>
+<td>0.12 亿 ~ 2.35 亿</td>
+<td>+1 ~ +2</td>
+</tr>
+<tr>
+<td>ELECTRA</td>
+<td>RTD（100% token 都参与训练）</td>
+<td>0.14 亿 ~ 3.35 亿</td>
+<td>+2 ~ +3</td>
+</tr>
+</tbody>
+</table>
+<p>挑选其实是在选配方而不是选架构：四个模型都是编码器-only Transformer，骨架几乎一致。</p>
+<hr>
+<h2 id="BERT-做不到的事"><a class="header-anchor" href="#BERT-做不到的事">¶</a>BERT 做不到的事</h2>
+<p>了解它的边界与了解它的能力同样重要。</p>
+<ul>
+<li><strong>成本</strong>：1.1 亿到 3.4 亿参数，加上二次方注意力，实时推理变得困难。需要通过蒸馏（DistilBERT、TinyBERT）或量化来压缩。</li>
+<li><strong>不能生成</strong>：BERT 是双向 encoder-only 模型，无法完成合理的自回归解码。生成文本的任务需要借助 GPT 系列的 decoder 模型——下一篇会详细说明。</li>
+<li><strong>512 token 上限</strong>：位置嵌入仅学到 0-511。处理长文档时，必须依靠滑窗、层级聚合，或者直接切换架构（Longformer、BigBird）。</li>
+<li><strong>以英语为中心</strong>：原始 BERT 仅在英文数据上训练。多语言 BERT（mBERT）覆盖了 100 多种语言，但在每种具体语言上的表现都不如该语言的专用模型（BERT-Chinese、CamemBERT 等）。</li>
+</ul>
+<hr>
+<h2 id="常见问题"><a class="header-anchor" href="#常见问题">¶</a>常见问题</h2>
+<p><strong>为什么用 <code>[CLS]</code> 做分类？</strong> 它固定在每条输入的第 0 位置，注意力机制天然会让它在最后一层聚合整段序列的信息。预训练阶段的 NSP 目标也在显式训练 <code>[CLS]</code> 承担"序列摘要"的功能。</p>
+<p><strong>选 BERT 还是 RoBERTa？</strong> 如果追求更高分数，且有多余几个小时的 GPU 时间，选择 RoBERTa；如果需要最大的生态、最多的教程和最丰富的 checkpoint，BERT 仍是更稳妥的基线。</p>
+<p><strong>变体怎么选？</strong> 通用场景选 BERT，冲分用 RoBERTa，参数量受限（移动端、嵌入式）选 ALBERT，算力不足时用 ELECTRA。</p>
+<p><strong>中文怎么办？</strong> 中文有比 mBERT 更专业的选项：BERT-wwm-ext 和 MacBERT 是常用基线。直接从 <code>bert-base-chinese</code> 开始通常也够用，关键看任务对中文细粒度（字 vs 词）的敏感程度。</p>
+<p><strong>能拿来做句向量吗？</strong> 直接平均 BERT token 向量得到的句向量效果一般。若要做相似度检索，请使用 Sentence-BERT（在 BERT 上通过 Siamese 对比训练得到的变体）。</p>
+<h2 id="核心要点"><a class="header-anchor" href="#核心要点">¶</a>核心要点</h2>
+<ul>
+<li>BERT 采用<strong>双向预训练</strong>（通过 MLM），使每个 token 在一次前向计算中就能感知完整上下文。</li>
+<li>80/10/10 的掩码比例避免了训练与推理分布失配，同时迫使模型即便输入"看似正常"也要依赖上下文。</li>
+<li><strong>预训练-微调</strong>范式让昂贵的预训练成本分摊到无数下游任务上；微调只需添加一个小头、使用小学习率并训练几个 epoch。</li>
+<li><strong>RoBERTa、ALBERT、ELECTRA</strong> 共同表明：配方（数据、掩码方式、参数共享、训练目标）和架构同等重要。</li>
+<li>BERT 擅长<strong>理解</strong>类任务，但不擅长<strong>生成</strong>——生成任务需参考下一篇 GPT。</li>
+</ul>
+<h2 id="系列导航"><a class="header-anchor" href="#系列导航">¶</a>系列导航</h2>
+<table>
+<thead>
+<tr>
+<th>部分</th>
+<th>主题</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3</td>
+<td>RNN 与序列建模</td>
+<td><a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E4%B8%89-RNN%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/">阅读</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>注意力机制与 Transformer</td>
+<td><a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E5%9B%9B-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8ETransformer/">上一篇</a></td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>BERT 与预训练模型（本文）</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td>GPT 与生成式语言模型</td>
+<td><a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E5%85%AD-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">下一篇</a></td>
+</tr>
+<tr>
+<td>7</td>
+<td>提示工程与 In-Context Learning</td>
+<td><a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E4%B8%83-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8EIn-Context-Learning/">阅读</a></td>
+</tr>
+</tbody>
+</table>
+
+      </div>
+
+      <!-- Series Navigation -->
+      
+      <nav class="series-nav">
+        <div class="series-nav-inner">
+          <span class="series-nav-label">自然语言处理 &mdash; Part 5 of 12</span>
+        </div>
+      </nav>
+      
+
+      <!-- Tags -->
+      
+      <div class="article-tags">
+        
+          <a href="/tags/NLP/" class="tag">#NLP</a>
+        
+          <a href="/tags/BERT/" class="tag">#BERT</a>
+        
+          <a href="/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a>
+        
+          <a href="/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/" class="tag">#迁移学习</a>
+        
+      </div>
+      
+
+      <!-- Post Navigation -->
+      
+      <nav class="post-nav">
+        
+        
+      </nav>
+    </div>
+
+    <!-- Table of Contents (right) -->
+    
+    <aside class="toc-sidebar" id="toc-sidebar">
+      <div class="toc-sidebar-inner">
+        <h4 class="toc-title" data-i18n="post.toc">On This Page</h4>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%99%E4%B8%80%E7%AF%87%E4%BD%A0%E4%BC%9A%E5%AD%A6%E5%88%B0"><span class="toc-number">1.</span> <span class="toc-text">这一篇你会学到</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%A2%84%E8%AE%AD%E7%BB%83-%E5%BE%AE%E8%B0%83%E8%8C%83%E5%BC%8F%E6%98%AF%E6%80%8E%E4%B9%88%E7%81%AB%E8%B5%B7%E6%9D%A5%E7%9A%84"><span class="toc-number">2.</span> <span class="toc-text">预训练-微调范式是怎么火起来的</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%80%E6%AE%B5%E7%AE%80%E7%9F%AD%E7%9A%84%E6%BC%94%E8%BF%9B%E5%8F%B2"><span class="toc-number">2.1.</span> <span class="toc-text">一段简短的演进史</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BF%99%E4%B8%AA%E8%8C%83%E5%BC%8F%E9%87%8D%E8%A6%81"><span class="toc-number">2.2.</span> <span class="toc-text">为什么这个范式重要</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BERT-%E7%9A%84%E6%9E%B6%E6%9E%84"><span class="toc-number">3.</span> <span class="toc-text">BERT 的架构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BE%93%E5%85%A5%E8%A1%A8%E7%A4%BA%EF%BC%9A%E4%B8%89%E4%B8%AA%E5%B5%8C%E5%85%A5%E7%9B%B8%E5%8A%A0"><span class="toc-number">3.1.</span> <span class="toc-text">输入表示：三个嵌入相加</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%8C%E5%90%91%E8%87%AA%E6%B3%A8%E6%84%8F%E5%8A%9B"><span class="toc-number">3.2.</span> <span class="toc-text">双向自注意力</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%A4%E7%A7%8D%E8%A7%84%E6%A0%BC"><span class="toc-number">3.3.</span> <span class="toc-text">两种规格</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%A2%84%E8%AE%AD%E7%BB%83%E7%9B%AE%E6%A0%87"><span class="toc-number">4.</span> <span class="toc-text">预训练目标</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A9%E7%A0%81%E8%AF%AD%E8%A8%80%E5%BB%BA%E6%A8%A1%EF%BC%88MLM%EF%BC%89"><span class="toc-number">4.1.</span> <span class="toc-text">掩码语言建模（MLM）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8B%E4%B8%80%E5%8F%A5%E9%A2%84%E6%B5%8B%EF%BC%88NSP%EF%BC%89"><span class="toc-number">4.2.</span> <span class="toc-text">下一句预测（NSP）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%A2%84%E8%AE%AD%E7%BB%83%E8%AF%AD%E6%96%99"><span class="toc-number">4.3.</span> <span class="toc-text">预训练语料</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WordPiece-%E5%88%86%E8%AF%8D"><span class="toc-number">5.</span> <span class="toc-text">WordPiece 分词</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8A%8A-BERT-%E5%BE%AE%E8%B0%83%E5%88%B0%E4%B8%8B%E6%B8%B8%E4%BB%BB%E5%8A%A1"><span class="toc-number">6.</span> <span class="toc-text">把 BERT 微调到下游任务</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%87%E6%9C%AC%E5%88%86%E7%B1%BB"><span class="toc-number">6.1.</span> <span class="toc-text">文本分类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%91%BD%E5%90%8D%E5%AE%9E%E4%BD%93%E8%AF%86%E5%88%AB%EF%BC%88NER%EF%BC%89"><span class="toc-number">6.2.</span> <span class="toc-text">命名实体识别（NER）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%BD%E5%8F%96%E5%BC%8F%E9%97%AE%E7%AD%94"><span class="toc-number">6.3.</span> <span class="toc-text">抽取式问答</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%A5%E5%AF%B9%E5%88%86%E7%B1%BB%EF%BC%88NLI%E3%80%81%E9%87%8A%E4%B9%89%E5%88%A4%E5%AE%9A%EF%BC%89"><span class="toc-number">6.4.</span> <span class="toc-text">句对分类（NLI、释义判定）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9C%9F%E6%AD%A3%E8%83%BD%E8%B7%91%E9%80%9A%E7%9A%84%E5%BE%AE%E8%B0%83%E9%85%8D%E6%96%B9"><span class="toc-number">7.</span> <span class="toc-text">真正能跑通的微调配方</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%A6%E4%B9%A0%E7%8E%87%E5%B0%8F%E4%B8%80%E7%82%B9%EF%BC%8C%E9%85%8D%E4%B8%8A%E6%9D%83%E9%87%8D%E8%A1%B0%E5%87%8F"><span class="toc-number">7.1.</span> <span class="toc-text">学习率小一点，配上权重衰减</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%88-warmup-%E5%86%8D%E7%BA%BF%E6%80%A7%E8%A1%B0%E5%87%8F"><span class="toc-number">7.2.</span> <span class="toc-text">先 warmup 再线性衰减</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%98%BE%E5%AD%98%E4%B8%8D%E5%A4%9F%E5%B0%B1%E6%A2%AF%E5%BA%A6%E7%B4%AF%E7%A7%AF"><span class="toc-number">7.3.</span> <span class="toc-text">显存不够就梯度累积</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%BB%98%E8%AE%A4%E9%85%8D%E6%96%B9"><span class="toc-number">7.4.</span> <span class="toc-text">默认配方</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E4%BB%BD%E5%AE%8C%E6%95%B4%E7%9A%84-HuggingFace-%E6%B5%81%E6%B0%B4%E7%BA%BF"><span class="toc-number">8.</span> <span class="toc-text">一份完整的 HuggingFace 流水线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BD%93%E5%B9%B4%E8%BF%99%E4%B8%AA%E8%B7%A8%E5%BA%A6%E6%9C%89%E5%A4%9A%E5%A4%A7%EF%BC%9F%E7%9C%8B%E4%B8%80%E7%9C%BC-GLUE"><span class="toc-number">9.</span> <span class="toc-text">当年这个跨度有多大？看一眼 GLUE</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BERT-%E5%AE%B6%E6%97%8F%EF%BC%9ARoBERTa%E3%80%81ALBERT%E3%80%81ELECTRA"><span class="toc-number">10.</span> <span class="toc-text">BERT 家族：RoBERTa、ALBERT、ELECTRA</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RoBERTa%EF%BC%88Facebook%EF%BC%8C2019%EF%BC%89%EF%BC%9A%E6%8A%8A%E8%AE%AD%E7%BB%83%E6%B5%81%E7%A8%8B%E5%81%9A%E5%AF%B9%E5%B0%B1%E8%A1%8C"><span class="toc-number">10.1.</span> <span class="toc-text">RoBERTa（Facebook，2019）：把训练流程做对就行</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ALBERT%EF%BC%88Google%EF%BC%8C2019%EF%BC%89%EF%BC%9A%E6%8A%8A%E5%8F%82%E6%95%B0%E5%8E%8B%E4%B8%80%E5%8E%8B"><span class="toc-number">10.2.</span> <span class="toc-text">ALBERT（Google，2019）：把参数压一压</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ELECTRA%EF%BC%88Google%EF%BC%8C2020%EF%BC%89%EF%BC%9A%E6%AF%8F%E4%B8%AA-token-%E9%83%BD%E5%8F%82%E4%B8%8E%E8%AE%AD%E7%BB%83"><span class="toc-number">10.3.</span> <span class="toc-text">ELECTRA（Google，2020）：每个 token 都参与训练</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AF%B9%E6%AF%94%E8%A1%A8"><span class="toc-number">10.4.</span> <span class="toc-text">对比表</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BERT-%E5%81%9A%E4%B8%8D%E5%88%B0%E7%9A%84%E4%BA%8B"><span class="toc-number">11.</span> <span class="toc-text">BERT 做不到的事</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="toc-number">12.</span> <span class="toc-text">常见问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E8%A6%81%E7%82%B9"><span class="toc-number">13.</span> <span class="toc-text">核心要点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%B3%BB%E5%88%97%E5%AF%BC%E8%88%AA"><span class="toc-number">14.</span> <span class="toc-text">系列导航</span></a></li></ol>
+      </div>
+    </aside>
+    
+  </div>
+</article>
+
+  </main>
+
+  <footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col footer-about">
+        <div class="footer-about-title">Chen Kai Blog</div>
+        <p class="footer-about-desc">
+          Machine Learning, Mathematics, and Computer Science — explained for humans.
+        </p>
+        <div class="footer-social">
+          
+          <a href="https://github.com/chenkai66" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+          
+          
+          <a href="mailto:chenkai.nb.666@gmail.com" aria-label="Email">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </a>
+          
+          <a href="/atom.xml" aria-label="RSS Feed" title="RSS Feed">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title" data-i18n="footer.series">Series</div>
+        <ul class="footer-links">
+          
+            
+            
+              <li><a href="/categories/Recommendation-Systems/">Recommendation Systems</a></li>
+            
+              <li><a href="/categories/Linear-Algebra/">Linear Algebra</a></li>
+            
+              <li><a href="/categories/ML-Mathematical-Derivations/">ML Mathematical Derivations</a></li>
+            
+              <li><a href="/categories/Natural-Language-Processing/">Natural Language Processing</a></li>
+            
+              <li><a href="/categories/Reinforcement-Learning/">Reinforcement Learning</a></li>
+            
+          
+          <li><a href="/series/" data-i18n="footer.allseries">All series &rarr;</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title" data-i18n="footer.site">Site</div>
+        <ul class="footer-links">
+          <li><a href="/" data-i18n="nav.home">Home</a></li>
+          <li><a href="/series/" data-i18n="nav.series">Series</a></li>
+          <li><a href="/projects/" data-i18n="nav.projects">Projects</a></li>
+          <li><a href="/archives/" data-i18n="nav.archives">Archives</a></li>
+          <li><a href="/about/" data-i18n="nav.about">About</a></li>
+          <li><a href="/atom.xml" data-i18n="footer.rss">RSS Feed</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-info">
+        <p>&copy; 2026 Chen Kai. <span data-i18n="footer.copyright.suffix">Built with knowledge and curiosity.</span></p>
+        <p class="footer-powered"><span data-i18n="footer.powered">Powered by</span> <a href="https://hexo.io" target="_blank" rel="noopener">Hexo</a> &middot; <span data-i18n="footer.theme">Theme</span> <a href="https://www.chenk.top" rel="noopener">chenk</a></p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
 </button>
-<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
-<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-</button>
-<a class=lang-switch href=# data-lang-switch>EN</a>
-<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
-<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
-<a href=/zh/series/>Series</a>
-<a href=/zh/projects/>Projects</a>
-<a href=/zh/archives/>Archives</a>
-<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
-<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>自然语言处理</a>
-· 第 5 篇</div><h1>自然语言处理（五）：BERT与预训练模型</h1><p class=deck>BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2025-10-21>October 21, 2025</time> · 13 分钟 · 6478 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/nlp/ class=tag>#NLP</a><a href=/zh/tags/bert/ class=tag>#BERT</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/ class=tag>#迁移学习</a></div><a class="pill pill-outline" href=/en/nlp/bert-pretrained-models/>Read in English →</a></div></header><div class=prose><p>2018 年 10 月，Google 发布 BERT，一口气在 11 个 NLP 基准上刷新纪录。配方却出奇简单：拿一个 Transformer 编码器，让它根据左右两侧上下文去预测被随机遮盖的词；预训练完之后，再把同一个模型针对各种下游任务做一次轻量微调。BERT 之前，每个任务都要从头训一个模型；BERT 之后，&ldquo;先预训练，再微调"成了整个领域的默认思路。</p><p>如果你在过去几年用过情感分析 API、能理解意图的搜索引擎、或是稍微靠谱一点的客服机器人，背后大概率就是 BERT 或它的某个后代在干活。</p><h2 id=这一篇你会学到>这一篇你会学到</h2><ul><li>预训练范式的演进：Word2Vec → ELMo → GPT-1 → BERT</li><li>BERT 的架构：以 WordPiece 输入的双向 Transformer 编码器</li><li>掩码语言建模（MLM）与下一句预测（NSP），以及为什么是 80/10/10 这个比例</li><li>把 BERT 微调到分类、NER、问答、句对任务上的具体做法</li><li>BERT 家族：RoBERTa、ALBERT、ELECTRA 各自的取舍</li><li>真实可用的微调配方（学习率、warmup、梯度累积）</li><li>一份可以直接 copy-paste 的完整 HuggingFace 流水线</li></ul><p><strong>前置知识</strong>：第 4 部分（Transformer 架构）以及基本的 PyTorch 使用经验。</p><hr><h2 id=预训练-微调范式是怎么火起来的>预训练-微调范式是怎么火起来的</h2><p>在 BERT 之前，每个 NLP 任务都从一个随机初始化的模型开始，用自己那点标注数据从头训练。这件事昂贵（算力）、浪费（任务之间不共享知识），而且很脆（数据少模型就抖）。整个领域是怎么从这个泥潭里爬出来的，可以串起 4 个里程碑式的工作。</p><h3 id=一段简短的演进史>一段简短的演进史</h3><p><strong>Word2Vec（2013）</strong>：从无标注文本里学静态词向量。问题在于，&ldquo;bank"在 <em>river bank</em> 和 <em>bank account</em> 里得到的向量完全一样——上下文没法改变一个词的含义。</p><p><strong>ELMo（2018 年初）</strong>：用双向 LSTM 产生上下文相关的向量，最后把每一层的隐藏状态加权求和：</p>$$
-\text{ELMo}_k = \gamma \sum_{j=0}^{L} s_j \, h_{k,j}
-$$<p>其中 $h_{k,j}$ 是第 $j$ 层在位置 $k$ 的隐藏状态，$s_j$ 是可学习的 softmax 权重。ELMo 用结果证明了"上下文相关的预训练表示"对几乎所有下游任务都有显著提升——但它仍然是 RNN，训练慢、难以并行。</p><p><strong>GPT-1（2018 年 6 月）</strong>：第一次把 Transformer 用于规模化预训练，目标函数是从左到右的标准语言模型：</p>$$
-P(w_1, \ldots, w_n) = \prod_{i=1}^{n} P(w_i \mid w_1, \ldots, w_{i-1})
-$$<p>GPT-1 已经很强，但它是单向的：读到 &ldquo;the bank is closed&rdquo; 时，模型在 &ldquo;bank&rdquo; 这个位置上还没看到 &ldquo;closed&rdquo;，就没法用 &ldquo;closed&rdquo; 来消除"银行 / 河岸"的歧义。</p><p><strong>BERT（2018 年 10 月）</strong>：突破点是把预训练目标改造成允许每个位置同时看到双向上下文。这一个改动直接带来了横扫所有任务的提升。</p><h3 id=为什么这个范式重要>为什么这个范式重要</h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig4_finetune_pipeline.png alt=预训练一次，微调到各种任务 loading=lazy decoding=async class=content-image></figure></p><p>整个流水线分两步：</p><ol><li><strong>预训练</strong>：在海量无标注文本（书、维基百科、整个互联网）上用自监督任务训练。这一步贵，但只做一次。</li><li><strong>微调</strong>：在每个下游任务上加一个小小的"任务头&rdquo;，用很小的学习率端到端微调几轮。</li></ol><p>收益是看得见的：</p><ul><li><strong>数据效率高</strong>：底座已经"懂"语法和不少常识，每个任务只需几百到几千条标注就能跑出像样的结果。</li><li><strong>通用</strong>：同一个底座既能做分类，也能做标注、抽取、句对任务。</li><li><strong>基线极强</strong>：朴素的 BERT 微调常常就能超过过去一整套定制化架构。</li></ul><hr><h2 id=bert-的架构>BERT 的架构</h2><p>BERT 就是原始 Transformer 的<strong>编码器</strong>那一半，堆 12 或 24 层。没有解码器、没有 causal mask、不做自回归生成——它就是一摞双向自注意力层，把 token 序列变成一串"懂上下文"的向量。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig1_bert_architecture.png alt="BERT 双向编码器与输入嵌入" loading=lazy decoding=async class=content-image></figure></p><h3 id=输入表示三个嵌入相加>输入表示：三个嵌入相加</h3><p>每个 token 的输入向量，是三个学到的同维度嵌入相加：</p>$$
-\text{Input}_i = E^{\text{tok}}_{w_i} + E^{\text{seg}}_{s_i} + E^{\text{pos}}_{i}
-$$<ul><li><strong>Token 嵌入</strong>：WordPiece 子词的 id，词表大小 30K。</li><li><strong>Segment 嵌入</strong>：第一句用 $E_A$，第二句用 $E_B$。这让 BERT 不改架构就能处理 NLI、QA 这类句对任务。</li><li><strong>Position 嵌入</strong>：从 0 到 511 每个绝对位置一个<strong>可学习</strong>向量。（与原始 Transformer 的正余弦位置不同，BERT 自己学。）</li></ul><p>两个特殊 token 是整套协议的关键：</p><ul><li><code>[CLS]</code> 放在每个输入开头。所有层走完之后，它的隐藏状态被当作整段序列的"池化摘要&rdquo;，喂给分类头。</li><li><code>[SEP]</code> 用来分隔句子 A 和 B，也用来标记输入结束。</li></ul><h3 id=双向自注意力>双向自注意力</h3><p>每一层编码器内部，多头自注意力让每个 token 都能看到所有其他 token：</p>$$
-\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V
-$$<p>关键在于：$Q$、$K$、$V$ 都来自同一段输入（自注意力），并且<strong>没有 causal mask</strong>（双向）。所以位置 3 上的 &ldquo;bank&rdquo;，在一次前向中就能同时整合左边的 &ldquo;river&rdquo; 和右边的 &ldquo;is closed&rdquo;。</p><h3 id=两种规格>两种规格</h3><p>原文给了两个一直沿用至今的配置：</p><table><thead><tr><th></th><th>BERT-Base</th><th>BERT-Large</th></tr></thead><tbody><tr><td>层数</td><td>12</td><td>24</td></tr><tr><td>隐藏维度</td><td>768</td><td>1024</td></tr><tr><td>注意力头数</td><td>12</td><td>16</td></tr><tr><td>参数量</td><td>1.1 亿</td><td>3.4 亿</td></tr></tbody></table><p>BERT-Base 在一张消费级 GPU 上就能推理。BERT-Large 是 2018 年那一批 SOTA 纪录的主力。</p><hr><h2 id=预训练目标>预训练目标</h2><p>BERT 的预训练把两个自监督任务叠在一起。第一个出名，第二个后来被证明可有可无。</p><h3 id=掩码语言建模mlm>掩码语言建模（MLM）</h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig2_mlm_corruption.png alt="MLM 的 80/10/10 损坏规则" loading=lazy decoding=async class=content-image></figure></p><p>对每条输入序列，随机选 15% 的位置。被选中的位置，按下面的概率分别处理：</p><ul><li><strong>80%</strong> 的概率换成 <code>[MASK]</code>；</li><li><strong>10%</strong> 的概率换成词表里<strong>随机</strong>的一个 token；</li><li><strong>10%</strong> 的概率<strong>保持原样</strong>。</li></ul><p>模型要做的事，是在每个被选中的位置上把<strong>原来的</strong>词预测回来：</p>$$
-\mathcal{L}_{\text{MLM}} = -\sum_{i \in \mathcal{M}} \log P(w_i \mid \tilde{x})
-$$<p>其中 $\mathcal{M}$ 是被选中的位置集合，$\tilde{x}$ 是被损坏后的输入。</p><p><strong>为什么是 80/10/10？</strong> 这个比例不是随便定的，它专门用来避开两个失败模式：</p><ul><li>如果只用 <code>[MASK]</code>，模型在微调时永远见不到 <code>[MASK]</code>（下游真实输入不会有），训练-推理就出现了分布失配。</li><li>如果只用随机 token，模型会变得不敢相信任何输入，反而过度依赖远处信息。</li><li>留 10% 不变，是逼模型即使看到一个"看上去没问题"的词，也不要偷懒直接把它复制出去——必须真的用上下文判断。</li></ul><p>MLM 是让 BERT"干净地"做到双向的关键：要从左右两侧预测被遮的词，编码器就必须在每个位置都融合整段上下文。</p><h3 id=下一句预测nsp>下一句预测（NSP）</h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig3_nsp.png alt="NSP：正例 vs 负例" loading=lazy decoding=async class=content-image></figure></p><p>加 NSP 的初衷，是让 BERT 学到句间关系，方便迁移到 NLI、QA。每条训练样本把两个句子打包成 <code>[CLS] A [SEP] B [SEP]</code>，标签靠抛硬币决定：</p><ul><li>50% 的样本里，B 真的是语料中紧跟 A 的下一句（标签 <code>IsNext</code>）；</li><li>50% 的样本里，B 是从其他文档随机抽来的句子（标签 <code>NotNext</code>）。</li></ul><p>最后一层的 <code>[CLS]</code> 向量过一个 Linear+softmax 头，预测这个标签：</p>$$
-P(\text{IsNext}) = \text{softmax}(W \, h_{\text{[CLS]}} + b)
-$$<p>预训练总损失就是 MLM 损失加 NSP 损失。</p><blockquote><p>这里有一段后来被打脸的历史：RoBERTa、ALBERT 等后续工作发现 NSP 帮助微乎其微，去掉甚至替换掉它反而<strong>更好</strong>。后面变体那一节会再聊。</p></blockquote><h3 id=预训练语料>预训练语料</h3><p>BERT 的训练数据是 <strong>BooksCorpus</strong>（约 8 亿词）+ <strong>英文维基百科</strong>（约 25 亿词），合计约 33 亿词。从 2026 年的视角看这点量可以忽略不计——现代 LLM 动辄上万亿 token——但在当年已经足够把基线拉到一个新高度。</p><hr><h2 id=wordpiece-分词>WordPiece 分词</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig6_wordpiece.png alt="WordPiece 子词分词" loading=lazy decoding=async class=content-image></figure></p><p>BERT 不直接处理整词，用的是 <strong>WordPiece</strong> 子词方案。这是在两个极端之间找到的折中：</p><ul><li>整词词表想覆盖真实语料就得几百万词，而且推理时永远会碰到 OOV；</li><li>纯字符词表很小，但模型每次都得从字符重新拼出"词义"，效率太低。</li></ul><p>WordPiece 的做法，是贪心地合并那些"合并后能最大化训练语料似然"的字符对，最终留下大约 30K 个 token 作为词表。分词时，把每个词切成词表里能匹配上的最长片段；位于词内部的片段统一加 <code>##</code> 前缀作为"延续"标记：</p><pre tabindex=0><code>playing       -&gt; play  ##ing
-unbelievable  -&gt; un    ##bel  ##iev  ##able
-transformer   -&gt; transform  ##er
-Tokyo2024     -&gt; tokyo  ##20  ##24
-</code></pre><p>这样既保证不会出现 OOV（任何东西都能拆到已知子词，最坏退化到单字符），又保留了常用词作为单 token 的效率。</p><hr><h2 id=把-bert-微调到下游任务>把 BERT 微调到下游任务</h2><p>微调的核心思想是：<strong>底座几乎不变，换个头就能换任务</strong>。</p><h3 id=文本分类>文本分类</h3><p>整句级标签（情感、垃圾邮件、意图识别）的做法是：把输入过一遍 BERT，取最终的 <code>[CLS]</code> 向量，再过一个线性层。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForSequenceClassification</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForSequenceClassification</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>,</span> <span class=n>num_labels</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;I love this movie!&#34;</span>
-</span></span><span class=line><span class=cl><span class=n>inputs</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s1>&#39;pt&#39;</span><span class=p>,</span> <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>outputs</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>inputs</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>prediction</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;预测: </span><span class=si>{</span><span class=n>prediction</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>  <span class=c1># 0 或 1</span>
-</span></span></code></pre></td></tr></table></div></div><p>底层发生的事：</p><ol><li>分词，前后加上 <code>[CLS]</code> 和 <code>[SEP]</code>；</li><li>过 12 层 Transformer 编码器；</li><li>取 <code>[CLS]</code> 的隐藏状态（BERT-Base 是 768 维）；</li><li>过一个 768 → num_labels 的线性层。</li></ol><h3 id=命名实体识别ner>命名实体识别（NER）</h3><p>token 级任务用每个位置的向量，而不是 <code>[CLS]</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForTokenClassification</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForTokenClassification</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>,</span> <span class=n>num_labels</span><span class=o>=</span><span class=mi>9</span><span class=p>,</span>  <span class=c1># 例如 PER/ORG/LOC/MISC 的 BIO 标签 + O</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;Barack Obama was born in Hawaii&#34;</span>
-</span></span><span class=line><span class=cl><span class=n>inputs</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s1>&#39;pt&#39;</span><span class=p>,</span> <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>outputs</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>inputs</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>predictions</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>tokens</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>convert_ids_to_tokens</span><span class=p>(</span><span class=n>inputs</span><span class=p>[</span><span class=s1>&#39;input_ids&#39;</span><span class=p>][</span><span class=mi>0</span><span class=p>])</span>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>token</span><span class=p>,</span> <span class=n>pred</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>tokens</span><span class=p>,</span> <span class=n>predictions</span><span class=p>[</span><span class=mi>0</span><span class=p>]):</span>
-</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>token</span><span class=si>}</span><span class=s2>: 标签 </span><span class=si>{</span><span class=n>pred</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>一个细节：WordPiece 会把词切碎（&ldquo;Hawaii&rdquo; 也许整词不切，&ldquo;Tokyo2024&rdquo; 会被切成 3 个片段）。在把预测还原成"词级实体"时，惯用的做法是<strong>只取每个词第一个子词的预测</strong>，忽略后面的 <code>##</code> 续接片段。</p><h3 id=抽取式问答>抽取式问答</h3><p>SQuAD 风格的 QA 是从上下文中预测答案 span 的起止位置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForQuestionAnswering</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForQuestionAnswering</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>question</span> <span class=o>=</span> <span class=s2>&#34;Where was Barack Obama born?&#34;</span>
-</span></span><span class=line><span class=cl><span class=n>context</span> <span class=o>=</span> <span class=s2>&#34;Barack Obama was born in Hawaii in 1961.&#34;</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>inputs</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>question</span><span class=p>,</span> <span class=n>context</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s1>&#39;pt&#39;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>                   <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>outputs</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>inputs</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>start_logits</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>end</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>end_logits</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>answer</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>inputs</span><span class=p>[</span><span class=s1>&#39;input_ids&#39;</span><span class=p>][</span><span class=mi>0</span><span class=p>][</span><span class=n>start</span><span class=p>:</span><span class=n>end</span> <span class=o>+</span> <span class=mi>1</span><span class=p>])</span>
-</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;答案: </span><span class=si>{</span><span class=n>answer</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>两个头都是建在每个 token 向量上的线性层，分别输出每个位置的 start logit 和 end logit。预测的 span 就是在 start ≤ end 的约束下，使 start + end logits 之和最大的那段连续区间。</p><h3 id=句对分类nli释义判定>句对分类（NLI、释义判定）</h3><p>把两个句子用 <code>[SEP]</code> 拼起来，再用 <code>[CLS]</code> 头：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForSequenceClassification</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForSequenceClassification</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>,</span> <span class=n>num_labels</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>  <span class=c1># 蕴含 / 中立 / 矛盾</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>premise</span> <span class=o>=</span> <span class=s2>&#34;A man is playing guitar&#34;</span>
-</span></span><span class=line><span class=cl><span class=n>hypothesis</span> <span class=o>=</span> <span class=s2>&#34;Someone is making music&#34;</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>inputs</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>premise</span><span class=p>,</span> <span class=n>hypothesis</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s1>&#39;pt&#39;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>                   <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>outputs</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>inputs</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>prediction</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>注意架构上几乎没变：同一个 <code>BertForSequenceClassification</code> 类，单句和句对分类只靠分词方式的区别就能切换。</p><hr><h2 id=真正能跑通的微调配方>真正能跑通的微调配方</h2><p>用几千条标注微调一个 1.1 亿参数的模型，跟从头训练根本是两回事。从头训 ResNet 那一套默认值放到这里，会把预训练权重直接冲烂。</p><h3 id=学习率小一点配上权重衰减>学习率小一点，配上权重衰减</h3><p>预训练权重已经落在一个不错的盆地里，你要做的是轻轻挪动，而不是推土机式地碾过去。常见做法是 AdamW + 分组参数：bias 和 LayerNorm 不做权重衰减，其他参数衰减 0.01：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.optim</span> <span class=kn>import</span> <span class=n>AdamW</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>no_decay</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;bias&#34;</span><span class=p>,</span> <span class=s2>&#34;LayerNorm.weight&#34;</span><span class=p>]</span>
-</span></span><span class=line><span class=cl><span class=n>optimizer_grouped_parameters</span> <span class=o>=</span> <span class=p>[</span>
-</span></span><span class=line><span class=cl>    <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=p>[</span><span class=n>p</span> <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>                   <span class=k>if</span> <span class=ow>not</span> <span class=nb>any</span><span class=p>(</span><span class=n>nd</span> <span class=ow>in</span> <span class=n>n</span> <span class=k>for</span> <span class=n>nd</span> <span class=ow>in</span> <span class=n>no_decay</span><span class=p>)],</span>
-</span></span><span class=line><span class=cl>        <span class=s2>&#34;weight_decay&#34;</span><span class=p>:</span> <span class=mf>0.01</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=p>},</span>
-</span></span><span class=line><span class=cl>    <span class=p>{</span>
-</span></span><span class=line><span class=cl>        <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=p>[</span><span class=n>p</span> <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>                   <span class=k>if</span> <span class=nb>any</span><span class=p>(</span><span class=n>nd</span> <span class=ow>in</span> <span class=n>n</span> <span class=k>for</span> <span class=n>nd</span> <span class=ow>in</span> <span class=n>no_decay</span><span class=p>)],</span>
-</span></span><span class=line><span class=cl>        <span class=s2>&#34;weight_decay&#34;</span><span class=p>:</span> <span class=mf>0.0</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=p>},</span>
-</span></span><span class=line><span class=cl><span class=p>]</span>
-</span></span><span class=line><span class=cl><span class=n>optimizer</span> <span class=o>=</span> <span class=n>AdamW</span><span class=p>(</span><span class=n>optimizer_grouped_parameters</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>2e-5</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=先-warmup-再线性衰减>先 warmup 再线性衰减</h3><p>即使学习率已经很小，第一步直接打到一个刚刚加上的随机初始化的头上仍然太猛。Warmup 是把 LR 在前 ~10% 步内线性升上去，之后再线性降回 0：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>get_linear_schedule_with_warmup</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>total_steps</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>dataloader</span><span class=p>)</span> <span class=o>*</span> <span class=n>num_epochs</span>
-</span></span><span class=line><span class=cl><span class=n>scheduler</span> <span class=o>=</span> <span class=n>get_linear_schedule_with_warmup</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>optimizer</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>num_warmup_steps</span><span class=o>=</span><span class=nb>int</span><span class=p>(</span><span class=mf>0.1</span> <span class=o>*</span> <span class=n>total_steps</span><span class=p>),</span>
-</span></span><span class=line><span class=cl>    <span class=n>num_training_steps</span><span class=o>=</span><span class=n>total_steps</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=显存不够就梯度累积>显存不够就梯度累积</h3><p>GPU 装不下 batch size 32，就把它拆成多个小 batch，把梯度累积起来再统一更新：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span><span class=lnt>9
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>accumulation_steps</span> <span class=o>=</span> <span class=mi>4</span>
-</span></span><span class=line><span class=cl><span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>batch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>dataloader</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=n>loss</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>batch</span><span class=p>)</span><span class=o>.</span><span class=n>loss</span> <span class=o>/</span> <span class=n>accumulation_steps</span>
-</span></span><span class=line><span class=cl>    <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=n>accumulation_steps</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>        <span class=n>optimizer</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>        <span class=n>scheduler</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>        <span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=默认配方>默认配方</h3><p>懒得想就先按下面这套来，大多数论文也是这么干的：</p><table><thead><tr><th>设置</th><th>推荐值</th></tr></thead><tbody><tr><td>学习率</td><td>2e-5 ~ 5e-5</td></tr><tr><td>Batch size</td><td>16-32（显存不够就梯度累积）</td></tr><tr><td>训练轮数</td><td>2-4（BERT 微调收敛很快，更多轮反而容易过拟合）</td></tr><tr><td>Warmup</td><td>总步数的 10%</td></tr><tr><td>最大序列长度</td><td>128-512（越短越快，挑刚好能装下输入的最小值）</td></tr><tr><td>优化器</td><td>AdamW，权重衰减 0.01；bias 与 LayerNorm 设为 0</td></tr></tbody></table><hr><h2 id=一份完整的-huggingface-流水线>一份完整的 HuggingFace 流水线</h2><p>把上面这些拼到一起，下面是一份在 IMDB 情感数据集上端到端微调的代码：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForSequenceClassification</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>Trainer</span><span class=p>,</span> <span class=n>TrainingArguments</span><span class=p>,</span> <span class=n>DataCollatorWithPadding</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>datasets</span> <span class=kn>import</span> <span class=n>load_dataset</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 1. 加载数据和模型</span>
-</span></span><span class=line><span class=cl><span class=n>dataset</span> <span class=o>=</span> <span class=n>load_dataset</span><span class=p>(</span><span class=s2>&#34;imdb&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForSequenceClassification</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>,</span> <span class=n>num_labels</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 2. 分词</span>
-</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>preprocess</span><span class=p>(</span><span class=n>examples</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>examples</span><span class=p>[</span><span class=s1>&#39;text&#39;</span><span class=p>],</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>                     <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>max_length</span><span class=o>=</span><span class=mi>512</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>tokenized</span> <span class=o>=</span> <span class=n>dataset</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>preprocess</span><span class=p>,</span> <span class=n>batched</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 3. 训练配置</span>
-</span></span><span class=line><span class=cl><span class=n>training_args</span> <span class=o>=</span> <span class=n>TrainingArguments</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>output_dir</span><span class=o>=</span><span class=s1>&#39;./results&#39;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>num_train_epochs</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>per_device_train_batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>per_device_eval_batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>warmup_steps</span><span class=o>=</span><span class=mi>500</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>weight_decay</span><span class=o>=</span><span class=mf>0.01</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>logging_steps</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>evaluation_strategy</span><span class=o>=</span><span class=s2>&#34;epoch&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>save_strategy</span><span class=o>=</span><span class=s2>&#34;epoch&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>load_best_model_at_end</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 4. 训练</span>
-</span></span><span class=line><span class=cl><span class=n>trainer</span> <span class=o>=</span> <span class=n>Trainer</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=n>model</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>args</span><span class=o>=</span><span class=n>training_args</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>train_dataset</span><span class=o>=</span><span class=n>tokenized</span><span class=p>[</span><span class=s1>&#39;train&#39;</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>    <span class=n>eval_dataset</span><span class=o>=</span><span class=n>tokenized</span><span class=p>[</span><span class=s1>&#39;test&#39;</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>    <span class=n>data_collator</span><span class=o>=</span><span class=n>DataCollatorWithPadding</span><span class=p>(</span><span class=n>tokenizer</span><span class=o>=</span><span class=n>tokenizer</span><span class=p>),</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>trainer</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 5. 评估</span>
-</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>trainer</span><span class=o>.</span><span class=n>evaluate</span><span class=p>())</span>
-</span></span></code></pre></td></tr></table></div></div><p>在一张现代 GPU 上跑几个小时，就能把 IMDB 准确率拉到 92-94%——而 BERT 之前，这个数字要靠多年特征工程才能逼近。</p><hr><h2 id=当年这个跨度有多大看一眼-glue>当年这个跨度有多大？看一眼 GLUE</h2><p>要感受 BERT 当时的冲击，看一下原文里 8 个 GLUE 任务的成绩：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig7_glue_benchmark.png alt="BERT 与之前 SOTA 在 GLUE 上的对比" loading=lazy decoding=async class=content-image></figure></p><p>灰色是 BERT 之前的最佳模型，蓝色是 BERT-Base，紫色是 BERT-Large。在 CoLA（语言学可接受性）和 RTE（小数据量的文本蕴含）这种结构上比较难的任务上，<strong>绝对提升有两位数</strong>。一个预训练模型，加几个 epoch 微调和一个微小的头，就同时干翻了过去多年针对每个任务专门设计的架构。</p><hr><h2 id=bert-家族robertaalbertelectra>BERT 家族：RoBERTa、ALBERT、ELECTRA</h2><p>BERT 是起点，不是终点。两年内涌现出一批从不同角度改进 BERT 的变体。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/05-BERT%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/fig5_variants_comparison.png alt="BERT vs RoBERTa vs ALBERT vs ELECTRA" loading=lazy decoding=async class=content-image></figure></p><h3 id=robertafacebook2019把训练流程做对就行>RoBERTa（Facebook，2019）：把训练流程做对就行</h3><p>Liu 等人发现 BERT 其实是被<strong>严重训练不足</strong>的。RoBERTa 一行架构都没改，只调了配方：</p><ul><li><strong>去掉 NSP</strong>：没用，甚至还可能有害。</li><li><strong>动态掩码</strong>：每个 epoch 重新生成掩码，而不是预处理时一次性固定下来。</li><li><strong>更大的 batch</strong>：从 256 提到 8K。</li><li><strong>多得多的数据</strong>：在 BooksCorpus + Wikipedia 之外加上 CC-News、OpenWebText、Stories（约 1600 亿 token，对比 BERT 的 33 亿）。</li></ul><p>仅这些就让 GLUE 涨了 2-3 分，而架构跟 BERT-Large 一模一样。</p><h3 id=albertgoogle2019把参数压一压>ALBERT（Google，2019）：把参数压一压</h3><p>ALBERT 用更少的<strong>独立</strong>参数达到接近的效果：</p><ul><li><strong>嵌入分解</strong>：把 $V \times H$ 的嵌入矩阵拆成 $V \times E$ 和 $E \times H$，其中 $E \ll H$。token 嵌入活在低维空间里，再投到隐藏维度。</li><li><strong>跨层参数共享</strong>：所有 Transformer 层共享同一套权重，深度不再随参数量线性放大。</li><li><strong>句子顺序预测（SOP）</strong> 取代 NSP：给两句<strong>相邻</strong>的句子，判断它们的顺序是否被颠倒过。这比"是否随机配对"难得多，信号也更有用。</li></ul><p>ALBERT-xxlarge 大约 2.35 亿独立参数（对比 BERT-Large 的 3.4 亿），但在 GLUE 上能持平甚至超过。</p><h3 id=electragoogle2020每个-token-都参与训练>ELECTRA（Google，2020）：每个 token 都参与训练</h3><p>MLM 只在 15% 的位置上有损失，剩下 85% 的位置纯属"路过"，浪费。ELECTRA 把 MLM 替换成<strong>替换 token 检测（RTD）</strong>：</p><ol><li>一个小型的生成器（一个迷你 MLM）把一些 token 换成"看起来像但不是原版"的词；</li><li>一个更大的判别器逐 token 地判断：这个 token 是原文的，还是被换过的？</li><li>训练完之后，只保留判别器。</li></ol><p>因为判别器在<strong>每个</strong>位置上都有损失，ELECTRA 用更少的算力就能达到 BERT 级别——ELECTRA-Small 只用四分之一的训练时间就赶上了 BERT-Base。</p><h3 id=对比表>对比表</h3><table><thead><tr><th>模型</th><th>关键创新</th><th>参数量</th><th>GLUE 相对提升</th></tr></thead><tbody><tr><td>BERT</td><td>双向 MLM + NSP</td><td>1.1 亿 / 3.4 亿</td><td>基线</td></tr><tr><td>RoBERTa</td><td>去 NSP、动态掩码、海量数据</td><td>1.1 亿 / 3.55 亿</td><td>+2 ~ +3</td></tr><tr><td>ALBERT</td><td>嵌入分解 + 跨层参数共享</td><td>0.12 亿 ~ 2.35 亿</td><td>+1 ~ +2</td></tr><tr><td>ELECTRA</td><td>RTD（100% token 都参与训练）</td><td>0.14 亿 ~ 3.35 亿</td><td>+2 ~ +3</td></tr></tbody></table><p>挑选其实是在选<strong>配方</strong>而不是选<strong>架构</strong>：四个模型都是编码器-only Transformer，骨架几乎一致。</p><hr><h2 id=bert-做不到的事>BERT 做不到的事</h2><p>知道它的边界跟知道它的能力一样重要。</p><ul><li><strong>成本</strong>：1.1 亿到 3.4 亿参数 + 二次方注意力，让实时推理变得不太舒服，需要靠蒸馏（DistilBERT、TinyBERT）或量化来压缩。</li><li><strong>不能生成</strong>：BERT 是双向 encoder-only，没法做合理的自回归解码。要生成文本就得用 GPT 系列的 decoder 模型——下一篇会讲。</li><li><strong>512 token 上限</strong>：位置嵌入只学到 0-511。处理长文档要靠滑窗、层级聚合，或者直接换架构（Longformer、BigBird）。</li><li><strong>以英语为中心</strong>：原始 BERT 只在英文上训练。多语言 BERT（mBERT）覆盖了 100+ 语言，但在每一个具体语言上都打不过那门语言的专用模型（BERT-Chinese、CamemBERT 等）。</li></ul><hr><h2 id=常见问题>常见问题</h2><h3 id=为什么用-cls-做分类>为什么用 <code>[CLS]</code> 做分类？</h3><p>它放在每条输入的位置 0，注意力天然会让它在最后一层聚合整段序列的信息。预训练时的 NSP 目标也在显式训练 <code>[CLS]</code> 充当"序列摘要"。</p><h3 id=选-bert-还是-roberta>选 BERT 还是 RoBERTa？</h3><p>想要更高的分数、又有几个小时多余的 GPU 时间，就选 RoBERTa；想要最大的生态、最多的教程和最丰富的 checkpoint，BERT 仍然是最稳的基线。</p><h3 id=变体怎么选>变体怎么选？</h3><p>通用基线选 BERT，要冲分用 RoBERTa，参数量受限（移动端、嵌入式）选 ALBERT，训练算力是瓶颈就用 ELECTRA。</p><h3 id=中文怎么办>中文怎么办？</h3><p>中文有比 mBERT 更专业的选择：BERT-wwm-ext、MacBERT 是常用基线。直接拿 <code>bert-base-chinese</code> 起步通常也够用，关键看任务对中文细粒度（字 vs 词）有多敏感。</p><h3 id=能拿来做句向量吗>能拿来做句向量吗？</h3><p>直接对 BERT token 向量做平均得到的句向量效果一般。要做相似度检索，请用 Sentence-BERT（在 BERT 上加一层 Siamese 对比训练得到的变体）。</p><hr><h2 id=核心要点>核心要点</h2><ul><li>BERT 用<strong>双向预训练</strong>（通过 MLM）让每个 token 在一次前向中就能看到完整上下文。</li><li>80/10/10 的掩码比例是为了避免训练-推理分布失配，并强迫模型即使输入"看起来正常"也要利用上下文。</li><li><strong>预训练-微调</strong>范式让一次昂贵的预训练能摊销到无数下游任务上；微调只需要一个很小的头、一个很小的学习率和几个 epoch。</li><li><strong>RoBERTa、ALBERT、ELECTRA</strong> 共同说明了：配方（数据、掩码方式、参数共享、训练目标）和架构同样重要。</li><li>BERT 擅长<strong>理解</strong>任务，但不会<strong>生成</strong>——生成任务要看下一篇 GPT。</li></ul></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/nlp/>自然语言处理</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=title>自然语言处理（四）：注意力机制与Transformer</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=title>自然语言处理（六）：GPT与生成式语言模型</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/01-nlp%E5%85%A5%E9%97%A8%E4%B8%8E%E6%96%87%E6%9C%AC%E9%A2%84%E5%A4%84%E7%90%86/><span class=series-nav-num>01</span>
-<span class=series-nav-title>自然语言处理（一）：NLP入门与文本预处理</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>02</span>
-<span class=series-nav-title>自然语言处理（二）：词向量与语言模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/><span class=series-nav-num>03</span>
-<span class=series-nav-title>自然语言处理（三）：RNN与序列建模</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=series-nav-num>04</span>
-<span class=series-nav-title>自然语言处理（四）：注意力机制与Transformer</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>05</span>
-<span class=series-nav-title>自然语言处理（五）：BERT与预训练模型</span>
-<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>06</span>
-<span class=series-nav-title>自然语言处理（六）：GPT与生成式语言模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/><span class=series-nav-num>07</span>
-<span class=series-nav-title>自然语言处理（七）：提示工程与In-Context Learning</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/><span class=series-nav-num>08</span>
-<span class=series-nav-title>自然语言处理（八）：模型微调与PEFT</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=series-nav-num>09</span>
-<span class=series-nav-title>自然语言处理（九）：大语言模型架构深度解析</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/><span class=series-nav-num>10</span>
-<span class=series-nav-title>自然语言处理（十）：RAG与知识增强系统</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/11-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>11</span>
-<span class=series-nav-title>自然语言处理（十一）：多模态大模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><span class=series-nav-num>12</span>
-<span class=series-nav-title>自然语言处理（十二）：前沿技术与实战应用</span></a></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#这一篇你会学到>这一篇你会学到</a></li><li><a href=#预训练-微调范式是怎么火起来的>预训练-微调范式是怎么火起来的</a><ul><li><a href=#一段简短的演进史>一段简短的演进史</a></li><li><a href=#为什么这个范式重要>为什么这个范式重要</a></li></ul></li><li><a href=#bert-的架构>BERT 的架构</a><ul><li><a href=#输入表示三个嵌入相加>输入表示：三个嵌入相加</a></li><li><a href=#双向自注意力>双向自注意力</a></li><li><a href=#两种规格>两种规格</a></li></ul></li><li><a href=#预训练目标>预训练目标</a><ul><li><a href=#掩码语言建模mlm>掩码语言建模（MLM）</a></li><li><a href=#下一句预测nsp>下一句预测（NSP）</a></li><li><a href=#预训练语料>预训练语料</a></li></ul></li><li><a href=#wordpiece-分词>WordPiece 分词</a></li><li><a href=#把-bert-微调到下游任务>把 BERT 微调到下游任务</a><ul><li><a href=#文本分类>文本分类</a></li><li><a href=#命名实体识别ner>命名实体识别（NER）</a></li><li><a href=#抽取式问答>抽取式问答</a></li><li><a href=#句对分类nli释义判定>句对分类（NLI、释义判定）</a></li></ul></li><li><a href=#真正能跑通的微调配方>真正能跑通的微调配方</a><ul><li><a href=#学习率小一点配上权重衰减>学习率小一点，配上权重衰减</a></li><li><a href=#先-warmup-再线性衰减>先 warmup 再线性衰减</a></li><li><a href=#显存不够就梯度累积>显存不够就梯度累积</a></li><li><a href=#默认配方>默认配方</a></li></ul></li><li><a href=#一份完整的-huggingface-流水线>一份完整的 HuggingFace 流水线</a></li><li><a href=#当年这个跨度有多大看一眼-glue>当年这个跨度有多大？看一眼 GLUE</a></li><li><a href=#bert-家族robertaalbertelectra>BERT 家族：RoBERTa、ALBERT、ELECTRA</a><ul><li><a href=#robertafacebook2019把训练流程做对就行>RoBERTa（Facebook，2019）：把训练流程做对就行</a></li><li><a href=#albertgoogle2019把参数压一压>ALBERT（Google，2019）：把参数压一压</a></li><li><a href=#electragoogle2020每个-token-都参与训练>ELECTRA（Google，2020）：每个 token 都参与训练</a></li><li><a href=#对比表>对比表</a></li></ul></li><li><a href=#bert-做不到的事>BERT 做不到的事</a></li><li><a href=#常见问题>常见问题</a><ul><li><a href=#为什么用-cls-做分类>为什么用 <code>[CLS]</code> 做分类？</a></li><li><a href=#选-bert-还是-roberta>选 BERT 还是 RoBERTa？</a></li><li><a href=#变体怎么选>变体怎么选？</a></li><li><a href=#中文怎么办>中文怎么办？</a></li><li><a href=#能拿来做句向量吗>能拿来做句向量吗？</a></li></ul></li><li><a href=#核心要点>核心要点</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>自然语言处理</a>
-<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/01-nlp%E5%85%A5%E9%97%A8%E4%B8%8E%E6%96%87%E6%9C%AC%E9%A2%84%E5%A4%84%E7%90%86/><span class=chapter-num>01</span>
-<span class=chapter-title>自然语言处理（一）：NLP入门与文本预处理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>02</span>
-<span class=chapter-title>自然语言处理（二）：词向量与语言模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/><span class=chapter-num>03</span>
-<span class=chapter-title>自然语言处理（三）：RNN与序列建模</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=chapter-num>04</span>
-<span class=chapter-title>自然语言处理（四）：注意力机制与Transformer</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>05</span>
-<span class=chapter-title>自然语言处理（五）：BERT与预训练模型</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>06</span>
-<span class=chapter-title>自然语言处理（六）：GPT与生成式语言模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/><span class=chapter-num>07</span>
-<span class=chapter-title>自然语言处理（七）：提示工程与In-Context Learning</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/><span class=chapter-num>08</span>
-<span class=chapter-title>自然语言处理（八）：模型微调与PEFT</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=chapter-num>09</span>
-<span class=chapter-title>自然语言处理（九）：大语言模型架构深度解析</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/><span class=chapter-num>10</span>
-<span class=chapter-title>自然语言处理（十）：RAG与知识增强系统</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/11-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/><span class=chapter-num>11</span>
-<span class=chapter-title>自然语言处理（十一）：多模态大模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><span class=chapter-num>12</span>
-<span class=chapter-title>自然语言处理（十二）：前沿技术与实战应用</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>13 min</strong></div><div class=row><span>字数</span><strong>6478</strong></div><div class=row><span>写于</span><strong>Oct 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>Llm-Engineering</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
-<span class=signature>杭州</span></div></div></footer></body></html>
+
+
+
+  
+<script src="/js/i18n.js"></script>
+
+  
+<script src="/js/main.js"></script>
+
+
+  
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      throwOnError: false
+    });">
+  </script>
+  
+
+  
+  
+<script src="/js/search.js"></script>
+
+  
+</body>
+</html>

@@ -1,398 +1,801 @@
-<!doctype html><html lang=zh data-translation=/en/nlp/fine-tuning-peft/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>自然语言处理（八）：模型微调与PEFT · Chen Kai Blog</title>
-<meta name=description content="深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/nlp/fine-tuning-peft/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/><meta property="og:type" content="article"><meta property="og:title" content="自然语言处理（八）：模型微调与PEFT"><meta property="og:description" content="深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。"><meta property="og:url" content="https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><meta property="og:image:alt" content="自然语言处理（八）：模型微调与PEFT"><meta property="article:published_time" content="2025-11-05T09:00:00Z"><meta property="article:modified_time" content="2025-11-05T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="NLP"><meta property="article:tag" content="PEFT"><meta property="article:tag" content="LoRA"><meta property="article:tag" content="LLM"><meta property="article:tag" content="微调"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="自然语言处理（八）：模型微调与PEFT"><meta name=twitter:description content="深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"自然语言处理（八）：模型微调与PEFT\"","description":"\"深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2025-11-05T09:00:00Z\"","dateModified":"\"2025-11-05T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.48695d4598bb53d567624582a86242920731127cc2ae5a4c8eced847d39abcee.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
-<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
-<a href=/zh/series/>Series</a>
-<a href=/zh/projects/>Projects</a>
-<a href=/zh/archives/>Archives</a>
-<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
-<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-</button>
-<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
-<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-</button>
-<a class=lang-switch href=# data-lang-switch>EN</a>
-<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
-<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
-<a href=/zh/series/>Series</a>
-<a href=/zh/projects/>Projects</a>
-<a href=/zh/archives/>Archives</a>
-<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
-<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>自然语言处理</a>
-· 第 8 篇</div><h1>自然语言处理（八）：模型微调与PEFT</h1><p class=deck>深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2025-11-05>November 5, 2025</time> · 13 分钟 · 6310 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/nlp/ class=tag>#NLP</a><a href=/zh/tags/peft/ class=tag>#PEFT</a><a href=/zh/tags/lora/ class=tag>#LoRA</a><a href=/zh/tags/llm/ class=tag>#LLM</a><a href=/zh/tags/%E5%BE%AE%E8%B0%83/ class=tag>#微调</a></div><a class="pill pill-outline" href=/en/nlp/fine-tuning-peft/>Read in English →</a></div></header><div class=prose><p>2020 年微调一个 70 亿参数的语言模型还得排预算：八张 A100、几天时间，再加一个会调梯度检查点的工程师。2024 年，研究生在笔记本上就能跑。中间这段距离，几乎完全由 Hu 等人 2022 年的 LoRA 论文，以及 Dettmers 等人 2023 年的 QLoRA 论文铺平。</p><p>但这不只是工程优化。参数高效微调（Parameter-Efficient Fine-Tuning, PEFT）重新定义了"拥有一个模型"这件事。过去每个任务都得有一份完整的权重文件，现在只需要一个冻结的基座，加上一个目录里几十兆的小适配器。换任务变成了换文件，N 个领域的服务从 O(N) 变成 O(1) 个基座加 N 个 ε。</p><p>本文从第一性原理重建 PEFT。先回答全量微调能解决什么、不能解决什么，再推导 LoRA 的低秩假设，把 QLoRA 让 7B 模型塞进 6GB 显存的算账过程拆开，最后落到工程选择：用哪种方法、秩多少、改哪些模块。</p><h2 id=你将学到>你将学到</h2><ul><li><strong>为什么</strong> LLM 时代全量微调是浪费——过参数化与"内在秩"假说</li><li><strong>LoRA 的机制</strong>：分解 $\Delta W = BA$、为什么 $B$ 初始化为零、$\alpha/r$ 缩放怎么影响有效学习率</li><li><strong>QLoRA</strong>：NF4 量化、双重量化、分页优化器，以及确切的内存账本</li><li><strong>Adapter 与 Prefix-Tuning</strong>：它们在 Transformer 块里的位置，什么时候赢、什么时候输</li><li><strong>工程选择</strong>：秩怎么挑、改哪些模块、多 LoRA 服务、指令微调与 RLHF 对齐</li></ul><h2 id=前置知识>前置知识</h2><ul><li>Transformer 架构（<a href=/zh/nlp/04-%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6%e4%b8%8eTransformer/>第 4 部分</a>
-）</li><li>GPT 风格解码器（<a href=/zh/nlp/06-GPT%e4%b8%8e%e7%94%9f%e6%88%90%e5%bc%8f%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b/>第 6 部分</a>
-）</li><li>PyTorch 基础与 GPU 内存直觉（优化器状态、激活、梯度）</li></ul><hr><h2 id=1-为什么不直接全量微调>1. 为什么不直接全量微调？</h2><h3 id=一笔账>一笔账</h3><p>全量微调意味着所有参数都要算梯度，AdamW 还要为每个参数额外存两个 fp32 状态。一个 7B 模型在混合精度下，单步训练的显存账是这样：</p><table><thead><tr><th>项目</th><th>每参数字节</th><th>7B 模型</th></tr></thead><tbody><tr><td>权重（fp16）</td><td>2</td><td>14 GB</td></tr><tr><td>梯度（fp16）</td><td>2</td><td>14 GB</td></tr><tr><td>AdamW 状态（fp32 m + v）</td><td>8</td><td>56 GB</td></tr><tr><td>激活（依赖序列长度、batch）</td><td>—</td><td>8–20 GB</td></tr><tr><td><strong>合计</strong></td><td>—</td><td><strong>约 95 GB</strong></td></tr></tbody></table><p>也就是说在写下第一行训练代码之前，你至少要两张 A100-80G。这笔账解释了为什么 PEFT 不是"锦上添花的优化"——对绝大多数从业者来说，它是能碰 7B 以上模型的<strong>唯一</strong>方式。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig1_full_vs_peft.png alt="PEFT 各方法在 7B 基座上的可训练参数量，以及服务 N 个任务时的磁盘占用对比。" loading=lazy decoding=async class=content-image></figure></p><h3 id=内在秩假说>内在秩假说</h3><p>还有一层更深的理由。Aghajanyan 等人（2020）和 LoRA 原论文都指出：<strong>微调引入的权重变化具有非常低的内在秩</strong>。如果你需要对预训练模型做的那个改动本来就生活在一个低维子空间里，那么训练完整的 $d \times k$ 矩阵不仅贵，<strong>还在用错误的假设空间搜索</strong>——你应该直接在低秩流形上找。</p><p>实证上，对 175B 模型在下游任务上的微调，可以仅用大约 200 个参数空间方向就达到匹配（Aghajanyan et al., 2020）。这就是 LoRA 想法的钥匙。</p><h3 id=冻结微调一个弱基线>冻结微调——一个弱基线</h3><p>PEFT 之前最朴素的省钱办法，是冻住主体只训分类头，或者只解冻顶上几层：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>for</span> <span class=n>param</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
-</span></span><span class=line><span class=cl>    <span class=n>param</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>False</span>
-</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>param</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>transformer</span><span class=o>.</span><span class=n>h</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>:]</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
-</span></span><span class=line><span class=cl>    <span class=n>param</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>True</span>
-</span></span></code></pre></td></tr></table></div></div><p>这套方法在 BERT 类编码器上做分类还行，做生成就不行：被训练的层数太少，没法把上游表示重新引导到任务需要的方向。PEFT 方法不一样——它在网络<strong>各处</strong>插入可训参数，但总数仍然极小。</p><hr><h2 id=2-lora低秩适配>2. LoRA：低秩适配</h2><h3 id=分解形式>分解形式</h3><p>对一个冻结的权重矩阵 $W_0 \in \mathbb{R}^{d \times k}$，LoRA 学一个加性更新，参数化成两个瘦矩阵的乘积：</p>$$
-W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r}\, B A,
+<!DOCTYPE html>
+
+<html lang="zh-CN" data-theme="light" data-page-lang="zh-CN" data-translation="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <meta name="description" content="深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。">
+  <meta name="author" content="Chen Kai">
+  <meta name="generator" content="Hexo">
+  <title>自然语言处理（八）：模型微调与PEFT | Chen Kai Blog</title>
+
+  <!-- Preload critical fonts -->
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" as="style">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="自然语言处理（八）：模型微调与PEFT">
+  <meta property="og:description" content="深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。">
+  <meta property="og:url" content="/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/">
+  <meta property="og:site_name" content="Chen Kai Blog">
+  
+  
+  <meta property="article:published_time" content="2025-09-12">
+  <meta property="article:author" content="Chen Kai">
+  
+  <meta property="article:section" content="自然语言处理">
+  
+  
+  <meta property="article:tag" content="NLP">
+  
+  <meta property="article:tag" content="LLM">
+  
+  <meta property="article:tag" content="PEFT">
+  
+  <meta property="article:tag" content="LoRA">
+  
+  <meta property="article:tag" content="微调">
+  
+  
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="自然语言处理（八）：模型微调与PEFT">
+  <meta name="twitter:description" content="深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。">
+  
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/">
+
+  <!-- RSS / Atom Feed -->
+  <link rel="alternate" href="/atom.xml" title="Chen Kai Blog" type="application/atom+xml">
+  <link rel="alternate" href="/rss2.xml" title="Chen Kai Blog" type="application/rss+xml">
+
+  <!-- Sitemap -->
+  <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+
+  <!-- Favicon -->
+  <link rel="shortcut icon" href="/images/logo.svg">
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+  <!-- Stylesheets -->
+  
+<link rel="stylesheet" href="/css/main.css">
+
+  
+<link rel="stylesheet" href="/css/article.css">
+
+  
+<link rel="stylesheet" href="/css/code.css">
+
+
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  
+
+  
+  <!-- JSON-LD Structured Data for Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "自然语言处理（八）：模型微调与PEFT",
+    "description": "深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。",
+    "datePublished": "2025-09-12",
+    "dateModified": "2026-05-06",
+    "author": {
+      "@type": "Person",
+      "name": "Chen Kai",
+      "url": "https://www.chenk.top"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Chen Kai Blog",
+      "url": "https://www.chenk.top"
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/"
+    },
+    "wordCount": "4.6k"
+  }
+  </script>
+  
+
+  <!-- Theme initialization (prevent FOUC) -->
+  <script>
+    (function(){
+      var t = localStorage.getItem('theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+<style>mjx-container[jax="SVG"] {
+  direction: ltr;
+}
+
+mjx-container[jax="SVG"] > svg {
+  overflow: visible;
+}
+
+mjx-container[jax="SVG"][display="true"] {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+}
+
+mjx-container[jax="SVG"][justify="left"] {
+  text-align: left;
+}
+
+mjx-container[jax="SVG"][justify="right"] {
+  text-align: right;
+}
+
+g[data-mml-node="merror"] > g {
+  fill: red;
+  stroke: red;
+}
+
+g[data-mml-node="merror"] > rect[data-background] {
+  fill: yellow;
+  stroke: none;
+}
+
+g[data-mml-node="mtable"] > line[data-line] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > rect[data-frame] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > .mjx-dashed {
+  stroke-dasharray: 140;
+}
+
+g[data-mml-node="mtable"] > .mjx-dotted {
+  stroke-linecap: round;
+  stroke-dasharray: 0,140;
+}
+
+g[data-mml-node="mtable"] > svg {
+  overflow: visible;
+}
+
+[jax="SVG"] mjx-tool {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+[jax="SVG"] mjx-tool > mjx-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+mjx-tool > mjx-tip {
+  display: inline-block;
+  padding: .2em;
+  border: 1px solid #888;
+  font-size: 70%;
+  background-color: #F8F8F8;
+  color: black;
+  box-shadow: 2px 2px 5px #AAAAAA;
+}
+
+g[data-mml-node="maction"][data-toggle] {
+  cursor: pointer;
+}
+
+mjx-status {
+  display: block;
+  position: fixed;
+  left: 1em;
+  bottom: 1em;
+  min-width: 25%;
+  padding: .2em .4em;
+  border: 1px solid #888;
+  font-size: 90%;
+  background-color: #F8F8F8;
+  color: black;
+}
+
+foreignObject[data-mjx-xml] {
+  font-family: initial;
+  line-height: normal;
+  overflow: visible;
+}
+
+.MathJax path {
+  stroke-width: 3;
+}
+
+mjx-container[display="true"] {
+  overflow: auto hidden;
+}
+
+mjx-container[display="true"] + br {
+  display: none;
+}
+</style></head>
+<body>
+  <header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="site-logo">
+      <span class="logo-text">Chen Kai Blog</span>
+    </a>
+
+    <nav class="main-nav">
+      <a href="/" class="nav-link" data-i18n="nav.home">Home</a>
+      <a href="/series/" class="nav-link" data-i18n="nav.series">Series</a>
+      <a href="/projects/" class="nav-link" data-i18n="nav.projects">Projects</a>
+      <a href="/archives/" class="nav-link" data-i18n="nav.archives">Archives</a>
+      <a href="/about/" class="nav-link" data-i18n="nav.about">About</a>
+    </nav>
+
+    <div class="header-actions">
+      
+      <button class="lang-switcher" id="lang-switcher" aria-label="Switch language">
+        <span class="lang-label" id="lang-label">EN</span>
+      </button>
+      
+
+      
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      
+
+      
+      <button class="search-toggle" id="search-toggle" aria-label="Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+      
+
+      <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-container">
+      <div style="position: relative;">
+        <input type="text" class="search-input" id="search-input" placeholder="Search articles..." data-i18n-attr="placeholder:search.placeholder" autocomplete="off">
+        <div class="search-kbd" id="search-kbd-hint">
+          <kbd>Esc</kbd>
+        </div>
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+  </div>
+  
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div class="mobile-drawer-overlay" id="mobile-drawer-overlay"></div>
+<nav class="mobile-drawer" id="mobile-drawer">
+  <div class="mobile-drawer-header">
+    <span class="mobile-drawer-title">Chen Kai Blog</span>
+    <button class="mobile-drawer-close" id="mobile-drawer-close" aria-label="Close menu">&times;</button>
+  </div>
+  <div class="mobile-drawer-nav">
+    <a href="/" class="" data-i18n="nav.home">Home</a>
+    <a href="/series/" class="" data-i18n="nav.series">Series</a>
+    <a href="/projects/" class="" data-i18n="nav.projects">Projects</a>
+    <a href="/archives/" class="" data-i18n="nav.archives">Archives</a>
+    <a href="/about/" class="" data-i18n="nav.about">About</a>
+  </div>
+  <div class="mobile-drawer-actions">
+    
+    <button id="mobile-theme-toggle" aria-label="Toggle dark mode">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Theme
+    </button>
+    
+    
+    <button id="mobile-lang-switcher" aria-label="Switch language">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span id="mobile-lang-label">EN</span>
+    </button>
+    
+  </div>
+</nav>
+
+
+  
+  <div class="reading-progress" id="reading-progress"></div>
+  
+
+  <main class="main-content">
+    
+<article class="article-page">
+  <div class="article-layout has-both-sidebars">
+    <!-- Series Sidebar (left) -->
+    
+    <aside class="series-sidebar" id="series-sidebar">
+      <div class="series-sidebar-inner">
+        <h4 class="series-sidebar-title">自然语言处理</h4>
+        <p class="series-sidebar-progress">Part 8 of 12</p>
+        <div class="series-progress-bar">
+          <div class="series-progress-fill" style="width: 66.66666666666666%"></div>
+        </div>
+        <nav class="series-chapter-list">
+          <!-- Series chapters populated by JS or by listing related posts -->
+        </nav>
+      </div>
+    </aside>
+    
+
+    <!-- Article Content (center) -->
+    <div class="article-main">
+      <!-- Breadcrumb Navigation -->
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/" data-i18n="nav.home">Home</a>
+        <span class="breadcrumb-separator">&#9656;</span>
+        
+          
+          <a href="/categories/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86/">自然语言处理</a>
+          <span class="breadcrumb-separator">&#9656;</span>
+        
+        <span class="breadcrumb-current">自然语言处理（八）：模型微调与PEFT</span>
+      </nav>
+
+      <header class="article-header">
+        
+        <div class="article-category">
+          
+            <a href="/categories/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86/">自然语言处理</a>
+          
+        </div>
+        
+
+        <h1 class="article-title">自然语言处理（八）：模型微调与PEFT</h1>
+
+        <div class="article-meta">
+          <time datetime="2025-09-12">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            九月 12, 2025
+          </time>
+          
+          <span class="update-time" title="Last updated">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Updated 5月 06, 2026
+          </span>
+          
+          
+          <span class="reading-time" data-auto-reading>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span class="rt-num">—</span> <span data-i18n="post.minRead">min read</span>
+          </span>
+          
+          
+          <span class="word-count" data-auto-wordcount>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+            <span class="wc-num">—</span> <span data-i18n="post.words">words</span>
+          </span>
+          
+        </div>
+
+        
+        <p class="article-description">深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。</p>
+        
+      </header>
+
+      <div class="article-content markdown-body">
+        <p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/illustration_1.jpg" alt="概念示意图"></p>
+<p>2020 年，微调一个 70 亿参数的语言模型需要精打细算：八张 A100、几天时间，外加一位懂梯度检查点的工程师。到了 2024 年，研究生在笔记本上就能完成。这中间的进步，几乎完全归功于 Hu 等人 2022 年的 LoRA 论文，以及 Dettmers 等人 2023 年的 QLoRA 论文。</p>
+<p>这不仅是工程优化。参数高效微调（Parameter-Efficient Fine-Tuning, PEFT）重新定义了"拥有一个模型"的意义。过去每个任务都需要一份完整的权重文件，现在只需要一个冻结的基座，加上一个目录里几十兆的小适配器。切换任务变成了更换文件，N 个领域的服务从 O(N) 变成 O(1) 个基座加 N 个 ε。</p>
+<p>本文从第一性原理出发重建 PEFT。先分析全量微调能解决什么、不能解决什么，再推导 LoRA 的低秩假设，拆解 QLoRA 如何让 7B 模型塞进 6GB 显存的计算逻辑，最后落到工程选择：用哪种方法、秩设多少、调整哪些模块。</p>
+<h2 id="你将学到"><a class="header-anchor" href="#你将学到">¶</a>你将学到</h2>
+<ul>
+<li><strong>为什么</strong> LLM 时代全量微调是一种浪费——过参数化与"内在秩"假说</li>
+<li><strong>LoRA 的机制</strong>：分解 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>W</mi><mo>=</mo><mi>B</mi><mi>A</mi></mrow><annotation encoding="application/x-tex">\Delta W = BA</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord">Δ</span><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mord mathnormal">A</span></span></span></span>、为何 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span> 初始化为零、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mi mathvariant="normal">/</mi><mi>r</mi></mrow><annotation encoding="application/x-tex">\alpha/r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mord">/</span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span> 缩放如何影响有效学习率</li>
+<li><strong>QLoRA</strong>：NF4 量化、双重量化、分页优化器，以及精确的内存账本</li>
+<li><strong>Adapter 与 Prefix-Tuning</strong>：它们在 Transformer 块中的位置，何时占优、何时落败</li>
+<li><strong>工程选择</strong>：如何挑选秩、修改哪些模块、多 LoRA 服务、指令微调与 RLHF 对齐</li>
+</ul>
+<h2 id="前置知识"><a class="header-anchor" href="#前置知识">¶</a>前置知识</h2>
+<ul>
+<li>Transformer 架构（<a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E5%9B%9B-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8ETransformer/">第 4 部分</a>）</li>
+<li>GPT 风格解码器（<a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E5%85%AD-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">第 6 部分</a>）</li>
+<li>PyTorch 基础与 GPU 内存直觉（优化器状态、激活、梯度）</li>
+</ul>
+<hr>
+<h2 id="1-为什么不直接全量微调？"><a class="header-anchor" href="#1-为什么不直接全量微调？">¶</a>1. 为什么不直接全量微调？</h2>
+<h3 id="一笔账"><a class="header-anchor" href="#一笔账">¶</a>一笔账</h3>
+<p>全量微调需要为所有参数计算梯度，AdamW 还要为每个参数额外存储两个 fp32 状态。对于一个 7B 模型，在混合精度下，单步训练的显存占用如下：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>每参数字节</th>
+<th>7B 模型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>权重（fp16）</td>
+<td>2</td>
+<td>14 GB</td>
+</tr>
+<tr>
+<td>梯度（fp16）</td>
+<td>2</td>
+<td>14 GB</td>
+</tr>
+<tr>
+<td>AdamW 状态（fp32 m + v）</td>
+<td>8</td>
+<td>56 GB</td>
+</tr>
+<tr>
+<td>激活（依赖序列长度、batch）</td>
+<td>—</td>
+<td>8–20 GB</td>
+</tr>
+<tr>
+<td><strong>合计</strong></td>
+<td>—</td>
+<td><strong>约 95 GB</strong></td>
+</tr>
+</tbody>
+</table>
+<p>这意味着，还没写第一行训练代码，至少需要两张 A100-80G 显卡。这笔账清楚地说明，PEFT 不是“锦上添花的优化”——对绝大多数从业者来说，它是接触 7B 以上模型的<strong>唯一</strong>途径。</p>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig1_full_vs_peft.png" alt="PEFT 各方法在 7B 基座上的可训练参数量，以及服务 N 个任务时的磁盘占用对比。"></p>
+<h3 id="内在秩假说"><a class="header-anchor" href="#内在秩假说">¶</a>内在秩假说</h3>
+<p>更深一层的原因来自 Aghajanyan 等人（2020）和 LoRA 原论文的观察：<strong>微调引入的权重变化具有极低的内在秩</strong>。如果预训练模型所需的改动本身就位于一个低维子空间中，那么训练完整的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mo>×</mo><mi>k</mi></mrow><annotation encoding="application/x-tex">d \times k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7778em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span> 矩阵不仅昂贵，还使用了错误的假设空间进行搜索——应该直接在低秩流形上寻找解。</p>
+<p>实证研究表明，对 175B 模型在下游任务上的微调，仅需大约 200 个参数方向即可达到匹配效果（Aghajanyan et al., 2020）。这正是 LoRA 方法的核心思想。</p>
+<h3 id="冻结微调——一个弱基线"><a class="header-anchor" href="#冻结微调——一个弱基线">¶</a>冻结微调——一个弱基线</h3>
+<p>在 PEFT 出现之前，最朴素的省钱方法是冻结主体部分，只训练分类头，或者仅解冻顶层几层：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> param <span class="keyword">in</span> model.parameters():</span><br><span class="line">    param.requires_grad = <span class="literal">False</span></span><br><span class="line"><span class="keyword">for</span> param <span class="keyword">in</span> model.transformer.h[-<span class="number">2</span>:].parameters():</span><br><span class="line">    param.requires_grad = <span class="literal">True</span></span><br></pre></td></tr></table></figure>
+<p>这种方法在 BERT 类编码器上做分类任务尚可，但生成任务表现不佳：被训练的层数太少，无法将上游表示重新引导到任务所需的方向。PEFT 方法则不同——它在网络<strong>各处</strong>插入可训练参数，但总数依然极少。</p>
+<h2 id="2-LoRA：低秩适配"><a class="header-anchor" href="#2-LoRA：低秩适配">¶</a>2. LoRA：低秩适配</h2>
+<h3 id="分解形式"><a class="header-anchor" href="#分解形式">¶</a>分解形式</h3>
+<p>对于冻结的权重矩阵 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>W</mi><mn>0</mn></msub><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mi>d</mi><mo>×</mo><mi>k</mi></mrow></msup></mrow><annotation encoding="application/x-tex">W_0 \in \mathbb{R}^{d \times k}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8491em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">d</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span></span></span></span></span></span></span></span></span>，LoRA 学习一个加性更新，将其参数化为两个瘦矩阵的乘积：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>W</mi><mo>=</mo><msub><mi>W</mi><mn>0</mn></msub><mo>+</mo><mi mathvariant="normal">Δ</mi><mi>W</mi><mo separator="true">,</mo><mspace width="2em"></mspace><mi mathvariant="normal">Δ</mi><mi>W</mi><mo>=</mo><mfrac><mi>α</mi><mi>r</mi></mfrac><mtext> </mtext><mi>B</mi><mi>A</mi><mo separator="true">,</mo><mspace width="2em"></mspace><mi>B</mi><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mi>d</mi><mo>×</mo><mi>r</mi></mrow></msup><mo separator="true">,</mo><mtext> </mtext><mi>A</mi><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mi>r</mi><mo>×</mo><mi>k</mi></mrow></msup><mo separator="true">,</mo><mtext> </mtext><mi>r</mi><mo>≪</mo><mi>min</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>d</mi><mo separator="true">,</mo><mi>k</mi><mo stretchy="false">)</mo><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r}\, B A,
 \qquad B \in \mathbb{R}^{d \times r},\ A \in \mathbb{R}^{r \times k},\ r \ll \min(d, k).
-$$<p>前向变成 $h = x W_0^\top + \frac{\alpha}{r} (x A^\top) B^\top$。原来的 $x W_0^\top$ 一动不动，LoRA 分支加一个秩为 $r$ 的修正。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig2_lora_decomp.png alt="LoRA 把权重更新分解成两个瘦矩阵，$B$ 初始化为零，$A$ 初始化为小高斯。" loading=lazy decoding=async class=content-image></figure></p><h3 id=数一下参数>数一下参数</h3><p>取 $d = k = 4096$（LLaMA-7B 的隐层维度），$r = 8$：</p><ul><li>原始 $W_0$：$d \cdot k = 16{,}777{,}216$ 个参数</li><li>LoRA 的 $A, B$：$r \cdot (d + k) = 65{,}536$ 个参数</li><li>缩减：<strong>每个矩阵的可训参数减少 256 倍</strong></li></ul><p>把 LoRA 应用到 32 层每层的 4 个注意力投影上，可训参数大约 800 万——占 7B 总量的 0.12%。</p><h3 id=两个不能省的设计>两个不能省的设计</h3><p><strong>初始化的不对称性。</strong> $B$ 初始化为零，$A$ 用小高斯。所以训练第一步时 $BA = 0$，模型的前向输出和预训练版完全一致。训练从一个已知良好的工作点开始，不需要折腾 warmup。</p><p><strong>$\alpha/r$ 这个比例。</strong> 它不是装饰性常数。如果固定 $\alpha$、增大 $r$，更新的范数会随之变大（方向更多、合成模长更长），逼你重新调学习率。$\alpha/r$ 缩放把这两件事解耦：$\alpha$ 一次定下（典型取 $\alpha = 2r$），扫 $r$ 找容量，有效步长基本不变。</p><h3 id=一个最小实现>一个最小实现</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>LoRALinear</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;把一个冻结的 nn.Linear 包上一个可训的低秩更新。&#34;&#34;&#34;</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base</span><span class=p>:</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>,</span> <span class=n>r</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8</span><span class=p>,</span> <span class=n>alpha</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>16</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>                 <span class=n>dropout</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span> <span class=o>=</span> <span class=n>base</span>
-</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
-</span></span><span class=line><span class=cl>            <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>False</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>        <span class=n>in_f</span><span class=p>,</span> <span class=n>out_f</span> <span class=o>=</span> <span class=n>base</span><span class=o>.</span><span class=n>in_features</span><span class=p>,</span> <span class=n>base</span><span class=o>.</span><span class=n>out_features</span>
-</span></span><span class=line><span class=cl>        <span class=c1># A: (r, in_features) — 小高斯初始化</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>r</span><span class=p>,</span> <span class=n>in_f</span><span class=p>))</span>
-</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>kaiming_uniform_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=p>,</span> <span class=n>a</span><span class=o>=</span><span class=mi>5</span> <span class=o>**</span> <span class=mf>0.5</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=c1># B: (out_features, r) — 零初始化，让分支起步时不发挥作用</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>out_f</span><span class=p>,</span> <span class=n>r</span><span class=p>))</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scaling</span> <span class=o>=</span> <span class=n>alpha</span> <span class=o>/</span> <span class=n>r</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)</span> <span class=k>if</span> <span class=n>dropout</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=n>nn</span><span class=o>.</span><span class=n>Identity</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>        <span class=c1># 冻结分支</span>
-</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=c1># 低秩分支：x @ A^T @ B^T 再缩放</span>
-</span></span><span class=line><span class=cl>        <span class=n>lora_out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span><span class=o>.</span><span class=n>T</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>out</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>scaling</span> <span class=o>*</span> <span class=n>lora_out</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=nd>@torch.no_grad</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>merge</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;把 LoRA 增量折回基座权重——推理时零额外开销。&#34;&#34;&#34;</span>
-</span></span><span class=line><span class=cl>        <span class=n>delta</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>scaling</span> <span class=o>*</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=o>.</span><span class=n>weight</span><span class=o>.</span><span class=n>data</span> <span class=o>+=</span> <span class=n>delta</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span><span class=o>.</span><span class=n>zero_</span><span class=p>()</span>
-</span></span></code></pre></td></tr></table></div></div><p><code>merge()</code> 这个方法是 LoRA 在推理时不花钱的关键：训完之后把 $\Delta W$ 折进 $W_0$，模型在结构上就和原始模型一模一样了——没有多余的矩阵乘，没有额外延迟。</p><h3 id=改哪些模块>改哪些模块</h3><p>Hu 等人在原论文里发现，把 LoRA 加到<strong>查询和值投影</strong>（<code>q_proj</code>、<code>v_proj</code>）就能拿到大部分收益。生产环境现在的默认要更广一点——四个注意力投影都加，有时候连 FFN 也一起：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>peft</span> <span class=kn>import</span> <span class=n>LoraConfig</span><span class=p>,</span> <span class=n>get_peft_model</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>config</span> <span class=o>=</span> <span class=n>LoraConfig</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>r</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>lora_alpha</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>target_modules</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;q_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;k_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;v_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;o_proj&#34;</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>    <span class=n>lora_dropout</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span> <span class=n>bias</span><span class=o>=</span><span class=s2>&#34;none&#34;</span><span class=p>,</span> <span class=n>task_type</span><span class=o>=</span><span class=s2>&#34;CAUSAL_LM&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>get_peft_model</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>config</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>print_trainable_parameters</span><span class=p>()</span>
-</span></span><span class=line><span class=cl><span class=c1># trainable params: 8,388,608 || all params: 6,746,804,224 || trainable%: 0.124</span>
-</span></span></code></pre></td></tr></table></div></div><p>再把 <code>gate_proj</code>、<code>up_proj</code>、<code>down_proj</code>（LLaMA 的 FFN 三件套）加上，通常在 benchmark 上多换不到一个点，但可训参数量是原来的 3 倍。代码生成任务值得，分类任务基本不值。</p><hr><h2 id=3-qlora把基座压到-4-比特>3. QLoRA：把基座压到 4 比特</h2><p>LoRA 解决的是<strong>可训</strong>参数的问题。<strong>冻结</strong>的那部分权重还在 fp16 里趴着，仍然是显存大头。QLoRA 攻击的就是这块。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig5_qlora.png alt="QLoRA 把基座放进 4 比特，LoRA 适配器留在 bf16；梯度只走绿色那条小路径。" loading=lazy decoding=async class=content-image></figure></p><h3 id=qlora-的三个创新>QLoRA 的三个创新</h3><p><strong>1. NF4（NormalFloat 4-bit）量化。</strong> 朴素的 4 比特整数量化浪费分辨率，因为 LLM 的权重并不均匀分布——它们近似服从高斯。NF4 选 16 个分位数，使每一档在标准正态下等概率，理论上是最优编码。块大小通常是 64，每块配一个 fp16 缩放常数。</p><p><strong>2. 双重量化。</strong> 每个块都需要一个缩放常数；对 7B 模型，块大小 64 意味着大约 1.1 亿个常数 × 4 字节 = 0.44 GB 的额外开销。QLoRA 把这些<strong>常数本身</strong>也量化到 8 比特，每参数省下大约 0.4 比特——单个看不多，7B 规模上有意义。</p><p><strong>3. 分页优化器。</strong> 长序列会让激活内存突然飙升。Paged AdamW 通过 NVIDIA Unified Memory 把优化器状态分页到 CPU 内存，需要时再换回来。牺牲一点吞吐，换来训练原本会 OOM 的长序列的能力。</p><h3 id=配置>配置</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>AutoModelForCausalLM</span><span class=p>,</span> <span class=n>BitsAndBytesConfig</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>peft</span> <span class=kn>import</span> <span class=n>LoraConfig</span><span class=p>,</span> <span class=n>get_peft_model</span><span class=p>,</span> <span class=n>prepare_model_for_kbit_training</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>bnb</span> <span class=o>=</span> <span class=n>BitsAndBytesConfig</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>load_in_4bit</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>bnb_4bit_quant_type</span><span class=o>=</span><span class=s2>&#34;nf4&#34;</span><span class=p>,</span>          <span class=c1># NormalFloat 4 比特</span>
-</span></span><span class=line><span class=cl>    <span class=n>bnb_4bit_compute_dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>bfloat16</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>bnb_4bit_use_double_quant</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>     <span class=c1># 把量化常数本身再量化一次</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>AutoModelForCausalLM</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;meta-llama/Llama-2-7b-hf&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>quantization_config</span><span class=o>=</span><span class=n>bnb</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>device_map</span><span class=o>=</span><span class=s2>&#34;auto&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>prepare_model_for_kbit_training</span><span class=p>(</span><span class=n>model</span><span class=p>)</span>   <span class=c1># 把 LayerNorm 等转回 fp32</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>lora</span> <span class=o>=</span> <span class=n>LoraConfig</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>r</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>lora_alpha</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span> <span class=n>lora_dropout</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>target_modules</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;q_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;k_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;v_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;o_proj&#34;</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>    <span class=n>bias</span><span class=o>=</span><span class=s2>&#34;none&#34;</span><span class=p>,</span> <span class=n>task_type</span><span class=o>=</span><span class=s2>&#34;CAUSAL_LM&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>get_peft_model</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>lora</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=代价与收益>代价与收益</h3><p>QLoRA 相对 fp16 LoRA，在大部分 benchmark 上掉 1–2 个百分点，但能恢复全量微调的绝大部分性能。换来的显存收益是颠覆性的：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig6_memory.png alt="训练显存按组件拆分，以及不同模型规模下的峰值显存——QLoRA 让 70B 进了单张 A100。" loading=lazy decoding=async class=content-image></figure></p><p>70B 模型全量微调大约要一 TB 显存（基本上只有前沿实验室在做）。QLoRA 把它压进了一张 80 GB 卡。这是"只能搞研究"和"你的团队能落地"之间的差别。</p><hr><h2 id=4-adapter最早的-peft>4. Adapter：最早的 PEFT</h2><p>Houlsby 等人 2019 年比 LoRA 早两年提出 Adapter。思路是：在 Transformer 每个子层后插入一个小瓶颈模块。</p>$$
-\text{Adapter}(x) = x + W_{\text{up}}\, \sigma(W_{\text{down}}\, x), \qquad
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord">Δ</span><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">Δ</span><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.7936em;vertical-align:-0.686em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.1076em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0037em;">α</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mord mathnormal">A</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0935em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8991em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">d</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">A</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0935em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8991em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≪</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop">min</span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="mclose">)</span><span class="mord">.</span></span></span></span></span></p>
+<p>前向计算变为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi><mo>=</mo><mi>x</mi><msubsup><mi>W</mi><mn>0</mn><mi mathvariant="normal">⊤</mi></msubsup><mo>+</mo><mfrac><mi>α</mi><mi>r</mi></mfrac><mo stretchy="false">(</mo><mi>x</mi><msup><mi>A</mi><mi mathvariant="normal">⊤</mi></msup><mo stretchy="false">)</mo><msup><mi>B</mi><mi mathvariant="normal">⊤</mi></msup></mrow><annotation encoding="application/x-tex">h = x W_0^\top + \frac{\alpha}{r} (x A^\top) B^\top</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0972em;vertical-align:-0.2481em;"></span><span class="mord mathnormal">x</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-2.4519em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">⊤</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2481em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.1941em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6954em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0037em;">α</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">⊤</span></span></span></span></span></span></span></span><span class="mclose">)</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">⊤</span></span></span></span></span></span></span></span></span></span></span>。原始部分 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><msubsup><mi>W</mi><mn>0</mn><mi mathvariant="normal">⊤</mi></msubsup></mrow><annotation encoding="application/x-tex">x W_0^\top</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0972em;vertical-align:-0.2481em;"></span><span class="mord mathnormal">x</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-2.4519em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">⊤</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2481em;"><span></span></span></span></span></span></span></span></span></span> 保持不变，LoRA 分支增加一个秩为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi></mrow><annotation encoding="application/x-tex">r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span> 的修正。</p>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig2_lora_decomp.png" alt="LoRA 把权重更新分解成两个瘦矩阵， 初始化为零， 初始化为小高斯。"></p>
+<h3 id="数一下参数"><a class="header-anchor" href="#数一下参数">¶</a>数一下参数</h3>
+<p>假设 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mo>=</mo><mi>k</mi><mo>=</mo><mn>4096</mn></mrow><annotation encoding="application/x-tex">d = k = 4096</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">4096</span></span></span></span>（LLaMA-7B 的隐层维度），<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>8</mn></mrow><annotation encoding="application/x-tex">r = 8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">8</span></span></span></span>：</p>
+<ul>
+<li>原始 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>W</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">W_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mo>⋅</mo><mi>k</mi><mo>=</mo><mn>16,777,216</mn></mrow><annotation encoding="application/x-tex">d \cdot k = 16{,}777{,}216</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8389em;vertical-align:-0.1944em;"></span><span class="mord">16</span><span class="mord"><span class="mpunct">,</span></span><span class="mord">777</span><span class="mord"><span class="mpunct">,</span></span><span class="mord">216</span></span></span></span> 个参数</li>
+<li>LoRA 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo separator="true">,</mo><mi>B</mi></mrow><annotation encoding="application/x-tex">A, B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">A</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span>：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>⋅</mo><mo stretchy="false">(</mo><mi>d</mi><mo>+</mo><mi>k</mi><mo stretchy="false">)</mo><mo>=</mo><mn>65,536</mn></mrow><annotation encoding="application/x-tex">r \cdot (d + k) = 65{,}536</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4445em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8389em;vertical-align:-0.1944em;"></span><span class="mord">65</span><span class="mord"><span class="mpunct">,</span></span><span class="mord">536</span></span></span></span> 个参数</li>
+<li>缩减：<strong>每个矩阵的可训参数减少 256 倍</strong></li>
+</ul>
+<p>将 LoRA 应用到 32 层每层的 4 个注意力投影上，可训参数大约 800 万——占 7B 总量的 0.12%。</p>
+<h3 id="两个不能省的设计"><a class="header-anchor" href="#两个不能省的设计">¶</a>两个不能省的设计</h3>
+<p><strong>初始化的不对称性。</strong> <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span> 初始化为零，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi></mrow><annotation encoding="application/x-tex">A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal">A</span></span></span></span> 使用小高斯初始化。训练第一步时 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mi>A</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">BA = 0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mord mathnormal">A</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>，模型的前向输出与预训练版完全一致。训练从一个已知良好的工作点开始，无需额外 warmup。</p>
+<p><strong><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mi mathvariant="normal">/</mi><mi>r</mi></mrow><annotation encoding="application/x-tex">\alpha/r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mord">/</span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span> 这个比例。</strong> 它不是装饰性常数。固定 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi></mrow><annotation encoding="application/x-tex">\alpha</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span></span></span></span>、增大 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi></mrow><annotation encoding="application/x-tex">r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span> 时，更新的范数会随之变大（方向更多、合成模长更长），需要重新调整学习率。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mi mathvariant="normal">/</mi><mi>r</mi></mrow><annotation encoding="application/x-tex">\alpha/r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mord">/</span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span> 缩放将这两件事解耦：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi></mrow><annotation encoding="application/x-tex">\alpha</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span></span></span></span> 一次定下（典型取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mo>=</mo><mn>2</mn><mi>r</mi></mrow><annotation encoding="application/x-tex">\alpha = 2r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">2</span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span>），扫 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi></mrow><annotation encoding="application/x-tex">r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span> 找容量，有效步长基本不变。</p>
+<h3 id="一个最小实现"><a class="header-anchor" href="#一个最小实现">¶</a>一个最小实现</h3>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torch.nn <span class="keyword">as</span> nn</span><br><span class="line"><span class="keyword">import</span> torch.nn.functional <span class="keyword">as</span> F</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">LoRALinear</span>(nn.Module):</span><br><span class="line">    <span class="string">"""把一个冻结的 nn.Linear 包上一个可训的低秩更新。"""</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, base: nn.Linear, r: <span class="built_in">int</span> = <span class="number">8</span>, alpha: <span class="built_in">int</span> = <span class="number">16</span>,</span></span><br><span class="line"><span class="params">                 dropout: <span class="built_in">float</span> = <span class="number">0.0</span></span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.base = base</span><br><span class="line">        <span class="keyword">for</span> p <span class="keyword">in</span> <span class="variable language_">self</span>.base.parameters():</span><br><span class="line">            p.requires_grad = <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">        in_f, out_f = base.in_features, base.out_features</span><br><span class="line">        <span class="comment"># A: (r, in_features) — 小高斯初始化</span></span><br><span class="line">        <span class="variable language_">self</span>.lora_A = nn.Parameter(torch.empty(r, in_f))</span><br><span class="line">        nn.init.kaiming_uniform_(<span class="variable language_">self</span>.lora_A, a=<span class="number">5</span> ** <span class="number">0.5</span>)</span><br><span class="line">        <span class="comment"># B: (out_features, r) — 零初始化，让分支起步时不发挥作用</span></span><br><span class="line">        <span class="variable language_">self</span>.lora_B = nn.Parameter(torch.zeros(out_f, r))</span><br><span class="line"></span><br><span class="line">        <span class="variable language_">self</span>.scaling = alpha / r</span><br><span class="line">        <span class="variable language_">self</span>.dropout = nn.Dropout(dropout) <span class="keyword">if</span> dropout &gt; <span class="number">0</span> <span class="keyword">else</span> nn.Identity()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x: torch.Tensor</span>) -&gt; torch.Tensor:</span><br><span class="line">        <span class="comment"># 冻结分支</span></span><br><span class="line">        out = <span class="variable language_">self</span>.base(x)</span><br><span class="line">        <span class="comment"># 低秩分支：x @ A^T @ B^T 再缩放</span></span><br><span class="line">        lora_out = <span class="variable language_">self</span>.dropout(x) @ <span class="variable language_">self</span>.lora_A.T @ <span class="variable language_">self</span>.lora_B.T</span><br><span class="line">        <span class="keyword">return</span> out + <span class="variable language_">self</span>.scaling * lora_out</span><br><span class="line"></span><br><span class="line"><span class="meta">    @torch.no_grad()</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">merge</span>(<span class="params">self</span>) -&gt; <span class="literal">None</span>:</span><br><span class="line">        <span class="string">"""把 LoRA 增量折回基座权重——推理时零额外开销。"""</span></span><br><span class="line">        delta = <span class="variable language_">self</span>.scaling * (<span class="variable language_">self</span>.lora_B @ <span class="variable language_">self</span>.lora_A)</span><br><span class="line">        <span class="variable language_">self</span>.base.weight.data += delta</span><br><span class="line">        <span class="variable language_">self</span>.lora_B.zero_()</span><br></pre></td></tr></table></figure>
+<p><code>merge()</code> 方法是 LoRA 在推理时不花钱的关键：训练完成后将 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>W</mi></mrow><annotation encoding="application/x-tex">\Delta W</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord">Δ</span><span class="mord mathnormal" style="margin-right:0.1389em;">W</span></span></span></span> 折入 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>W</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">W_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，模型在结构上与原始模型一模一样——没有多余的矩阵乘，也没有额外延迟。</p>
+<h3 id="改哪些模块"><a class="header-anchor" href="#改哪些模块">¶</a>改哪些模块</h3>
+<p>Hu 等人在原论文中发现，将 LoRA 加到<strong>查询和值投影</strong>（<code>q_proj</code>、<code>v_proj</code>）即可获得大部分收益。生产环境的默认范围更广——四个注意力投影都加，有时连 FFN 也一起：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> peft <span class="keyword">import</span> LoraConfig, get_peft_model</span><br><span class="line"></span><br><span class="line">config = LoraConfig(</span><br><span class="line">    r=<span class="number">16</span>, lora_alpha=<span class="number">32</span>,</span><br><span class="line">    target_modules=[<span class="string">"q_proj"</span>, <span class="string">"k_proj"</span>, <span class="string">"v_proj"</span>, <span class="string">"o_proj"</span>],</span><br><span class="line">    lora_dropout=<span class="number">0.05</span>, bias=<span class="string">"none"</span>, task_type=<span class="string">"CAUSAL_LM"</span>,</span><br><span class="line">)</span><br><span class="line">model = get_peft_model(model, config)</span><br><span class="line">model.print_trainable_parameters()</span><br><span class="line"><span class="comment"># trainable params: 8,388,608 || all params: 6,746,804,224 || trainable%: 0.124</span></span><br></pre></td></tr></table></figure>
+<p>再将 <code>gate_proj</code>、<code>up_proj</code>、<code>down_proj</code>（LLaMA 的 FFN 三件套）加入，通常在 benchmark 上多换不到一个点，但可训参数量是原来的 3 倍。代码生成任务值得，分类任务基本不值。</p>
+<hr>
+<h2 id="3-QLoRA：把基座压到-4-比特"><a class="header-anchor" href="#3-QLoRA：把基座压到-4-比特">¶</a>3. QLoRA：把基座压到 4 比特</h2>
+<p>LoRA 解决了可训练参数的问题。冻结的那部分权重仍然以 fp16 格式占用显存，是显存消耗的主要来源。QLoRA 的目标正是这块。</p>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig5_qlora.png" alt="QLoRA 把基座放进 4 比特，LoRA 适配器留在 bf16；梯度只走绿色那条小路径。"></p>
+<h3 id="QLoRA-的三个创新"><a class="header-anchor" href="#QLoRA-的三个创新">¶</a>QLoRA 的三个创新</h3>
+<p><strong>1. NF4（NormalFloat 4-bit）量化。</strong> 朴素的 4 比特整数量化浪费分辨率，因为 LLM 权重并非均匀分布，而是近似服从高斯分布。NF4 选取 16 个分位数，使每一档在标准正态下等概率，理论上达到最优编码。块大小通常为 64，每块配一个 fp16 缩放常数。</p>
+<p><strong>2. 双重量化。</strong> 每个块需要一个缩放常数。对于 7B 模型，块大小为 64 时，大约有 1.1 亿个常数 × 4 字节 = 0.44 GB 额外开销。QLoRA 将这些常数本身量化到 8 比特，每参数节省约 0.4 比特——单个看不多，但在 7B 规模上意义显著。</p>
+<p><strong>3. 分页优化器。</strong> 长序列会导致激活内存突然飙升。Paged AdamW 借助 NVIDIA Unified Memory 将优化器状态分页到 CPU 内存，需要时再换回。牺牲少量吞吐，换来训练原本会 OOM 的长序列的能力。</p>
+<h3 id="配置"><a class="header-anchor" href="#配置">¶</a>配置</h3>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoModelForCausalLM, BitsAndBytesConfig</span><br><span class="line"><span class="keyword">from</span> peft <span class="keyword">import</span> LoraConfig, get_peft_model, prepare_model_for_kbit_training</span><br><span class="line"></span><br><span class="line">bnb = BitsAndBytesConfig(</span><br><span class="line">    load_in_4bit=<span class="literal">True</span>,</span><br><span class="line">    bnb_4bit_quant_type=<span class="string">"nf4"</span>,          <span class="comment"># NormalFloat 4 比特</span></span><br><span class="line">    bnb_4bit_compute_dtype=torch.bfloat16,</span><br><span class="line">    bnb_4bit_use_double_quant=<span class="literal">True</span>,     <span class="comment"># 把量化常数本身再量化一次</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">model = AutoModelForCausalLM.from_pretrained(</span><br><span class="line">    <span class="string">"meta-llama/Llama-2-7b-hf"</span>,</span><br><span class="line">    quantization_config=bnb,</span><br><span class="line">    device_map=<span class="string">"auto"</span>,</span><br><span class="line">)</span><br><span class="line">model = prepare_model_for_kbit_training(model)   <span class="comment"># 把 LayerNorm 等转回 fp32</span></span><br><span class="line"></span><br><span class="line">lora = LoraConfig(</span><br><span class="line">    r=<span class="number">16</span>, lora_alpha=<span class="number">32</span>, lora_dropout=<span class="number">0.05</span>,</span><br><span class="line">    target_modules=[<span class="string">"q_proj"</span>, <span class="string">"k_proj"</span>, <span class="string">"v_proj"</span>, <span class="string">"o_proj"</span>],</span><br><span class="line">    bias=<span class="string">"none"</span>, task_type=<span class="string">"CAUSAL_LM"</span>,</span><br><span class="line">)</span><br><span class="line">model = get_peft_model(model, lora)</span><br></pre></td></tr></table></figure>
+<h3 id="代价与收益"><a class="header-anchor" href="#代价与收益">¶</a>代价与收益</h3>
+<p>QLoRA 相较于 fp16 LoRA，在大部分 benchmark 上损失 1–2 个百分点，但能恢复全量微调的绝大部分性能。它带来的显存收益是颠覆性的：</p>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig6_memory.png" alt="训练显存按组件拆分，以及不同模型规模下的峰值显存——QLoRA 让 70B 进了单张 A100。"></p>
+<p>70B 模型全量微调大约需要一 TB 显存（基本只有前沿实验室能做到）。QLoRA 将其压缩到一张 80 GB 卡内。这是“只能搞研究”和“你的团队能落地”之间的差距。</p>
+<h2 id="4-Adapter：最早的-PEFT"><a class="header-anchor" href="#4-Adapter：最早的-PEFT">¶</a>4. Adapter：最早的 PEFT</h2>
+<p>Houlsby 等人在 2019 年提出 Adapter，比 LoRA 早两年。核心思路是在 Transformer 每个子层后插入一个小瓶颈模块。</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mtext>Adapter</mtext><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo>=</mo><mi>x</mi><mo>+</mo><msub><mi>W</mi><mtext>up</mtext></msub><mtext> </mtext><mi>σ</mi><mo stretchy="false">(</mo><msub><mi>W</mi><mtext>down</mtext></msub><mtext> </mtext><mi>x</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="2em"></mspace><msub><mi>W</mi><mtext>down</mtext></msub><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mi>m</mi><mo>×</mo><mi>d</mi></mrow></msup><mo separator="true">,</mo><mtext> </mtext><msub><mi>W</mi><mtext>up</mtext></msub><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mi>d</mi><mo>×</mo><mi>m</mi></mrow></msup><mo separator="true">,</mo><mtext> </mtext><mi>m</mi><mo>≪</mo><mi>d</mi><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">\text{Adapter}(x) = x + W_{\text{up}}\, \sigma(W_{\text{down}}\, x), \qquad
 W_{\text{down}} \in \mathbb{R}^{m \times d},\ W_{\text{up}} \in \mathbb{R}^{d \times m},\ m \ll d.
-$$<p>$W_{\text{up}}$ 初始化为零，让 Adapter 起步是恒等映射——和 LoRA 的 $B$ 同样的把戏。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig3_adapter.png alt="Adapter 插在注意力和 FFN 子层之后；每个 Adapter 是降维-非线性-升维的瓶颈结构，外加残差。" loading=lazy decoding=async class=content-image></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>Adapter</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>d_model</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>bottleneck</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>64</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>down</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>d_model</span><span class=p>,</span> <span class=n>bottleneck</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>up</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>bottleneck</span><span class=p>,</span> <span class=n>d_model</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>zeros_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>up</span><span class=o>.</span><span class=n>weight</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>zeros_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>up</span><span class=o>.</span><span class=n>bias</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>act</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>GELU</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>x</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>up</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>act</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>down</span><span class=p>(</span><span class=n>x</span><span class=p>)))</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=adapter-还是-lora>Adapter 还是 LoRA</h3><table><thead><tr><th></th><th><strong>Adapter</strong></th><th><strong>LoRA</strong></th></tr></thead><tbody><tr><td>位置</td><td>在残差路径<strong>之内</strong></td><td>在权重矩阵<strong>旁边</strong></td></tr><tr><td>推理开销</td><td>每块多一次矩阵乘（约 5–10% 延迟）</td><td>merge 后为零</td></tr><tr><td>可组合性</td><td>多 Adapter 串叠</td><td>LoRA 增量直接相加</td></tr><tr><td>多任务服务</td><td>一任务一个 Adapter</td><td>一任务一个 LoRA，可以 batch 混跑</td></tr><tr><td>典型大小</td><td>基座的 0.5–3%</td><td>0.1–1%</td></tr><tr><td>适合场景</td><td>推理图稳定的设置</td><td>对延迟敏感的 LLM 服务</td></tr></tbody></table><p>LoRA 抢走了 Adapter 的大部分市场，主要是因为推理零开销这条性质。Adapter 现在仍有的位置是显式模块化组合的场景——比如多语言里 AdapterFusion（Pfeiffer et al., 2021）在推理时把多个语言专用 Adapter 融合。</p><hr><h2 id=5-基于提示的-peft不调权重调输入>5. 基于提示的 PEFT：不调权重，调输入</h2><p>一个完全不同的思路：把模型整个冻住，只学<strong>喂给它什么</strong>。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig4_prefix_prompt.png alt="三种基于提示的 PEFT——输入处的 soft prompt、每层注入 KV 前缀、深层提示遍布所有层。" loading=lazy decoding=async class=content-image></figure></p><h3 id=prompt-tuninglester-et-al-2021>Prompt-Tuning（Lester et al., 2021）</h3><p>在输入序列前面拼上 $n$ 个可训练的嵌入向量。就这么简单。在 11B 的 T5 上，Prompt-Tuning 在 SuperGLUE 上能匹配全量微调——但<strong>这个结论只在足够大的模型上成立</strong>。1B 以下的模型上，Prompt-Tuning 差得远。</p><h3 id=prefix-tuningli--liang-2021>Prefix-Tuning（Li & Liang, 2021）</h3><p>同样的想法但应用到每一层注意力：学一组键和值前缀矩阵 $P_K, P_V$，在注意力计算前拼上去：</p>$$
-\text{Attention}(Q,\ [P_K; K],\ [P_V; V]).
-$$<p>每层都有自己的前缀，相比单一输入提示能更深地改写模型的计算。</p><h3 id=p-tuning-v2liu-et-al-2022>P-Tuning v2（Liu et al., 2022）</h3><p>去掉了 Prefix-Tuning 用的重参数化 MLP（在不同模型规模下不稳定），让深层提示均匀分布到所有层。它是第一个<strong>在所有规模上</strong>（包括小模型）都能在 NLU 任务上匹配全量微调的提示类方法。</p><p><strong>什么时候用提示类。</strong>（a）需要极致的参数效率——每个任务只占几 KB；（b）想用一个服务化模型背后挂很多个提示。生成类任务上通常打不过 LoRA。</p><hr><h2 id=6-怎么选>6. 怎么选</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig7_perf_vs_params.png alt="PEFT 方法在参数效率/质量平面上的位置，以及 LoRA 秩对不同任务类型的影响。" loading=lazy decoding=async class=content-image></figure></p><p>一个实用的决策树：</p><pre tabindex=0><code>                    ┌─ 要顶级分数？     → 全量微调（如果你养得起）
-                    │
-显存够吗？  ────────┤
-                    │  够 → LoRA r=16 加在 q/k/v/o
-                    └─ 不够 → QLoRA r=16（NF4 + 分页 AdamW）
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord text"><span class="mord">Adapter</span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">x</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">up</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">σ</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">down</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">x</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">down</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.1852em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8991em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">m</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight">d</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">up</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0935em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8991em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">d</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight">m</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">m</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≪</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">d</span><span class="mord">.</span></span></span></span></span></p>
+<p><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>W</mi><mtext>up</mtext></msub></mrow><annotation encoding="application/x-tex">W_{\text{up}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">up</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 初始化为零，让 Adapter 起步是恒等映射——这与 LoRA 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span> 使用了同样的技巧。</p>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig3_adapter.png" alt="Adapter 插在注意力和 FFN 子层之后；每个 Adapter 是降维-非线性-升维的瓶颈结构，外加残差。"></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Adapter</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, d_model: <span class="built_in">int</span>, bottleneck: <span class="built_in">int</span> = <span class="number">64</span></span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.down = nn.Linear(d_model, bottleneck)</span><br><span class="line">        <span class="variable language_">self</span>.up = nn.Linear(bottleneck, d_model)</span><br><span class="line">        nn.init.zeros_(<span class="variable language_">self</span>.up.weight)</span><br><span class="line">        nn.init.zeros_(<span class="variable language_">self</span>.up.bias)</span><br><span class="line">        <span class="variable language_">self</span>.act = nn.GELU()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, x: torch.Tensor</span>) -&gt; torch.Tensor:</span><br><span class="line">        <span class="keyword">return</span> x + <span class="variable language_">self</span>.up(<span class="variable language_">self</span>.act(<span class="variable language_">self</span>.down(x)))</span><br></pre></td></tr></table></figure>
+<h3 id="Adapter-还是-LoRA"><a class="header-anchor" href="#Adapter-还是-LoRA">¶</a>Adapter 还是 LoRA</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Adapter</strong></th>
+<th><strong>LoRA</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>位置</td>
+<td>在残差路径<strong>之内</strong></td>
+<td>在权重矩阵<strong>旁边</strong></td>
+</tr>
+<tr>
+<td>推理开销</td>
+<td>每块多一次矩阵乘（约 5–10% 延迟）</td>
+<td>merge 后为零</td>
+</tr>
+<tr>
+<td>可组合性</td>
+<td>多 Adapter 串叠</td>
+<td>LoRA 增量直接相加</td>
+</tr>
+<tr>
+<td>多任务服务</td>
+<td>一任务一个 Adapter</td>
+<td>一任务一个 LoRA，可以 batch 混跑</td>
+</tr>
+<tr>
+<td>典型大小</td>
+<td>基座的 0.5–3%</td>
+<td>0.1–1%</td>
+</tr>
+<tr>
+<td>适合场景</td>
+<td>推理图稳定的设置</td>
+<td>对延迟敏感的 LLM 服务</td>
+</tr>
+</tbody>
+</table>
+<p>LoRA 抢走了 Adapter 的大部分市场，主要原因是推理零开销这一特性。Adapter 目前仍有一席之地，例如在显式模块化组合的场景中——比如多语言任务中的 AdapterFusion（Pfeiffer et al., 2021），在推理时将多个语言专用 Adapter 融合。</p>
+<hr>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/illustration_2.jpg" alt="架构示意图"></p>
+<h2 id="5-基于提示的-PEFT：不调权重，调输入"><a class="header-anchor" href="#5-基于提示的-PEFT：不调权重，调输入">¶</a>5. 基于提示的 PEFT：不调权重，调输入</h2>
+<p>一个完全不同的思路：冻结整个模型，只学习<strong>如何喂给它数据</strong>。</p>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig4_prefix_prompt.png" alt="三种基于提示的 PEFT——输入处的 soft prompt、每层注入 KV 前缀、深层提示遍布所有层。"></p>
+<h3 id="Prompt-Tuning（Lester-et-al-2021）"><a class="header-anchor" href="#Prompt-Tuning（Lester-et-al-2021）">¶</a>Prompt-Tuning（Lester et al., 2021）</h3>
+<p>在输入序列前拼接 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">n</span></span></span></span> 个可训练的嵌入向量，就这么简单。在 11B 的 T5 上，Prompt-Tuning 在 SuperGLUE 数据集上能媲美全量微调——但<strong>这个结论仅适用于超大模型</strong>。对于 1B 以下的小模型，Prompt-Tuning 的效果差得多。</p>
+<h3 id="Prefix-Tuning（Li-Liang-2021）"><a class="header-anchor" href="#Prefix-Tuning（Li-Liang-2021）">¶</a>Prefix-Tuning（Li &amp; Liang, 2021）</h3>
+<p>同样的思想，但应用到每一层注意力机制：学习一组键和值前缀矩阵 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>P</mi><mi>K</mi></msub><mo separator="true">,</mo><msub><mi>P</mi><mi>V</mi></msub></mrow><annotation encoding="application/x-tex">P_K, P_V</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0715em;">K</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.2222em;">V</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，在注意力计算前拼接到输入中：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mtext>Attention</mtext><mo stretchy="false">(</mo><mi>Q</mi><mo separator="true">,</mo><mtext> </mtext><mo stretchy="false">[</mo><msub><mi>P</mi><mi>K</mi></msub><mo separator="true">;</mo><mi>K</mi><mo stretchy="false">]</mo><mo separator="true">,</mo><mtext> </mtext><mo stretchy="false">[</mo><msub><mi>P</mi><mi>V</mi></msub><mo separator="true">;</mo><mi>V</mi><mo stretchy="false">]</mo><mo stretchy="false">)</mo><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">\text{Attention}(Q,\ [P_K; K],\ [P_V; V]).
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord text"><span class="mord">Attention</span></span><span class="mopen">(</span><span class="mord mathnormal">Q</span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0715em;">K</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mclose">]</span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.2222em;">V</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mclose">])</span><span class="mord">.</span></span></span></span></span></p>
+<p>每层都有专属的前缀，相比单一输入提示，这种方法能够更深入地改写模型的计算流程。</p>
+<h3 id="P-Tuning-v2（Liu-et-al-2022）"><a class="header-anchor" href="#P-Tuning-v2（Liu-et-al-2022）">¶</a>P-Tuning v2（Liu et al., 2022）</h3>
+<p>去掉了 Prefix-Tuning 中使用的重参数化 MLP（在不同模型规模下表现不稳定），让深层提示均匀分布到所有层。这是第一个<strong>在所有模型规模上</strong>（包括小模型）都能在 NLU 任务上媲美全量微调的提示类方法。</p>
+<p><strong>何时选择提示类方法。</strong>（a）追求极致的参数效率——每个任务只需占用几 KB；（b）希望用一个服务化模型挂载多个提示。不过，在生成类任务上，提示类方法通常不如 LoRA。</p>
+<h2 id="6-怎么选"><a class="header-anchor" href="#6-怎么选">¶</a>6. 怎么选</h2>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8EPEFT/fig7_perf_vs_params.png" alt="PEFT 方法在参数效率/质量平面上的位置，以及 LoRA 秩对不同任务类型的影响。"></p>
+<p>一个实用的决策树：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">                    ┌─ 要顶级分数？     → 全量微调（如果你养得起）</span><br><span class="line">                    │</span><br><span class="line">显存够吗？  ────────┤</span><br><span class="line">                    │  够 → LoRA r=16 加在 q/k/v/o</span><br><span class="line">                    └─ 不够 → QLoRA r=16（NF4 + 分页 AdamW）</span><br><span class="line"></span><br><span class="line">要从一个基座服务多个任务？  → LoRA（可合并、可换）</span><br><span class="line"></span><br><span class="line">延迟敏感的生成任务？        → LoRA 训完合并</span><br><span class="line">编码器 NLU 任务、参数极小？  → P-Tuning v2 或 BitFit</span><br><span class="line">模块化、组合式？            → Adapter（配 AdapterFusion）</span><br></pre></td></tr></table></figure>
+<h3 id="秩怎么选"><a class="header-anchor" href="#秩怎么选">¶</a>秩怎么选</h3>
+<p>从 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>16</mn></mrow><annotation encoding="application/x-tex">r = 16</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">16</span></span></span></span> 开始。从上面右图能看到，大多数任务的边际收益拐点在 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>8</mn></mrow><annotation encoding="application/x-tex">r = 8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">8</span></span></span></span> 到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>32</mn></mrow><annotation encoding="application/x-tex">r = 32</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">32</span></span></span></span> 之间：</p>
+<ul>
+<li><strong>简单分类</strong>到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>8</mn></mrow><annotation encoding="application/x-tex">r = 8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">8</span></span></span></span> 就饱和</li>
+<li><strong>代码生成、推理</strong>到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>32</mn></mrow><annotation encoding="application/x-tex">r = 32</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">32</span></span></span></span> 或 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>64</mn></mrow><annotation encoding="application/x-tex">r = 64</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">64</span></span></span></span> 还能继续涨</li>
+<li><strong>领域适配</strong>（医疗、法律）通常 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>16</mn></mrow><annotation encoding="application/x-tex">r = 16</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">16</span></span></span></span>–<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>32</mn></mrow><annotation encoding="application/x-tex">32</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">32</span></span></span></span> 比较合适</li>
+</ul>
+<p>不确定就扫 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>∈</mo><mo stretchy="false">{</mo><mn>8</mn><mo separator="true">,</mo><mn>16</mn><mo separator="true">,</mo><mn>32</mn><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">r \in \{8, 16, 32\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5782em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord">8</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">16</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">32</span><span class="mclose">}</span></span></span></span>，挑能在留出集上达到目标指标的最小那个。</p>
+<hr>
+<h2 id="7-对齐：指令微调与-RLHF"><a class="header-anchor" href="#7-对齐：指令微调与-RLHF">¶</a>7. 对齐：指令微调与 RLHF</h2>
+<p>PEFT 是杠杆，对齐往往是拉动这根杠杆的真正原因。现代 LLM 的后训练分为两个阶段：</p>
+<p><strong>有监督指令微调。</strong> 使用 <code>（指令，回答）</code> 对微调基座模型，使其学会遵循人类编写的提示。质量胜过数量：1K–10K 条精心挑选的样本，通常优于 10 万条众包数据（Zhou 等人 2023 年的 LIMA 论文表明，仅用 1K 条样本即可让 65B 参数模型具备相当不错的助手能力）。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">format_example</span>(<span class="params">ex</span>):</span><br><span class="line">    <span class="keyword">if</span> ex[<span class="string">"input"</span>]:</span><br><span class="line">        <span class="keyword">return</span> (<span class="string">f"### Instruction:\n<span class="subst">{ex[<span class="string">'instruction'</span>]}</span>\n\n"</span></span><br><span class="line">                <span class="string">f"### Input:\n<span class="subst">{ex[<span class="string">'input'</span>]}</span>\n\n"</span></span><br><span class="line">                <span class="string">f"### Response:\n<span class="subst">{ex[<span class="string">'output'</span>]}</span>"</span>)</span><br><span class="line">    <span class="keyword">return</span> (<span class="string">f"### Instruction:\n<span class="subst">{ex[<span class="string">'instruction'</span>]}</span>\n\n"</span></span><br><span class="line">            <span class="string">f"### Response:\n<span class="subst">{ex[<span class="string">'output'</span>]}</span>"</span>)</span><br></pre></td></tr></table></figure>
+<p><strong>RLHF</strong>（Ouyang 等人 2022 年的 InstructGPT 论文）。在 SFT 之后，基于人类偏好训练一个奖励模型，再通过 PPO 将策略推向该奖励目标。Bradley–Terry 偏好损失公式如下：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mtext>RM</mtext></msub><mo>=</mo><mo>−</mo><mi>log</mi><mo>⁡</mo><mi>σ</mi><mo fence="true" stretchy="true" minsize="1.2em" maxsize="1.2em">(</mo><msub><mi>r</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><msub><mi>y</mi><mtext>chosen</mtext></msub><mo stretchy="false">)</mo><mo>−</mo><msub><mi>r</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><msub><mi>y</mi><mtext>rejected</mtext></msub><mo stretchy="false">)</mo><mo fence="true" stretchy="true" minsize="1.2em" maxsize="1.2em">)</mo><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">\mathcal{L}_{\text{RM}} = -\log \sigma\bigl(r_\theta(x, y_{\text{chosen}}) - r_\theta(x, y_{\text{rejected}})\bigr).
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">RM</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.2em;vertical-align:-0.35em;"></span><span class="mord">−</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">σ</span><span class="mopen"><span class="delimsizing size1">(</span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">chosen</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.2em;vertical-align:-0.35em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">rejected</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mclose"><span class="delimsizing size1">)</span></span><span class="mord">.</span></span></span></span></span></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">RewardModel</span>(nn.Module):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, base</span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__()</span><br><span class="line">        <span class="variable language_">self</span>.base = base</span><br><span class="line">        <span class="variable language_">self</span>.head = nn.Linear(base.config.hidden_size, <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">forward</span>(<span class="params">self, input_ids, attention_mask=<span class="literal">None</span></span>):</span><br><span class="line">        out = <span class="variable language_">self</span>.base(input_ids=input_ids, attention_mask=attention_mask)</span><br><span class="line">        last = out.last_hidden_state[:, -<span class="number">1</span>, :]</span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">self</span>.head(last).squeeze(-<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<p>RL 相关内容详见 <a href="/en/reinforcement-learning-12-rlhf-and-llm-applications/">RL 第 12 部分：RLHF 与 LLM 应用</a>。DPO（Rafailov et al., 2023）是一种当前流行的简化替代方案，无需显式的奖励模型。</p>
+<hr>
+<h2 id="8-端到端配方"><a class="header-anchor" href="#8-端到端配方">¶</a>8. 端到端配方</h2>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> (AutoModelForCausalLM, AutoTokenizer,</span><br><span class="line">                          TrainingArguments, BitsAndBytesConfig)</span><br><span class="line"><span class="keyword">from</span> peft <span class="keyword">import</span> LoraConfig, get_peft_model, prepare_model_for_kbit_training</span><br><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset</span><br><span class="line"><span class="keyword">from</span> trl <span class="keyword">import</span> SFTTrainer</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">MODEL = <span class="string">"meta-llama/Llama-2-7b-hf"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 1. 4 比特基座</span></span><br><span class="line">bnb = BitsAndBytesConfig(</span><br><span class="line">    load_in_4bit=<span class="literal">True</span>, bnb_4bit_quant_type=<span class="string">"nf4"</span>,</span><br><span class="line">    bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line">tokenizer = AutoTokenizer.from_pretrained(MODEL)</span><br><span class="line">tokenizer.pad_token = tokenizer.eos_token</span><br><span class="line">model = AutoModelForCausalLM.from_pretrained(</span><br><span class="line">    MODEL, quantization_config=bnb, device_map=<span class="string">"auto"</span>,</span><br><span class="line">)</span><br><span class="line">model = prepare_model_for_kbit_training(model)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 注意力投影上加 LoRA</span></span><br><span class="line">model = get_peft_model(model, LoraConfig(</span><br><span class="line">    r=<span class="number">16</span>, lora_alpha=<span class="number">32</span>, lora_dropout=<span class="number">0.05</span>,</span><br><span class="line">    target_modules=[<span class="string">"q_proj"</span>, <span class="string">"k_proj"</span>, <span class="string">"v_proj"</span>, <span class="string">"o_proj"</span>],</span><br><span class="line">    bias=<span class="string">"none"</span>, task_type=<span class="string">"CAUSAL_LM"</span>,</span><br><span class="line">))</span><br><span class="line">model.print_trainable_parameters()</span><br><span class="line"><span class="comment"># trainable params: 8,388,608 || all params: 3,508,801,536 || trainable%: 0.239</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 用 SFTTrainer 训练（自动处理格式化和 collator）</span></span><br><span class="line">ds = load_dataset(<span class="string">"yahma/alpaca-cleaned"</span>, split=<span class="string">"train"</span>)</span><br><span class="line">args = TrainingArguments(</span><br><span class="line">    output_dir=<span class="string">"./llama-qlora"</span>,</span><br><span class="line">    per_device_train_batch_size=<span class="number">4</span>,</span><br><span class="line">    gradient_accumulation_steps=<span class="number">4</span>,</span><br><span class="line">    num_train_epochs=<span class="number">3</span>,</span><br><span class="line">    learning_rate=<span class="number">2e-4</span>,</span><br><span class="line">    warmup_ratio=<span class="number">0.03</span>,</span><br><span class="line">    bf16=<span class="literal">True</span>,</span><br><span class="line">    optim=<span class="string">"paged_adamw_8bit"</span>,     <span class="comment"># QLoRA 的分页优化器</span></span><br><span class="line">    logging_steps=<span class="number">10</span>, save_steps=<span class="number">500</span>,</span><br><span class="line">)</span><br><span class="line">trainer = SFTTrainer(</span><br><span class="line">    model=model, args=args, train_dataset=ds,</span><br><span class="line">    tokenizer=tokenizer, max_seq_length=<span class="number">1024</span>,</span><br><span class="line">    dataset_text_field=<span class="string">"text"</span>,</span><br><span class="line">)</span><br><span class="line">trainer.train()</span><br><span class="line">model.save_pretrained(<span class="string">"./llama-qlora-adapter"</span>)  <span class="comment"># 磁盘上约 80 MB</span></span><br></pre></td></tr></table></figure>
+<h3 id="多-LoRA-服务"><a class="header-anchor" href="#多-LoRA-服务">¶</a>多 LoRA 服务</h3>
+<p>LoRA 适配器小且可加，所以可以同时把几十个挂在内存里，按请求切换：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 把多个 adapter 加载到同一个基座</span></span><br><span class="line">model.load_adapter(<span class="string">"./adapter-medical"</span>, adapter_name=<span class="string">"med"</span>)</span><br><span class="line">model.load_adapter(<span class="string">"./adapter-legal"</span>,   adapter_name=<span class="string">"legal"</span>)</span><br><span class="line"></span><br><span class="line">model.set_adapter(<span class="string">"med"</span>)</span><br><span class="line">out_a = model.generate(...)</span><br><span class="line"></span><br><span class="line">model.set_adapter(<span class="string">"legal"</span>)</span><br><span class="line">out_b = model.generate(...)</span><br></pre></td></tr></table></figure>
+<p>vLLM、S-LoRA 这类框架更进一步：把不同 adapter 的请求 batch 在一次前向里跑，靠堆叠 LoRA 增量实现。一张卡上一个 7B 基座，背后服务几百个微调模型。</p>
+<hr>
+<h2 id="常见问题"><a class="header-anchor" href="#常见问题">¶</a>常见问题</h2>
+<p><strong>什么时候适合全量微调？</strong> 算力充足、样本数量 <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.312ex;" xmlns="http://www.w3.org/2000/svg" width="1.76ex" height="1.751ex" role="img" focusable="false" viewBox="0 -636 778 774"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mo"><path data-c="2265" d="M83 616Q83 624 89 630T99 636Q107 636 253 568T543 431T687 361Q694 356 694 346T687 331Q685 329 395 192L107 56H101Q83 58 83 76Q83 77 83 79Q82 86 98 95Q117 105 248 167Q326 204 378 228L626 346L360 472Q291 505 200 548Q112 589 98 597T83 616ZM84 -118Q84 -108 99 -98H678Q694 -104 694 -118Q694 -130 679 -138H98Q84 -131 84 -118Z"></path></g></g></g></svg></mjx-container>10 万条且高质量、每个百分点的性能提升都关键时——例如基座厂商发布旗舰指令模型。其他场景推荐 LoRA 或 QLoRA。</p>
+<p><strong>如何选择 LoRA 秩？</strong> 初始值设为 16。如果欠拟合（训练损失停滞在较高水平），可提升至 32 或 64。过拟合且数据量有限时，降至 4–8。分类任务通常 8 即可满足需求。</p>
+<p><strong>应该调整哪些模块？</strong> 修改 <code>q_proj</code> 和 <code>v_proj</code> 可获得 80% 的收益。再加入 <code>k_proj</code> 和 <code>o_proj</code> 获取剩余部分。FFN 的三组件（<code>gate/up/down_proj</code>）仅在生成密集型任务且预算允许时添加，否则可训参数会增至 3 倍。</p>
+<p><strong>LoRA 对推理有影响吗？</strong> merge 后无影响。merge 前，每个被包装的层会多一次极小的矩阵乘法操作——虽可忽略，但并非零成本。</p>
+<p><strong>QLoRA 会损失多少质量？</strong> 在标准 benchmark 上，相比 fp16 LoRA 通常下降 1–2 个百分点，这往往在噪声范围内。对大多数从业者而言，节省的显存非常值得。</p>
+<p><strong>需要多少指令数据？</strong> LIMA 表明，1K 条精心挑选的样本足以从一个强基座中训练出连贯的助手。实际操作中，底线是 1K–10K 条高质量样本；质量远比数量重要。</p>
+<p><strong>能否组合 PEFT 方法？</strong> 可以。LoRA + Prompt-Tuning 是有论文支持的组合，QLoRA 本身即是一个栈（4 比特基座 + LoRA + 分页优化器）。Adapter + LoRA 在同一模型中则较少见。</p>
+<hr>
+<h2 id="系列导航"><a class="header-anchor" href="#系列导航">¶</a>系列导航</h2>
+<table>
+<thead>
+<tr>
+<th>部分</th>
+<th>主题</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7</td>
+<td>提示工程与 ICL</td>
+<td><a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E4%B8%83-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8EIn-Context-Learning/">&lt;- 上一篇</a></td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><strong>模型微调与 PEFT（本文）</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>9</td>
+<td>大语言模型架构深度解析</td>
+<td><a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E4%B9%9D-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">下一篇 -&gt;</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="参考文献"><a class="header-anchor" href="#参考文献">¶</a>参考文献</h2>
+<ol>
+<li>Hu, E. J. 等 (2022). <em>LoRA: Low-Rank Adaptation of Large Language Models</em>. ICLR.</li>
+<li>Dettmers, T. 等 (2023). <em>QLoRA: Efficient Finetuning of Quantized LLMs</em>. NeurIPS.</li>
+<li>Houlsby, N. 等 (2019). <em>Parameter-Efficient Transfer Learning for NLP</em>. ICML.</li>
+<li>Li, X. L. 与 Liang, P. (2021). <em>Prefix-Tuning: Optimizing Continuous Prompts for Generation</em>. ACL.</li>
+<li>Lester, B. 等 (2021). <em>The Power of Scale for Parameter-Efficient Prompt Tuning</em>. EMNLP.</li>
+<li>Liu, X. 等 (2022). <em>P-Tuning v2: Prompt Tuning Can Be Comparable to Fine-tuning Universally</em>. ACL.</li>
+<li>Aghajanyan, A. 等 (2020). <em>Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning</em>. ACL 2021.</li>
+<li>Ouyang, L. 等 (2022). <em>Training language models to follow instructions with human feedback (InstructGPT)</em>. NeurIPS.</li>
+<li>Rafailov, R. 等 (2023). <em>Direct Preference Optimization</em>. NeurIPS.</li>
+<li>Zhou, C. 等 (2023). <em>LIMA: Less Is More for Alignment</em>. NeurIPS.</li>
+</ol>
 
-要从一个基座服务多个任务？  → LoRA（可合并、可换）
+      </div>
 
-延迟敏感的生成任务？        → LoRA 训完合并
-编码器 NLU 任务、参数极小？  → P-Tuning v2 或 BitFit
-模块化、组合式？            → Adapter（配 AdapterFusion）
-</code></pre><h3 id=秩怎么选>秩怎么选</h3><p>从 $r = 16$ 开始。从上面右图能看到，大多数任务的边际收益拐点在 $r = 8$ 到 $r = 32$ 之间：</p><ul><li><strong>简单分类</strong>到 $r = 8$ 就饱和</li><li><strong>代码生成、推理</strong>到 $r = 32$ 或 $r = 64$ 还能继续涨</li><li><strong>领域适配</strong>（医疗、法律）通常 $r = 16$–$32$ 比较合适</li></ul><p>不确定就扫 $r \in \{8, 16, 32\}$，挑能在留出集上达到目标指标的最小那个。</p><hr><h2 id=7-对齐指令微调与-rlhf>7. 对齐：指令微调与 RLHF</h2><p>PEFT 是杠杆，对齐通常才是你拉这根杠杆的理由。现代 LLM 后训练有两个阶段：</p><p><strong>有监督指令微调。</strong> 用 <code>（指令，回答）</code> 对去微调基座，让它学会遵循人类写的提示。质量比数量重要：1K–10K 精挑细选的样本经常打败 10 万条众包数据（Zhou 等人 2023 年的 LIMA 论文，1K 条样本就让 65B 模型有了相当的助手能力）。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>format_example</span><span class=p>(</span><span class=n>ex</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>ex</span><span class=p>[</span><span class=s2>&#34;input&#34;</span><span class=p>]:</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=sa>f</span><span class=s2>&#34;### Instruction:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;instruction&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n\n</span><span class=s2>&#34;</span>
-</span></span><span class=line><span class=cl>                <span class=sa>f</span><span class=s2>&#34;### Input:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;input&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n\n</span><span class=s2>&#34;</span>
-</span></span><span class=line><span class=cl>                <span class=sa>f</span><span class=s2>&#34;### Response:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;output&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>(</span><span class=sa>f</span><span class=s2>&#34;### Instruction:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;instruction&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n\n</span><span class=s2>&#34;</span>
-</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;### Response:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;output&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>RLHF</strong>（Ouyang 等人 2022 年的 InstructGPT 论文）。SFT 之后，用人类的偏好对训练一个奖励模型，再用 PPO 把策略往这个奖励上推。Bradley–Terry 偏好损失：</p>$$
-\mathcal{L}_{\text{RM}} = -\log \sigma\bigl(r_\theta(x, y_{\text{chosen}}) - r_\theta(x, y_{\text{rejected}})\bigr).
-$$<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>RewardModel</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span> <span class=o>=</span> <span class=n>base</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>base</span><span class=o>.</span><span class=n>config</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_ids</span><span class=p>,</span> <span class=n>attention_mask</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=p>(</span><span class=n>input_ids</span><span class=o>=</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>attention_mask</span><span class=o>=</span><span class=n>attention_mask</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>        <span class=n>last</span> <span class=o>=</span> <span class=n>out</span><span class=o>.</span><span class=n>last_hidden_state</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=p>:]</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=n>last</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>RL 那一侧的展开见 <a href=/en/reinforcement-learning/12-rlhf-and-llm-applications/>RL 第 12 部分：RLHF 与 LLM 应用</a>
-。DPO（Rafailov et al., 2023）是现在很流行的简化替代，不再需要显式的奖励模型。</p><hr><h2 id=8-端到端配方>8. 端到端配方</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span><span class=lnt>38
-</span><span class=lnt>39
-</span><span class=lnt>40
-</span><span class=lnt>41
-</span><span class=lnt>42
-</span><span class=lnt>43
-</span><span class=lnt>44
-</span><span class=lnt>45
-</span><span class=lnt>46
-</span><span class=lnt>47
-</span><span class=lnt>48
-</span><span class=lnt>49
-</span><span class=lnt>50
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=p>(</span><span class=n>AutoModelForCausalLM</span><span class=p>,</span> <span class=n>AutoTokenizer</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>                          <span class=n>TrainingArguments</span><span class=p>,</span> <span class=n>BitsAndBytesConfig</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>peft</span> <span class=kn>import</span> <span class=n>LoraConfig</span><span class=p>,</span> <span class=n>get_peft_model</span><span class=p>,</span> <span class=n>prepare_model_for_kbit_training</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>datasets</span> <span class=kn>import</span> <span class=n>load_dataset</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>trl</span> <span class=kn>import</span> <span class=n>SFTTrainer</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>MODEL</span> <span class=o>=</span> <span class=s2>&#34;meta-llama/Llama-2-7b-hf&#34;</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 1. 4 比特基座</span>
-</span></span><span class=line><span class=cl><span class=n>bnb</span> <span class=o>=</span> <span class=n>BitsAndBytesConfig</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>load_in_4bit</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>bnb_4bit_quant_type</span><span class=o>=</span><span class=s2>&#34;nf4&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>bnb_4bit_compute_dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>bfloat16</span><span class=p>,</span> <span class=n>bnb_4bit_use_double_quant</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>AutoTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>MODEL</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>tokenizer</span><span class=o>.</span><span class=n>pad_token</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>eos_token</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>AutoModelForCausalLM</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>MODEL</span><span class=p>,</span> <span class=n>quantization_config</span><span class=o>=</span><span class=n>bnb</span><span class=p>,</span> <span class=n>device_map</span><span class=o>=</span><span class=s2>&#34;auto&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>prepare_model_for_kbit_training</span><span class=p>(</span><span class=n>model</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 2. 注意力投影上加 LoRA</span>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>get_peft_model</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>LoraConfig</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>r</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>lora_alpha</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span> <span class=n>lora_dropout</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>target_modules</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;q_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;k_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;v_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;o_proj&#34;</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>    <span class=n>bias</span><span class=o>=</span><span class=s2>&#34;none&#34;</span><span class=p>,</span> <span class=n>task_type</span><span class=o>=</span><span class=s2>&#34;CAUSAL_LM&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>))</span>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>print_trainable_parameters</span><span class=p>()</span>
-</span></span><span class=line><span class=cl><span class=c1># trainable params: 8,388,608 || all params: 3,508,801,536 || trainable%: 0.239</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 3. 用 SFTTrainer 训练（自动处理格式化和 collator）</span>
-</span></span><span class=line><span class=cl><span class=n>ds</span> <span class=o>=</span> <span class=n>load_dataset</span><span class=p>(</span><span class=s2>&#34;yahma/alpaca-cleaned&#34;</span><span class=p>,</span> <span class=n>split</span><span class=o>=</span><span class=s2>&#34;train&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>args</span> <span class=o>=</span> <span class=n>TrainingArguments</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>output_dir</span><span class=o>=</span><span class=s2>&#34;./llama-qlora&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>per_device_train_batch_size</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>gradient_accumulation_steps</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>num_train_epochs</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>learning_rate</span><span class=o>=</span><span class=mf>2e-4</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>warmup_ratio</span><span class=o>=</span><span class=mf>0.03</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>bf16</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>optim</span><span class=o>=</span><span class=s2>&#34;paged_adamw_8bit&#34;</span><span class=p>,</span>     <span class=c1># QLoRA 的分页优化器</span>
-</span></span><span class=line><span class=cl>    <span class=n>logging_steps</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span> <span class=n>save_steps</span><span class=o>=</span><span class=mi>500</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>trainer</span> <span class=o>=</span> <span class=n>SFTTrainer</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=n>model</span><span class=p>,</span> <span class=n>args</span><span class=o>=</span><span class=n>args</span><span class=p>,</span> <span class=n>train_dataset</span><span class=o>=</span><span class=n>ds</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>tokenizer</span><span class=o>=</span><span class=n>tokenizer</span><span class=p>,</span> <span class=n>max_seq_length</span><span class=o>=</span><span class=mi>1024</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>dataset_text_field</span><span class=o>=</span><span class=s2>&#34;text&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>trainer</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>save_pretrained</span><span class=p>(</span><span class=s2>&#34;./llama-qlora-adapter&#34;</span><span class=p>)</span>  <span class=c1># 磁盘上约 80 MB</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=多-lora-服务>多 LoRA 服务</h3><p>LoRA 适配器小且可加，所以可以同时把几十个挂在内存里，按请求切换：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span><span class=lnt>9
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 把多个 adapter 加载到同一个基座</span>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>load_adapter</span><span class=p>(</span><span class=s2>&#34;./adapter-medical&#34;</span><span class=p>,</span> <span class=n>adapter_name</span><span class=o>=</span><span class=s2>&#34;med&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>load_adapter</span><span class=p>(</span><span class=s2>&#34;./adapter-legal&#34;</span><span class=p>,</span>   <span class=n>adapter_name</span><span class=o>=</span><span class=s2>&#34;legal&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>set_adapter</span><span class=p>(</span><span class=s2>&#34;med&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>out_a</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>generate</span><span class=p>(</span><span class=o>...</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>set_adapter</span><span class=p>(</span><span class=s2>&#34;legal&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>out_b</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>generate</span><span class=p>(</span><span class=o>...</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>vLLM、S-LoRA 这类框架更进一步：把不同 adapter 的请求 batch 在一次前向里跑，靠堆叠 LoRA 增量实现。一张卡上一个 7B 基座，背后服务几百个微调模型。</p><hr><h2 id=常见问题>常见问题</h2><h3 id=什么时候值得做全量微调>什么时候值得做全量微调？</h3><p>算力充裕、$\geq$10 万条高质量样本、每个百分点都重要时——比如基座厂商发布旗舰指令模型。其他场景：LoRA 或 QLoRA。</p><h3 id=lora-秩怎么挑>LoRA 秩怎么挑？</h3><p>从 16 起步。欠拟合（训练损失停在很高位置）就升到 32 或 64。过拟合且数据少就降到 4–8。分类任务 8 通常够。</p><h3 id=改哪些模块-1>改哪些模块？</h3><p><code>q_proj</code> 和 <code>v_proj</code> 给你 80% 的收益。再加 <code>k_proj</code> 和 <code>o_proj</code> 拿剩下的。FFN 三件套（<code>gate/up/down_proj</code>）只在生成密集且预算允许的任务上加，可训参数会变成 3 倍。</p><h3 id=lora-影响推理吗>LoRA 影响推理吗？</h3><p>merge 之后不影响。merge 之前每个被包起来的层多一次很小的矩阵乘——能忽略但非零。</p><h3 id=qlora-掉多少质量>QLoRA 掉多少质量？</h3><p>标准 benchmark 上相比 fp16 LoRA 通常掉 1–2 个点，常常在噪声范围内。对绝大多数从业者来说，省下的显存值得。</p><h3 id=指令数据要多少>指令数据要多少？</h3><p>LIMA 显示 1K 条精心挑选的样本就能从一个强基座得到一个连贯的助手。实操底线 1K–10K 条高质量样本；质量比数量重要得多。</p><h3 id=能组合-peft-方法吗>能组合 PEFT 方法吗？</h3><p>能——LoRA + Prompt-Tuning 是有论文的组合，QLoRA 本身就是栈（4 比特基座 + LoRA + 分页优化器）。Adapter + LoRA 同模型里则不常见。</p><hr><h2 id=9-一份具体的微调配方7b-上的-lora>9. 一份具体的微调配方（7B 上的 LoRA）</h2><p>真正影响结果的超参，都是我自己跑过、上过线的数字。</p><p><strong>数据量</strong>。在 7B 上做 LoRA，1000&ndash;5000 条高质量 instruction-response 就能拿到大头收益。少于 500 条，不如直接用 few-shot prompt。多于 20000 条，除非任务本身真的复杂，基本是在花钱买边际。</p><p><strong>rank <code>r</code></strong>。默认 <code>r=8</code>。代码生成、多步推理这类硬任务，提到 <code>r=16</code> 或 <code>r=32</code>。<code>r</code> 翻倍，参数量翻倍，但训练时间几乎不变。<code>r=64</code> 以上很少有用，反而开始过拟合。</p><p><strong>alpha</strong>。<code>alpha = 2 * r</code>，所以 <code>r=8</code> → <code>alpha=16</code>。<code>alpha/r</code> 是 LoRA 路径上的等效学习率缩放。固定为 2 是稳定默认。</p><p><strong>target modules</strong>。如果显存允许，LoRA 同时挂在 <code>q_proj, k_proj, v_proj, o_proj</code> <strong>加上</strong> <code>gate_proj, up_proj, down_proj</code>。原始论文只挂 attention，对指令微调留了不少分数没拿。实测 attention+MLP 在 Open LLM Leaderboard 上多 2&ndash;4 分。</p><p><strong>学习率</strong>。LoRA 用 <code>2e-4</code> 起步。全量微调要用 <code>2e-5</code>，LoRA 能高 10 倍是因为只有一小部分参数在更新。cosine schedule，warmup 3%。</p><p><strong>batch size / 梯度累积</strong>。等效 batch size 32&ndash;64 条序列。单卡 A100 80GB、序列长度 2048，micro-batch 一般能塞 2&ndash;4，靠累积凑到等效 batch。</p><p><strong>epoch 数</strong>。1&ndash;3 轮。盯着 eval loss，通常在第 2 轮见底。小指令数据集上跑到 5 轮+ 几乎稳过拟合。</p><p><strong>序列打包</strong>。把多条短样本打包到一条 2048-token 序列里（注意 attention mask 要对）。比 padding 快 2&ndash;3 倍吞吐。<code>transformers</code> 的 SFTTrainer 现在原生支持。</p><p>5000 条数据、7B 基座、单卡 A100，整轮跑 2&ndash;4 小时，租卡花费 $8&ndash;12。</p><h2 id=10-lora-悄悄翻车的地方>10. LoRA 悄悄翻车的地方</h2><p>三个我见过烧过团队的失败模式。</p><p><strong>失败 1：长尾稀有 token 上的灾难性遗忘</strong>。LoRA 比全量微调对基座保留得好，但还是会推动输出分布。指令微调一个代码模型之后，我见过 Erlang、Haskell 这些稀有编程语言的 perplexity 涨 30%+，哪怕英文指令跟随能力还在提升。修复：SFT 数据里掺 5&ndash;10% 的"基座风格" replay 数据。</p><p><strong>失败 2：非英语输出的对齐税</strong>。在英文为主的 SFT 数据上做 LoRA + 指令微调，会拖累中文/韩文/日文的输出质量，哪怕基座本来是多语种的。LoRA 学到了"英文形状"的回答风格。修复：SFT 数据里至少 20% 是目标语言。</p><p><strong>失败 3：合并后的 LoRA != 推理时的 LoRA</strong>。把 LoRA 合进基座准备部署（<code>model.merge_and_unload()</code>）时，4-bit 量化场景下，合并后的模型可能比不合并的明显更差——因为合并扰动后的基座权重被量化重新取整了。修复：要么推理时不合并（多一点延迟），要么合并之后用一个 held-out 集做量化校准。</p><h2 id=参考文献>参考文献</h2><ol><li>Hu, E. J. et al. (2022). <em>LoRA: Low-Rank Adaptation of Large Language Models</em>. ICLR.</li><li>Dettmers, T. et al. (2023). <em>QLoRA: Efficient Finetuning of Quantized LLMs</em>. NeurIPS.</li><li>Houlsby, N. et al. (2019). <em>Parameter-Efficient Transfer Learning for NLP</em>. ICML.</li><li>Li, X. L. & Liang, P. (2021). <em>Prefix-Tuning: Optimizing Continuous Prompts for Generation</em>. ACL.</li><li>Lester, B. et al. (2021). <em>The Power of Scale for Parameter-Efficient Prompt Tuning</em>. EMNLP.</li><li>Liu, X. et al. (2022). <em>P-Tuning v2: Prompt Tuning Can Be Comparable to Fine-tuning Universally</em>. ACL.</li><li>Aghajanyan, A. et al. (2020). <em>Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning</em>. ACL 2021.</li><li>Ouyang, L. et al. (2022). <em>Training language models to follow instructions with human feedback (InstructGPT)</em>. NeurIPS.</li><li>Rafailov, R. et al. (2023). <em>Direct Preference Optimization</em>. NeurIPS.</li><li>Zhou, C. et al. (2023). <em>LIMA: Less Is More for Alignment</em>. NeurIPS.</li></ol></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/nlp/>自然语言处理</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/><span class=title>自然语言处理（七）：提示工程与In-Context Learning</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=title>自然语言处理（九）：大语言模型架构深度解析</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/01-nlp%E5%85%A5%E9%97%A8%E4%B8%8E%E6%96%87%E6%9C%AC%E9%A2%84%E5%A4%84%E7%90%86/><span class=series-nav-num>01</span>
-<span class=series-nav-title>自然语言处理（一）：NLP入门与文本预处理</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>02</span>
-<span class=series-nav-title>自然语言处理（二）：词向量与语言模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/><span class=series-nav-num>03</span>
-<span class=series-nav-title>自然语言处理（三）：RNN与序列建模</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=series-nav-num>04</span>
-<span class=series-nav-title>自然语言处理（四）：注意力机制与Transformer</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>05</span>
-<span class=series-nav-title>自然语言处理（五）：BERT与预训练模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>06</span>
-<span class=series-nav-title>自然语言处理（六）：GPT与生成式语言模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/><span class=series-nav-num>07</span>
-<span class=series-nav-title>自然语言处理（七）：提示工程与In-Context Learning</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>08</span>
-<span class=series-nav-title>自然语言处理（八）：模型微调与PEFT</span>
-<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=series-nav-num>09</span>
-<span class=series-nav-title>自然语言处理（九）：大语言模型架构深度解析</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/><span class=series-nav-num>10</span>
-<span class=series-nav-title>自然语言处理（十）：RAG与知识增强系统</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/11-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>11</span>
-<span class=series-nav-title>自然语言处理（十一）：多模态大模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><span class=series-nav-num>12</span>
-<span class=series-nav-title>自然语言处理（十二）：前沿技术与实战应用</span></a></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到>你将学到</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#1-为什么不直接全量微调>1. 为什么不直接全量微调？</a><ul><li><a href=#一笔账>一笔账</a></li><li><a href=#内在秩假说>内在秩假说</a></li><li><a href=#冻结微调一个弱基线>冻结微调——一个弱基线</a></li></ul></li><li><a href=#2-lora低秩适配>2. LoRA：低秩适配</a><ul><li><a href=#分解形式>分解形式</a></li><li><a href=#数一下参数>数一下参数</a></li><li><a href=#两个不能省的设计>两个不能省的设计</a></li><li><a href=#一个最小实现>一个最小实现</a></li><li><a href=#改哪些模块>改哪些模块</a></li></ul></li><li><a href=#3-qlora把基座压到-4-比特>3. QLoRA：把基座压到 4 比特</a><ul><li><a href=#qlora-的三个创新>QLoRA 的三个创新</a></li><li><a href=#配置>配置</a></li><li><a href=#代价与收益>代价与收益</a></li></ul></li><li><a href=#4-adapter最早的-peft>4. Adapter：最早的 PEFT</a><ul><li><a href=#adapter-还是-lora>Adapter 还是 LoRA</a></li></ul></li><li><a href=#5-基于提示的-peft不调权重调输入>5. 基于提示的 PEFT：不调权重，调输入</a><ul><li><a href=#prompt-tuninglester-et-al-2021>Prompt-Tuning（Lester et al., 2021）</a></li><li><a href=#prefix-tuningli--liang-2021>Prefix-Tuning（Li & Liang, 2021）</a></li><li><a href=#p-tuning-v2liu-et-al-2022>P-Tuning v2（Liu et al., 2022）</a></li></ul></li><li><a href=#6-怎么选>6. 怎么选</a><ul><li><a href=#秩怎么选>秩怎么选</a></li></ul></li><li><a href=#7-对齐指令微调与-rlhf>7. 对齐：指令微调与 RLHF</a></li><li><a href=#8-端到端配方>8. 端到端配方</a><ul><li><a href=#多-lora-服务>多 LoRA 服务</a></li></ul></li><li><a href=#常见问题>常见问题</a><ul><li><a href=#什么时候值得做全量微调>什么时候值得做全量微调？</a></li><li><a href=#lora-秩怎么挑>LoRA 秩怎么挑？</a></li><li><a href=#改哪些模块-1>改哪些模块？</a></li><li><a href=#lora-影响推理吗>LoRA 影响推理吗？</a></li><li><a href=#qlora-掉多少质量>QLoRA 掉多少质量？</a></li><li><a href=#指令数据要多少>指令数据要多少？</a></li><li><a href=#能组合-peft-方法吗>能组合 PEFT 方法吗？</a></li></ul></li><li><a href=#9-一份具体的微调配方7b-上的-lora>9. 一份具体的微调配方（7B 上的 LoRA）</a></li><li><a href=#10-lora-悄悄翻车的地方>10. LoRA 悄悄翻车的地方</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>自然语言处理</a>
-<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/01-nlp%E5%85%A5%E9%97%A8%E4%B8%8E%E6%96%87%E6%9C%AC%E9%A2%84%E5%A4%84%E7%90%86/><span class=chapter-num>01</span>
-<span class=chapter-title>自然语言处理（一）：NLP入门与文本预处理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>02</span>
-<span class=chapter-title>自然语言处理（二）：词向量与语言模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/><span class=chapter-num>03</span>
-<span class=chapter-title>自然语言处理（三）：RNN与序列建模</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=chapter-num>04</span>
-<span class=chapter-title>自然语言处理（四）：注意力机制与Transformer</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><span class=chapter-num>05</span>
-<span class=chapter-title>自然语言处理（五）：BERT与预训练模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>06</span>
-<span class=chapter-title>自然语言处理（六）：GPT与生成式语言模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/><span class=chapter-num>07</span>
-<span class=chapter-title>自然语言处理（七）：提示工程与In-Context Learning</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
-<span class=chapter-title>自然语言处理（八）：模型微调与PEFT</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=chapter-num>09</span>
-<span class=chapter-title>自然语言处理（九）：大语言模型架构深度解析</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/><span class=chapter-num>10</span>
-<span class=chapter-title>自然语言处理（十）：RAG与知识增强系统</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/11-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/><span class=chapter-num>11</span>
-<span class=chapter-title>自然语言处理（十一）：多模态大模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><span class=chapter-num>12</span>
-<span class=chapter-title>自然语言处理（十二）：前沿技术与实战应用</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>13 min</strong></div><div class=row><span>字数</span><strong>6310</strong></div><div class=row><span>写于</span><strong>Nov 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>Llm-Engineering</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
-<span class=signature>杭州</span></div></div></footer></body></html>
+      <!-- Series Navigation -->
+      
+      <nav class="series-nav">
+        <div class="series-nav-inner">
+          <span class="series-nav-label">自然语言处理 &mdash; Part 8 of 12</span>
+        </div>
+      </nav>
+      
+
+      <!-- Tags -->
+      
+      <div class="article-tags">
+        
+          <a href="/tags/NLP/" class="tag">#NLP</a>
+        
+          <a href="/tags/LLM/" class="tag">#LLM</a>
+        
+          <a href="/tags/PEFT/" class="tag">#PEFT</a>
+        
+          <a href="/tags/LoRA/" class="tag">#LoRA</a>
+        
+          <a href="/tags/%E5%BE%AE%E8%B0%83/" class="tag">#微调</a>
+        
+      </div>
+      
+
+      <!-- Post Navigation -->
+      
+      <nav class="post-nav">
+        
+        
+      </nav>
+    </div>
+
+    <!-- Table of Contents (right) -->
+    
+    <aside class="toc-sidebar" id="toc-sidebar">
+      <div class="toc-sidebar-inner">
+        <h4 class="toc-title" data-i18n="post.toc">On This Page</h4>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%A0%E5%B0%86%E5%AD%A6%E5%88%B0"><span class="toc-number">1.</span> <span class="toc-text">你将学到</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="toc-number">2.</span> <span class="toc-text">前置知识</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E7%9B%B4%E6%8E%A5%E5%85%A8%E9%87%8F%E5%BE%AE%E8%B0%83%EF%BC%9F"><span class="toc-number">3.</span> <span class="toc-text">1. 为什么不直接全量微调？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%80%E7%AC%94%E8%B4%A6"><span class="toc-number">3.1.</span> <span class="toc-text">一笔账</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E5%9C%A8%E7%A7%A9%E5%81%87%E8%AF%B4"><span class="toc-number">3.2.</span> <span class="toc-text">内在秩假说</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%BB%E7%BB%93%E5%BE%AE%E8%B0%83%E2%80%94%E2%80%94%E4%B8%80%E4%B8%AA%E5%BC%B1%E5%9F%BA%E7%BA%BF"><span class="toc-number">3.3.</span> <span class="toc-text">冻结微调——一个弱基线</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-LoRA%EF%BC%9A%E4%BD%8E%E7%A7%A9%E9%80%82%E9%85%8D"><span class="toc-number">4.</span> <span class="toc-text">2. LoRA：低秩适配</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E8%A7%A3%E5%BD%A2%E5%BC%8F"><span class="toc-number">4.1.</span> <span class="toc-text">分解形式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E4%B8%80%E4%B8%8B%E5%8F%82%E6%95%B0"><span class="toc-number">4.2.</span> <span class="toc-text">数一下参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%A4%E4%B8%AA%E4%B8%8D%E8%83%BD%E7%9C%81%E7%9A%84%E8%AE%BE%E8%AE%A1"><span class="toc-number">4.3.</span> <span class="toc-text">两个不能省的设计</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%80%E4%B8%AA%E6%9C%80%E5%B0%8F%E5%AE%9E%E7%8E%B0"><span class="toc-number">4.4.</span> <span class="toc-text">一个最小实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%B9%E5%93%AA%E4%BA%9B%E6%A8%A1%E5%9D%97"><span class="toc-number">4.5.</span> <span class="toc-text">改哪些模块</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-QLoRA%EF%BC%9A%E6%8A%8A%E5%9F%BA%E5%BA%A7%E5%8E%8B%E5%88%B0-4-%E6%AF%94%E7%89%B9"><span class="toc-number">5.</span> <span class="toc-text">3. QLoRA：把基座压到 4 比特</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#QLoRA-%E7%9A%84%E4%B8%89%E4%B8%AA%E5%88%9B%E6%96%B0"><span class="toc-number">5.1.</span> <span class="toc-text">QLoRA 的三个创新</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE"><span class="toc-number">5.2.</span> <span class="toc-text">配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E4%BB%B7%E4%B8%8E%E6%94%B6%E7%9B%8A"><span class="toc-number">5.3.</span> <span class="toc-text">代价与收益</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Adapter%EF%BC%9A%E6%9C%80%E6%97%A9%E7%9A%84-PEFT"><span class="toc-number">6.</span> <span class="toc-text">4. Adapter：最早的 PEFT</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Adapter-%E8%BF%98%E6%98%AF-LoRA"><span class="toc-number">6.1.</span> <span class="toc-text">Adapter 还是 LoRA</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E5%9F%BA%E4%BA%8E%E6%8F%90%E7%A4%BA%E7%9A%84-PEFT%EF%BC%9A%E4%B8%8D%E8%B0%83%E6%9D%83%E9%87%8D%EF%BC%8C%E8%B0%83%E8%BE%93%E5%85%A5"><span class="toc-number">7.</span> <span class="toc-text">5. 基于提示的 PEFT：不调权重，调输入</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Prompt-Tuning%EF%BC%88Lester-et-al-2021%EF%BC%89"><span class="toc-number">7.1.</span> <span class="toc-text">Prompt-Tuning（Lester et al., 2021）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Prefix-Tuning%EF%BC%88Li-Liang-2021%EF%BC%89"><span class="toc-number">7.2.</span> <span class="toc-text">Prefix-Tuning（Li &amp; Liang, 2021）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#P-Tuning-v2%EF%BC%88Liu-et-al-2022%EF%BC%89"><span class="toc-number">7.3.</span> <span class="toc-text">P-Tuning v2（Liu et al., 2022）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E6%80%8E%E4%B9%88%E9%80%89"><span class="toc-number">8.</span> <span class="toc-text">6. 怎么选</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A7%A9%E6%80%8E%E4%B9%88%E9%80%89"><span class="toc-number">8.1.</span> <span class="toc-text">秩怎么选</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E5%AF%B9%E9%BD%90%EF%BC%9A%E6%8C%87%E4%BB%A4%E5%BE%AE%E8%B0%83%E4%B8%8E-RLHF"><span class="toc-number">9.</span> <span class="toc-text">7. 对齐：指令微调与 RLHF</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E7%AB%AF%E5%88%B0%E7%AB%AF%E9%85%8D%E6%96%B9"><span class="toc-number">10.</span> <span class="toc-text">8. 端到端配方</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%9A-LoRA-%E6%9C%8D%E5%8A%A1"><span class="toc-number">10.1.</span> <span class="toc-text">多 LoRA 服务</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="toc-number">11.</span> <span class="toc-text">常见问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%B3%BB%E5%88%97%E5%AF%BC%E8%88%AA"><span class="toc-number">12.</span> <span class="toc-text">系列导航</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="toc-number">13.</span> <span class="toc-text">参考文献</span></a></li></ol>
+      </div>
+    </aside>
+    
+  </div>
+</article>
+
+  </main>
+
+  <footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col footer-about">
+        <div class="footer-about-title">Chen Kai Blog</div>
+        <p class="footer-about-desc">
+          Machine Learning, Mathematics, and Computer Science — explained for humans.
+        </p>
+        <div class="footer-social">
+          
+          <a href="https://github.com/chenkai66" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+          
+          
+          <a href="mailto:chenkai.nb.666@gmail.com" aria-label="Email">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </a>
+          
+          <a href="/atom.xml" aria-label="RSS Feed" title="RSS Feed">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title" data-i18n="footer.series">Series</div>
+        <ul class="footer-links">
+          
+            
+            
+              <li><a href="/categories/Recommendation-Systems/">Recommendation Systems</a></li>
+            
+              <li><a href="/categories/Linear-Algebra/">Linear Algebra</a></li>
+            
+              <li><a href="/categories/ML-Mathematical-Derivations/">ML Mathematical Derivations</a></li>
+            
+              <li><a href="/categories/Natural-Language-Processing/">Natural Language Processing</a></li>
+            
+              <li><a href="/categories/Reinforcement-Learning/">Reinforcement Learning</a></li>
+            
+          
+          <li><a href="/series/" data-i18n="footer.allseries">All series &rarr;</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title" data-i18n="footer.site">Site</div>
+        <ul class="footer-links">
+          <li><a href="/" data-i18n="nav.home">Home</a></li>
+          <li><a href="/series/" data-i18n="nav.series">Series</a></li>
+          <li><a href="/projects/" data-i18n="nav.projects">Projects</a></li>
+          <li><a href="/archives/" data-i18n="nav.archives">Archives</a></li>
+          <li><a href="/about/" data-i18n="nav.about">About</a></li>
+          <li><a href="/atom.xml" data-i18n="footer.rss">RSS Feed</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-info">
+        <p>&copy; 2026 Chen Kai. <span data-i18n="footer.copyright.suffix">Built with knowledge and curiosity.</span></p>
+        <p class="footer-powered"><span data-i18n="footer.powered">Powered by</span> <a href="https://hexo.io" target="_blank" rel="noopener">Hexo</a> &middot; <span data-i18n="footer.theme">Theme</span> <a href="https://www.chenk.top" rel="noopener">chenk</a></p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+</button>
+
+
+
+  
+<script src="/js/i18n.js"></script>
+
+  
+<script src="/js/main.js"></script>
+
+
+  
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      throwOnError: false
+    });">
+  </script>
+  
+
+  
+  
+<script src="/js/search.js"></script>
+
+  
+</body>
+</html>

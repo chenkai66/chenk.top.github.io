@@ -1,289 +1,831 @@
-<!doctype html><html lang=zh data-translation=/en/nlp/rag-knowledge-enhancement/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>自然语言处理（十）：RAG与知识增强系统 · Chen Kai Blog</title>
-<meta name=description content="从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/nlp/rag-knowledge-enhancement/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/><meta property="og:type" content="article"><meta property="og:title" content="自然语言处理（十）：RAG与知识增强系统"><meta property="og:description" content="从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。"><meta property="og:url" content="https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><meta property="og:image:alt" content="自然语言处理（十）：RAG与知识增强系统"><meta property="article:published_time" content="2025-11-15T09:00:00Z"><meta property="article:modified_time" content="2025-11-15T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="NLP"><meta property="article:tag" content="RAG"><meta property="article:tag" content="LLM"><meta property="article:tag" content="向量数据库"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="自然语言处理（十）：RAG与知识增强系统"><meta name=twitter:description content="从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"自然语言处理（十）：RAG与知识增强系统\"","description":"\"从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2025-11-15T09:00:00Z\"","dateModified":"\"2025-11-15T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/nlp/10-rag%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.48695d4598bb53d567624582a86242920731127cc2ae5a4c8eced847d39abcee.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
-<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
-<a href=/zh/series/>Series</a>
-<a href=/zh/projects/>Projects</a>
-<a href=/zh/archives/>Archives</a>
-<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
-<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-</button>
-<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
-<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-</button>
-<a class=lang-switch href=# data-lang-switch>EN</a>
-<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
-<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
-<a href=/zh/series/>Series</a>
-<a href=/zh/projects/>Projects</a>
-<a href=/zh/archives/>Archives</a>
-<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
-<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>自然语言处理</a>
-· 第 10 篇</div><h1>自然语言处理（十）：RAG与知识增强系统</h1><p class=deck>从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2025-11-15>November 15, 2025</time> · 16 分钟 · 7569 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/nlp/ class=tag>#NLP</a><a href=/zh/tags/rag/ class=tag>#RAG</a><a href=/zh/tags/llm/ class=tag>#LLM</a><a href=/zh/tags/%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93/ class=tag>#向量数据库</a></div><a class="pill pill-outline" href=/en/nlp/rag-knowledge-enhancement/>Read in English →</a></div></header><div class=prose><p>被冻结知识的语言模型是个自信的撒谎者：它读不到昨天的故障报告、读不到公司 wiki、读不到今早刚合入的 patch notes，于是当你提问，它会给出一个语法完美但事实错误的答案。<strong>检索增强生成（RAG）</strong> 通过把"记忆"和"推理"分开来打破这个困局：让 LLM 保持小且稳定，把易变的知识放到一个可以随时更新的外部存储里，生成之前先把相关证据检索出来作为上下文。</p><p>理念只有一段，工程是这篇文章的剩余部分。一个真实 RAG 系统大概有十几个旋钮——切块大小、Embedding 模型、索引类型、$k$、混合权重、重排深度、Prompt 模板、引用格式、拒答策略——而它们大多互相耦合。下文逐一讲清楚：数学、权衡、可运行的代码。</p><h2 id=你将学到什么>你将学到什么</h2><ul><li>概率分解 $P(y\mid q)=\sum_d P(d\mid q)P(y\mid q,d)$ 以及每一项的代价</li><li>为什么 ANN 索引（HNSW、IVF-PQ、ScaNN）用召回换延迟，以及何时值得这笔交易</li><li>稠密 vs 稀疏 vs 混合检索，以及为什么 <strong>Reciprocal Rank Fusion (RRF)</strong> 优于线性混合</li><li>两阶段 retrieve-then-rerank：Cross-encoder 带来的 +12 nDCG 来自哪里</li><li>尊重话题边界、而不是字节计数的切块策略</li><li>查询改写、问题分解、<strong>HyDE</strong>（假设性文档嵌入）</li><li><strong>Self-RAG / Corrective RAG</strong>：把检索变成模型自己掌控的决策</li><li>如何按规模、延迟和运维预算选择向量数据库</li></ul><h2 id=前置知识>前置知识</h2><ul><li>Embedding 与"含义"的余弦几何（<a href=/zh/nlp/02-%e8%af%8d%e5%90%91%e9%87%8f%e4%b8%8e%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b/>第 2 篇：词向量与语言模型</a>
-）</li><li>Decoder-only 语言模型与提示词工程（<a href=/zh/nlp/06-GPT%e4%b8%8e%e7%94%9f%e6%88%90%e5%bc%8f%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b/>第 6 篇：GPT</a>
-）</li><li>熟练使用 Python；隐约记得 TF-IDF 是干什么的</li></ul><hr><h2 id=1-rag-的概率分解>1. RAG 的概率分解</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig1_rag_pipeline.png alt="RAG 端到端流水线，包含离线索引与在线查询两条路径" loading=lazy decoding=async class=content-image></figure></p><p>RAG 系统通过对一小撮被检索文档 $\mathcal{D}_k$ 做边缘化来回答查询 $q$：</p>$$
-P(y \mid q) \;=\; \sum_{d \in \mathcal{D}_k}\; \underbrace{P(d \mid q)}_{\text{retriever}}\; \cdot \; \underbrace{P(y \mid q, d)}_{\text{generator}}
-$$<p>实践中我们用两种方式近似这个求和。便宜且占主导的方式（在 LangChain 里叫 <strong>stuff</strong>）把 top-$k$ 文档拼到 LLM 上下文里，让 attention 隐式地完成边缘化。原则上更优但代价更高的方式（<strong>Fusion-in-Decoder</strong>，Atlas 与原版 RAG 论文用的是这种）对每个 $(q,d)$ 对单独编码，在 decoder 里做融合。对于绝大多数生产系统，stuff + $k\in[3,8]$ + 一个好的重排器就是正确答案。</p><p>这个分解之所以有吸引力：</p><ul><li><strong>检索器</strong> $P(d\mid q)$ —— 更新便宜。几分钟就能重建一个文档集的索引；推理时不需要 GPU。</li><li><strong>生成器</strong> $P(y\mid q,d)$ —— 冻结。同一个 LLM 可以服务任意领域。</li><li><strong>引用</strong> —— 每条声明都能追到一个 chunk，可以展示给用户、可以被审计、可以用来过滤幻觉。</li></ul><h3 id=一个最小但诚实的流水线>一个最小但诚实的流水线</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
-</span><span class=lnt>30
-</span><span class=lnt>31
-</span><span class=lnt>32
-</span><span class=lnt>33
-</span><span class=lnt>34
-</span><span class=lnt>35
-</span><span class=lnt>36
-</span><span class=lnt>37
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>langchain_community.document_loaders</span> <span class=kn>import</span> <span class=n>DirectoryLoader</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>langchain.text_splitter</span> <span class=kn>import</span> <span class=n>RecursiveCharacterTextSplitter</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>langchain_huggingface</span> <span class=kn>import</span> <span class=n>HuggingFaceEmbeddings</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>langchain_community.vectorstores</span> <span class=kn>import</span> <span class=n>FAISS</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>langchain_openai</span> <span class=kn>import</span> <span class=n>ChatOpenAI</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>langchain.prompts</span> <span class=kn>import</span> <span class=n>ChatPromptTemplate</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>langchain.schema.runnable</span> <span class=kn>import</span> <span class=n>RunnablePassthrough</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 1. 加载与切块——overlap 不是可选项，见第 5 节</span>
-</span></span><span class=line><span class=cl><span class=n>loader</span> <span class=o>=</span> <span class=n>DirectoryLoader</span><span class=p>(</span><span class=s2>&#34;./docs&#34;</span><span class=p>,</span> <span class=n>glob</span><span class=o>=</span><span class=s2>&#34;**/*.md&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>splitter</span> <span class=o>=</span> <span class=n>RecursiveCharacterTextSplitter</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>chunk_size</span><span class=o>=</span><span class=mi>512</span><span class=p>,</span> <span class=n>chunk_overlap</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>separators</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;</span><span class=se>\n\n</span><span class=s2>&#34;</span><span class=p>,</span> <span class=s2>&#34;</span><span class=se>\n</span><span class=s2>&#34;</span><span class=p>,</span> <span class=s2>&#34;。&#34;</span><span class=p>,</span> <span class=s2>&#34;. &#34;</span><span class=p>,</span> <span class=s2>&#34; &#34;</span><span class=p>,</span> <span class=s2>&#34;&#34;</span><span class=p>],</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>chunks</span> <span class=o>=</span> <span class=n>splitter</span><span class=o>.</span><span class=n>split_documents</span><span class=p>(</span><span class=n>loader</span><span class=o>.</span><span class=n>load</span><span class=p>())</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 2. 嵌入与建索引——bge-small 是 2024+ 的强默认</span>
-</span></span><span class=line><span class=cl><span class=n>embedder</span> <span class=o>=</span> <span class=n>HuggingFaceEmbeddings</span><span class=p>(</span><span class=n>model_name</span><span class=o>=</span><span class=s2>&#34;BAAI/bge-small-zh-v1.5&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>vectordb</span> <span class=o>=</span> <span class=n>FAISS</span><span class=o>.</span><span class=n>from_documents</span><span class=p>(</span><span class=n>chunks</span><span class=p>,</span> <span class=n>embedder</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>retriever</span> <span class=o>=</span> <span class=n>vectordb</span><span class=o>.</span><span class=n>as_retriever</span><span class=p>(</span><span class=n>search_kwargs</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;k&#34;</span><span class=p>:</span> <span class=mi>6</span><span class=p>})</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 3. 强制接地、允许拒答的 Prompt</span>
-</span></span><span class=line><span class=cl><span class=n>prompt</span> <span class=o>=</span> <span class=n>ChatPromptTemplate</span><span class=o>.</span><span class=n>from_messages</span><span class=p>([</span>
-</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;system&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>     <span class=s2>&#34;只能依据上下文作答，并以 [i] 标注引用。&#34;</span>
-</span></span><span class=line><span class=cl>     <span class=s2>&#34;若上下文不足以回答，回复『我不知道』。&#34;</span><span class=p>),</span>
-</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;human&#34;</span><span class=p>,</span> <span class=s2>&#34;上下文：</span><span class=se>\n</span><span class=si>{context}</span><span class=se>\n\n</span><span class=s2>问题：</span><span class=si>{question}</span><span class=s2>&#34;</span><span class=p>),</span>
-</span></span><span class=line><span class=cl><span class=p>])</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>fmt</span><span class=p>(</span><span class=n>docs</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;</span><span class=se>\n\n</span><span class=s2>&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>] </span><span class=si>{</span><span class=n>d</span><span class=o>.</span><span class=n>page_content</span><span class=si>}</span><span class=s2>&#34;</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>d</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>docs</span><span class=p>,</span> <span class=mi>1</span><span class=p>))</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>llm</span> <span class=o>=</span> <span class=n>ChatOpenAI</span><span class=p>(</span><span class=n>model</span><span class=o>=</span><span class=s2>&#34;gpt-4o-mini&#34;</span><span class=p>,</span> <span class=n>temperature</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>chain</span> <span class=o>=</span> <span class=p>({</span><span class=s2>&#34;context&#34;</span><span class=p>:</span> <span class=n>retriever</span> <span class=o>|</span> <span class=n>fmt</span><span class=p>,</span> <span class=s2>&#34;question&#34;</span><span class=p>:</span> <span class=n>RunnablePassthrough</span><span class=p>()}</span>
-</span></span><span class=line><span class=cl>         <span class=o>|</span> <span class=n>prompt</span> <span class=o>|</span> <span class=n>llm</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>chain</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span><span class=s2>&#34;上个季度 OAuth 流程做了哪些改动？&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>三个细节挣得了它们的存在感。<strong>分隔符层级</strong>保证段落和句子不会被切断；<strong><code>temperature=0</code></strong> 消除一个方差源，让"检索质量"成为唯一的旋钮；<strong>拒答条款</strong>是你能拿到的最便宜的幻觉防线。</p><h3 id=什么时候-不要-用-rag>什么时候 <em>不要</em> 用 RAG</h3><table><thead><tr><th>场景</th><th>更好的工具</th></tr></thead><tbody><tr><td>风格适配（用我们品牌的语气写）</td><td>微调 / DPO</td></tr><tr><td>稳定且窄的任务（情感、NER）</td><td>微调</td></tr><tr><td>模型已经做得很好的推理链</td><td>更好的 Prompt</td></tr><tr><td>知识量小到能塞进 system prompt</td><td>Prompt 工程</td></tr><tr><td>表格 / 数值事实、精确计算</td><td>Tool / function calling</td></tr></tbody></table><p>RAG 的高光场景是知识<strong>量大、易变、可审计</strong>：每周变化的文档、10 GB 的合规语料、任何"请展示来源"是需求一部分的场合。</p><hr><h2 id=2-embedding-空间与-ann-权衡>2. Embedding 空间与 ANN 权衡</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig2_vector_similarity.png alt="Embedding 空间中的相似度检索，及 FAISS 各索引族的召回-延迟权衡" loading=lazy decoding=async class=content-image></figure></p><p>一个双塔编码器 $E_\theta:\text{text}\to\mathbb{R}^d$ 把查询和文档映射到同一空间，检索就是该空间里的余弦最近邻：</p>$$
-\operatorname{sim}(q,d) \;=\; \frac{E_\theta(q)\cdot E_\theta(d)}{\lVert E_\theta(q)\rVert \, \lVert E_\theta(d)\rVert}.
-$$<p>精确搜索每次查询代价 $O(N d)$ —— $10^5$ 还能扛，$10^7$ 已经痛苦，$10^9$ 完全不行。<strong>近似最近邻（ANN）</strong> 索引以放弃精确换数量级的延迟。生产中占主导的两族：</p><ul><li><strong>HNSW</strong>（分层可导航小世界图）—— 一张多层近邻图。从顶层入口贪心下降，$O(\log N)$ 跳收敛。可调项：$M$（图度数，决定内存）、$\textit{efSearch}$（束宽，决定召回-延迟权衡）。绝大多数 RAG 工作负载的甜点。</li><li><strong>IVF-PQ</strong> —— 粗 $k$-means 聚类（IVF 桶）+ 残差的 Product Quantization。8× 到 32× 的内存压缩，代价是几个点的召回。索引装不进内存时用它。</li></ul><p>图右侧展示了 1 M × 768-d 语料的 Pareto 前沿：HNSW 与 ScaNN 占据左上角，精确 <code>Flat</code> 在几十万规模仍可用，PQ-only 是内存极度紧张时的兜底。</p><h3 id=2024-的-embedding-模型怎么选>2024+ 的 Embedding 模型怎么选</h3><table><thead><tr><th>模型</th><th>维度</th><th>优势</th><th>备注</th></tr></thead><tbody><tr><td><code>text-embedding-3-large</code>（OpenAI）</td><td>3072（可截断）</td><td>多语言强，Matryoshka 可截到 256</td><td>仅 API</td></tr><tr><td><code>bge-large-zh-v1.5</code>（智源）</td><td>1024</td><td>中文 MTEB 顶尖，权重开放</td><td>本地可跑</td></tr><tr><td><code>bge-m3</code></td><td>1024</td><td>单模型 dense + sparse + multi-vector，100+ 语言</td><td>多语言开源最佳</td></tr><tr><td><code>nomic-embed-text-v1.5</code></td><td>768</td><td>长上下文（8K tokens），Matryoshka</td><td>Apache 2.0</td></tr><tr><td><code>all-MiniLM-L6-v2</code></td><td>384</td><td>快 5–10×，MTEB 低约 3 个点</td><td>延迟敏感场景</td></tr></tbody></table><p><strong>按瓶颈选</strong>，不是按榜单。内存紧 → Matryoshka 截到 256 维；多语言 → <code>bge-m3</code> 难有对手；如果你有领域内的标注 query-passage 对，<strong>针对你的语料微调一个 384-d 模型，常常打过 1024-d 的通用模型</strong>——余弦几何会去贴合你的术语，冗余维度坍塌，召回随之上升。</p><hr><h2 id=3-混合检索稠密--稀疏--rrf>3. 混合检索：稠密 + 稀疏 + RRF</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig3_hybrid_retrieval.png alt="BM25 与稠密检索通过 RRF 融合的混合检索" loading=lazy decoding=async class=content-image></figure></p><p>稠密检索懂改述但在三类查询上输给 BM25：罕见命名实体（<code>CVE-2024-3094</code>）、精确标识符（<code>订单 #482915</code>）、短到不足以填满 Embedding 模型有效感受野的查询。稀疏检索正好相反：字面强、同义盲。</p><p><strong>BM25</strong> 给查询 $q$ 与文档 $d$ 的打分：</p>$$
-\operatorname{BM25}(q,d) \;=\; \sum_{t \in q} \operatorname{IDF}(t)\cdot
+<!DOCTYPE html>
+
+<html lang="zh-CN" data-theme="light" data-page-lang="zh-CN" data-translation="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <meta name="description" content="从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。">
+  <meta name="author" content="Chen Kai">
+  <meta name="generator" content="Hexo">
+  <title>自然语言处理（十）：RAG与知识增强系统 | Chen Kai Blog</title>
+
+  <!-- Preload critical fonts -->
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" as="style">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="自然语言处理（十）：RAG与知识增强系统">
+  <meta property="og:description" content="从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。">
+  <meta property="og:url" content="/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/">
+  <meta property="og:site_name" content="Chen Kai Blog">
+  
+  
+  <meta property="article:published_time" content="2025-09-20">
+  <meta property="article:author" content="Chen Kai">
+  
+  <meta property="article:section" content="自然语言处理">
+  
+  
+  <meta property="article:tag" content="NLP">
+  
+  <meta property="article:tag" content="LLM">
+  
+  <meta property="article:tag" content="RAG">
+  
+  <meta property="article:tag" content="向量数据库">
+  
+  
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="自然语言处理（十）：RAG与知识增强系统">
+  <meta name="twitter:description" content="从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。">
+  
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://www.chenk.top/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/">
+
+  <!-- RSS / Atom Feed -->
+  <link rel="alternate" href="/atom.xml" title="Chen Kai Blog" type="application/atom+xml">
+  <link rel="alternate" href="/rss2.xml" title="Chen Kai Blog" type="application/rss+xml">
+
+  <!-- Sitemap -->
+  <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+
+  <!-- Favicon -->
+  <link rel="shortcut icon" href="/images/logo.svg">
+  <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+  <!-- Stylesheets -->
+  
+<link rel="stylesheet" href="/css/main.css">
+
+  
+<link rel="stylesheet" href="/css/article.css">
+
+  
+<link rel="stylesheet" href="/css/code.css">
+
+
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  
+
+  
+  <!-- JSON-LD Structured Data for Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "自然语言处理（十）：RAG与知识增强系统",
+    "description": "从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。",
+    "datePublished": "2025-09-20",
+    "dateModified": "2026-05-06",
+    "author": {
+      "@type": "Person",
+      "name": "Chen Kai",
+      "url": "https://www.chenk.top"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Chen Kai Blog",
+      "url": "https://www.chenk.top"
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://www.chenk.top/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/"
+    },
+    "wordCount": "5.1k"
+  }
+  </script>
+  
+
+  <!-- Theme initialization (prevent FOUC) -->
+  <script>
+    (function(){
+      var t = localStorage.getItem('theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+<style>mjx-container[jax="SVG"] {
+  direction: ltr;
+}
+
+mjx-container[jax="SVG"] > svg {
+  overflow: visible;
+}
+
+mjx-container[jax="SVG"][display="true"] {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+}
+
+mjx-container[jax="SVG"][justify="left"] {
+  text-align: left;
+}
+
+mjx-container[jax="SVG"][justify="right"] {
+  text-align: right;
+}
+
+g[data-mml-node="merror"] > g {
+  fill: red;
+  stroke: red;
+}
+
+g[data-mml-node="merror"] > rect[data-background] {
+  fill: yellow;
+  stroke: none;
+}
+
+g[data-mml-node="mtable"] > line[data-line] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > rect[data-frame] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > .mjx-dashed {
+  stroke-dasharray: 140;
+}
+
+g[data-mml-node="mtable"] > .mjx-dotted {
+  stroke-linecap: round;
+  stroke-dasharray: 0,140;
+}
+
+g[data-mml-node="mtable"] > svg {
+  overflow: visible;
+}
+
+[jax="SVG"] mjx-tool {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+[jax="SVG"] mjx-tool > mjx-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+mjx-tool > mjx-tip {
+  display: inline-block;
+  padding: .2em;
+  border: 1px solid #888;
+  font-size: 70%;
+  background-color: #F8F8F8;
+  color: black;
+  box-shadow: 2px 2px 5px #AAAAAA;
+}
+
+g[data-mml-node="maction"][data-toggle] {
+  cursor: pointer;
+}
+
+mjx-status {
+  display: block;
+  position: fixed;
+  left: 1em;
+  bottom: 1em;
+  min-width: 25%;
+  padding: .2em .4em;
+  border: 1px solid #888;
+  font-size: 90%;
+  background-color: #F8F8F8;
+  color: black;
+}
+
+foreignObject[data-mjx-xml] {
+  font-family: initial;
+  line-height: normal;
+  overflow: visible;
+}
+
+.MathJax path {
+  stroke-width: 3;
+}
+
+mjx-container[display="true"] {
+  overflow: auto hidden;
+}
+
+mjx-container[display="true"] + br {
+  display: none;
+}
+</style></head>
+<body>
+  <header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="site-logo">
+      <span class="logo-text">Chen Kai Blog</span>
+    </a>
+
+    <nav class="main-nav">
+      <a href="/" class="nav-link" data-i18n="nav.home">Home</a>
+      <a href="/series/" class="nav-link" data-i18n="nav.series">Series</a>
+      <a href="/projects/" class="nav-link" data-i18n="nav.projects">Projects</a>
+      <a href="/archives/" class="nav-link" data-i18n="nav.archives">Archives</a>
+      <a href="/about/" class="nav-link" data-i18n="nav.about">About</a>
+    </nav>
+
+    <div class="header-actions">
+      
+      <button class="lang-switcher" id="lang-switcher" aria-label="Switch language">
+        <span class="lang-label" id="lang-label">EN</span>
+      </button>
+      
+
+      
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      
+
+      
+      <button class="search-toggle" id="search-toggle" aria-label="Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+      
+
+      <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-container">
+      <div style="position: relative;">
+        <input type="text" class="search-input" id="search-input" placeholder="Search articles..." data-i18n-attr="placeholder:search.placeholder" autocomplete="off">
+        <div class="search-kbd" id="search-kbd-hint">
+          <kbd>Esc</kbd>
+        </div>
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+  </div>
+  
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div class="mobile-drawer-overlay" id="mobile-drawer-overlay"></div>
+<nav class="mobile-drawer" id="mobile-drawer">
+  <div class="mobile-drawer-header">
+    <span class="mobile-drawer-title">Chen Kai Blog</span>
+    <button class="mobile-drawer-close" id="mobile-drawer-close" aria-label="Close menu">&times;</button>
+  </div>
+  <div class="mobile-drawer-nav">
+    <a href="/" class="" data-i18n="nav.home">Home</a>
+    <a href="/series/" class="" data-i18n="nav.series">Series</a>
+    <a href="/projects/" class="" data-i18n="nav.projects">Projects</a>
+    <a href="/archives/" class="" data-i18n="nav.archives">Archives</a>
+    <a href="/about/" class="" data-i18n="nav.about">About</a>
+  </div>
+  <div class="mobile-drawer-actions">
+    
+    <button id="mobile-theme-toggle" aria-label="Toggle dark mode">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Theme
+    </button>
+    
+    
+    <button id="mobile-lang-switcher" aria-label="Switch language">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span id="mobile-lang-label">EN</span>
+    </button>
+    
+  </div>
+</nav>
+
+
+  
+  <div class="reading-progress" id="reading-progress"></div>
+  
+
+  <main class="main-content">
+    
+<article class="article-page">
+  <div class="article-layout has-both-sidebars">
+    <!-- Series Sidebar (left) -->
+    
+    <aside class="series-sidebar" id="series-sidebar">
+      <div class="series-sidebar-inner">
+        <h4 class="series-sidebar-title">自然语言处理</h4>
+        <p class="series-sidebar-progress">Part 10 of 12</p>
+        <div class="series-progress-bar">
+          <div class="series-progress-fill" style="width: 83.33333333333334%"></div>
+        </div>
+        <nav class="series-chapter-list">
+          <!-- Series chapters populated by JS or by listing related posts -->
+        </nav>
+      </div>
+    </aside>
+    
+
+    <!-- Article Content (center) -->
+    <div class="article-main">
+      <!-- Breadcrumb Navigation -->
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/" data-i18n="nav.home">Home</a>
+        <span class="breadcrumb-separator">&#9656;</span>
+        
+          
+          <a href="/categories/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86/">自然语言处理</a>
+          <span class="breadcrumb-separator">&#9656;</span>
+        
+        <span class="breadcrumb-current">自然语言处理（十）：RAG与知识增强系统</span>
+      </nav>
+
+      <header class="article-header">
+        
+        <div class="article-category">
+          
+            <a href="/categories/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86/">自然语言处理</a>
+          
+        </div>
+        
+
+        <h1 class="article-title">自然语言处理（十）：RAG与知识增强系统</h1>
+
+        <div class="article-meta">
+          <time datetime="2025-09-20">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            九月 20, 2025
+          </time>
+          
+          <span class="update-time" title="Last updated">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Updated 5月 06, 2026
+          </span>
+          
+          
+          <span class="reading-time" data-auto-reading>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span class="rt-num">—</span> <span data-i18n="post.minRead">min read</span>
+          </span>
+          
+          
+          <span class="word-count" data-auto-wordcount>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+            <span class="wc-num">—</span> <span data-i18n="post.words">words</span>
+          </span>
+          
+        </div>
+
+        
+        <p class="article-description">从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。</p>
+        
+      </header>
+
+      <div class="article-content markdown-body">
+        <p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/illustration_1.jpg" alt="概念示意图"></p>
+<p>冻结知识的语言模型是个自信的撒谎者：它看不到昨天的故障报告，读不到公司 wiki，也读不到今早刚合入的 patch notes。当你提问时，它会给出语法完美但事实错误的答案。<strong>检索增强生成（RAG）</strong> 通过分离"记忆"和"推理"来打破这一困局：保持 LLM 小而稳定，把易变的知识放到可随时更新的外部存储中，在生成前检索相关证据作为上下文。</p>
+<p>理念只有一段，工程是这篇文章的剩余部分。一个真实的 RAG 系统大约有十几个旋钮——切块大小、Embedding 模型、索引类型、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span>、混合权重、重排深度、Prompt 模板、引用格式、拒答策略——它们大多互相耦合。下文逐一讲清楚：数学、权衡、可运行的代码。</p>
+<h2 id="你将学到什么"><a class="header-anchor" href="#你将学到什么">¶</a>你将学到什么</h2>
+<ul>
+<li>概率分解 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><mi>y</mi><mo>∣</mo><mi>q</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mo>∑</mo><mi>d</mi></msub><mi>P</mi><mo stretchy="false">(</mo><mi>d</mi><mo>∣</mo><mi>q</mi><mo stretchy="false">)</mo><mi>P</mi><mo stretchy="false">(</mo><mi>y</mi><mo>∣</mo><mi>q</mi><mo separator="true">,</mo><mi>d</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">P(y\mid q)=\sum_d P(d\mid q)P(y\mid q,d)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0497em;vertical-align:-0.2997em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1864em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">d</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mclose">)</span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">d</span><span class="mclose">)</span></span></span></span>，以及每一项的代价</li>
+<li>ANN 索引（HNSW、IVF-PQ、ScaNN）为何用召回换取延迟，这笔交易何时值得</li>
+<li>稠密检索、稀疏检索与混合检索的区别，<strong>Reciprocal Rank Fusion (RRF)</strong> 为何优于线性混合</li>
+<li>两阶段 retrieve-then-rerank：Cross-encoder 带来的 +12 nDCG 源自何处</li>
+<li>尊重话题边界而非字节计数的切块策略</li>
+<li>查询改写、问题分解与 <strong>HyDE</strong>（假设性文档嵌入）</li>
+<li><strong>Self-RAG / Corrective RAG</strong>：让检索成为模型自主掌控的决策</li>
+<li>如何依据规模、延迟和运维预算选择向量数据库</li>
+</ul>
+<h2 id="前置知识"><a class="header-anchor" href="#前置知识">¶</a>前置知识</h2>
+<ul>
+<li>Embedding 与“含义”的余弦几何（<a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E4%BA%8C-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">第 2 篇：词向量与语言模型</a>）</li>
+<li>Decoder-only 语言模型与提示词工程（<a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E5%85%AD-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">第 6 篇：GPT</a>）</li>
+<li>熟练掌握 Python；对 TF-IDF 的用途有模糊印象</li>
+</ul>
+<hr>
+<h2 id="1-RAG-的概率分解"><a class="header-anchor" href="#1-RAG-的概率分解">¶</a>1. RAG 的概率分解</h2>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig1_rag_pipeline.png" alt="RAG 端到端流水线，包含离线索引与在线查询两条路径"></p>
+<p>RAG 系统通过对少量被检索文档 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">D</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">\mathcal{D}_k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.0278em;">D</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 做边缘化来回答查询 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span>：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><mi>y</mi><mo>∣</mo><mi>q</mi><mo stretchy="false">)</mo><mtext>  </mtext><mo>=</mo><mtext>  </mtext><munder><mo>∑</mo><mrow><mi>d</mi><mo>∈</mo><msub><mi mathvariant="script">D</mi><mi>k</mi></msub></mrow></munder><mtext>  </mtext><munder><munder><mrow><mi>P</mi><mo stretchy="false">(</mo><mi>d</mi><mo>∣</mo><mi>q</mi><mo stretchy="false">)</mo></mrow><mo stretchy="true">⏟</mo></munder><mtext>retriever</mtext></munder><mtext>  </mtext><mo>⋅</mo><mtext>  </mtext><munder><munder><mrow><mi>P</mi><mo stretchy="false">(</mo><mi>y</mi><mo>∣</mo><mi>q</mi><mo separator="true">,</mo><mi>d</mi><mo stretchy="false">)</mo></mrow><mo stretchy="true">⏟</mo></munder><mtext>generator</mtext></munder></mrow><annotation encoding="application/x-tex">P(y \mid q) \;=\; \sum_{d \in \mathcal{D}_k}\; \underbrace{P(d \mid q)}_{\text{retriever}}\; \cdot \; \underbrace{P(y \mid q, d)}_{\text{generator}}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.6155em;vertical-align:-1.5655em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.8479em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">d</span><span class="mrel mtight">∈</span><span class="mord mtight"><span class="mord mathcal mtight" style="margin-right:0.0278em;">D</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3488em;margin-left:-0.0278em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1512em;"><span></span></span></span></span></span></span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.408em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner munder"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.75em;"><span style="top:-1.4345em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">retriever</span></span></span></span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="minner munder"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.75em;"><span class="svg-align" style="top:-2.102em;"><span class="pstrut" style="height:3em;"></span><span class="stretchy" style="height:0.548em;min-width:1.6em;"><span class="brace-left" style="height:0.548em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="0.548em" viewBox="0 0 400000 548" preserveAspectRatio="xMinYMin slice"><path d="M0 6l6-6h17c12.688 0 19.313.3 20 1 4 4 7.313 8.3 10 13
+ 35.313 51.3 80.813 93.8 136.5 127.5 55.688 33.7 117.188 55.8 184.5 66.5.688
+ 0 2 .3 4 1 18.688 2.7 76 4.3 172 5h399450v120H429l-6-1c-124.688-8-235-61.7
+-331-161C60.687 138.7 32.312 99.3 7 54L0 41V6z"></path></svg></span><span class="brace-center" style="height:0.548em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="0.548em" viewBox="0 0 400000 548" preserveAspectRatio="xMidYMin slice"><path d="M199572 214
+c100.7 8.3 195.3 44 280 108 55.3 42 101.7 93 139 153l9 14c2.7-4 5.7-8.7 9-14
+ 53.3-86.7 123.7-153 211-199 66.7-36 137.3-56.3 212-62h199568v120H200432c-178.3
+ 11.7-311.7 78.3-403 201-6 8-9.7 12-11 12-.7.7-6.7 1-18 1s-17.3-.3-18-1c-1.3 0
+-5-4-11-12-44.7-59.3-101.3-106.3-170-141s-145.3-54.3-229-60H0V214z"></path></svg></span><span class="brace-right" style="height:0.548em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="0.548em" viewBox="0 0 400000 548" preserveAspectRatio="xMaxYMin slice"><path d="M399994 0l6 6v35l-6 11c-56 104-135.3 181.3-238 232-57.3
+ 28.7-117 45-179 50H-300V214h399897c43.3-7 81-15 113-26 100.7-33 179.7-91 237
+-174 2.7-5 6-9 10-13 .7-1 7.3-1 20-1h17z"></path></svg></span></span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.898em;"><span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.5655em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:2.4147em;vertical-align:-1.6647em;"></span><span class="minner munder"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.75em;"><span style="top:-1.4714em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">generator</span></span></span></span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="minner munder"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.75em;"><span class="svg-align" style="top:-2.102em;"><span class="pstrut" style="height:3em;"></span><span class="stretchy" style="height:0.548em;min-width:1.6em;"><span class="brace-left" style="height:0.548em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="0.548em" viewBox="0 0 400000 548" preserveAspectRatio="xMinYMin slice"><path d="M0 6l6-6h17c12.688 0 19.313.3 20 1 4 4 7.313 8.3 10 13
+ 35.313 51.3 80.813 93.8 136.5 127.5 55.688 33.7 117.188 55.8 184.5 66.5.688
+ 0 2 .3 4 1 18.688 2.7 76 4.3 172 5h399450v120H429l-6-1c-124.688-8-235-61.7
+-331-161C60.687 138.7 32.312 99.3 7 54L0 41V6z"></path></svg></span><span class="brace-center" style="height:0.548em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="0.548em" viewBox="0 0 400000 548" preserveAspectRatio="xMidYMin slice"><path d="M199572 214
+c100.7 8.3 195.3 44 280 108 55.3 42 101.7 93 139 153l9 14c2.7-4 5.7-8.7 9-14
+ 53.3-86.7 123.7-153 211-199 66.7-36 137.3-56.3 212-62h199568v120H200432c-178.3
+ 11.7-311.7 78.3-403 201-6 8-9.7 12-11 12-.7.7-6.7 1-18 1s-17.3-.3-18-1c-1.3 0
+-5-4-11-12-44.7-59.3-101.3-106.3-170-141s-145.3-54.3-229-60H0V214z"></path></svg></span><span class="brace-right" style="height:0.548em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="0.548em" viewBox="0 0 400000 548" preserveAspectRatio="xMaxYMin slice"><path d="M399994 0l6 6v35l-6 11c-56 104-135.3 181.3-238 232-57.3
+ 28.7-117 45-179 50H-300V214h399897c43.3-7 81-15 113-26 100.7-33 179.7-91 237
+-174 2.7-5 6-9 10-13 .7-1 7.3-1 20-1h17z"></path></svg></span></span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">d</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.898em;"><span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.6647em;"><span></span></span></span></span></span></span></span></span></span></p>
+<p>实践中用两种方式近似这个求和。一种是便宜且占主导的方式（在 LangChain 中叫 <strong>stuff</strong>），将 top-<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span> 文档拼接到 LLM 上下文中，让 attention 隐式完成边缘化。另一种是原则上更优但代价更高的方式（<strong>Fusion-in-Decoder</strong>，Atlas 和原版 RAG 论文采用此方法），对每个 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>q</mi><mo separator="true">,</mo><mi>d</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(q,d)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">d</span><span class="mclose">)</span></span></span></span> 对单独编码，在 decoder 中做融合。对于大多数生产系统，stuff + <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>∈</mo><mo stretchy="false">[</mo><mn>3</mn><mo separator="true">,</mo><mn>8</mn><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">k\in[3,8]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7335em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">3</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">8</span><span class="mclose">]</span></span></span></span> + 一个好的重排器就是最佳选择。</p>
+<p>这种分解的吸引力体现在以下几点：</p>
+<ul>
+<li><strong>检索器</strong> <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><mi>d</mi><mo>∣</mo><mi>q</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">P(d\mid q)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mclose">)</span></span></span></span> —— 更新成本低。几分钟即可重建文档集索引，推理时无需 GPU。</li>
+<li><strong>生成器</strong> <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><mi>y</mi><mo>∣</mo><mi>q</mi><mo separator="true">,</mo><mi>d</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">P(y\mid q,d)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">d</span><span class="mclose">)</span></span></span></span> —— 冻结状态。同一个 LLM 可服务任意领域。</li>
+<li><strong>引用</strong> —— 每条声明都能追溯到一个 chunk，可展示给用户、支持审计、过滤幻觉。</li>
+</ul>
+<h3 id="一个最小但诚实的流水线"><a class="header-anchor" href="#一个最小但诚实的流水线">¶</a>一个最小但诚实的流水线</h3>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain_community.document_loaders <span class="keyword">import</span> DirectoryLoader</span><br><span class="line"><span class="keyword">from</span> langchain.text_splitter <span class="keyword">import</span> RecursiveCharacterTextSplitter</span><br><span class="line"><span class="keyword">from</span> langchain_huggingface <span class="keyword">import</span> HuggingFaceEmbeddings</span><br><span class="line"><span class="keyword">from</span> langchain_community.vectorstores <span class="keyword">import</span> FAISS</span><br><span class="line"><span class="keyword">from</span> langchain_openai <span class="keyword">import</span> ChatOpenAI</span><br><span class="line"><span class="keyword">from</span> langchain.prompts <span class="keyword">import</span> ChatPromptTemplate</span><br><span class="line"><span class="keyword">from</span> langchain.schema.runnable <span class="keyword">import</span> RunnablePassthrough</span><br><span class="line"></span><br><span class="line"><span class="comment"># 1. 加载与切块——overlap 不是可选项，见第 5 节</span></span><br><span class="line">loader = DirectoryLoader(<span class="string">"./docs"</span>, glob=<span class="string">"**/*.md"</span>)</span><br><span class="line">splitter = RecursiveCharacterTextSplitter(</span><br><span class="line">    chunk_size=<span class="number">512</span>, chunk_overlap=<span class="number">64</span>,</span><br><span class="line">    separators=[<span class="string">"\n\n"</span>, <span class="string">"\n"</span>, <span class="string">"。"</span>, <span class="string">". "</span>, <span class="string">" "</span>, <span class="string">""</span>],</span><br><span class="line">)</span><br><span class="line">chunks = splitter.split_documents(loader.load())</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 嵌入与建索引——bge-small 是 2024+ 的强默认</span></span><br><span class="line">embedder = HuggingFaceEmbeddings(model_name=<span class="string">"BAAI/bge-small-zh-v1.5"</span>)</span><br><span class="line">vectordb = FAISS.from_documents(chunks, embedder)</span><br><span class="line">retriever = vectordb.as_retriever(search_kwargs={<span class="string">"k"</span>: <span class="number">6</span>})</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 强制接地、允许拒答的 Prompt</span></span><br><span class="line">prompt = ChatPromptTemplate.from_messages([</span><br><span class="line">    (<span class="string">"system"</span>,</span><br><span class="line">     <span class="string">"只能依据上下文作答，并以 [i] 标注引用。"</span></span><br><span class="line">     <span class="string">"若上下文不足以回答，回复『我不知道』。"</span>),</span><br><span class="line">    (<span class="string">"human"</span>, <span class="string">"上下文：\n{context}\n\n问题：{question}"</span>),</span><br><span class="line">])</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">fmt</span>(<span class="params">docs</span>):</span><br><span class="line">    <span class="keyword">return</span> <span class="string">"\n\n"</span>.join(<span class="string">f"[<span class="subst">{i}</span>] <span class="subst">{d.page_content}</span>"</span> <span class="keyword">for</span> i, d <span class="keyword">in</span> <span class="built_in">enumerate</span>(docs, <span class="number">1</span>))</span><br><span class="line"></span><br><span class="line">llm = ChatOpenAI(model=<span class="string">"gpt-4o-mini"</span>, temperature=<span class="number">0</span>)</span><br><span class="line">chain = ({<span class="string">"context"</span>: retriever | fmt, <span class="string">"question"</span>: RunnablePassthrough()}</span><br><span class="line">         | prompt | llm)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(chain.invoke(<span class="string">"上个季度 OAuth 流程做了哪些改动？"</span>).content)</span><br></pre></td></tr></table></figure>
+<p>三个细节值得特别关注。<strong>分隔符层级</strong>确保段落和句子不被切断；<strong><code>temperature=0</code></strong> 消除方差源，使"检索质量"成为唯一变量；<strong>拒答条款</strong>是最经济有效的幻觉防线。</p>
+<h3 id="什么时候-不要-用-RAG"><a class="header-anchor" href="#什么时候-不要-用-RAG">¶</a>什么时候 <em>不要</em> 用 RAG</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>更好的工具</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>风格适配（用我们品牌的语气写）</td>
+<td>微调 / DPO</td>
+</tr>
+<tr>
+<td>稳定且窄的任务（情感、NER）</td>
+<td>微调</td>
+</tr>
+<tr>
+<td>模型已经做得很好的推理链</td>
+<td>更好的 Prompt</td>
+</tr>
+<tr>
+<td>知识量小到能塞进 system prompt</td>
+<td>Prompt 工程</td>
+</tr>
+<tr>
+<td>表格 / 数值事实、精确计算</td>
+<td>Tool / function calling</td>
+</tr>
+</tbody>
+</table>
+<p>RAG 的高光场景是知识<strong>量大、易变、可审计</strong>：每周更新的文档、10 GB 的合规语料、任何"请展示来源"为需求一部分的场合。</p>
+<h2 id="2-Embedding-空间与-ANN-权衡"><a class="header-anchor" href="#2-Embedding-空间与-ANN-权衡">¶</a>2. Embedding 空间与 ANN 权衡</h2>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig2_vector_similarity.png" alt="Embedding 空间中的相似度检索，及 FAISS 各索引族的召回-延迟权衡"></p>
+<p>双塔编码器 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>E</mi><mi>θ</mi></msub><mo>:</mo><mtext>text</mtext><mo>→</mo><msup><mi mathvariant="double-struck">R</mi><mi>d</mi></msup></mrow><annotation encoding="application/x-tex">E_\theta:\text{text}\to\mathbb{R}^d</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6151em;"></span><span class="mord text"><span class="mord">text</span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8491em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">d</span></span></span></span></span></span></span></span></span></span></span> 将查询和文档映射到同一空间，检索就是该空间内的余弦最近邻：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">sim</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>q</mi><mo separator="true">,</mo><mi>d</mi><mo stretchy="false">)</mo><mtext>  </mtext><mo>=</mo><mtext>  </mtext><mfrac><mrow><msub><mi>E</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mi>q</mi><mo stretchy="false">)</mo><mo>⋅</mo><msub><mi>E</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></mrow><mrow><mo stretchy="false">∥</mo><msub><mi>E</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mi>q</mi><mo stretchy="false">)</mo><mo stretchy="false">∥</mo><mtext> </mtext><mo stretchy="false">∥</mo><msub><mi>E</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo stretchy="false">∥</mo></mrow></mfrac><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">\operatorname{sim}(q,d) \;=\; \frac{E_\theta(q)\cdot E_\theta(d)}{\lVert E_\theta(q)\rVert \, \lVert E_\theta(d)\rVert}.
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop"><span class="mord mathrm">sim</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">d</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.363em;vertical-align:-0.936em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mopen">∥</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mclose">)∥</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mopen">∥</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mclose">)∥</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mord">.</span></span></span></span></span></p>
+<p>精确搜索每次查询代价为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>N</mi><mi>d</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(N d)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.109em;">N</span><span class="mord mathnormal">d</span><span class="mclose">)</span></span></span></span> —— <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span> 规模尚可承受，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>7</mn></msup></mrow><annotation encoding="application/x-tex">10^7</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">7</span></span></span></span></span></span></span></span></span></span></span> 已显吃力，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>9</mn></msup></mrow><annotation encoding="application/x-tex">10^9</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">9</span></span></span></span></span></span></span></span></span></span></span> 则完全不可行。<strong>近似最近邻（ANN）</strong> 索引通过牺牲精确性换取数量级的延迟改善。生产中主要采用两类索引：</p>
+<ul>
+<li><strong>HNSW</strong>（分层可导航小世界图）—— 构建多层近邻图，从顶层入口贪心下降，经 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>log</mi><mo>⁡</mo><mi>N</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(\log N)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="mopen">(</span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">N</span><span class="mclose">)</span></span></span></span> 次跳转收敛。可调参数包括：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span></span></span>（图度数，影响内存占用）、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="italic">efSearch</mtext></mrow><annotation encoding="application/x-tex">\textit{efSearch}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord text"><span class="mord textit">efSearch</span></span></span></span></span>（束宽，决定召回率与延迟的权衡）。适合绝大多数 RAG 工作负载。</li>
+<li><strong>IVF-PQ</strong> —— 基于粗 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span>-means 聚类（IVF 桶）和残差的 Product Quantization 实现。提供 8× 至 32× 的内存压缩，但召回率会损失几个百分点。当索引无法完全装入内存时优先选择。</li>
+</ul>
+<p>图右侧展示了 1 M × 768-d 语料的 Pareto 前沿：HNSW 与 ScaNN 占据左上角；精确 <code>Flat</code> 在几十万规模仍可用；PQ-only 是内存极度受限时的兜底方案。</p>
+<h3 id="2024-的-Embedding-模型怎么选"><a class="header-anchor" href="#2024-的-Embedding-模型怎么选">¶</a>2024+ 的 Embedding 模型怎么选</h3>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>维度</th>
+<th>优势</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text-embedding-3-large</code>（OpenAI）</td>
+<td>3072（可截断）</td>
+<td>多语言表现强，Matryoshka 支持截断至 256 维</td>
+<td>仅 API</td>
+</tr>
+<tr>
+<td><code>bge-large-zh-v1.5</code>（智源）</td>
+<td>1024</td>
+<td>中文 MTEB 表现顶尖，权重开放</td>
+<td>本地部署可行</td>
+</tr>
+<tr>
+<td><code>bge-m3</code></td>
+<td>1024</td>
+<td>单模型支持 dense + sparse + multi-vector，覆盖 100+ 语言</td>
+<td>多语言开源最佳</td>
+</tr>
+<tr>
+<td><code>nomic-embed-text-v1.5</code></td>
+<td>768</td>
+<td>支持长上下文（8K tokens），Matryoshka 截断</td>
+<td>Apache 2.0</td>
+</tr>
+<tr>
+<td><code>all-MiniLM-L6-v2</code></td>
+<td>384</td>
+<td>速度提升 5–10×，MTEB 得分略低约 3 个点</td>
+<td>适合延迟敏感场景</td>
+</tr>
+</tbody>
+</table>
+<p>根据瓶颈选择，而非单纯依赖榜单。内存受限 → 使用 Matryoshka 截断至 256 维；多语言需求 → <code>bge-m3</code> 难有对手；如果拥有领域内标注的 query-passage 对，<strong>针对你的语料微调一个 384-d 模型，通常优于 1024-d 的通用模型</strong>——余弦几何会贴合你的术语分布，冗余维度坍塌，召回随之提升。</p>
+<hr>
+<h2 id="3-混合检索：稠密-稀疏-RRF"><a class="header-anchor" href="#3-混合检索：稠密-稀疏-RRF">¶</a>3. 混合检索：稠密 + 稀疏 + RRF</h2>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig3_hybrid_retrieval.png" alt="BM25 与稠密检索通过 RRF 融合的混合检索"></p>
+<p>稠密检索擅长改述，但在三类查询上逊于 BM25：罕见命名实体（<code>CVE-2024-3094</code>）、精确标识符（<code>订单 #482915</code>）、短到无法填满 Embedding 模型有效感受野的查询。稀疏检索则相反：字面匹配强，同义词无感。</p>
+<p><strong>BM25</strong> 给查询 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span> 与文档 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi></mrow><annotation encoding="application/x-tex">d</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">d</span></span></span></span> 的打分公式如下：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">BM25</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>q</mi><mo separator="true">,</mo><mi>d</mi><mo stretchy="false">)</mo><mtext>  </mtext><mo>=</mo><mtext>  </mtext><munder><mo>∑</mo><mrow><mi>t</mi><mo>∈</mo><mi>q</mi></mrow></munder><mi mathvariant="normal">IDF</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>⋅</mo><mfrac><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>t</mi><mo separator="true">,</mo><mi>d</mi><mo stretchy="false">)</mo><mtext> </mtext><mo stretchy="false">(</mo><msub><mi>k</mi><mn>1</mn></msub><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>t</mi><mo separator="true">,</mo><mi>d</mi><mo stretchy="false">)</mo><mo>+</mo><msub><mi>k</mi><mn>1</mn></msub><mtext> ⁣</mtext><mrow><mo fence="true">(</mo><mn>1</mn><mo>−</mo><mi>b</mi><mo>+</mo><mi>b</mi><mtext> </mtext><mfrac><mrow><mi mathvariant="normal">∣</mi><mi>d</mi><mi mathvariant="normal">∣</mi></mrow><mover accent="true"><mrow><mi mathvariant="normal">∣</mi><mi>d</mi><mi mathvariant="normal">∣</mi></mrow><mo stretchy="true">‾</mo></mover></mfrac><mo fence="true">)</mo></mrow></mrow></mfrac></mrow><annotation encoding="application/x-tex">\operatorname{BM25}(q,d) \;=\; \sum_{t \in q} \operatorname{IDF}(t)\cdot
 \frac{f(t,d)\,(k_1+1)}{f(t,d) + k_1\!\left(1-b+b\,\frac{|d|}{\overline{|d|}}\right)}
-$$<p>其中 $k_1\!\approx\!1.2$，$b\!\approx\!0.75$。IDF 项奖励稀有词命中，长度归一化项防止长文档自动占优。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>rank_bm25</span> <span class=kn>import</span> <span class=n>BM25Okapi</span>
-</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>jieba</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>BM25Retriever</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>corpus</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>corpus</span> <span class=o>=</span> <span class=n>corpus</span>
-</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bm25</span> <span class=o>=</span> <span class=n>BM25Okapi</span><span class=p>([</span><span class=bp>self</span><span class=o>.</span><span class=n>_tok</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>corpus</span><span class=p>])</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_tok</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>list</span><span class=p>(</span><span class=n>jieba</span><span class=o>.</span><span class=n>cut</span><span class=p>(</span><span class=n>text</span><span class=o>.</span><span class=n>lower</span><span class=p>()))</span>   <span class=c1># 中文必须分词，不能 split()</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>search</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>query</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>20</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>        <span class=n>scores</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>bm25</span><span class=o>.</span><span class=n>get_scores</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_tok</span><span class=p>(</span><span class=n>query</span><span class=p>))</span>
-</span></span><span class=line><span class=cl>        <span class=n>idx</span> <span class=o>=</span> <span class=n>scores</span><span class=o>.</span><span class=n>argsort</span><span class=p>()[::</span><span class=o>-</span><span class=mi>1</span><span class=p>][:</span><span class=n>k</span><span class=p>]</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>[(</span><span class=bp>self</span><span class=o>.</span><span class=n>corpus</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=nb>float</span><span class=p>(</span><span class=n>scores</span><span class=p>[</span><span class=n>i</span><span class=p>]))</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>idx</span><span class=p>]</span>
-</span></span></code></pre></td></tr></table></div></div><h3 id=为什么-rrf-优于线性混合>为什么 RRF 优于线性混合</h3><p>朴素的 $\alpha\cdot s_\text{dense} + (1-\alpha)\cdot s_\text{sparse}$ 要求两种分数处在可比的尺度上，但它们偏偏不是 —— BM25 无界，余弦在 $[-1,1]$。<strong>Reciprocal Rank Fusion</strong>（Cormack 等，2009）干脆绕开"刻度对齐"问题，只用 <em>排名</em>：</p>$$
-\operatorname{RRF}(d) \;=\; \sum_{r \in R} \frac{1}{k + \operatorname{rank}_r(d)}, \qquad k \!=\! 60.
-$$<p>常数 $k=60$ 抑制了任意单一检索器顶端结果的贡献，所以"在两个列表里都排第 1"的文档会胜出"只在一个列表里排第 1"的。图中右下面板展示了在异构查询集上的典型提升：BM25-only ≈ 54，dense-only ≈ 62，RRF ≈ 71，RRF + Cross-encoder rerank ≈ 78。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>rrf_fuse</span><span class=p>(</span><span class=n>rankings</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>60</span><span class=p>,</span> <span class=n>top_k</span><span class=o>=</span><span class=mi>10</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;rankings: 来自多个检索器的有序 doc_id 列表。&#34;&#34;&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=n>scores</span> <span class=o>=</span> <span class=p>{}</span>
-</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>ranking</span> <span class=ow>in</span> <span class=n>rankings</span><span class=p>:</span>
-</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>rank</span><span class=p>,</span> <span class=n>doc_id</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>ranking</span><span class=p>,</span> <span class=n>start</span><span class=o>=</span><span class=mi>1</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>            <span class=n>scores</span><span class=p>[</span><span class=n>doc_id</span><span class=p>]</span> <span class=o>=</span> <span class=n>scores</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>doc_id</span><span class=p>,</span> <span class=mf>0.0</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=p>(</span><span class=n>k</span> <span class=o>+</span> <span class=n>rank</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>scores</span><span class=o>.</span><span class=n>items</span><span class=p>(),</span> <span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=o>-</span><span class=n>x</span><span class=p>[</span><span class=mi>1</span><span class=p>])[:</span><span class=n>top_k</span><span class=p>]</span>
-</span></span></code></pre></td></tr></table></div></div><p>混合检索很少是 RAG 系统的瓶颈，但它稳定地是你能找到的、最便宜的 +5 到 +10 召回点。dense 与 BM25 并行跑，RRF 融合，把 50 个候选送给重排器。</p><hr><h2 id=4-重排精度大头来自这里>4. 重排：精度大头来自这里</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig4_reranking.png alt="Bi-encoder vs Cross-encoder，及两阶段检索的质量-延迟曲线" loading=lazy decoding=async class=content-image></figure></p><p>Bi-encoder 把查询和文档<strong>分别</strong>编码，所以文档向量可以离线预算并建索引——速度白得；代价是模型从未同时看到 query 与 document 的 token。<strong>Cross-encoder</strong> 把它们拼接 —— <code>[CLS] q [SEP] d [SEP]</code> —— 让整个 Transformer 跑过这一对，输出一个相关性 logit。联合 attention 能捕捉否定、问句改述、词级交互，这些都是 bi-encoder 的盲区。代价是每次查询要跑 $O(k)$ 次联合前向，所以 cross-encoder 只在小候选池上用得起。</p><p><strong>两阶段流水线</strong>是标准答案：bi-encoder（或混合）拿到 top 50–100，cross-encoder 重排到最终 5。右图给出 MS MARCO dev 的典型曲线：单次重排 +12 nDCG，候选数翻倍再 +1.5，能负担一个 listwise LLM rerank 还能再 +2.5。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sentence_transformers</span> <span class=kn>import</span> <span class=n>CrossEncoder</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>reranker</span> <span class=o>=</span> <span class=n>CrossEncoder</span><span class=p>(</span><span class=s2>&#34;BAAI/bge-reranker-v2-m3&#34;</span><span class=p>,</span> <span class=n>max_length</span><span class=o>=</span><span class=mi>512</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>retrieve_and_rerank</span><span class=p>(</span><span class=n>query</span><span class=p>,</span> <span class=n>hybrid_retriever</span><span class=p>,</span> <span class=n>top_k_retrieve</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>top_k_final</span><span class=o>=</span><span class=mi>5</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=n>candidates</span> <span class=o>=</span> <span class=n>hybrid_retriever</span><span class=o>.</span><span class=n>search</span><span class=p>(</span><span class=n>query</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=n>top_k_retrieve</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=n>pairs</span> <span class=o>=</span> <span class=p>[(</span><span class=n>query</span><span class=p>,</span> <span class=n>c</span><span class=o>.</span><span class=n>text</span><span class=p>)</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>candidates</span><span class=p>]</span>
-</span></span><span class=line><span class=cl>    <span class=n>scores</span> <span class=o>=</span> <span class=n>reranker</span><span class=o>.</span><span class=n>predict</span><span class=p>(</span><span class=n>pairs</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>32</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=n>order</span> <span class=o>=</span> <span class=n>scores</span><span class=o>.</span><span class=n>argsort</span><span class=p>()[::</span><span class=o>-</span><span class=mi>1</span><span class=p>][:</span><span class=n>top_k_final</span><span class=p>]</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>[</span><span class=n>candidates</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>order</span><span class=p>]</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>实操要点。</strong> 选一个训练分布贴近你领域的 reranker —— 多语言通用用 <code>bge-reranker-v2-m3</code>，英文 web 风格用 <code>ms-marco-MiniLM-L-12-v2</code>，有几千条领域标注就微调一个领域 reranker。<code>max_length</code> 要封顶（更长的 passage 没收益只让你慢）。GPU 上批处理。最重要的是<strong>测一下</strong> —— reranker 的收益与召回率耦合，所以在你的真实流量上跑 A/B，再为它的延迟成本辩护。</p><hr><h2 id=5-切块沉默的精度泄漏点>5. 切块：沉默的精度泄漏点</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig5_chunking.png alt="固定 / 递归 / 语义切块，及切块大小与质量的权衡曲线" loading=lazy decoding=async class=content-image></figure></p><p>查询的目标是"信息"，而我们的索引只认识"chunk"。三种主流策略：</p><ul><li><strong>固定大小</strong>（$N$ tokens，无 overlap）—— 简单、确定，但在边界场景下<strong>很糟</strong>。能回答问题的信息常常横跨一个被切断的句子。</li><li><strong>递归 + overlap</strong> —— LangChain 的默认。按分隔符层级 <code>["\n\n", "\n", "。", ". ", " ", ""]</code> 尝试，若仍超长就递归到更细一级。64–128 token 的 overlap 让每个边界附近的句子都出现在两个 chunk 里，检索就不会因为切边漏掉它。</li><li><strong>语义切块</strong> —— 对每个句子求 Embedding，计算相邻句子的余弦距离，在距离尖峰处切。话题切换变成 chunk 边界，每块内部主题一致。建索慢，但在长文上质量提升明显。</li></ul><p>右下面板总结了经验权衡：检索 Hit@5 与回答 faithfulness 都在 256–512 token 处达到峰值。更小 → 答案被切碎；更大 → chunk 向量被稀释（变成有噪的平均）。代码或结构化文档可以提到 768–1024，因为有意义的最小单元更大。</p><h3 id=父子切块嵌入小返回大>父子切块：嵌入小、返回大</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>langchain.retrievers</span> <span class=kn>import</span> <span class=n>ParentDocumentRetriever</span>
-</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>langchain.storage</span> <span class=kn>import</span> <span class=n>InMemoryStore</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>parent_split</span> <span class=o>=</span> <span class=n>RecursiveCharacterTextSplitter</span><span class=p>(</span><span class=n>chunk_size</span><span class=o>=</span><span class=mi>2000</span><span class=p>,</span> <span class=n>chunk_overlap</span><span class=o>=</span><span class=mi>200</span><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>child_split</span>  <span class=o>=</span> <span class=n>RecursiveCharacterTextSplitter</span><span class=p>(</span><span class=n>chunk_size</span><span class=o>=</span><span class=mi>400</span><span class=p>,</span>  <span class=n>chunk_overlap</span><span class=o>=</span><span class=mi>40</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>retriever</span> <span class=o>=</span> <span class=n>ParentDocumentRetriever</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>    <span class=n>vectorstore</span><span class=o>=</span><span class=n>Chroma</span><span class=p>(</span><span class=n>embedding_function</span><span class=o>=</span><span class=n>embedder</span><span class=p>),</span>
-</span></span><span class=line><span class=cl>    <span class=n>docstore</span><span class=o>=</span><span class=n>InMemoryStore</span><span class=p>(),</span>
-</span></span><span class=line><span class=cl>    <span class=n>child_splitter</span><span class=o>=</span><span class=n>child_split</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=n>parent_splitter</span><span class=o>=</span><span class=n>parent_split</span><span class=p>,</span>
-</span></span><span class=line><span class=cl><span class=p>)</span>
-</span></span><span class=line><span class=cl><span class=n>retriever</span><span class=o>.</span><span class=n>add_documents</span><span class=p>(</span><span class=n>raw_docs</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><p>检索器拿 400-token 的 child 嵌入做<strong>精度</strong>（小窗口的余弦更锐利），返回 2000-token 的 parent 给 LLM 做<strong>上下文</strong>（让模型看到能真正回答问题的相邻段落）。它是少数几乎零成本、却稳定提升检索与生成质量的 RAG 技巧之一。</p><hr><h2 id=6-查询优化>6. 查询优化</h2><p>用户敲的查询，几乎从来不是索引期待的查询。三个值得知道的技巧：</p><p><strong>查询改写。</strong> 一次短的 LLM 调用把问题改写得更密、更适合检索。<em>&ldquo;昨天清掉的那个 OAuth 啥来着&rdquo;</em> → <em>&ldquo;OAuth 2.0 access token 撤销事件，2024-04-23&rdquo;</em>。便宜、快、对话式查询的召回明显提升。</p><p><strong>Multi-Query / 问题分解。</strong> 复杂问题先生成 $n$ 个改写或子问题，每个分别检索，候选取并集再丢给重排器。RAG-Fusion 就是 multi-query + RRF。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>multi_query</span><span class=p>(</span><span class=n>question</span><span class=p>,</span> <span class=n>llm</span><span class=p>,</span> <span class=n>n</span><span class=o>=</span><span class=mi>4</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=n>prompt</span> <span class=o>=</span> <span class=p>(</span><span class=sa>f</span><span class=s2>&#34;把下面的问题用 </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> 种不同方式改写以最大化文档召回。&#34;</span>
-</span></span><span class=line><span class=cl>              <span class=sa>f</span><span class=s2>&#34;每行一个。</span><span class=se>\n\n</span><span class=s2>Q: </span><span class=si>{</span><span class=n>question</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>[</span><span class=n>q</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span> <span class=k>for</span> <span class=n>q</span> <span class=ow>in</span> <span class=n>llm</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span><span class=n>prompt</span><span class=p>)</span><span class=o>.</span><span class=n>content</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&#34;</span><span class=se>\n</span><span class=s2>&#34;</span><span class=p>)</span> <span class=k>if</span> <span class=n>q</span><span class=o>.</span><span class=n>strip</span><span class=p>()]</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>HyDE —— 假设性文档嵌入。</strong> 让 LLM 先写一个"看起来合理的答案"，再用这个伪答案做嵌入和检索。反直觉但出奇有效：被幻觉出的答案与真实答案处在同一邻域，所以它的 embedding 比"问题"的 embedding 更接近相关文档。代价是多一次 LLM 调用；收益在"短而模糊的问题 × 技术语料"上最大。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>hyde_retrieve</span><span class=p>(</span><span class=n>question</span><span class=p>,</span> <span class=n>llm</span><span class=p>,</span> <span class=n>vectordb</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>6</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=n>hypothetical</span> <span class=o>=</span> <span class=n>llm</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;用一段话回答：</span><span class=si>{</span><span class=n>question</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>content</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>vectordb</span><span class=o>.</span><span class=n>similarity_search</span><span class=p>(</span><span class=n>hypothetical</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=n>k</span><span class=p>)</span>
-</span></span></code></pre></td></tr></table></div></div><hr><h2 id=7-self-rag-与-corrective-rag>7. Self-RAG 与 Corrective RAG</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig6_self_rag.png alt="Self-RAG / Corrective RAG 控制流，含反思 token" loading=lazy decoding=async class=content-image></figure></p><p>朴素 RAG <strong>无条件</strong>检索，既浪费（闲聊不需要检索）又危险（不相关的证据反而会带偏模型）。<strong>Self-RAG</strong>（Asai 等，2024）与 <strong>Corrective RAG</strong>（Yan 等，2024）把"检索与否"交还给模型决定，通过 reflection token 表达：</p><table><thead><tr><th>Token</th><th>决策</th></tr></thead><tbody><tr><td><code>[Retrieve]</code></td><td>是否需要检索？</td></tr><tr><td><code>[ISREL]</code></td><td>每个被召回的 chunk 是否相关？（逐文档）</td></tr><tr><td><code>[ISSUP]</code></td><td>生成的答案是否真的被证据支撑？</td></tr><tr><td><code>[ISUSE]</code></td><td>答案对用户是否有用？</td></tr></tbody></table><p>控制流就是一个小图：发出 <code>[Retrieve]</code>，按相关性打分分支；若<strong>没有任何</strong>召回 chunk 相关，落入 corrective 分支 —— 改写查询、调用 web 搜索、重检索、重新打分。最终的 <code>[ISSUP]</code> / <code>[ISUSE]</code> 闸门强制要求"答案接地于保留下的证据"，而不是"答案与模型先验一致"。Self-RAG 在长文本 QA 基准上相对同规模无反思 RAG 报告了 +5 到 +9 点的提升。</p><p>不需要专门微调一个 Self-RAG 模型也能用这套模式 —— 同样的控制流可以用普通 LLM 的若干次结构化调用搭出来，代价是延迟：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>self_rag</span><span class=p>(</span><span class=n>query</span><span class=p>,</span> <span class=n>vectordb</span><span class=p>,</span> <span class=n>llm</span><span class=p>,</span> <span class=n>web_search</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=s2>&#34;no&#34;</span> <span class=ow>in</span> <span class=n>llm</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s2>&#34;这个问题需要外部知识吗？yes/no：</span><span class=si>{</span><span class=n>query</span><span class=si>}</span><span class=s2>&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=p>)</span><span class=o>.</span><span class=n>content</span><span class=o>.</span><span class=n>lower</span><span class=p>():</span>
-</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>llm</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span><span class=n>query</span><span class=p>)</span><span class=o>.</span><span class=n>content</span><span class=p>,</span> <span class=p>[]</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=n>docs</span> <span class=o>=</span> <span class=n>vectordb</span><span class=o>.</span><span class=n>similarity_search</span><span class=p>(</span><span class=n>query</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>8</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=n>grades</span> <span class=o>=</span> <span class=p>[</span>
-</span></span><span class=line><span class=cl>        <span class=s2>&#34;yes&#34;</span> <span class=ow>in</span> <span class=n>llm</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;该段落是否与问题相关？</span><span class=se>\n</span><span class=s2>&#34;</span>
-</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;Q: </span><span class=si>{</span><span class=n>query</span><span class=si>}</span><span class=se>\n</span><span class=s2>P: </span><span class=si>{</span><span class=n>d</span><span class=o>.</span><span class=n>page_content</span><span class=p>[:</span><span class=mi>600</span><span class=p>]</span><span class=si>}</span><span class=se>\n</span><span class=s2>yes/no：&#34;</span>
-</span></span><span class=line><span class=cl>        <span class=p>)</span><span class=o>.</span><span class=n>content</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span>
-</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>docs</span>
-</span></span><span class=line><span class=cl>    <span class=p>]</span>
-</span></span><span class=line><span class=cl>    <span class=n>kept</span> <span class=o>=</span> <span class=p>[</span><span class=n>d</span> <span class=k>for</span> <span class=n>d</span><span class=p>,</span> <span class=n>g</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>docs</span><span class=p>,</span> <span class=n>grades</span><span class=p>)</span> <span class=k>if</span> <span class=n>g</span><span class=p>]</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=ow>not</span> <span class=n>kept</span><span class=p>:</span>                                                <span class=c1># corrective 分支</span>
-</span></span><span class=line><span class=cl>        <span class=n>rewritten</span> <span class=o>=</span> <span class=n>llm</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;改写为搜索查询：</span><span class=si>{</span><span class=n>query</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>content</span>
-</span></span><span class=line><span class=cl>        <span class=n>kept</span> <span class=o>=</span> <span class=n>web_search</span><span class=p>(</span><span class=n>rewritten</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>5</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>    <span class=n>context</span> <span class=o>=</span> <span class=s2>&#34;</span><span class=se>\n\n</span><span class=s2>&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>] </span><span class=si>{</span><span class=n>d</span><span class=o>.</span><span class=n>page_content</span><span class=si>}</span><span class=s2>&#34;</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>d</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>kept</span><span class=p>,</span> <span class=mi>1</span><span class=p>))</span>
-</span></span><span class=line><span class=cl>    <span class=n>answer</span> <span class=o>=</span> <span class=n>llm</span><span class=o>.</span><span class=n>invoke</span><span class=p>(</span>
-</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s2>&#34;只用上下文回答，并以 [i] 标注引用。</span><span class=se>\n\n</span><span class=si>{</span><span class=n>context</span><span class=si>}</span><span class=se>\n\n</span><span class=s2>Q: </span><span class=si>{</span><span class=n>query</span><span class=si>}</span><span class=s2>&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=p>)</span><span class=o>.</span><span class=n>content</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>answer</span><span class=p>,</span> <span class=n>kept</span>
-</span></span></code></pre></td></tr></table></div></div><p>代价是真实的 —— 比 vanilla RAG 多 3–4× LLM 调用 —— 在"答错的代价 > 答慢的代价"的场合是值得的。</p><hr><h2 id=8-向量数据库的实践选型>8. 向量数据库的实践选型</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig7_vectordb.png alt=向量数据库能力雷达图与单节点吞吐对比 loading=lazy decoding=async class=content-image></figure></p><p><strong>FAISS</strong> 是库不是数据库。纯速度、无持久化、无过滤、无并发故事 —— 适合嵌入到另一个服务里、或者百万级离线实验。</p><p><strong>Chroma</strong> 是上手最快的：pip install、落盘持久化、不打断你其他栈的工作。单节点上限大约 $10^5$–$10^6$ 向量。</p><p><strong>Milvus</strong> 是开源重量级：分布式、多租户、支持 HNSW / IVF-PQ / DiskANN、标量过滤、原生混合（dense + sparse）检索。需要真正的运维（副本、滚动升级、可观测性）且规模在 $10^7$+ 时用它。</p><p><strong>Weaviate</strong> 在同一规模上与 Milvus 竞争，主打一流的混合检索和清爽的 schema 模型。运维稍简单，原始吞吐稍低。</p><p><strong>Pinecone</strong> 是托管选项：零运维、API 优秀、价格高。当工程时间是瓶颈、不是基础设施成本是瓶颈时，选它。</p><p>左侧雷达是主观汇总，右侧条形图是 recall ≥ 0.95 下的单节点 QPS 量级 —— 都只是起点，最终要在你自己的语料、自己的查询、自己的过滤选择性下测。</p><h3 id=决策树>决策树</h3><ul><li><strong>&lt; 1 万向量、原型</strong> → 内存版 FAISS 或 Chroma。</li><li><strong>$10^5$–$10^6$、单节点、简单过滤</strong> → Chroma 持久化 或 Weaviate。</li><li><strong>$10^7$+、多租户、混合检索、私有化</strong> → Milvus。</li><li><strong>任意规模、没有运维人头、能接受云调用延迟</strong> → Pinecone。</li><li><strong>只关心静态语料的 top-$k$</strong> → 落盘的 FAISS。</li></ul><hr><h2 id=9-评估一个-rag-系统>9. 评估一个 RAG 系统</h2><p>RAG 有两种失败模式 —— 检索差和生成差 —— 必须分开测。</p><p><strong>检索指标</strong>（需要 query→相关 chunk 的标注对）：</p><ul><li><strong>Hit@k</strong> —— top-$k$ 里出现任意一个相关 chunk 即算命中。粗粒度但可执行。</li><li><strong>MRR</strong> —— 第一个相关 chunk 排名倒数的平均。对位置敏感。</li><li><strong>nDCG@k</strong> —— 折扣累计增益，归一化后。当相关性是分级的，用它。</li></ul><p><strong>生成指标</strong>（用 <code>gpt-4o</code> / <code>claude-sonnet</code> 当裁判）：</p><ul><li><strong>Faithfulness</strong> —— 答案中的每条声明是否被检索到的上下文支撑？专门抓幻觉。</li><li><strong>Answer Relevance</strong> —— 答案是否真的回答了问题？</li><li><strong>Context Relevance</strong> —— 检索到的 chunk 是否真的有用？</li></ul><p>标准工具是 <strong>RAGAS</strong> 与 <strong>TruLens</strong>，它们封装了上面这些 prompt，你不用自己再推一遍。每次改 Prompt、换 Embedding、调 chunker，都跑一组 50–200 query 的 golden set。没有这个回路，你根本判断不了昨天的"改进"是不是改进。</p><hr><h2 id=10-faq>10. FAQ</h2><p><strong>RAG 太慢，从哪查起？</strong> 先 profile。Query 嵌入个位数 ms、HNSW 检索个位数 ms、P90 几乎一定卡在 LLM 调用。先缓存命中相同的查询、压缩 Prompt（父子切块在这里很有用），再考虑换更小的 reranker，最后才动索引。</p><p><strong>RAG 在幻觉。</strong> 三层药方按顺序上：(a) 收紧 Prompt：要求引用、允许拒答；(b) 加一个 Cross-encoder reranker，确保上下文真的相关；(c) 升到 Self-RAG，加 <code>[ISSUP]</code> 闸门。三层都加完还在幻觉，说明你的 retriever 在召回垃圾 —— 回到切块和 Embedding 选择。</p><p><strong>要不要微调 Embedding 模型？</strong> 有 ≥ 5K 标注 query-passage 对、且领域明确（法律、生物医学、内部黑话）—— 要。5–10 个点的召回提升会一路放大到下游。只有几十条样本——别动，<code>bge-large</code> 在通用中英文上已经够强。</p><p><strong>dense 还是 hybrid？</strong> 永远先上 dense。哪天用户抱怨"明明文档里有，搜不出来"那个精确匹配查询时，加上 BM25 + RRF。边际工程成本是一个下午，召回收益是永久的。</p><p><strong>索引怎么保鲜？</strong> 小语料 embed-on-write，其他场景定期批量重建。删除是个坑 —— 多数 ANN 索引只支持 tombstone，规划一个重建周期（多数团队每周一次足够），把它做成无聊的事。</p><hr><h2 id=11-推理成本rag-真正贵在哪里>11. 推理成本：RAG 真正贵在哪里</h2><p>一次 RAG 回答不只是一次 LLM 调用。一个典型生产管线回答用户一个问题，延迟大约这样分布：</p><table><thead><tr><th>阶段</th><th>p50 延迟</th><th>主要瓶颈</th></tr></thead><tbody><tr><td>Query embedding</td><td>15&ndash;30 ms</td><td>一次小编码器（bge-small，110M）前向</td></tr><tr><td>向量检索（top-50，HNSW，1000 万文档）</td><td>8&ndash;20 ms</td><td>内存带宽，不是算力</td></tr><tr><td>BM25 检索</td><td>5&ndash;15 ms</td><td>倒排索引查询，IO 受限</td></tr><tr><td>RRF 融合</td><td>&lt;1 ms</td><td>列表合并</td></tr><tr><td>Reranker（top-50 → top-5，cross-encoder）</td><td>80&ndash;200 ms</td><td>50 次 cross-encoder 前向，可批</td></tr><tr><td>LLM 生成（4K 上下文，200 token 答案）</td><td>1500&ndash;4000 ms</td><td>解码自回归，墙在这里</td></tr></tbody></table><p>reranker 是大家最容易忘记优化的地方。bge-reranker-base 在单卡 A10 上正确批处理时，50 对约 150 ms；同样的代码串行调用，能跑到 2 秒。<strong>永远要批</strong>。</p><p>LLM 调用比其他所有阶段加起来还要慢一个数量级。所以：<strong>把答案变短，比把检索变快更重要</strong>。<code>max_tokens</code> 默认压到 300，除非有理由。最终合成那一步换更小的模型——只要检索给的上下文够好，Llama-3-8B 或 Qwen-2.5-7B 完全胜任事实性合成。</p><p>成本上，GPT-4o-mini 输入 $0.15/M token、输出 $0.6/M token，4K 输入 + 200 输出，**单条 $0.0007**。每日 100 万 query，就是 $700/天、$25 万/年。换成 4 张 A10 自托管 7B，全包月成本大约 $400——盈亏点在每天 5 万 query。</p><h2 id=12-生产-rag-真正的失败模式>12. 生产 RAG 真正的失败模式</h2><p>五个我在线上系统里实际 debug 过的失败，附修复方案。</p><p><strong>失败 1：答案是对的，但引用挂错了 chunk</strong>。LLM 把引用源也幻觉了。修复：强制模型先<strong>逐字引用</strong> chunk 里的原句，再写答案（&ldquo;先引用支持你结论的原句，然后解释&rdquo;）。引用幻觉率掉 ~70%。</p><p><strong>失败 2：检索把 FAQ 排在了原始文档前面</strong>。FAQ 页又短又密，嵌入跟用户问题极近，把更长、更详细的源文档挤掉了。修复：FAQ 单独建索引，只在没有源文档分数过阈值时才兜底。或者在融合阶段对 FAQ chunk 降权。</p><p><strong>失败 3：用户问"比较 X 和 Y"，只检索到 X 的 chunk</strong>。query 的 dense embedding 被名字提及更多的那一方主导。修复：查询分解——用小 LLM 把"比较 X 和 Y"拆成两次检索再合并。</p><p><strong>失败 4：多语种查询只返回单语种结果</strong>。中文问题只检索到中文文档，哪怕英文文档其实更相关。修复：用多语种 embedder（bge-m3、multilingual-e5-large），并在 BM25 之前把 query 翻成语料里占比最大的那种语言。</p><p><strong>失败 5：reranker 把正确答案排到了后面</strong>。Cross-encoder reranker 在 MS MARCO 上训练，问题风格很固定。OOD 输入（特别长、对话式、带代码片段）打分会偏低。修复：用 500&ndash;2000 条领域内 query-doc 对微调一下，单卡两小时，几乎一定值。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/nlp/>自然语言处理</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=title>自然语言处理（九）：大语言模型架构深度解析</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/nlp/11-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/><span class=title>自然语言处理（十一）：多模态大模型</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/01-nlp%E5%85%A5%E9%97%A8%E4%B8%8E%E6%96%87%E6%9C%AC%E9%A2%84%E5%A4%84%E7%90%86/><span class=series-nav-num>01</span>
-<span class=series-nav-title>自然语言处理（一）：NLP入门与文本预处理</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>02</span>
-<span class=series-nav-title>自然语言处理（二）：词向量与语言模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/><span class=series-nav-num>03</span>
-<span class=series-nav-title>自然语言处理（三）：RNN与序列建模</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=series-nav-num>04</span>
-<span class=series-nav-title>自然语言处理（四）：注意力机制与Transformer</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>05</span>
-<span class=series-nav-title>自然语言处理（五）：BERT与预训练模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>06</span>
-<span class=series-nav-title>自然语言处理（六）：GPT与生成式语言模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/><span class=series-nav-num>07</span>
-<span class=series-nav-title>自然语言处理（七）：提示工程与In-Context Learning</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/><span class=series-nav-num>08</span>
-<span class=series-nav-title>自然语言处理（八）：模型微调与PEFT</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=series-nav-num>09</span>
-<span class=series-nav-title>自然语言处理（九）：大语言模型架构深度解析</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>10</span>
-<span class=series-nav-title>自然语言处理（十）：RAG与知识增强系统</span>
-<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/11-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/><span class=series-nav-num>11</span>
-<span class=series-nav-title>自然语言处理（十一）：多模态大模型</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><span class=series-nav-num>12</span>
-<span class=series-nav-title>自然语言处理（十二）：前沿技术与实战应用</span></a></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#1-rag-的概率分解>1. RAG 的概率分解</a><ul><li><a href=#一个最小但诚实的流水线>一个最小但诚实的流水线</a></li><li><a href=#什么时候-不要-用-rag>什么时候 <em>不要</em> 用 RAG</a></li></ul></li><li><a href=#2-embedding-空间与-ann-权衡>2. Embedding 空间与 ANN 权衡</a><ul><li><a href=#2024-的-embedding-模型怎么选>2024+ 的 Embedding 模型怎么选</a></li></ul></li><li><a href=#3-混合检索稠密--稀疏--rrf>3. 混合检索：稠密 + 稀疏 + RRF</a><ul><li><a href=#为什么-rrf-优于线性混合>为什么 RRF 优于线性混合</a></li></ul></li><li><a href=#4-重排精度大头来自这里>4. 重排：精度大头来自这里</a></li><li><a href=#5-切块沉默的精度泄漏点>5. 切块：沉默的精度泄漏点</a><ul><li><a href=#父子切块嵌入小返回大>父子切块：嵌入小、返回大</a></li></ul></li><li><a href=#6-查询优化>6. 查询优化</a></li><li><a href=#7-self-rag-与-corrective-rag>7. Self-RAG 与 Corrective RAG</a></li><li><a href=#8-向量数据库的实践选型>8. 向量数据库的实践选型</a><ul><li><a href=#决策树>决策树</a></li></ul></li><li><a href=#9-评估一个-rag-系统>9. 评估一个 RAG 系统</a></li><li><a href=#10-faq>10. FAQ</a></li><li><a href=#11-推理成本rag-真正贵在哪里>11. 推理成本：RAG 真正贵在哪里</a></li><li><a href=#12-生产-rag-真正的失败模式>12. 生产 RAG 真正的失败模式</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>自然语言处理</a>
-<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/01-nlp%E5%85%A5%E9%97%A8%E4%B8%8E%E6%96%87%E6%9C%AC%E9%A2%84%E5%A4%84%E7%90%86/><span class=chapter-num>01</span>
-<span class=chapter-title>自然语言处理（一）：NLP入门与文本预处理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/02-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>02</span>
-<span class=chapter-title>自然语言处理（二）：词向量与语言模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/03-rnn%E4%B8%8E%E5%BA%8F%E5%88%97%E5%BB%BA%E6%A8%A1/><span class=chapter-num>03</span>
-<span class=chapter-title>自然语言处理（三）：RNN与序列建模</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/04-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8Etransformer/><span class=chapter-num>04</span>
-<span class=chapter-title>自然语言处理（四）：注意力机制与Transformer</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><span class=chapter-num>05</span>
-<span class=chapter-title>自然语言处理（五）：BERT与预训练模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/06-gpt%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/><span class=chapter-num>06</span>
-<span class=chapter-title>自然语言处理（六）：GPT与生成式语言模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/07-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8Ein-context-learning/><span class=chapter-num>07</span>
-<span class=chapter-title>自然语言处理（七）：提示工程与In-Context Learning</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%8Epeft/><span class=chapter-num>08</span>
-<span class=chapter-title>自然语言处理（八）：模型微调与PEFT</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/09-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/><span class=chapter-num>09</span>
-<span class=chapter-title>自然语言处理（九）：大语言模型架构深度解析</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>10</span>
-<span class=chapter-title>自然语言处理（十）：RAG与知识增强系统</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/11-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/><span class=chapter-num>11</span>
-<span class=chapter-title>自然语言处理（十一）：多模态大模型</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><span class=chapter-num>12</span>
-<span class=chapter-title>自然语言处理（十二）：前沿技术与实战应用</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>16 min</strong></div><div class=row><span>字数</span><strong>7569</strong></div><div class=row><span>写于</span><strong>Nov 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>Llm-Engineering</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
-<span class=signature>杭州</span></div></div></footer></body></html>
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop"><span class="mord mathrm">BM25</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">d</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.4361em;vertical-align:-1.3861em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.9em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mrel mtight">∈</span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">q</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.3861em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mord mathrm">IDF</span></span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:3.1485em;vertical-align:-1.7215em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.11em;"><span class="pstrut" style="height:3.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">d</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0315em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size2">(</span></span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord mathnormal">b</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord mathnormal">b</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.01em;"><span style="top:-2.4935em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord overline mtight"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.995em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mtight"><span class="mord mtight">∣</span><span class="mord mathnormal mtight">d</span><span class="mord mtight">∣</span></span></span><span style="top:-3.897em;"><span class="pstrut" style="height:3em;"></span><span class="overline-line mtight" style="border-bottom-width:0.049em;"></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.25em;"><span></span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.485em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∣</span><span class="mord mathnormal mtight">d</span><span class="mord mtight">∣</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.6815em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size2">)</span></span></span></span></span><span style="top:-3.38em;"><span class="pstrut" style="height:3.15em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.827em;"><span class="pstrut" style="height:3.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">d</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0315em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord">1</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.7215em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></p>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>k</mi><mn>1</mn></msub><mtext> ⁣</mtext><mo>≈</mo><mtext> ⁣</mtext><mn>1.2</mn></mrow><annotation encoding="application/x-tex">k_1\!\approx\!1.2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0315em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≈</span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1.2</span></span></span></span>，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mtext> ⁣</mtext><mo>≈</mo><mtext> ⁣</mtext><mn>0.75</mn></mrow><annotation encoding="application/x-tex">b\!\approx\!0.75</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal">b</span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≈</span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0.75</span></span></span></span>。IDF 项奖励稀有词命中，长度归一化项避免长文档自动占优。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> rank_bm25 <span class="keyword">import</span> BM25Okapi</span><br><span class="line"><span class="keyword">import</span> jieba</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">BM25Retriever</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, corpus</span>):</span><br><span class="line">        <span class="variable language_">self</span>.corpus = corpus</span><br><span class="line">        <span class="variable language_">self</span>.bm25 = BM25Okapi([<span class="variable language_">self</span>._tok(d) <span class="keyword">for</span> d <span class="keyword">in</span> corpus])</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">_tok</span>(<span class="params">self, text</span>):</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">list</span>(jieba.cut(text.lower()))   <span class="comment"># 中文必须分词，不能 split()</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">search</span>(<span class="params">self, query, k=<span class="number">20</span></span>):</span><br><span class="line">        scores = <span class="variable language_">self</span>.bm25.get_scores(<span class="variable language_">self</span>._tok(query))</span><br><span class="line">        idx = scores.argsort()[::-<span class="number">1</span>][:k]</span><br><span class="line">        <span class="keyword">return</span> [(<span class="variable language_">self</span>.corpus[i], <span class="built_in">float</span>(scores[i])) <span class="keyword">for</span> i <span class="keyword">in</span> idx]</span><br></pre></td></tr></table></figure>
+<h3 id="为什么-RRF-优于线性混合"><a class="header-anchor" href="#为什么-RRF-优于线性混合">¶</a>为什么 RRF 优于线性混合</h3>
+<p>朴素方法 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mo>⋅</mo><msub><mi>s</mi><mtext>dense</mtext></msub><mo>+</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>α</mi><mo stretchy="false">)</mo><mo>⋅</mo><msub><mi>s</mi><mtext>sparse</mtext></msub></mrow><annotation encoding="application/x-tex">\alpha\cdot s_\text{dense} + (1-\alpha)\cdot s_\text{sparse}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4445em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.7333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord text mtight"><span class="mord mtight">dense</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord text mtight"><span class="mord mtight">sparse</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 要求两种分数处于可比尺度，但它们偏偏不在同一尺度 —— BM25 无界，余弦在 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">[</mo><mo>−</mo><mn>1</mn><mo separator="true">,</mo><mn>1</mn><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">[-1,1]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">−</span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1</span><span class="mclose">]</span></span></span></span>。<strong>Reciprocal Rank Fusion</strong>（Cormack 等，2009）直接绕过"刻度对齐"问题，仅用 <em>排名</em>：</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">RRF</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mtext>  </mtext><mo>=</mo><mtext>  </mtext><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi>R</mi></mrow></munder><mfrac><mn>1</mn><mrow><mi>k</mi><mo>+</mo><msub><mrow><mi mathvariant="normal">rank</mi><mo>⁡</mo></mrow><mi>r</mi></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo></mrow></mfrac><mo separator="true">,</mo><mspace width="2em"></mspace><mi>k</mi><mtext> ⁣</mtext><mo>=</mo><mtext> ⁣</mtext><mn>60.</mn></mrow><annotation encoding="application/x-tex">\operatorname{RRF}(d) \;=\; \sum_{r \in R} \frac{1}{k + \operatorname{rank}_r(d)}, \qquad k \!=\! 60.
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop"><span class="mord mathrm">RRF</span></span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.6431em;vertical-align:-1.3217em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.8557em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span><span class="mrel mtight">∈</span><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.3217em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mop"><span class="mop"><span class="mord mathrm">rank</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mclose">)</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">60.</span></span></span></span></span></p>
+<p>常数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>=</mo><mn>60</mn></mrow><annotation encoding="application/x-tex">k=60</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">60</span></span></span></span> 抑制单一检索器顶端结果的贡献，因此"在两个列表中均排第 1"的文档会胜过"仅在一个列表中排第 1"的。图中右下面板展示了异构查询集上的典型提升：BM25-only ≈ 54，dense-only ≈ 62，RRF ≈ 71，RRF + Cross-encoder rerank ≈ 78。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">rrf_fuse</span>(<span class="params">rankings, k=<span class="number">60</span>, top_k=<span class="number">10</span></span>):</span><br><span class="line">    <span class="string">"""rankings: 来自多个检索器的有序 doc_id 列表。"""</span></span><br><span class="line">    scores = {}</span><br><span class="line">    <span class="keyword">for</span> ranking <span class="keyword">in</span> rankings:</span><br><span class="line">        <span class="keyword">for</span> rank, doc_id <span class="keyword">in</span> <span class="built_in">enumerate</span>(ranking, start=<span class="number">1</span>):</span><br><span class="line">            scores[doc_id] = scores.get(doc_id, <span class="number">0.0</span>) + <span class="number">1.0</span> / (k + rank)</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">sorted</span>(scores.items(), key=<span class="keyword">lambda</span> x: -x[<span class="number">1</span>])[:top_k]</span><br></pre></td></tr></table></figure>
+<p>混合检索很少成为 RAG 系统的瓶颈，但它稳定地提供最便宜的 +5 到 +10 召回点。Dense 与 BM25 并行运行，RRF 融合后，将 50 个候选送入重排器。</p>
+<hr>
+<h2 id="4-重排：精度大头来自这里"><a class="header-anchor" href="#4-重排：精度大头来自这里">¶</a>4. 重排：精度大头来自这里</h2>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig4_reranking.png" alt="Bi-encoder vs Cross-encoder，及两阶段检索的质量-延迟曲线"></p>
+<p>Bi-encoder 分别编码查询和文档，因此文档向量可以离线计算并建索引——速度优势明显；代价是模型从未同时看到 query 和 document 的 token。<strong>Cross-encoder</strong> 将两者拼接为 <code>[CLS] q [SEP] d [SEP]</code>，让整个 Transformer 跑过这一对，输出一个相关性 logit。联合 attention 能捕捉否定、问句改述、词级交互，这些是 bi-encoder 的盲区。代价是每次查询需要跑 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>k</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(k)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="mclose">)</span></span></span></span> 次联合前向，所以 cross-encoder 只适合小候选池。</p>
+<p><strong>两阶段流水线</strong> 是标准答案：bi-encoder（或混合）选出 top 50–100，cross-encoder 重排到最终 5。右图给出 MS MARCO dev 的典型曲线：单次重排提升 +12 nDCG，候选数翻倍再提升 +1.5，还能负担一次 listwise LLM rerank，再提升 +2.5。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> sentence_transformers <span class="keyword">import</span> CrossEncoder</span><br><span class="line"></span><br><span class="line">reranker = CrossEncoder(<span class="string">"BAAI/bge-reranker-v2-m3"</span>, max_length=<span class="number">512</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">retrieve_and_rerank</span>(<span class="params">query, hybrid_retriever, top_k_retrieve=<span class="number">50</span>, top_k_final=<span class="number">5</span></span>):</span><br><span class="line">    candidates = hybrid_retriever.search(query, k=top_k_retrieve)</span><br><span class="line">    pairs = [(query, c.text) <span class="keyword">for</span> c <span class="keyword">in</span> candidates]</span><br><span class="line">    scores = reranker.predict(pairs, batch_size=<span class="number">32</span>)</span><br><span class="line">    order = scores.argsort()[::-<span class="number">1</span>][:top_k_final]</span><br><span class="line">    <span class="keyword">return</span> [candidates[i] <span class="keyword">for</span> i <span class="keyword">in</span> order]</span><br></pre></td></tr></table></figure>
+<p><strong>实操要点。</strong> 选择训练分布贴近你领域的 reranker —— 多语言通用选 <code>bge-reranker-v2-m3</code>，英文 web 风格选 <code>ms-marco-MiniLM-L-12-v2</code>，有几千条领域标注就微调一个领域 reranker。<code>max_length</code> 需要封顶（更长的 passage 没收益只会拖慢速度）。GPU 上启用批处理。最重要的是<strong>测一下</strong> —— reranker 的收益与召回率耦合，用真实流量跑 A/B 测试，再为其延迟成本辩护。</p>
+<hr>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/illustration_2.jpg" alt="架构示意图"></p>
+<h2 id="5-切块：沉默的精度泄漏点"><a class="header-anchor" href="#5-切块：沉默的精度泄漏点">¶</a>5. 切块：沉默的精度泄漏点</h2>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig5_chunking.png" alt="固定 / 递归 / 语义切块，及切块大小与质量的权衡曲线"></p>
+<p>查询目标是"信息"，但索引只认得"chunk"。主流策略有三种：</p>
+<ul>
+<li><strong>固定大小</strong>（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi></mrow><annotation encoding="application/x-tex">N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">N</span></span></span></span> tokens，无 overlap）—— 简单且确定，但边界场景表现糟糕。问题的答案常被切断，横跨两个句子。</li>
+<li><strong>递归 + overlap</strong> —— LangChain 的默认选择。按分隔符层级 <code>["\n\n", "\n", "。", ". ", " ", ""]</code> 尝试，若仍超长则递归到更细一级。64–128 token 的 overlap 确保每个边界附近的句子出现在两个 chunk 中，避免因切边漏掉关键信息。</li>
+<li><strong>语义切块</strong> —— 对每个句子求 Embedding，计算相邻句子的余弦距离，在距离尖峰处切割。话题切换成为 chunk 边界，每块内部主题一致。建索虽慢，但在长文档上质量提升显著。</li>
+</ul>
+<p>右下面板总结了经验权衡：检索 Hit@5 与回答 faithfulness 在 256–512 token 处达到峰值。更小 → 答案被切碎；更大 → chunk 向量被稀释（变成有噪的平均）。代码或结构化文档可扩展到 768–1024，因为有意义的最小单元更大。</p>
+<h3 id="父子切块：嵌入小、返回大"><a class="header-anchor" href="#父子切块：嵌入小、返回大">¶</a>父子切块：嵌入小、返回大</h3>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.retrievers <span class="keyword">import</span> ParentDocumentRetriever</span><br><span class="line"><span class="keyword">from</span> langchain.storage <span class="keyword">import</span> InMemoryStore</span><br><span class="line"></span><br><span class="line">parent_split = RecursiveCharacterTextSplitter(chunk_size=<span class="number">2000</span>, chunk_overlap=<span class="number">200</span>)</span><br><span class="line">child_split  = RecursiveCharacterTextSplitter(chunk_size=<span class="number">400</span>,  chunk_overlap=<span class="number">40</span>)</span><br><span class="line"></span><br><span class="line">retriever = ParentDocumentRetriever(</span><br><span class="line">    vectorstore=Chroma(embedding_function=embedder),</span><br><span class="line">    docstore=InMemoryStore(),</span><br><span class="line">    child_splitter=child_split,</span><br><span class="line">    parent_splitter=parent_split,</span><br><span class="line">)</span><br><span class="line">retriever.add_documents(raw_docs)</span><br></pre></td></tr></table></figure>
+<p>检索器用 400-token 的 child 嵌入提升<strong>精度</strong>（小窗口的余弦更锐利），返回 2000-token 的 parent 提供<strong>上下文</strong>（让模型看到能真正回答问题的相邻段落）。这是少数几乎零成本、却稳定提升检索与生成质量的 RAG 技巧之一。</p>
+<hr>
+<h2 id="6-查询优化"><a class="header-anchor" href="#6-查询优化">¶</a>6. 查询优化</h2>
+<p>用户输入的查询，几乎从来不是索引期望的查询。这里有三个值得掌握的技巧：</p>
+<p><strong>查询改写。</strong> 使用一次简短的 LLM 调用，将问题改写得更紧凑、更适合检索。例如，将 <em>"昨天清掉的那个 OAuth 啥来着"</em> 改为 <em>"OAuth 2.0 access token 撤销事件，2024-04-23"</em>。这种方法成本低、速度快，并且能显著提升对话式查询的召回率。</p>
+<p><strong>Multi-Query / 问题分解。</strong> 针对复杂问题，先生成 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">n</span></span></span></span> 个改写或子问题，分别进行检索，取候选项的并集后交给重排器处理。RAG-Fusion 就是基于 multi-query 和 RRF 的方法。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">multi_query</span>(<span class="params">question, llm, n=<span class="number">4</span></span>):</span><br><span class="line">    prompt = (<span class="string">f"把下面的问题用 <span class="subst">{n}</span> 种不同方式改写以最大化文档召回。"</span></span><br><span class="line">              <span class="string">f"每行一个。\n\nQ: <span class="subst">{question}</span>"</span>)</span><br><span class="line">    <span class="keyword">return</span> [q.strip() <span class="keyword">for</span> q <span class="keyword">in</span> llm.invoke(prompt).content.split(<span class="string">"\n"</span>) <span class="keyword">if</span> q.strip()]</span><br></pre></td></tr></table></figure>
+<p><strong>HyDE —— 假设性文档嵌入。</strong> 让 LLM 先生成一个"看似合理的答案"，然后用这个伪答案计算嵌入并进行检索。这种方法看似反直觉，但效果出奇地好：幻觉生成的答案与真实答案往往处于同一邻域，因此它的 embedding 比问题本身的 embedding 更接近相关文档。代价是多一次 LLM 调用，但在处理"简短模糊的问题 × 技术语料"时收益最大。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">hyde_retrieve</span>(<span class="params">question, llm, vectordb, k=<span class="number">6</span></span>):</span><br><span class="line">    hypothetical = llm.invoke(<span class="string">f"用一段话回答：<span class="subst">{question}</span>"</span>).content</span><br><span class="line">    <span class="keyword">return</span> vectordb.similarity_search(hypothetical, k=k)</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="7-Self-RAG-与-Corrective-RAG"><a class="header-anchor" href="#7-Self-RAG-与-Corrective-RAG">¶</a>7. Self-RAG 与 Corrective RAG</h2>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig6_self_rag.png" alt="Self-RAG / Corrective RAG 控制流，含反思 token"></p>
+<p>朴素 RAG 检索无条件触发，既浪费资源（闲聊无需检索）又容易出错（无关证据可能误导模型）。<strong>Self-RAG</strong>（Asai 等，2024）和 <strong>Corrective RAG</strong>（Yan 等，2024）将"是否检索"的决策权交还给模型，通过 reflection token 实现：</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>决策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[Retrieve]</code></td>
+<td>是否需要检索？</td>
+</tr>
+<tr>
+<td><code>[ISREL]</code></td>
+<td>每个召回的 chunk 是否相关？（逐文档判断）</td>
+</tr>
+<tr>
+<td><code>[ISSUP]</code></td>
+<td>生成的答案是否有证据支持？</td>
+</tr>
+<tr>
+<td><code>[ISUSE]</code></td>
+<td>答案对用户是否有价值？</td>
+</tr>
+</tbody>
+</table>
+<p>控制流类似一个小图：先发出 <code>[Retrieve]</code>，按相关性打分分支；如果召回的 chunk 全部不相关，则进入 corrective 分支 —— 改写查询、调用 web 搜索、重新检索并评分。最终的 <code>[ISSUP]</code> 和 <code>[ISUSE]</code> 闸门确保答案基于保留的证据生成，而非单纯依赖模型的先验知识。实验表明，Self-RAG 在长文本 QA 基准上的表现优于同规模无反思 RAG，提升幅度达 +5 到 +9 点。</p>
+<p>无需专门微调 Self-RAG 模型也能实现类似功能 —— 用普通 LLM 的多次结构化调用即可模拟相同控制流，代价是延迟增加：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">self_rag</span>(<span class="params">query, vectordb, llm, web_search</span>):</span><br><span class="line">    <span class="keyword">if</span> <span class="string">"no"</span> <span class="keyword">in</span> llm.invoke(</span><br><span class="line">        <span class="string">f"这个问题需要外部知识吗？yes/no：<span class="subst">{query}</span>"</span></span><br><span class="line">    ).content.lower():</span><br><span class="line">        <span class="keyword">return</span> llm.invoke(query).content, []</span><br><span class="line"></span><br><span class="line">    docs = vectordb.similarity_search(query, k=<span class="number">8</span>)</span><br><span class="line">    grades = [</span><br><span class="line">        <span class="string">"yes"</span> <span class="keyword">in</span> llm.invoke(</span><br><span class="line">            <span class="string">f"该段落是否与问题相关？\n"</span></span><br><span class="line">            <span class="string">f"Q: <span class="subst">{query}</span>\nP: <span class="subst">{d.page_content[:<span class="number">600</span>]}</span>\nyes/no："</span></span><br><span class="line">        ).content.lower()</span><br><span class="line">        <span class="keyword">for</span> d <span class="keyword">in</span> docs</span><br><span class="line">    ]</span><br><span class="line">    kept = [d <span class="keyword">for</span> d, g <span class="keyword">in</span> <span class="built_in">zip</span>(docs, grades) <span class="keyword">if</span> g]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> kept:                                                <span class="comment"># corrective 分支</span></span><br><span class="line">        rewritten = llm.invoke(<span class="string">f"改写为搜索查询：<span class="subst">{query}</span>"</span>).content</span><br><span class="line">        kept = web_search(rewritten, k=<span class="number">5</span>)</span><br><span class="line"></span><br><span class="line">    context = <span class="string">"\n\n"</span>.join(<span class="string">f"[<span class="subst">{i}</span>] <span class="subst">{d.page_content}</span>"</span> <span class="keyword">for</span> i, d <span class="keyword">in</span> <span class="built_in">enumerate</span>(kept, <span class="number">1</span>))</span><br><span class="line">    answer = llm.invoke(</span><br><span class="line">        <span class="string">f"只用上下文回答，并以 [i] 标注引用。\n\n<span class="subst">{context}</span>\n\nQ: <span class="subst">{query}</span>"</span></span><br><span class="line">    ).content</span><br><span class="line">    <span class="keyword">return</span> answer, kept</span><br></pre></td></tr></table></figure>
+<p>代价显而易见 —— 调用 LLM 的次数比 vanilla RAG 多 3–4 倍。但在"答错的代价 &gt; 答慢的代价"的场景中，这种取舍是合理的。</p>
+<h2 id="8-向量数据库的实践选型"><a class="header-anchor" href="#8-向量数据库的实践选型">¶</a>8. 向量数据库的实践选型</h2>
+<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/10-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/fig7_vectordb.png" alt="向量数据库能力雷达图与单节点吞吐对比"></p>
+<p><strong>FAISS</strong> 是库，不是数据库。追求纯速度、无需持久化、不支持过滤、不处理并发 —— 适合嵌入其他服务或用于百万级离线实验。</p>
+<p><strong>Chroma</strong> 最容易上手：pip install 安装、支持落盘持久化、不干扰现有技术栈。单节点支持大约 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span>–<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>6</mn></msup></mrow><annotation encoding="application/x-tex">10^6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">6</span></span></span></span></span></span></span></span></span></span></span> 向量。</p>
+<p><strong>Milvus</strong> 是开源重量级选手：分布式架构、多租户支持、兼容 HNSW / IVF-PQ / DiskANN 算法、支持标量过滤和原生混合检索（dense + sparse）。需要专业运维（副本管理、滚动升级、可观测性），适合 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>7</mn></msup></mrow><annotation encoding="application/x-tex">10^7</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">7</span></span></span></span></span></span></span></span></span></span></span>+ 规模场景。</p>
+<p><strong>Weaviate</strong> 与 Milvus 在同一规模竞争，主打一流的混合检索能力和清晰的 schema 模型。运维稍简单，但原始吞吐略低。</p>
+<p><strong>Pinecone</strong> 是托管选项：零运维、API 设计优秀、价格较高。当工程时间是瓶颈而非基础设施成本时，选择它。</p>
+<p>左侧雷达图为主观汇总，右侧条形图为 recall ≥ 0.95 下的单节点 QPS 量级 —— 这些只是起点，最终需结合你的语料、查询模式和过滤条件进行测试。</p>
+<h3 id="决策树"><a class="header-anchor" href="#决策树">¶</a>决策树</h3>
+<ul>
+<li><strong>&lt; 1 万向量、原型开发</strong> → 内存版 FAISS 或 Chroma。</li>
+<li><strong><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span>–<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>6</mn></msup></mrow><annotation encoding="application/x-tex">10^6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">6</span></span></span></span></span></span></span></span></span></span></span>、单节点、简单过滤</strong> → Chroma 持久化 或 Weaviate。</li>
+<li><strong><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>7</mn></msup></mrow><annotation encoding="application/x-tex">10^7</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">7</span></span></span></span></span></span></span></span></span></span></span>+、多租户、混合检索、私有化部署</strong> → Milvus。</li>
+<li><strong>任意规模、无运维资源、可接受云调用延迟</strong> → Pinecone。</li>
+<li><strong>仅关注静态语料的 top-<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span> 检索</strong> → 落盘版 FAISS。</li>
+</ul>
+<hr>
+<h2 id="9-评估一个-RAG-系统"><a class="header-anchor" href="#9-评估一个-RAG-系统">¶</a>9. 评估一个 RAG 系统</h2>
+<p>RAG 存在两种失败模式 —— 检索差和生成差，必须分开测试。</p>
+<p><strong>检索指标</strong>（需要 query→相关 chunk 的标注对）：</p>
+<ul>
+<li><strong>Hit@k</strong> —— top-<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span> 中出现任意一个相关 chunk 即算命中。粗粒度但易于执行。</li>
+<li><strong>MRR</strong> —— 第一个相关 chunk 排名倒数的平均值。对位置敏感。</li>
+<li><strong>nDCG@k</strong> —— 折扣累计增益，归一化后使用。适合分级相关性场景。</li>
+</ul>
+<p><strong>生成指标</strong>（用 <code>gpt-4o</code> / <code>claude-sonnet</code> 充当裁判）：</p>
+<ul>
+<li><strong>Faithfulness</strong> —— 答案中的每条声明是否被检索到的上下文支撑？专门捕捉幻觉。</li>
+<li><strong>Answer Relevance</strong> —— 答案是否真正回答了问题？</li>
+<li><strong>Context Relevance</strong> —— 检索到的 chunk 是否确实有用？</li>
+</ul>
+<p>标准工具是 <strong>RAGAS</strong> 和 <strong>TruLens</strong>，它们封装了上述这些 prompt，无需重复推导。每次调整 Prompt、更换 Embedding 或修改 chunker，都应跑一组 50–200 query 的 golden set。没有这个反馈回路，无法判断昨天的“改进”是否真的有效。</p>
+<h2 id="10-FAQ"><a class="header-anchor" href="#10-FAQ">¶</a>10. FAQ</h2>
+<p><strong>RAG 太慢，从哪查起？</strong> 先做 profile。Query 嵌入耗时个位数 ms，HNSW 检索也是个位数 ms，P90 延迟几乎都卡在 LLM 调用上。优先缓存命中相同的查询，压缩 Prompt（父子切块在这里很有用），接着考虑换更小的 reranker，最后才调整索引。</p>
+<p><strong>RAG 在幻觉。</strong> 按顺序尝试三层解决方案：(a) 收紧 Prompt，要求引用并允许拒答；(b) 加一个 Cross-encoder reranker，确保上下文真正相关；(c) 升级到 Self-RAG，加入 <code>[ISSUP]</code> 闸门。如果三层都加完仍有幻觉，说明 retriever 召回了垃圾内容 —— 回头检查切块和 Embedding 选择。</p>
+<p><strong>要不要微调 Embedding 模型？</strong> 如果有 ≥ 5K 标注的 query-passage 对，且领域明确（如法律、生物医学或内部黑话）—— 需要。5–10 个百分点的召回提升会显著放大到下游效果。只有几十条样本时 —— 不需要，<code>bge-large</code> 在通用中英文场景已经足够强。</p>
+<p><strong>dense 还是 hybrid？</strong> 永远优先选择 dense。当用户抱怨"明明文档里有，却搜不出来"这种精确匹配问题时，再加入 BM25 + RRF。边际工程成本仅需一个下午，但召回收益是永久的。</p>
+<p><strong>索引怎么保鲜？</strong> 小语料采用 embed-on-write 策略，其他场景定期批量重建。删除是个坑 —— 多数 ANN 索引仅支持 tombstone，规划一个重建周期（多数团队每周一次足够），将其变成一件无聊但可靠的事。</p>
+<h2 id="系列导航"><a class="header-anchor" href="#系列导航">¶</a>系列导航</h2>
+<table>
+<thead>
+<tr>
+<th>部分</th>
+<th>主题</th>
+<th>链接</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>9</td>
+<td>大语言模型架构深度解析</td>
+<td><a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E4%B9%9D-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">← 上一篇</a></td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td><strong>RAG 与知识增强系统（本文）</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>11</td>
+<td>多模态大模型</td>
+<td><a href="/zh/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E5%8D%81%E4%B8%80-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/">下一篇 →</a></td>
+</tr>
+</tbody>
+</table>
+
+      </div>
+
+      <!-- Series Navigation -->
+      
+      <nav class="series-nav">
+        <div class="series-nav-inner">
+          <span class="series-nav-label">自然语言处理 &mdash; Part 10 of 12</span>
+        </div>
+      </nav>
+      
+
+      <!-- Tags -->
+      
+      <div class="article-tags">
+        
+          <a href="/tags/NLP/" class="tag">#NLP</a>
+        
+          <a href="/tags/LLM/" class="tag">#LLM</a>
+        
+          <a href="/tags/RAG/" class="tag">#RAG</a>
+        
+          <a href="/tags/%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93/" class="tag">#向量数据库</a>
+        
+      </div>
+      
+
+      <!-- Post Navigation -->
+      
+      <nav class="post-nav">
+        
+        
+      </nav>
+    </div>
+
+    <!-- Table of Contents (right) -->
+    
+    <aside class="toc-sidebar" id="toc-sidebar">
+      <div class="toc-sidebar-inner">
+        <h4 class="toc-title" data-i18n="post.toc">On This Page</h4>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%A0%E5%B0%86%E5%AD%A6%E5%88%B0%E4%BB%80%E4%B9%88"><span class="toc-number">1.</span> <span class="toc-text">你将学到什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="toc-number">2.</span> <span class="toc-text">前置知识</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-RAG-%E7%9A%84%E6%A6%82%E7%8E%87%E5%88%86%E8%A7%A3"><span class="toc-number">3.</span> <span class="toc-text">1. RAG 的概率分解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%80%E4%B8%AA%E6%9C%80%E5%B0%8F%E4%BD%86%E8%AF%9A%E5%AE%9E%E7%9A%84%E6%B5%81%E6%B0%B4%E7%BA%BF"><span class="toc-number">3.1.</span> <span class="toc-text">一个最小但诚实的流水线</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99-%E4%B8%8D%E8%A6%81-%E7%94%A8-RAG"><span class="toc-number">3.2.</span> <span class="toc-text">什么时候 不要 用 RAG</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Embedding-%E7%A9%BA%E9%97%B4%E4%B8%8E-ANN-%E6%9D%83%E8%A1%A1"><span class="toc-number">4.</span> <span class="toc-text">2. Embedding 空间与 ANN 权衡</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2024-%E7%9A%84-Embedding-%E6%A8%A1%E5%9E%8B%E6%80%8E%E4%B9%88%E9%80%89"><span class="toc-number">4.1.</span> <span class="toc-text">2024+ 的 Embedding 模型怎么选</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%EF%BC%9A%E7%A8%A0%E5%AF%86-%E7%A8%80%E7%96%8F-RRF"><span class="toc-number">5.</span> <span class="toc-text">3. 混合检索：稠密 + 稀疏 + RRF</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88-RRF-%E4%BC%98%E4%BA%8E%E7%BA%BF%E6%80%A7%E6%B7%B7%E5%90%88"><span class="toc-number">5.1.</span> <span class="toc-text">为什么 RRF 优于线性混合</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E9%87%8D%E6%8E%92%EF%BC%9A%E7%B2%BE%E5%BA%A6%E5%A4%A7%E5%A4%B4%E6%9D%A5%E8%87%AA%E8%BF%99%E9%87%8C"><span class="toc-number">6.</span> <span class="toc-text">4. 重排：精度大头来自这里</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E5%88%87%E5%9D%97%EF%BC%9A%E6%B2%89%E9%BB%98%E7%9A%84%E7%B2%BE%E5%BA%A6%E6%B3%84%E6%BC%8F%E7%82%B9"><span class="toc-number">7.</span> <span class="toc-text">5. 切块：沉默的精度泄漏点</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%88%B6%E5%AD%90%E5%88%87%E5%9D%97%EF%BC%9A%E5%B5%8C%E5%85%A5%E5%B0%8F%E3%80%81%E8%BF%94%E5%9B%9E%E5%A4%A7"><span class="toc-number">7.1.</span> <span class="toc-text">父子切块：嵌入小、返回大</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E6%9F%A5%E8%AF%A2%E4%BC%98%E5%8C%96"><span class="toc-number">8.</span> <span class="toc-text">6. 查询优化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-Self-RAG-%E4%B8%8E-Corrective-RAG"><span class="toc-number">9.</span> <span class="toc-text">7. Self-RAG 与 Corrective RAG</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E7%9A%84%E5%AE%9E%E8%B7%B5%E9%80%89%E5%9E%8B"><span class="toc-number">10.</span> <span class="toc-text">8. 向量数据库的实践选型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%B3%E7%AD%96%E6%A0%91"><span class="toc-number">10.1.</span> <span class="toc-text">决策树</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-%E8%AF%84%E4%BC%B0%E4%B8%80%E4%B8%AA-RAG-%E7%B3%BB%E7%BB%9F"><span class="toc-number">11.</span> <span class="toc-text">9. 评估一个 RAG 系统</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-FAQ"><span class="toc-number">12.</span> <span class="toc-text">10. FAQ</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%B3%BB%E5%88%97%E5%AF%BC%E8%88%AA"><span class="toc-number">13.</span> <span class="toc-text">系列导航</span></a></li></ol>
+      </div>
+    </aside>
+    
+  </div>
+</article>
+
+  </main>
+
+  <footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col footer-about">
+        <div class="footer-about-title">Chen Kai Blog</div>
+        <p class="footer-about-desc">
+          Machine Learning, Mathematics, and Computer Science — explained for humans.
+        </p>
+        <div class="footer-social">
+          
+          <a href="https://github.com/chenkai66" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+          
+          
+          <a href="mailto:chenkai.nb.666@gmail.com" aria-label="Email">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </a>
+          
+          <a href="/atom.xml" aria-label="RSS Feed" title="RSS Feed">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title" data-i18n="footer.series">Series</div>
+        <ul class="footer-links">
+          
+            
+            
+              <li><a href="/categories/Recommendation-Systems/">Recommendation Systems</a></li>
+            
+              <li><a href="/categories/Linear-Algebra/">Linear Algebra</a></li>
+            
+              <li><a href="/categories/ML-Mathematical-Derivations/">ML Mathematical Derivations</a></li>
+            
+              <li><a href="/categories/Natural-Language-Processing/">Natural Language Processing</a></li>
+            
+              <li><a href="/categories/Reinforcement-Learning/">Reinforcement Learning</a></li>
+            
+          
+          <li><a href="/series/" data-i18n="footer.allseries">All series &rarr;</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title" data-i18n="footer.site">Site</div>
+        <ul class="footer-links">
+          <li><a href="/" data-i18n="nav.home">Home</a></li>
+          <li><a href="/series/" data-i18n="nav.series">Series</a></li>
+          <li><a href="/projects/" data-i18n="nav.projects">Projects</a></li>
+          <li><a href="/archives/" data-i18n="nav.archives">Archives</a></li>
+          <li><a href="/about/" data-i18n="nav.about">About</a></li>
+          <li><a href="/atom.xml" data-i18n="footer.rss">RSS Feed</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-info">
+        <p>&copy; 2026 Chen Kai. <span data-i18n="footer.copyright.suffix">Built with knowledge and curiosity.</span></p>
+        <p class="footer-powered"><span data-i18n="footer.powered">Powered by</span> <a href="https://hexo.io" target="_blank" rel="noopener">Hexo</a> &middot; <span data-i18n="footer.theme">Theme</span> <a href="https://www.chenk.top" rel="noopener">chenk</a></p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+<button class="back-to-top" id="back-to-top" aria-label="Back to top">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+</button>
+
+
+
+  
+<script src="/js/i18n.js"></script>
+
+  
+<script src="/js/main.js"></script>
+
+
+  
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false}
+      ],
+      throwOnError: false
+    });">
+  </script>
+  
+
+  
+  
+<script src="/js/search.js"></script>
+
+  
+</body>
+</html>
