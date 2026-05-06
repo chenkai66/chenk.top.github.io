@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Terraform Agents</a>
 · 第 8 篇</div><h1>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</h1><p class=deck>把七个 module 拼到一个仓库，跑一次 terraform apply，看一个完整的 Agent runtime——VPC、ECS、RDS、OpenSearch、OSS、LLM 网关、SLS 观测、成本告警——七分钟内起来。真实 apply 输出、module DAG、可 fork 的起手仓库。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-03-26>March 26, 2026</time> · 7 分钟 · 3126 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91/ class=tag>#阿里云</a><a href=/zh/tags/%E7%AB%AF%E5%88%B0%E7%AB%AF/ class=tag>#端到端</a><a href=/zh/tags/ai-agent/ class=tag>#AI Agent</a></div><a class="pill pill-outline" href=/en/terraform-agents/08-end-to-end-walkthrough/>Read in English →</a></div></header><div class=prose><p>这是第二到第七篇所有东西落到一处的文章。读完之后你会跑过一次 <code>terraform apply</code>，在阿里云上产出一个完整、可观测、有预算的 Agent runtime stack。约 31 个资源，~7 分钟实际时间。</p><p>我们要建的 stack：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png alt="research-agent-stack：每一个盒子，一次 terraform apply" loading=lazy decoding=async class=content-image></figure></p><p>五层——edge、compute、memory、platform、ops——由本系列做出的 module 组合而来。</p><h2 id=项目结构>项目结构</h2><pre tabindex=0><code>research-agent-stack/
+<span class=meta-line><time datetime=2026-03-26>March 26, 2026</time> · 12 分钟 · 5797 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91/ class=tag>#阿里云</a><a href=/zh/tags/%E7%AB%AF%E5%88%B0%E7%AB%AF/ class=tag>#端到端</a><a href=/zh/tags/ai-agent/ class=tag>#AI Agent</a></div><a class="pill pill-outline" href=/en/terraform-agents/08-end-to-end-walkthrough/>Read in English →</a></div></header><div class=prose><p>这是第二到第七篇所有东西落到一处的文章。读完之后你会跑过一次 <code>terraform apply</code>，在阿里云上产出一个完整、可观测、有预算的 Agent runtime stack。约 31 个资源，~7 分钟实际时间。</p><p>我们要建的 stack：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png alt="research-agent-stack：每一个盒子，一次 terraform apply" loading=lazy decoding=async class=content-image></figure></p><p>五层——edge、compute、memory、platform、ops——由本系列做出的 module 组合而来。</p><h2 id=项目结构>项目结构</h2><pre tabindex=0><code>research-agent-stack/
 ├── README.md
 ├── versions.tf                  # Terraform + provider 版本
 ├── backend.tf                   # OSS + Tablestore 远程 state
@@ -387,7 +387,239 @@ total_estimated_cost = &#34;~¥1450/月（dev 规格）&#34;
 </span></span><span class=line><span class=cl><span class=n>SLS_PROJECT</span>        <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;SLS_PROJECT&#34;</span><span class=p>]</span>
 </span></span><span class=line><span class=cl><span class=n>SLS_LOGSTORE</span>       <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;SLS_LOGSTORE&#34;</span><span class=p>]</span>
 </span></span><span class=line><span class=cl><span class=n>ARMS_OTLP_ENDPOINT</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;ARMS_OTLP_ENDPOINT&#34;</span><span class=p>]</span>
-</span></span></code></pre></td></tr></table></div></div><p>所有这些都从 Terraform 输出取值。Agent 代码形状上保持云无关——只读环境变量——但运行时完全接到阿里云 stack 上。</p><h2 id=成本汇总>成本汇总</h2><p><code>dev</code> workspace 真实账单，低流量：</p><table><thead><tr><th>组件</th><th style=text-align:right>月费</th></tr></thead><tbody><tr><td>VPC + NAT + EIP</td><td style=text-align:right>~¥150</td></tr><tr><td>ECS x1 (c7.large)</td><td style=text-align:right>~¥250</td></tr><tr><td>RDS Postgres (小)</td><td style=text-align:right>~¥350</td></tr><tr><td>OpenSearch 向量</td><td style=text-align:right>~¥800</td></tr><tr><td>OSS (10 GB 标准)</td><td style=text-align:right>~¥2</td></tr><tr><td>LLM 网关 ECS x1</td><td style=text-align:right>~¥150</td></tr><tr><td>ALB（小）</td><td style=text-align:right>~¥50</td></tr><tr><td>SLS + ARMS</td><td style=text-align:right>~¥300</td></tr><tr><td>KMS</td><td style=text-align:right>~¥10</td></tr><tr><td><strong>dev 合计</strong></td><td style=text-align:right><strong>~¥2060/月</strong></td></tr></tbody></table><p>Prod 配 HA、更大规格、跨区 DR：LLM API 成本之外大约 ¥6000-9000/月。LLM 账单通常是最大头——这就是为什么有第六篇的网关和第七篇的成本告警。</p><h2 id=我跳过的>我跳过的</h2><ul><li><strong>CDN</strong> 公网服务产物 URL——alicloud_cdn_domain 可用，但多数 Agent 通过自己网关服产物</li><li><strong>WAF</strong> 在 ALB 前——对外 prod 必需，dev 用 Intranet ALB</li><li><strong>PrivateLink</strong> 到 DashScope——规模上能省 NAT 出网，alicloud_privatelink_* 可配</li><li><strong>自定义域名 + SSL</strong>——alicloud_alb_listener 支持 SSL 证书但你得自带（或用 ACM）</li></ul><p>四个都值得在基础跑通后再加。第一天别加。</p><h2 id=接下来>接下来</h2><p>你现在拥有一个生产形状的 Agent runtime 在阿里云上，全部用 Terraform 表达，自带可观测、密钥管理、成本守门。下一步看你的项目：</p><ul><li><strong>更多 Agent：</strong> 加进 <code>var.agent_quotas</code>，<code>terraform apply</code></li><li><strong>不同 LLM provider：</strong> 加进网关 module 的 <code>local.litellm_config</code></li><li><strong>多 region：</strong> 加 provider 别名，复制 stack</li><li><strong>GitOps：</strong> 把 <code>terraform apply</code> 包进有 PR review 守门的 CI 流水</li><li><strong>Pulumi 或 Crossplane 迁移：</strong> 资源图直接对应</li></ul><p>最重要的一件事是你的基础设施现在在 git 里了。每次变更可评审。每个环境可重现。每笔成本可归因。这就是 IaC 给你的东西，也是让"在阿里云上交付 Agent"成为可持续实践、而不是永久救火的原因。</p><p>谢谢读完本系列。如果你基于本系列交付了一个 stack，我很想听你改了什么、为什么——这就是模式演进的方式。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/terraform-agents/>Terraform Agents</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><span class=title>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=/zh/series/terraform-agents/><span class=title>返回 Terraform Agents</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=series-nav-num>01</span>
+</span></span></code></pre></td></tr></table></div></div><p>所有这些都从 Terraform 输出取值。Agent 代码形状上保持云无关——只读环境变量——但运行时完全接到阿里云 stack 上。</p><h2 id=成本汇总>成本汇总</h2><p><code>dev</code> workspace 真实账单，低流量：</p><table><thead><tr><th>组件</th><th style=text-align:right>月费</th></tr></thead><tbody><tr><td>VPC + NAT + EIP</td><td style=text-align:right>~¥150</td></tr><tr><td>ECS x1 (c7.large)</td><td style=text-align:right>~¥250</td></tr><tr><td>RDS Postgres (小)</td><td style=text-align:right>~¥350</td></tr><tr><td>OpenSearch 向量</td><td style=text-align:right>~¥800</td></tr><tr><td>OSS (10 GB 标准)</td><td style=text-align:right>~¥2</td></tr><tr><td>LLM 网关 ECS x1</td><td style=text-align:right>~¥150</td></tr><tr><td>ALB（小）</td><td style=text-align:right>~¥50</td></tr><tr><td>SLS + ARMS</td><td style=text-align:right>~¥300</td></tr><tr><td>KMS</td><td style=text-align:right>~¥10</td></tr><tr><td><strong>dev 合计</strong></td><td style=text-align:right><strong>~¥2060/月</strong></td></tr></tbody></table><p>Prod 配 HA、更大规格、跨区 DR：LLM API 成本之外大约 ¥6000-9000/月。LLM 账单通常是最大头——这就是为什么有第六篇的网关和第七篇的成本告警。</p><h2 id=我跳过的>我跳过的</h2><ul><li><strong>CDN</strong> 公网服务产物 URL——alicloud_cdn_domain 可用，但多数 Agent 通过自己网关服产物</li><li><strong>WAF</strong> 在 ALB 前——对外 prod 必需，dev 用 Intranet ALB</li><li><strong>PrivateLink</strong> 到 DashScope——规模上能省 NAT 出网，alicloud_privatelink_* 可配</li><li><strong>自定义域名 + SSL</strong>——alicloud_alb_listener 支持 SSL 证书但你得自带（或用 ACM）</li></ul><p>四个都值得在基础跑通后再加。第一天别加。</p><h2 id=接下来>接下来</h2><p>你现在拥有一个生产形状的 Agent runtime 在阿里云上，全部用 Terraform 表达，自带可观测、密钥管理、成本守门。下一步看你的项目：</p><ul><li><strong>更多 Agent：</strong> 加进 <code>var.agent_quotas</code>，<code>terraform apply</code></li><li><strong>不同 LLM provider：</strong> 加进网关 module 的 <code>local.litellm_config</code></li><li><strong>多 region：</strong> 加 provider 别名，复制 stack</li><li><strong>GitOps：</strong> 把 <code>terraform apply</code> 包进有 PR review 守门的 CI 流水</li><li><strong>Pulumi 或 Crossplane 迁移：</strong> 资源图直接对应</li></ul><p>最重要的一件事是你的基础设施现在在 git 里了。每次变更可评审。每个环境可重现。每笔成本可归因。这就是 IaC 给你的东西，也是让"在阿里云上交付 Agent"成为可持续实践、而不是永久救火的原因。</p><p>谢谢读完本系列。如果你基于本系列交付了一个 stack，我很想听你改了什么、为什么——这就是模式演进的方式。</p><h2 id=推进策略dev--staging--prod-不出意外>推进策略：dev → staging → prod 不出意外</h2><p>文章演示了 <code>terraform workspace select prod && terraform apply</code>。能用。也是大多数生产事故的源头——dev → prod 经常暴露没人计划过的差异。</p><p>我在真项目里跑的推进流水线：</p><h3 id=第-1-步给-dev-state-打快照>第 1 步：给 dev state 打快照</h3><p>任何推进之前，给 dev state 文件存个快照。如果 prod 上炸了 dev 上没炸的，你想能对比：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>terraform state pull &gt; /tmp/dev-state-<span class=k>$(</span>date -Iseconds<span class=k>)</span>.json
+</span></span><span class=line><span class=cl>aliyun oss cp /tmp/dev-state-*.json oss://ck-tfstate-archive/snapshots/
+</span></span></code></pre></td></tr></table></div></div><p>便宜保险。state 快照很小（通常 &lt;1MB），归档桶有 Lifecycle 30 天后转 Cold Archive。</p><h3 id=第-2-步ci-里基于-dev-验证过的-commit-算-prod-plan>第 2 步：CI 里基于 dev 验证过的 commit 算 prod plan</h3><p>别推没测过的代码。在 dev 一周跑得干净的那个具体 commit，才拿来跑 prod <code>plan</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># .github/workflows/promote.yml</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>on</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>workflow_dispatch</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>inputs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>from_workspace</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>type</span><span class=p>:</span><span class=w> </span><span class=l>choice</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>options</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>dev, staging]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>to_workspace</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>type</span><span class=p>:</span><span class=w> </span><span class=l>choice</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>options</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>staging, prod]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>commit_sha</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>description</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;Validated commit SHA from from_workspace&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>jobs</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>promote</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>steps</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>uses</span><span class=p>:</span><span class=w> </span><span class=l>actions/checkout@v4</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>with</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>ref</span><span class=p>:</span><span class=w> </span><span class=l>${{ inputs.commit_sha }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>terraform plan in target workspace</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>env</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>TF_WORKSPACE</span><span class=p>:</span><span class=w> </span><span class=l>${{ inputs.to_workspace }}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>run</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>          terraform init
+</span></span></span><span class=line><span class=cl><span class=sd>          terraform plan -var-file=env/${{ inputs.to_workspace }}.tfvars \
+</span></span></span><span class=line><span class=cl><span class=sd>            -out=tfplan-promote 2&gt;&amp;1 | tee promote-plan.txt</span><span class=w>          
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>post promotion plan to DingTalk for human review</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>run</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>          curl -X POST &#34;$DINGTALK_WEBHOOK&#34; -d &#34;{\&#34;text\&#34;:{\&#34;content\&#34;:\&#34;Promotion plan ${{ inputs.from_workspace }}→${{ inputs.to_workspace }} ready for review\&#34;}}&#34;</span><span class=w>          
+</span></span></span></code></pre></td></tr></table></div></div><p>推进 plan 到值班工程师钉钉。他们评审，特别注意和 dev <strong>不同的</strong>部分。Plan 显示 dev 没重建的资源现在要重建——停。先查清楚再 apply。</p><h3 id=第-3-步apply验证解锁>第 3 步：apply、验证、解锁</h3><p>真正的 prod apply 由 GitHub Environment 加必需评审者 gate（第六篇配过）。Apply 成功后、流量切换前先跑冒烟：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># apply 任务里 terraform apply 成功后跑</span>
+</span></span><span class=line><span class=cl><span class=nv>gateway</span><span class=o>=</span><span class=k>$(</span>terraform output -raw gateway_url<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>session</span><span class=o>=</span><span class=k>$(</span>curl -s -X POST <span class=nv>$gateway</span>/v1/chat/completions <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -H <span class=s2>&#34;Authorization: Bearer </span><span class=nv>$LITELLM_KEY</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -d <span class=s1>&#39;{&#34;model&#34;:&#34;qwen-max&#34;,&#34;messages&#34;:[{&#34;role&#34;:&#34;user&#34;,&#34;content&#34;:&#34;ping&#34;}]}&#39;</span> <span class=p>|</span> jq -r .choices<span class=o>[</span>0<span class=o>]</span>.message.content<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>[[</span> -n <span class=s2>&#34;</span><span class=nv>$session</span><span class=s2>&#34;</span> <span class=o>]]</span> <span class=o>||</span> <span class=o>{</span> <span class=nb>echo</span> <span class=s2>&#34;Smoke test failed&#34;</span><span class=p>;</span> <span class=nb>exit</span> 1<span class=p>;</span> <span class=o>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>5 秒冒烟挡住"我把 gateway 搞挂了"这一类错误传播。失败的话 apply 技术上成功了，但你能用第 1 步的快照回滚（<code>terraform state push /tmp/dev-state-...json</code> + <code>terraform apply</code> 还原前态）。</p><h3 id=第-4-步apply-后对-staging-做-diff>第 4 步：apply 后对 staging 做 diff</h3><p>prod apply 完，跑<strong>跨 workspace</strong> 对比：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>diff &lt;<span class=o>(</span>terraform workspace <span class=k>select</span> staging <span class=o>&amp;&amp;</span> terraform output -json<span class=o>)</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>     &lt;<span class=o>(</span>terraform workspace <span class=k>select</span> prod <span class=o>&amp;&amp;</span> terraform output -json<span class=o>)</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>     <span class=p>|</span> head -100
+</span></span></code></pre></td></tr></table></div></div><p>预期差异：实例数、RDS HA flag、DR 区域。意外差异：其他任何东西。查出来——常常露出 tfvars typo 或 workspace 条件 bug。</p><p>这套四步推进，三年大概帮我躲了 30+ 次故障。每步几分钟；每次发版累计多花一小时自然时间。便宜。</p><h2 id=多区从一个项目扇出和读副本>多区从一个项目：扇出和读副本</h2><p>服务中国和东南亚用户的 Agent，最终会需要 <code>cn-shanghai</code>（或 <code>cn-beijing</code>）和 <code>ap-southeast-1</code>（新加坡）。朴素答案是两个完全独立的 Terraform 项目。更好的答案是 provider alias 加每区 module 实例：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=c1># providers.tf
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>provider</span> <span class=s2>&#34;alicloud&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  alias</span>  <span class=o>=</span> <span class=s2>&#34;shanghai&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  region</span> <span class=o>=</span> <span class=s2>&#34;cn-shanghai&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>provider</span> <span class=s2>&#34;alicloud&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  alias</span>  <span class=o>=</span> <span class=s2>&#34;singapore&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  region</span> <span class=o>=</span> <span class=s2>&#34;ap-southeast-1&#34;</span>
+</span></span><span class=line><span class=cl>}<span class=c1>
+</span></span></span><span class=line><span class=cl><span class=c1>
+</span></span></span><span class=line><span class=cl><span class=c1># main.tf
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>module</span> <span class=s2>&#34;stack_shanghai&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  source</span> <span class=o>=</span> <span class=s2>&#34;./modules/agent-stack&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  providers</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    alicloud</span> <span class=o>=</span> <span class=k>alicloud</span><span class=p>.</span><span class=k>shanghai</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl><span class=n>  name</span>        <span class=o>=</span> <span class=s2>&#34;agents-prod-cn&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  cidr_block</span>  <span class=o>=</span> <span class=s2>&#34;10.20.0.0/16&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  zones</span>       <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;cn-shanghai-l&#34;, &#34;cn-shanghai-m&#34;, &#34;cn-shanghai-n&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  is_primary</span>  <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>module</span> <span class=s2>&#34;stack_singapore&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  source</span> <span class=o>=</span> <span class=s2>&#34;./modules/agent-stack&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  providers</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    alicloud</span> <span class=o>=</span> <span class=k>alicloud</span><span class=p>.</span><span class=k>singapore</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl><span class=n>  name</span>        <span class=o>=</span> <span class=s2>&#34;agents-prod-sg&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  cidr_block</span>  <span class=o>=</span> <span class=s2>&#34;10.30.0.0/16&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  zones</span>       <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;ap-southeast-1a&#34;, &#34;ap-southeast-1b&#34;, &#34;ap-southeast-1c&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  is_primary</span>  <span class=o>=</span> <span class=kt>false</span>
+</span></span><span class=line><span class=cl><span class=n>  primary_endpoints</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>stack_shanghai</span><span class=p>.</span><span class=k>endpoints</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p><code>agent-stack</code> module 是第三到七篇做的全套，打包成一个。<code>is_primary</code> 控制 RDS 是 master 还是只读副本、OSS 是源还是复制目标等。</p><p>跨区互联用 CEN（云企业网）打通 VPC：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_cen_instance&#34; &#34;agents&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  cen_instance_name</span> <span class=o>=</span> <span class=s2>&#34;agents-cen&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  description</span>       <span class=o>=</span> <span class=s2>&#34;CEN linking shanghai and singapore agent VPCs&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  protection_level</span>  <span class=o>=</span> <span class=s2>&#34;REDUCED&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_cen_instance_attachment&#34; &#34;shanghai&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  provider</span>                 <span class=o>=</span> <span class=k>alicloud</span><span class=p>.</span><span class=k>shanghai</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_id</span>              <span class=o>=</span> <span class=k>alicloud_cen_instance</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  child_instance_id</span>        <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>stack_shanghai</span><span class=p>.</span><span class=k>vpc_id</span>
+</span></span><span class=line><span class=cl><span class=n>  child_instance_type</span>      <span class=o>=</span> <span class=s2>&#34;VPC&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  child_instance_region_id</span> <span class=o>=</span> <span class=s2>&#34;cn-shanghai&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_cen_instance_attachment&#34; &#34;singapore&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  provider</span>                 <span class=o>=</span> <span class=k>alicloud</span><span class=p>.</span><span class=k>singapore</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_id</span>              <span class=o>=</span> <span class=k>alicloud_cen_instance</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  child_instance_id</span>        <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>stack_singapore</span><span class=p>.</span><span class=k>vpc_id</span>
+</span></span><span class=line><span class=cl><span class=n>  child_instance_type</span>      <span class=o>=</span> <span class=s2>&#34;VPC&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  child_instance_region_id</span> <span class=o>=</span> <span class=s2>&#34;ap-southeast-1&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_cen_bandwidth_package&#34; &#34;this&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  bandwidth</span>                  <span class=o>=</span> <span class=m>50</span><span class=c1>    # Mbps 跨区
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>  geographic_region_a_id</span>     <span class=o>=</span> <span class=s2>&#34;China&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  geographic_region_b_id</span>     <span class=o>=</span> <span class=s2>&#34;Asia-Pacific&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  cen_bandwidth_package_name</span> <span class=o>=</span> <span class=s2>&#34;agents-cn-sg-50m&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_cen_bandwidth_package_attachment&#34; &#34;this&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  instance_id</span>          <span class=o>=</span> <span class=k>alicloud_cen_instance</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  bandwidth_package_id</span> <span class=o>=</span> <span class=k>alicloud_cen_bandwidth_package</span><span class=p>.</span><span class=k>this</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>CEN 按跨区带宽计费——上面 50 Mbps 包 ~¥3000/月。真服务多区流量值；&ldquo;我哪天可能"过度了。</p><p>整套多区从单项目一次 <code>terraform apply</code>。两个 region 并行部署（Terraform 的 DAG 处理得不错）。总 apply 时间从 7 分钟到 ~9 分钟，因为最慢路径（RDS provisioning）每区并发跑。</p><h2 id=prod-完整成本算术>Prod 完整成本算术</h2><p>文章总结说 dev ~¥2060/月。这里给 prod 数字加全拆解——财务问"AI Agent 平台到底要花多少钱"时引这个。</p><p>Prod 规格（按文章建立的 workspace 默认）：</p><table><thead><tr><th>层</th><th>资源</th><th>规格</th><th style=text-align:right>月费（¥）</th></tr></thead><tbody><tr><td>网络</td><td>VPC、vSwitch、RT、KMS</td><td>三可用区，3 把 CMK</td><td style=text-align:right>10</td></tr><tr><td>网络</td><td>NAT 网关（Enhanced）+ EIP</td><td>占用 + 1 TB 出网</td><td style=text-align:right>920</td></tr><tr><td>算力</td><td>ECS x3（<code>ecs.c7.xlarge</code> 4c/8g）</td><td>3 实例，每台 ESSD 80G</td><td style=text-align:right>1380</td></tr><tr><td>算力</td><td>LiteLLM gateway ECS x2</td><td><code>ecs.c7.large</code> 2c/4g</td><td style=text-align:right>450</td></tr><tr><td>算力</td><td>ALB Standard</td><td>1 ALB，公网</td><td style=text-align:right>180</td></tr><tr><td>内存</td><td>RDS Postgres HA（<code>pg.x4.large.2c</code>）</td><td>200 GB ESSD + 备</td><td style=text-align:right>2200</td></tr><tr><td>内存</td><td>OpenSearch vector（中）</td><td>50 doc-size、80 compute</td><td style=text-align:right>1800</td></tr><tr><td>内存</td><td>OSS（500 GB Standard + lifecycle）</td><td>大部分 Standard、部分 IA</td><td style=text-align:right>100</td></tr><tr><td>内存</td><td>OSS DR 副本（cn-beijing）</td><td>500 GB IA</td><td style=text-align:right>60</td></tr><tr><td>密钥</td><td>KMS Secrets Manager</td><td>8 个 secret、5 万次 decrypt/月</td><td style=text-align:right>50</td></tr><tr><td>可观测</td><td>SLS</td><td>30 GB 接入、90 天保留</td><td style=text-align:right>450</td></tr><tr><td>可观测</td><td>ARMS APM</td><td>1 env、5000 万 span</td><td style=text-align:right>600</td></tr><tr><td>可观测</td><td>CloudMonitor</td><td>主机指标 + 20 个自定义</td><td style=text-align:right>30</td></tr><tr><td><strong>小计——基础设施</strong></td><td><strong>8230</strong></td><td></td><td></td></tr><tr><td>LLM API</td><td>DashScope Qwen-max</td><td>5000 万入、1200 万出 token</td><td style=text-align:right>3500</td></tr><tr><td>LLM API</td><td>Anthropic / OpenAI 兜底</td><td>500 万入、100 万出 token</td><td style=text-align:right>800</td></tr><tr><td><strong>小计——LLM</strong></td><td><strong>4300</strong></td><td></td><td></td></tr><tr><td><strong>TOTAL prod / 月</strong></td><td><strong>¥12,530</strong></td><td></td><td></td></tr></tbody></table><p>我看真账单时几个观察：</p><ul><li><strong>OpenSearch 加 RDS 占基础设施 ~31%。</strong> 紧扣预算的话，纯 pgvector（不用 OpenSearch）每月省 ~¥1800，代价是混合检索更慢。100 万向量以下值得做。</li><li><strong>NAT 出网是惊喜行项。</strong> 切 PrivateLink 调 DashScope 让我一个项目 NAT 账单降 60%。</li><li><strong>这个规模 LLM 占总成本 35%。</strong> 更大规模（10x 流量）LLM 占 70-80%。Gateway 的每 Agent 配额比基础设施成本杠杆更早重要。</li><li><strong>可观测占基础设施 10%。</strong> 这是对的比例——5% 以下你 instrumentation 不够；20% 以上你收太多。每月看 SLS 接入量。</li></ul><p>财务评审：每 session 总成本是 ¥12,530 / 月 session 数。月 10 万 session 是 ¥0.125/session。月 1k session 是 ¥12.50/session——这时候你开始问这平台跑这点量值不值。</p><h2 id=day-3-运维持续付出回报的模式>Day-3 运维：持续付出回报的模式</h2><p>文章里 day-2 列表之外，每个长期栈我都跑这四个模式：</p><h3 id=1-季度依赖升级>1. 季度依赖升级</h3><p>每季度：升 <code>alicloud</code> provider、所有开源 module、Terraform 本身——一个 minor 版本。dev 跑 plan。Apply、泡一周。推进。这个纪律让你 CVE-2027-XXX 爆出来时不至于落后三年。</p><h3 id=2-state-备份到另一个区>2. State 备份到另一个区</h3><p>存 state 的 OSS bucket 在 cn-shanghai。cn-shanghai 真出区域级故障，你<strong>没法 apply Terraform</strong>——包括 apply 到其他区。每周 state 备份到 cn-beijing（state 桶本身的 OSS 复制）每月 ¥10，最坏场景救你命：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_oss_bucket_replication&#34; &#34;tfstate&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  bucket</span> <span class=o>=</span> <span class=k>alicloud_oss_bucket</span><span class=p>.</span><span class=k>tfstate</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  action</span> <span class=o>=</span> <span class=s2>&#34;ALL&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=k>destination</span> {
+</span></span><span class=line><span class=cl><span class=n>    bucket</span>   <span class=o>=</span> <span class=s2>&#34;ck-tfstate-prod-dr&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    location</span> <span class=o>=</span> <span class=s2>&#34;oss-cn-beijing&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><h3 id=3-月度评审里的每-agent-成本归属>3. 月度评审里的每 Agent 成本归属</h3><p>Gateway 记每 Agent 成本（第七篇）。月底按 Agent 汇总，发到团队频道。&ldquo;研究 Agent: ¥3200，客服 Agent: ¥800，代码 Agent: ¥4100&rdquo;——成本变真实。工程师看到自己 Agent 上排行榜会自我约束。</p><h3 id=4-年度对照-iac-做架构评审>4. 年度对照 IaC 做架构评审</h3><p>一年一次，遍历整个 <code>terraform state list</code>，逐个资源问：还需要吗？有些是冗余的（你从没删的 dev 集群、你升级走了的 v15 RDS）。销毁未用资源的清理 PR 是我做过 ROI 最高的 Terraform 工作——通常每年省 10-15% 账单。</p><p>收尾。八篇、一个栈、一个 Terraform 项目。起步仓库（https://github.com/example/research-agent-stack）随你 fork。如果你在它之上跑了真 Agent，告诉我你改了什么、为什么——模式是这样磨锐的。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/terraform-agents/>Terraform Agents</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><span class=title>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=/zh/series/terraform-agents/><span class=title>返回 Terraform Agents</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=series-nav-num>01</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/><span class=series-nav-num>02</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（二）：Provider、认证与 OSS 上的远程 State</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=series-nav-num>03</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（三）：可复用的 VPC 与安全基线</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/04-compute-for-agent-runtime/><span class=series-nav-num>04</span>
@@ -396,7 +628,7 @@ total_estimated_cost = &#34;~¥1450/月（dev 规格）&#34;
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><span class=series-nav-num>07</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>08</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span>
-<span class=series-nav-here>当前</span></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#项目结构>项目结构</a></li><li><a href=#maintf组合>main.tf——组合</a></li><li><a href=#variablestf>variables.tf</a></li><li><a href=#envdevtfvars>env/dev.tfvars</a></li><li><a href=#secretssecretsautotfvarsgitignore>secrets/secrets.auto.tfvars（gitignore）</a></li><li><a href=#apply>Apply</a></li><li><a href=#day-2-运维>Day-2 运维</a><ul><li><a href=#加新-agent>加新 Agent</a></li><li><a href=#扩容>扩容</a></li><li><a href=#dev--prod-提升>Dev → prod 提升</a></li><li><a href=#销毁-dev>销毁 dev</a></li></ul></li><li><a href=#接你真实的-agent-代码>接你真实的 Agent 代码</a></li><li><a href=#成本汇总>成本汇总</a></li><li><a href=#我跳过的>我跳过的</a></li><li><a href=#接下来>接下来</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>Terraform Agents</a>
+<span class=series-nav-here>当前</span></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#项目结构>项目结构</a></li><li><a href=#maintf组合>main.tf——组合</a></li><li><a href=#variablestf>variables.tf</a></li><li><a href=#envdevtfvars>env/dev.tfvars</a></li><li><a href=#secretssecretsautotfvarsgitignore>secrets/secrets.auto.tfvars（gitignore）</a></li><li><a href=#apply>Apply</a></li><li><a href=#day-2-运维>Day-2 运维</a><ul><li><a href=#加新-agent>加新 Agent</a></li><li><a href=#扩容>扩容</a></li><li><a href=#dev--prod-提升>Dev → prod 提升</a></li><li><a href=#销毁-dev>销毁 dev</a></li></ul></li><li><a href=#接你真实的-agent-代码>接你真实的 Agent 代码</a></li><li><a href=#成本汇总>成本汇总</a></li><li><a href=#我跳过的>我跳过的</a></li><li><a href=#接下来>接下来</a></li><li><a href=#推进策略dev--staging--prod-不出意外>推进策略：dev → staging → prod 不出意外</a><ul><li><a href=#第-1-步给-dev-state-打快照>第 1 步：给 dev state 打快照</a></li><li><a href=#第-2-步ci-里基于-dev-验证过的-commit-算-prod-plan>第 2 步：CI 里基于 dev 验证过的 commit 算 prod plan</a></li><li><a href=#第-3-步apply验证解锁>第 3 步：apply、验证、解锁</a></li><li><a href=#第-4-步apply-后对-staging-做-diff>第 4 步：apply 后对 staging 做 diff</a></li></ul></li><li><a href=#多区从一个项目扇出和读副本>多区从一个项目：扇出和读副本</a></li><li><a href=#prod-完整成本算术>Prod 完整成本算术</a></li><li><a href=#day-3-运维持续付出回报的模式>Day-3 运维：持续付出回报的模式</a><ul><li><a href=#1-季度依赖升级>1. 季度依赖升级</a></li><li><a href=#2-state-备份到另一个区>2. State 备份到另一个区</a></li><li><a href=#3-月度评审里的每-agent-成本归属>3. 月度评审里的每 Agent 成本归属</a></li><li><a href=#4-年度对照-iac-做架构评审>4. 年度对照 IaC 做架构评审</a></li></ul></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>Terraform Agents</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=chapter-num>01</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/><span class=chapter-num>02</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（二）：Provider、认证与 OSS 上的远程 State</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=chapter-num>03</span>
@@ -405,5 +637,5 @@ total_estimated_cost = &#34;~¥1450/月（dev 规格）&#34;
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><span class=chapter-num>07</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
-<span class=chapter-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>7 min</strong></div><div class=row><span>字数</span><strong>3126</strong></div><div class=row><span>写于</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/ml-math-derivations/>Ml-Math-Derivations</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
+<span class=chapter-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>12 min</strong></div><div class=row><span>字数</span><strong>5797</strong></div><div class=row><span>写于</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>Llm-Engineering</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
 <span class=signature>杭州</span></div></div></footer></body></html>
