@@ -1,0 +1,274 @@
+<!doctype html><html lang=zh data-translation=/en/llm-engineering/07-function-calling/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>大模型工程（七）：Function Calling 与工具使用 · Chen Kai Blog</title>
+<meta name=description content="JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/llm-engineering/07-function-calling/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/llm-engineering/07-function-calling/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/llm-engineering/07-function-calling/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/llm-engineering/07-function-calling/><meta property="og:type" content="article"><meta property="og:title" content="大模型工程（七）：Function Calling 与工具使用"><meta property="og:description" content="JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。"><meta property="og:url" content="https://www.chenk.top/zh/llm-engineering/07-function-calling/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/llm-engineering.jpg"><meta property="og:image:alt" content="大模型工程（七）：Function Calling 与工具使用"><meta property="article:published_time" content="2026-04-22T09:00:00Z"><meta property="article:modified_time" content="2026-04-22T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="llm"><meta property="article:tag" content="function-calling"><meta property="article:tag" content="tools"><meta property="article:tag" content="agents"><meta property="article:tag" content="json-schema"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="大模型工程（七）：Function Calling 与工具使用"><meta name=twitter:description content="JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。"><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/llm-engineering.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"大模型工程（七）：Function Calling 与工具使用\"","description":"\"JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/llm-engineering.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2026-04-22T09:00:00Z\"","dateModified":"\"2026-04-22T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/llm-engineering/07-function-calling/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.1dbf9607ed31ff6d68f7fcd73c9254277944f5b06d6156062985db9a13015137.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>大模型工程</a>
+· 第 7 篇</div><h1>大模型工程（七）：Function Calling 与工具使用</h1><p class=deck>JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-22>April 22, 2026</time> · 7 分钟 · 3385 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/llm/ class=tag>#llm</a><a href=/zh/tags/function-calling/ class=tag>#function-calling</a><a href=/zh/tags/tools/ class=tag>#tools</a><a href=/zh/tags/agents/ class=tag>#agents</a><a href=/zh/tags/json-schema/ class=tag>#json-schema</a></div><a class="pill pill-outline" href=/en/llm-engineering/07-function-calling/>Read in English →</a></div></header><div class=prose><p>Function calling 是 LLM 跟权重之外的世界之间的桥。它也是 chat template 细节（第 2 篇）、结构化输出 kernel（第 5 篇）、prompt engineering（第 9 篇）撞在一起的地方。这一篇讲底层到底在做什么、有什么保证可以靠、以及真实负载里能活的 agent loop 模式。</p><h2 id=function-calling-实际指的是什么>&ldquo;Function calling&rdquo; 实际指的是什么</h2><p>API 标 &ldquo;function calling&rdquo;，底下可能在做几件不同的事：</p><ol><li><strong>训出来的行为 + chat template 标记</strong>。模型 post-training 时被训成在合适时机吐 tool call，包在特殊 token 里。例：Qwen3（<code>&lt;tool_call>...&lt;/tool_call></code>）、Mistral（<code>[TOOL_CALLS]</code>）。</li><li><strong>JSON-mode 约束解码</strong>。输出被文法约束解码强制为合法 JSON。模型不一定为此训过；<em>解码器</em> 在执行约束。</li><li><strong>schema 引导的结构化输出</strong>。JSON-mode 加上 JSON 必须匹配特定 schema（function 名、参数类型）。</li><li><strong>自由格式 prompt</strong>。系统 prompt 写 &ldquo;请输出 JSON，键为 X、Y&rdquo; 然后碰运气。能力强的模型还行，但没有保证。</li></ol><p>生产系统四种混着用。OpenAI/Anthropic 的 API 用 1+3。vLLM 和 SGLang 给任何模型实现 2+3。自由格式（4）是其他都没有时的兜底。</p><h2 id=一次真实的-function-call-请求>一次真实的 function-call 请求</h2><p>Anthropic Claude API：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>anthropic</span>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>anthropic</span><span class=o>.</span><span class=n>Anthropic</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>messages</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;claude-4-5-sonnet-20250901&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_tokens</span><span class=o>=</span><span class=mi>1024</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>tools</span><span class=o>=</span><span class=p>[{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;get_weather&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Get current weather for a location.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;input_schema&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;location&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span> <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;City and state, e.g. San Francisco, CA&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;unit&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span> <span class=s2>&#34;enum&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;celsius&#34;</span><span class=p>,</span> <span class=s2>&#34;fahrenheit&#34;</span><span class=p>],</span> <span class=s2>&#34;default&#34;</span><span class=p>:</span> <span class=s2>&#34;celsius&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;required&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;location&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>}],</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;What&#39;s the weather in Tokyo?&#34;</span><span class=p>}],</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># response.content 可能是：</span>
+</span></span><span class=line><span class=cl><span class=c1># [TextBlock(text=&#34;I&#39;ll check the weather in Tokyo.&#34;),</span>
+</span></span><span class=line><span class=cl><span class=c1>#  ToolUseBlock(id=&#34;toolu_xxx&#34;, name=&#34;get_weather&#34;,</span>
+</span></span><span class=line><span class=cl><span class=c1>#               input={&#34;location&#34;: &#34;Tokyo, Japan&#34;, &#34;unit&#34;: &#34;celsius&#34;})]</span>
+</span></span></code></pre></td></tr></table></div></div><p>模型返回结构化 <code>ToolUseBlock</code>。你的代码执行工具，再发一条后续消息：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>response2</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>messages</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;claude-4-5-sonnet-20250901&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_tokens</span><span class=o>=</span><span class=mi>1024</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>tools</span><span class=o>=</span><span class=p>[</span><span class=o>...</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;What&#39;s the weather in Tokyo?&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;assistant&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>response</span><span class=o>.</span><span class=n>content</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;tool_result&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;tool_use_id&#34;</span><span class=p>:</span> <span class=s2>&#34;toolu_xxx&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;72°F, partly cloudy&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>}]},</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>会话里现在有了 tool call 和 tool result，下一轮 assistant 能用这个信息。基本循环就这样。</p><h2 id=并行工具调用>并行工具调用</h2><p>2026 年所有前沿模型都支持并行 tool call——一轮里发多个 <code>ToolUseBlock</code>。用户问 &ldquo;东京和纽约的天气&rdquo;，模型同时发两个 tool call，你并行执行，把两个结果一起回去。</p><p>为什么重要：串行 tool call 让延迟累加。5 个工具的 agent 串行调，每个 200 ms，纯工具延迟 1 秒。并行砍到 200 ms。对 agent（OpenClaw 的 7-12 章那种、任何多数据源的）来说，这是 &ldquo;顺手&rdquo; 和 &ldquo;烦人&rdquo; 的差别。</p><p>注意：并行调用只有在工具之间无依赖时才有意义。查两个城市的天气并行安全。&ldquo;搜航班再订最便宜的&rdquo; 不行——第二个调用依赖第一个的结果。模型应该从训练里知道，但不总知道。生产代码应该在并行执行前验证调用真的独立。</p><h2 id=用文法做结构化输出>用文法做结构化输出</h2><p>Function-calling API 保证 JSON 良构。但你想要 JSON 每次都匹配一个特定 schema、零例外呢？</p><p>vLLM 和 SGLang 都实现了 <strong>文法约束解码</strong>。每个 decode step，把输出分布 mask 到只剩文法下能继续合法字符串的 token。实现：Outlines（Python 正则编译器）、XGrammar（更快，SGLang 用）、llama.cpp 的 GBNF。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># vLLM JSON schema 约束</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>vllm.sampling_params</span> <span class=kn>import</span> <span class=n>GuidedDecodingParams</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>schema</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;city&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;temp_c&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;number&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;conditions&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span> <span class=s2>&#34;enum&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;sunny&#34;</span><span class=p>,</span> <span class=s2>&#34;cloudy&#34;</span><span class=p>,</span> <span class=s2>&#34;rainy&#34;</span><span class=p>]},</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;required&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;city&#34;</span><span class=p>,</span> <span class=s2>&#34;temp_c&#34;</span><span class=p>,</span> <span class=s2>&#34;conditions&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>params</span> <span class=o>=</span> <span class=n>SamplingParams</span><span class=p>(</span><span class=n>max_tokens</span><span class=o>=</span><span class=mi>200</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                       <span class=n>guided_decoding</span><span class=o>=</span><span class=n>GuidedDecodingParams</span><span class=p>(</span><span class=n>json</span><span class=o>=</span><span class=n>schema</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>out</span> <span class=o>=</span> <span class=n>llm</span><span class=o>.</span><span class=n>generate</span><span class=p>(</span><span class=n>prompts</span><span class=p>,</span> <span class=n>params</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># out 保证可解析 JSON 且匹配 schema</span>
+</span></span></code></pre></td></tr></table></div></div><p>这是最强的输出保证：不是 &ldquo;通常是 JSON&rdquo;，不是 &ldquo;JSON 带正确键&rdquo;，而是 &ldquo;合法 JSON 严格符合 schema&rdquo;。延迟代价小（XGrammar 约 3-5 % overhead）。</p><p>一个微妙限制：文法约束影响 <em>结构</em>，不影响 <em>内容</em>。模型可能输出 <code>{"city": "Tokyo", "temp_c": "warm", "conditions": "sunny"}</code>——<code>temp_c</code> 是字符串不是数。等等，schema 角度这就不合法了；XGrammar 会把那个位置的字符串引号 token mask 掉、强制出数。但如果 schema 里没给 <code>conditions</code> 写 <code>enum</code>，模型可以写 <code>"conditions": "elephant"</code> 通过 schema 验证。Schema 约束不让输出 <em>为真</em>，只让它 <em>可解析</em>。</p><h2 id=自由格式没文法的时候>自由格式：没文法的时候</h2><p>很多 API（多数非 OpenAI/Anthropic 提供商、设备端推理、内部服务）不暴露文法约束解码。兜底是 prompt 工程出结构化输出：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>prompt</span> <span class=o>=</span> <span class=s2>&#34;&#34;&#34;输出 JSON 对象，包含以下键，不要 markdown，不要散文：
+</span></span></span><span class=line><span class=cl><span class=s2>- &#34;city&#34;（string）
+</span></span></span><span class=line><span class=cl><span class=s2>- &#34;temp_c&#34;（number）
+</span></span></span><span class=line><span class=cl><span class=s2>- &#34;conditions&#34;（&#34;sunny&#34;、&#34;cloudy&#34;、&#34;rainy&#34; 之一）
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>查询：东京天气如何？
+</span></span></span><span class=line><span class=cl><span class=s2>JSON:&#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>能力强的模型（LLaMA-3.3-70B+、Qwen3-32B+）95-99 % 的时候照做。1-5 % 的失败模式通常是其中之一：</p><ul><li>把 JSON 包在 markdown fence 里（<code>json ... </code>）。</li><li>加前言（&ldquo;好的，这是 JSON：&mldr;"）。</li><li>多一个尾逗号。</li><li>JSON 跨多个段落。</li></ul><p>防御性解析能处理多数：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span><span class=o>,</span> <span class=nn>re</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>parse_robust</span><span class=p>(</span><span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 1. 直接 parse</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>text</span><span class=o>.</span><span class=n>strip</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=n>json</span><span class=o>.</span><span class=n>JSONDecodeError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>pass</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 2. 剥 markdown fence</span>
+</span></span><span class=line><span class=cl>    <span class=n>m</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>search</span><span class=p>(</span><span class=sa>r</span><span class=s2>&#34;```(?:json)?\s*(.+?)\s*```&#34;</span><span class=p>,</span> <span class=n>text</span><span class=p>,</span> <span class=n>re</span><span class=o>.</span><span class=n>DOTALL</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>m</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>m</span><span class=o>.</span><span class=n>group</span><span class=p>(</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>except</span> <span class=n>json</span><span class=o>.</span><span class=n>JSONDecodeError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>pass</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 3. 找第一个 { 到最后一个 }</span>
+</span></span><span class=line><span class=cl>    <span class=n>s</span><span class=p>,</span> <span class=n>e</span> <span class=o>=</span> <span class=n>text</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>&#34;{&#34;</span><span class=p>),</span> <span class=n>text</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=s2>&#34;}&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>s</span> <span class=o>!=</span> <span class=o>-</span><span class=mi>1</span> <span class=ow>and</span> <span class=n>e</span> <span class=o>!=</span> <span class=o>-</span><span class=mi>1</span> <span class=ow>and</span> <span class=n>e</span> <span class=o>&gt;</span> <span class=n>s</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>text</span><span class=p>[</span><span class=n>s</span><span class=p>:</span><span class=n>e</span><span class=o>+</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=k>except</span> <span class=n>json</span><span class=o>.</span><span class=n>JSONDecodeError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>pass</span>
+</span></span><span class=line><span class=cl>    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Could not parse: </span><span class=si>{</span><span class=n>text</span><span class=p>[:</span><span class=mi>200</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>我每次自由格式结构化输出都跑这个 parser。我们生产 pipeline 失败率从约 3 % 降到 &lt;0.1 %。</p><h2 id=错误恢复模式>错误恢复模式</h2><p>工具会失败。API 挂了、数据库返回了意外的 schema、function 超时、参数不合法。Agent 必须不打转地处理。</p><p><strong>模式 1：tool error 当 tool result。</strong> 把错误信息 <em>作为 tool result content</em> 返回，而不是抛异常：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>execute_tool</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>args</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>TOOLS</span><span class=p>[</span><span class=n>name</span><span class=p>](</span><span class=o>**</span><span class=n>args</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;Error: </span><span class=si>{</span><span class=nb>type</span><span class=p>(</span><span class=n>e</span><span class=p>)</span><span class=o>.</span><span class=vm>__name__</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>e</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>模型在上下文里看到错误，能决定重试、换工具、或优雅放弃。抛异常的话你就把模型踢出循环了。</p><p><strong>模式 2：在工具里做业务校验，不在 schema 里。</strong> Schema 管类型，业务逻辑管语义。<code>transfer_money(from_account, to_account, amount)</code> 工具应该用清晰的错误信息拒绝 <code>amount=-100</code>——schema 不知道你的业务规则。</p><p><strong>模式 3：有界重试。</strong> 模型一直调同一个坏工具就终止循环。设 <code>max_tool_calls=10</code> 上限和 <code>max_consecutive_errors=3</code> 上限。我 debug 的 agent runaway 多数是模型在 &ldquo;工具失败 → 同样方式重试&rdquo; 循环里。</p><p><strong>模式 4：不要展示 stack trace。</strong> Python stack trace 几百 token，会把小模型搞糊涂。返回一句话错误描述，full trace 单独 log 留 debug。</p><h2 id=agent-loop>Agent loop</h2><p>生产里的最简 agent loop：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>run_agent</span><span class=p>(</span><span class=n>initial_message</span><span class=p>,</span> <span class=n>tools</span><span class=p>,</span> <span class=n>max_steps</span><span class=o>=</span><span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span> <span class=o>=</span> <span class=p>[{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>initial_message</span><span class=p>}]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>messages</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>model</span><span class=o>=</span><span class=n>MODEL</span><span class=p>,</span> <span class=n>tools</span><span class=o>=</span><span class=n>tools</span><span class=p>,</span> <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>,</span> <span class=n>max_tokens</span><span class=o>=</span><span class=mi>4096</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>({</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;assistant&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>response</span><span class=o>.</span><span class=n>content</span><span class=p>})</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>tool_uses</span> <span class=o>=</span> <span class=p>[</span><span class=n>b</span> <span class=k>for</span> <span class=n>b</span> <span class=ow>in</span> <span class=n>response</span><span class=o>.</span><span class=n>content</span> <span class=k>if</span> <span class=n>b</span><span class=o>.</span><span class=n>type</span> <span class=o>==</span> <span class=s2>&#34;tool_use&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=ow>not</span> <span class=n>tool_uses</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>response</span>  <span class=c1># final answer</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>tool_results</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>tu</span> <span class=ow>in</span> <span class=n>tool_uses</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>result</span> <span class=o>=</span> <span class=n>execute_tool</span><span class=p>(</span><span class=n>tu</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=n>tu</span><span class=o>.</span><span class=n>input</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>tool_results</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;tool_result&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;tool_use_id&#34;</span><span class=p>:</span> <span class=n>tu</span><span class=o>.</span><span class=n>id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=nb>str</span><span class=p>(</span><span class=n>result</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>({</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>tool_results</span><span class=p>})</span>
+</span></span><span class=line><span class=cl>    <span class=k>raise</span> <span class=ne>RuntimeError</span><span class=p>(</span><span class=s2>&#34;Agent exceeded max_steps&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>够用 80 % 的 agent 用例。剩下 20 % 需要：</p><ul><li><strong>工具输出截断</strong>：<code>read_file</code> 返回 10 万 token 会爆上下文。截到约 1 万带 &ldquo;[truncated]&rdquo; 标记。</li><li><strong>记忆压缩</strong>：第 15 步对话 5 万 token 了；继续之前把更早的 step 总结成单条消息。</li><li><strong>子 agent</strong>：复杂子任务（&ldquo;研究 X&rdquo;）拆给独立 agent 跑，只回最终总结。</li><li><strong>Tool-call 流式</strong>：tool call 一边生成一边吐而不是等完整 response。降并行工具执行的 TTFT。</li></ul><h2 id=生产里出错的事>生产里出错的事</h2><p><strong>幻觉 tool 名。</strong> 模型调一个不存在的工具。修：验 <code>tu.name in TOOLS</code> 返回 tool-not-found 错误。一些模型（尤其 7B 以下小模型）幻觉的工具 <em>几乎</em> 跟真名匹配——<code>get_weather_info</code> vs <code>get_weather</code>。错误里建议最近匹配很有用。</p><p><strong>幻觉 tool 参数。</strong> 模型造个 schema 里没有的 <code>force=True</code>。Schema 验证抓得到；返回清晰的 &ldquo;参数 X 不支持&rdquo; 错误。</p><p><strong>自信地错的 tool result。</strong> 搜索工具返 &ldquo;无结果&rdquo;，模型还是幻觉答案。症状：模型用了 tool result 但它的断言跟结果矛盾。防御：系统 prompt 里明确提醒（&ldquo;工具返回无结果就说无结果&rdquo;）。高风险用例，用单独的模型对答案和工具脚本做后验证。</p><p><strong>在 tool error 上打转。</strong> 上面模式 3。永远封顶。</p><p><strong>Tool 延迟级联。</strong> 一个 30 秒的 tool 调用把用户面前的请求开着。每个 tool 调用都设超时。&ldquo;这个工具慢，要不要不带它再试&rdquo; 作为兜底 UX。</p><h2 id=小结与下一篇>小结与下一篇</h2><p>Function calling 是训出来的行为加 chat template 加可选文法强制。用最强的可用保证（schema 约束解码 > JSON mode > prompt 出 JSON）。模型支持就并行工具调用；有数据依赖就串行。把工具错误 <em>作为</em> tool result 露出，让模型恢复。永远封顶循环；永远给工具超时；永远截断大输出。</p><p>下一篇：<strong>Retrieval-augmented generation</strong>。切分策略、embedding 模型选型、混合检索（dense+sparse）、reranking，以及实战中长上下文 vs RAG 的决策。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/llm-engineering/>大模型工程</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/llm-engineering/06-long-context/><span class=title>大模型工程（六）：长上下文 —— RoPE、YaRN、Attention Sinks</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/llm-engineering/08-rag/><span class=title>大模型工程（八）：检索增强生成 RAG</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/01-architectures/><span class=series-nav-num>01</span>
+<span class=series-nav-title>大模型工程（一）：从 Transformer 到 MoE 的架构演化</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/02-tokenization/><span class=series-nav-num>02</span>
+<span class=series-nav-title>大模型工程（二）：Tokenization 深挖</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/03-pretraining/><span class=series-nav-num>03</span>
+<span class=series-nav-title>大模型工程（三）：规模化预训练</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/04-post-training/><span class=series-nav-num>04</span>
+<span class=series-nav-title>大模型工程（四）：Post-training —— SFT、DPO、RLHF、RLAIF</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/05-inference/><span class=series-nav-num>05</span>
+<span class=series-nav-title>大模型工程（五）：推理优化</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/06-long-context/><span class=series-nav-num>06</span>
+<span class=series-nav-title>大模型工程（六）：长上下文 —— RoPE、YaRN、Attention Sinks</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>07</span>
+<span class=series-nav-title>大模型工程（七）：Function Calling 与工具使用</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/08-rag/><span class=series-nav-num>08</span>
+<span class=series-nav-title>大模型工程（八）：检索增强生成 RAG</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/09-prompting/><span class=series-nav-num>09</span>
+<span class=series-nav-title>大模型工程（九）：生产规模的 Prompting</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/10-evaluation/><span class=series-nav-num>10</span>
+<span class=series-nav-title>大模型工程（十）：评估</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/11-safety/><span class=series-nav-num>11</span>
+<span class=series-nav-title>大模型工程（十一）：安全与对齐</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/llm-engineering/12-production/><span class=series-nav-num>12</span>
+<span class=series-nav-title>大模型工程（十二）：生产 —— 部署、监控、成本</span></a></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#function-calling-实际指的是什么>&ldquo;Function calling&rdquo; 实际指的是什么</a></li><li><a href=#一次真实的-function-call-请求>一次真实的 function-call 请求</a></li><li><a href=#并行工具调用>并行工具调用</a></li><li><a href=#用文法做结构化输出>用文法做结构化输出</a></li><li><a href=#自由格式没文法的时候>自由格式：没文法的时候</a></li><li><a href=#错误恢复模式>错误恢复模式</a></li><li><a href=#agent-loop>Agent loop</a></li><li><a href=#生产里出错的事>生产里出错的事</a></li><li><a href=#小结与下一篇>小结与下一篇</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>大模型工程</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/01-architectures/><span class=chapter-num>01</span>
+<span class=chapter-title>大模型工程（一）：从 Transformer 到 MoE 的架构演化</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/02-tokenization/><span class=chapter-num>02</span>
+<span class=chapter-title>大模型工程（二）：Tokenization 深挖</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/03-pretraining/><span class=chapter-num>03</span>
+<span class=chapter-title>大模型工程（三）：规模化预训练</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/04-post-training/><span class=chapter-num>04</span>
+<span class=chapter-title>大模型工程（四）：Post-training —— SFT、DPO、RLHF、RLAIF</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/05-inference/><span class=chapter-num>05</span>
+<span class=chapter-title>大模型工程（五）：推理优化</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/06-long-context/><span class=chapter-num>06</span>
+<span class=chapter-title>大模型工程（六）：长上下文 —— RoPE、YaRN、Attention Sinks</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>大模型工程（七）：Function Calling 与工具使用</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/08-rag/><span class=chapter-num>08</span>
+<span class=chapter-title>大模型工程（八）：检索增强生成 RAG</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/09-prompting/><span class=chapter-num>09</span>
+<span class=chapter-title>大模型工程（九）：生产规模的 Prompting</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/10-evaluation/><span class=chapter-num>10</span>
+<span class=chapter-title>大模型工程（十）：评估</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/11-safety/><span class=chapter-num>11</span>
+<span class=chapter-title>大模型工程（十一）：安全与对齐</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/llm-engineering/12-production/><span class=chapter-num>12</span>
+<span class=chapter-title>大模型工程（十二）：生产 —— 部署、监控、成本</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>7 min</strong></div><div class=row><span>字数</span><strong>3385</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>Llm-Engineering</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
+<span class=signature>杭州</span></div></div></footer></body></html>

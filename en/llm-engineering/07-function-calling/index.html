@@ -1,0 +1,276 @@
+<!doctype html><html lang=en data-translation=/zh/llm-engineering/07-function-calling/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>LLM Engineering (7): Function Calling and Tool Use · Chen Kai Blog</title>
+<meta name=description content="JSON-mode vs function-mode vs free-form, parallel tool calls, structured-output guarantees with grammars, error recovery patterns, and the agent loops that survive contact with reality."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/llm-engineering/07-function-calling/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/llm-engineering/07-function-calling/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/llm-engineering/07-function-calling/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/llm-engineering/07-function-calling/><meta property="og:type" content="article"><meta property="og:title" content="LLM Engineering (7): Function Calling and Tool Use"><meta property="og:description" content="JSON-mode vs function-mode vs free-form, parallel tool calls, structured-output guarantees with grammars, error recovery patterns, and the agent loops that survive contact with reality."><meta property="og:url" content="https://www.chenk.top/en/llm-engineering/07-function-calling/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/llm-engineering.jpg"><meta property="og:image:alt" content="LLM Engineering (7): Function Calling and Tool Use"><meta property="article:published_time" content="2026-04-22T09:00:00Z"><meta property="article:modified_time" content="2026-04-22T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="llm"><meta property="article:tag" content="function-calling"><meta property="article:tag" content="tools"><meta property="article:tag" content="agents"><meta property="article:tag" content="json-schema"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="LLM Engineering (7): Function Calling and Tool Use"><meta name=twitter:description content="JSON-mode vs function-mode vs free-form, parallel tool calls, structured-output guarantees with grammars, error recovery patterns, and the agent loops that survive contact with reality."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/llm-engineering.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"LLM Engineering (7): Function Calling and Tool Use\"","description":"\"JSON-mode vs function-mode vs free-form, parallel tool calls, structured-output guarantees with grammars, error recovery patterns, and the agent loops that survive contact with reality.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/llm-engineering.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2026-04-22T09:00:00Z\"","dateModified":"\"2026-04-22T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/llm-engineering/07-function-calling/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.1dbf9607ed31ff6d68f7fcd73c9254277944f5b06d6156062985db9a13015137.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>LLM Engineering</a>
+· Chapter 7</div><h1>LLM Engineering (7): Function Calling and Tool Use</h1><p class=deck>JSON-mode vs function-mode vs free-form, parallel tool calls, structured-output guarantees with grammars, error recovery patterns, and the agent loops that survive contact with reality.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-22>April 22, 2026</time> · 9 min read · 1734 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/llm/ class=tag>#llm</a><a href=/en/tags/function-calling/ class=tag>#function-calling</a><a href=/en/tags/tools/ class=tag>#tools</a><a href=/en/tags/agents/ class=tag>#agents</a><a href=/en/tags/json-schema/ class=tag>#json-schema</a></div><a class="pill pill-outline" href=/zh/llm-engineering/07-function-calling/>阅读中文版 →</a></div></header><div class=prose><p>Function calling is the bridge between an LLM and the world outside its weights. It&rsquo;s also the place where chat-template details (chapter 2), structured-output kernels (chapter 5), and prompt engineering (chapter 9) all collide. This chapter is about what&rsquo;s actually happening underneath, what guarantees you can lean on, and the agent-loop patterns that survive a real workload.</p><h2 id=what-function-calling-actually-means>What &ldquo;function calling&rdquo; actually means</h2><p>When an API exposes &ldquo;function calling,&rdquo; several different things might be happening:</p><ol><li><strong>Trained behavior + chat template marker</strong>. The model was post-trained to emit a tool call when one is appropriate, wrapped in special tokens. Examples: Qwen3 (<code>&lt;tool_call>...&lt;/tool_call></code>), Mistral (<code>[TOOL_CALLS]</code>).</li><li><strong>JSON-mode constrained decoding</strong>. The output is forced to be valid JSON via grammar-constrained decoding. The model wasn&rsquo;t necessarily trained for it; the <em>decoder</em> enforces it.</li><li><strong>Schema-guided structured output</strong>. JSON-mode plus the constraint that the JSON match a specific schema (function name, parameter types).</li><li><strong>Free-form prompted</strong>. You write &ldquo;respond in JSON with keys X, Y&rdquo; in the system prompt and hope. This still works for capable models but has no guarantees.</li></ol><p>Production systems mix all four. The OpenAI/Anthropic APIs use 1+3 (trained behavior + schema enforcement). vLLM and SGLang implement 2+3 for any model. The free-form approach (4) is the fallback when nothing else is available.</p><h2 id=a-real-function-call-request>A real function-call request</h2><p>Anthropic Claude API:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>anthropic</span>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>anthropic</span><span class=o>.</span><span class=n>Anthropic</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>messages</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;claude-4-5-sonnet-20250901&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_tokens</span><span class=o>=</span><span class=mi>1024</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>tools</span><span class=o>=</span><span class=p>[{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;get_weather&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;Get current weather for a location.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;input_schema&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;location&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span> <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;City and state, e.g. San Francisco, CA&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;unit&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span> <span class=s2>&#34;enum&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;celsius&#34;</span><span class=p>,</span> <span class=s2>&#34;fahrenheit&#34;</span><span class=p>],</span> <span class=s2>&#34;default&#34;</span><span class=p>:</span> <span class=s2>&#34;celsius&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;required&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;location&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>}],</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;What&#39;s the weather in Tokyo?&#34;</span><span class=p>}],</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># response.content might be:</span>
+</span></span><span class=line><span class=cl><span class=c1># [TextBlock(text=&#34;I&#39;ll check the weather in Tokyo.&#34;),</span>
+</span></span><span class=line><span class=cl><span class=c1>#  ToolUseBlock(id=&#34;toolu_xxx&#34;, name=&#34;get_weather&#34;,</span>
+</span></span><span class=line><span class=cl><span class=c1>#               input={&#34;location&#34;: &#34;Tokyo, Japan&#34;, &#34;unit&#34;: &#34;celsius&#34;})]</span>
+</span></span></code></pre></td></tr></table></div></div><p>The model returns a structured <code>ToolUseBlock</code>. Your code executes the tool, then sends a follow-up message:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>response2</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>messages</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;claude-4-5-sonnet-20250901&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_tokens</span><span class=o>=</span><span class=mi>1024</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>tools</span><span class=o>=</span><span class=p>[</span><span class=o>...</span><span class=p>],</span>  <span class=c1># same tools</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;What&#39;s the weather in Tokyo?&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;assistant&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>response</span><span class=o>.</span><span class=n>content</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;tool_result&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;tool_use_id&#34;</span><span class=p>:</span> <span class=s2>&#34;toolu_xxx&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;72°F, partly cloudy&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>}]},</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The conversation now has a tool call and a tool result; the next assistant turn can use that information. This is the basic loop.</p><h2 id=parallel-tool-calls>Parallel tool calls</h2><p>In 2026, every frontier model supports parallel tool calls — emitting multiple <code>ToolUseBlock</code>s in one turn. If a user asks &ldquo;What&rsquo;s the weather in Tokyo and New York?&rdquo;, the model emits two tool calls simultaneously, you execute both in parallel, and pass both results back.</p><p>Why this matters: serial tool calls compound latency. A 5-tool agent making 5 sequential calls at 200 ms each is 1 second of pure tool latency. Parallel cuts that to 200 ms. For agents (chapter 7-12 of OpenClaw, anything with multiple data sources), this is the difference between &ldquo;snappy&rdquo; and &ldquo;frustrating.&rdquo;</p><p>The catch: parallel tool calls only make sense for tools that don&rsquo;t depend on each other. Looking up weather in two cities is parallel-safe. &ldquo;Search for flights, then book the cheapest one&rdquo; is not — the second tool call depends on the first&rsquo;s result. The model should know this from training, but it doesn&rsquo;t always. Production code should verify the parallel calls are actually independent before running them in parallel.</p><h2 id=structured-output-with-grammars>Structured output with grammars</h2><p>Function-calling APIs guarantee well-formed JSON. But what if you want the JSON to match a specific schema, every time, no exceptions?</p><p>vLLM and SGLang both implement <strong>grammar-constrained decoding</strong>. At every decode step, mask the output distribution to only tokens that could continue a valid string under the grammar. Implementations: Outlines (Python regex compiler), XGrammar (faster, used by SGLang), llama.cpp&rsquo;s GBNF.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># vLLM with JSON schema constraint</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>vllm.sampling_params</span> <span class=kn>import</span> <span class=n>GuidedDecodingParams</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>schema</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;city&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;temp_c&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;number&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;conditions&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span> <span class=s2>&#34;enum&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;sunny&#34;</span><span class=p>,</span> <span class=s2>&#34;cloudy&#34;</span><span class=p>,</span> <span class=s2>&#34;rainy&#34;</span><span class=p>]},</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;required&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;city&#34;</span><span class=p>,</span> <span class=s2>&#34;temp_c&#34;</span><span class=p>,</span> <span class=s2>&#34;conditions&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>params</span> <span class=o>=</span> <span class=n>SamplingParams</span><span class=p>(</span><span class=n>max_tokens</span><span class=o>=</span><span class=mi>200</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                       <span class=n>guided_decoding</span><span class=o>=</span><span class=n>GuidedDecodingParams</span><span class=p>(</span><span class=n>json</span><span class=o>=</span><span class=n>schema</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>out</span> <span class=o>=</span> <span class=n>llm</span><span class=o>.</span><span class=n>generate</span><span class=p>(</span><span class=n>prompts</span><span class=p>,</span> <span class=n>params</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># out is guaranteed parseable JSON matching the schema</span>
+</span></span></code></pre></td></tr></table></div></div><p>This is the strongest output guarantee: not &ldquo;usually JSON,&rdquo; not &ldquo;JSON with right keys,&rdquo; but &ldquo;valid JSON conforming exactly to the schema.&rdquo; Latency cost is small (3-5 % overhead with XGrammar).</p><p>A subtle limitation: grammar constraints affect <em>structure</em>, not <em>content</em>. The model might output <code>{"city": "Tokyo", "temp_c": "warm", "conditions": "sunny"}</code> — <code>temp_c</code> is a string instead of a number. Wait, that&rsquo;s not valid JSON-schema-wise; XGrammar would have masked the string-quote token at that position and forced a number. But if your schema doesn&rsquo;t include the <code>enum</code> for <code>conditions</code>, the model could write <code>"conditions": "elephant"</code> and pass schema validation. Schema constraints don&rsquo;t make outputs <em>true</em>, they make them <em>parseable</em>.</p><h2 id=free-form-when-grammars-arent-available>Free-form: when grammars aren&rsquo;t available</h2><p>Many APIs (most non-OpenAI/Anthropic providers, on-device inference, internal services) don&rsquo;t expose grammar-constrained decoding. The fallback is prompt-engineered structured output:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>prompt</span> <span class=o>=</span> <span class=s2>&#34;&#34;&#34;Output a JSON object with these keys, no markdown, no prose:
+</span></span></span><span class=line><span class=cl><span class=s2>- &#34;city&#34; (string)
+</span></span></span><span class=line><span class=cl><span class=s2>- &#34;temp_c&#34; (number)
+</span></span></span><span class=line><span class=cl><span class=s2>- &#34;conditions&#34; (one of: &#34;sunny&#34;, &#34;cloudy&#34;, &#34;rainy&#34;)
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>Query: What&#39;s the weather in Tokyo?
+</span></span></span><span class=line><span class=cl><span class=s2>JSON:&#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Capable models (LLaMA-3.3-70B+, Qwen3-32B+) follow this 95-99 % of the time. The 1-5 % failure mode is usually one of:</p><ul><li>Wrapping JSON in markdown fences (<code>json ... </code>).</li><li>Adding a preamble (&ldquo;Sure, here&rsquo;s the JSON: &mldr;&rdquo;).</li><li>Including a trailing comma.</li><li>Splitting the JSON across multiple paragraphs.</li></ul><p>Defensive parsing handles most of these:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span><span class=o>,</span> <span class=nn>re</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>parse_robust</span><span class=p>(</span><span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 1. Try direct parse</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>text</span><span class=o>.</span><span class=n>strip</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=n>json</span><span class=o>.</span><span class=n>JSONDecodeError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>pass</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 2. Strip markdown fences</span>
+</span></span><span class=line><span class=cl>    <span class=n>m</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>search</span><span class=p>(</span><span class=sa>r</span><span class=s2>&#34;```(?:json)?\s*(.+?)\s*```&#34;</span><span class=p>,</span> <span class=n>text</span><span class=p>,</span> <span class=n>re</span><span class=o>.</span><span class=n>DOTALL</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>m</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>m</span><span class=o>.</span><span class=n>group</span><span class=p>(</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>except</span> <span class=n>json</span><span class=o>.</span><span class=n>JSONDecodeError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>pass</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 3. Find first { ... last }</span>
+</span></span><span class=line><span class=cl>    <span class=n>s</span><span class=p>,</span> <span class=n>e</span> <span class=o>=</span> <span class=n>text</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>&#34;{&#34;</span><span class=p>),</span> <span class=n>text</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=s2>&#34;}&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>s</span> <span class=o>!=</span> <span class=o>-</span><span class=mi>1</span> <span class=ow>and</span> <span class=n>e</span> <span class=o>!=</span> <span class=o>-</span><span class=mi>1</span> <span class=ow>and</span> <span class=n>e</span> <span class=o>&gt;</span> <span class=n>s</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>text</span><span class=p>[</span><span class=n>s</span><span class=p>:</span><span class=n>e</span><span class=o>+</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=k>except</span> <span class=n>json</span><span class=o>.</span><span class=n>JSONDecodeError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>pass</span>
+</span></span><span class=line><span class=cl>    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Could not parse: </span><span class=si>{</span><span class=n>text</span><span class=p>[:</span><span class=mi>200</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>I run this parser on every free-form structured-output call. Failure rate dropped from ~3 % to &lt;0.1 % for our production pipeline.</p><h2 id=error-recovery-patterns>Error recovery patterns</h2><p>Tools fail. The API was down, the database returned an unexpected schema, the function timed out, the parameters were invalid. The agent has to handle this without spiraling.</p><p><strong>Pattern 1: Tool error as tool result.</strong> Return the error message <em>as the tool result content</em>, not as an exception:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>execute_tool</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>args</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>TOOLS</span><span class=p>[</span><span class=n>name</span><span class=p>](</span><span class=o>**</span><span class=n>args</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;Error: </span><span class=si>{</span><span class=nb>type</span><span class=p>(</span><span class=n>e</span><span class=p>)</span><span class=o>.</span><span class=vm>__name__</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>e</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>The model sees the error in context and can decide to retry, switch to a different tool, or give up gracefully. If you raise an exception, you&rsquo;ve taken the model out of the loop.</p><p><strong>Pattern 2: Validation in the tool, not the schema.</strong> Schema enforces types. Business logic validates semantics. A <code>transfer_money(from_account, to_account, amount)</code> tool should reject <code>amount=-100</code> with a clear error message — the schema can&rsquo;t know your business rules.</p><p><strong>Pattern 3: Bounded retries.</strong> If the model keeps calling the same broken tool, terminate the loop. Set a <code>max_tool_calls=10</code> ceiling and a <code>max_consecutive_errors=3</code> ceiling. Most agent runaways I&rsquo;ve debugged were the model in a &ldquo;tool fails → retry same way&rdquo; loop.</p><p><strong>Pattern 4: Don&rsquo;t show stack traces.</strong> A Python stack trace is hundreds of tokens and confuses small models. Return a one-sentence error description, log the full trace separately for debugging.</p><h2 id=the-agent-loop>The agent loop</h2><p>A minimal agent loop in production:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>run_agent</span><span class=p>(</span><span class=n>initial_message</span><span class=p>,</span> <span class=n>tools</span><span class=p>,</span> <span class=n>max_steps</span><span class=o>=</span><span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span> <span class=o>=</span> <span class=p>[{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>initial_message</span><span class=p>}]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>messages</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>model</span><span class=o>=</span><span class=n>MODEL</span><span class=p>,</span> <span class=n>tools</span><span class=o>=</span><span class=n>tools</span><span class=p>,</span> <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>,</span> <span class=n>max_tokens</span><span class=o>=</span><span class=mi>4096</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>({</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;assistant&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>response</span><span class=o>.</span><span class=n>content</span><span class=p>})</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>tool_uses</span> <span class=o>=</span> <span class=p>[</span><span class=n>b</span> <span class=k>for</span> <span class=n>b</span> <span class=ow>in</span> <span class=n>response</span><span class=o>.</span><span class=n>content</span> <span class=k>if</span> <span class=n>b</span><span class=o>.</span><span class=n>type</span> <span class=o>==</span> <span class=s2>&#34;tool_use&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=ow>not</span> <span class=n>tool_uses</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>response</span>  <span class=c1># final answer</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>tool_results</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>tu</span> <span class=ow>in</span> <span class=n>tool_uses</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>result</span> <span class=o>=</span> <span class=n>execute_tool</span><span class=p>(</span><span class=n>tu</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=n>tu</span><span class=o>.</span><span class=n>input</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>tool_results</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;tool_result&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;tool_use_id&#34;</span><span class=p>:</span> <span class=n>tu</span><span class=o>.</span><span class=n>id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=nb>str</span><span class=p>(</span><span class=n>result</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>({</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>tool_results</span><span class=p>})</span>
+</span></span><span class=line><span class=cl>    <span class=k>raise</span> <span class=ne>RuntimeError</span><span class=p>(</span><span class=s2>&#34;Agent exceeded max_steps&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>This is enough for 80 % of agent use cases. The remaining 20 % needs:</p><ul><li><strong>Tool-output truncation</strong>: a <code>read_file</code> that returns 100K tokens will blow your context. Truncate to ~10K with a &ldquo;[truncated]&rdquo; marker.</li><li><strong>Memory compaction</strong>: at step 15 the conversation is 50K tokens; summarize older steps into a single message before continuing.</li><li><strong>Sub-agents</strong>: factor a complex sub-task (&ldquo;research X&rdquo;) into a separate agent with its own conversation history, return only the final summary.</li><li><strong>Tool-call streaming</strong>: emit tool calls as they&rsquo;re generated rather than waiting for the full response. Reduces TTFT for parallel tool execution.</li></ul><h2 id=things-that-go-wrong-in-production>Things that go wrong in production</h2><p><strong>Hallucinated tool names.</strong> The model calls a tool that doesn&rsquo;t exist. Fix: validate <code>tu.name in TOOLS</code> and return a tool-not-found error. Some models (especially small ones under 7B) hallucinate tools that <em>almost</em> match a real name — <code>get_weather_info</code> instead of <code>get_weather</code>. Helpful to suggest the closest match in the error.</p><p><strong>Hallucinated tool parameters.</strong> The model invents a <code>force=True</code> argument that doesn&rsquo;t exist in the schema. Schema validation catches this; return a clear &ldquo;parameter X not supported&rdquo; error.</p><p><strong>Confidently wrong tool results.</strong> A search tool returns &ldquo;no results&rdquo; but the model hallucinates the answer anyway. Symptoms: the tool result was used by the model but its claim contradicts the result. Defense: include explicit reminders in the system prompt (&ldquo;If a tool returns no results, say so&rdquo;). For high-stakes use cases, post-validate the answer against the tool transcript with a separate model.</p><p><strong>Looping on tool errors.</strong> Pattern 3 above. Always cap.</p><p><strong>Tool latency cascading.</strong> A 30-second tool call holds the user-facing request open. Use timeouts on every tool call. Surface &ldquo;this tool is slow, want to try without it?&rdquo; as fallback UX.</p><h2 id=takeaway-and-whats-next>Takeaway and what&rsquo;s next</h2><p>Function calling is trained behavior plus chat template plus optional grammar enforcement. Use the strongest guarantee available (schema-constrained decoding > JSON mode > prompted JSON). Parallel tool calls when the model supports them; serial when there&rsquo;s data dependence. Surface tool errors <em>as</em> tool results so the model can recover. Always cap loops; always timeout tools; always truncate large outputs.</p><p>Next chapter: <strong>retrieval-augmented generation</strong>. Chunking strategies, embedding model choice, hybrid retrieval (dense + sparse), reranking, and the long-context-vs-RAG decision in practice.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/llm-engineering/>LLM Engineering</a> <span class=count>12 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/llm-engineering/06-long-context/><span class=title>LLM Engineering (6): Long Context — RoPE, YaRN, Sinks</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/llm-engineering/08-rag/><span class=title>LLM Engineering (8): Retrieval-Augmented Generation</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/01-architectures/><span class=series-nav-num>01</span>
+<span class=series-nav-title>LLM Engineering (1): Architectures from Transformer to MoE</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/02-tokenization/><span class=series-nav-num>02</span>
+<span class=series-nav-title>LLM Engineering (2): Tokenization Deep Dive</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/03-pretraining/><span class=series-nav-num>03</span>
+<span class=series-nav-title>LLM Engineering (3): Pretraining at Scale</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/04-post-training/><span class=series-nav-num>04</span>
+<span class=series-nav-title>LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/05-inference/><span class=series-nav-num>05</span>
+<span class=series-nav-title>LLM Engineering (5): Inference Optimization</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/06-long-context/><span class=series-nav-num>06</span>
+<span class=series-nav-title>LLM Engineering (6): Long Context — RoPE, YaRN, Sinks</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>07</span>
+<span class=series-nav-title>LLM Engineering (7): Function Calling and Tool Use</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/08-rag/><span class=series-nav-num>08</span>
+<span class=series-nav-title>LLM Engineering (8): Retrieval-Augmented Generation</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/09-prompting/><span class=series-nav-num>09</span>
+<span class=series-nav-title>LLM Engineering (9): Prompting at Production Scale</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/10-evaluation/><span class=series-nav-num>10</span>
+<span class=series-nav-title>LLM Engineering (10): Evaluation</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/11-safety/><span class=series-nav-num>11</span>
+<span class=series-nav-title>LLM Engineering (11): Safety and Alignment</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/llm-engineering/12-production/><span class=series-nav-num>12</span>
+<span class=series-nav-title>LLM Engineering (12): Production — Deployment, Monitoring, Cost</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-function-calling-actually-means>What &ldquo;function calling&rdquo; actually means</a></li><li><a href=#a-real-function-call-request>A real function-call request</a></li><li><a href=#parallel-tool-calls>Parallel tool calls</a></li><li><a href=#structured-output-with-grammars>Structured output with grammars</a></li><li><a href=#free-form-when-grammars-arent-available>Free-form: when grammars aren&rsquo;t available</a></li><li><a href=#error-recovery-patterns>Error recovery patterns</a></li><li><a href=#the-agent-loop>The agent loop</a></li><li><a href=#things-that-go-wrong-in-production>Things that go wrong in production</a></li><li><a href=#takeaway-and-whats-next>Takeaway and what&rsquo;s next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>LLM Engineering</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/01-architectures/><span class=chapter-num>01</span>
+<span class=chapter-title>LLM Engineering (1): Architectures from Transformer to MoE</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/02-tokenization/><span class=chapter-num>02</span>
+<span class=chapter-title>LLM Engineering (2): Tokenization Deep Dive</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/03-pretraining/><span class=chapter-num>03</span>
+<span class=chapter-title>LLM Engineering (3): Pretraining at Scale</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/04-post-training/><span class=chapter-num>04</span>
+<span class=chapter-title>LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/05-inference/><span class=chapter-num>05</span>
+<span class=chapter-title>LLM Engineering (5): Inference Optimization</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/06-long-context/><span class=chapter-num>06</span>
+<span class=chapter-title>LLM Engineering (6): Long Context — RoPE, YaRN, Sinks</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>LLM Engineering (7): Function Calling and Tool Use</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/08-rag/><span class=chapter-num>08</span>
+<span class=chapter-title>LLM Engineering (8): Retrieval-Augmented Generation</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/09-prompting/><span class=chapter-num>09</span>
+<span class=chapter-title>LLM Engineering (9): Prompting at Production Scale</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/10-evaluation/><span class=chapter-num>10</span>
+<span class=chapter-title>LLM Engineering (10): Evaluation</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/11-safety/><span class=chapter-num>11</span>
+<span class=chapter-title>LLM Engineering (11): Safety and Alignment</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/llm-engineering/12-production/><span class=chapter-num>12</span>
+<span class=chapter-title>LLM Engineering (12): Production — Deployment, Monitoring, Cost</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>9 min</strong></div><div class=row><span>Word count</span><strong>1734</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>About this site</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>About this site</h3><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/llm-engineering/>Llm-Engineering</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>
