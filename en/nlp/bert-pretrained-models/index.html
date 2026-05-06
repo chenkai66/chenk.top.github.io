@@ -1,922 +1,346 @@
-<!DOCTYPE html>
-
-<html lang="en" data-theme="light" data-page-lang="en" data-translation="">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
-  <meta name="description" content="How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code.">
-  <meta name="author" content="Chen Kai">
-  <meta name="generator" content="Hexo">
-  <title>NLP Part 5: BERT and Pretrained Models | Chen Kai Blog</title>
-
-  <!-- Preload critical fonts -->
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" as="style">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="article">
-  <meta property="og:title" content="NLP Part 5: BERT and Pretrained Models">
-  <meta property="og:description" content="How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code.">
-  <meta property="og:url" content="/en/nlp/bert-pretrained-models/">
-  <meta property="og:site_name" content="Chen Kai Blog">
-  
-  
-  <meta property="article:published_time" content="2025-08-31">
-  <meta property="article:author" content="Chen Kai">
-  
-  <meta property="article:section" content="Natural Language Processing">
-  
-  
-  <meta property="article:tag" content="NLP">
-  
-  <meta property="article:tag" content="Deep Learning">
-  
-  <meta property="article:tag" content="BERT">
-  
-  <meta property="article:tag" content="Transfer Learning">
-  
-  
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="NLP Part 5: BERT and Pretrained Models">
-  <meta name="twitter:description" content="How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code.">
-  
-
-  <!-- Canonical URL -->
-  <link rel="canonical" href="https://www.chenk.top/en/nlp/bert-pretrained-models/">
-
-  <!-- RSS / Atom Feed -->
-  <link rel="alternate" href="/atom.xml" title="Chen Kai Blog" type="application/atom+xml">
-  <link rel="alternate" href="/rss2.xml" title="Chen Kai Blog" type="application/rss+xml">
-
-  <!-- Sitemap -->
-  <link rel="sitemap" type="application/xml" href="/sitemap.xml">
-
-  <!-- Favicon -->
-  <link rel="shortcut icon" href="/images/logo.svg">
-  <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
-  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
-
-  <!-- Stylesheets -->
-  
-<link rel="stylesheet" href="/css/main.css">
-
-  
-<link rel="stylesheet" href="/css/article.css">
-
-  
-<link rel="stylesheet" href="/css/code.css">
-
-
-  
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-  
-
-  
-  <!-- JSON-LD Structured Data for Article -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": "NLP Part 5: BERT and Pretrained Models",
-    "description": "How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code.",
-    "datePublished": "2025-08-31",
-    "dateModified": "2026-05-06",
-    "author": {
-      "@type": "Person",
-      "name": "Chen Kai",
-      "url": "https://www.chenk.top"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Chen Kai Blog",
-      "url": "https://www.chenk.top"
-    },
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": "https://www.chenk.top/en/nlp/bert-pretrained-models/"
-    },
-    "wordCount": "3.5k"
-  }
-  </script>
-  
-
-  <!-- Theme initialization (prevent FOUC) -->
-  <script>
-    (function(){
-      var t = localStorage.getItem('theme');
-      if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', t);
-    })();
-  </script>
-<style>mjx-container[jax="SVG"] {
-  direction: ltr;
-}
-
-mjx-container[jax="SVG"] > svg {
-  overflow: visible;
-}
-
-mjx-container[jax="SVG"][display="true"] {
-  display: block;
-  text-align: center;
-  margin: 1em 0;
-}
-
-mjx-container[jax="SVG"][justify="left"] {
-  text-align: left;
-}
-
-mjx-container[jax="SVG"][justify="right"] {
-  text-align: right;
-}
-
-g[data-mml-node="merror"] > g {
-  fill: red;
-  stroke: red;
-}
-
-g[data-mml-node="merror"] > rect[data-background] {
-  fill: yellow;
-  stroke: none;
-}
-
-g[data-mml-node="mtable"] > line[data-line] {
-  stroke-width: 70px;
-  fill: none;
-}
-
-g[data-mml-node="mtable"] > rect[data-frame] {
-  stroke-width: 70px;
-  fill: none;
-}
-
-g[data-mml-node="mtable"] > .mjx-dashed {
-  stroke-dasharray: 140;
-}
-
-g[data-mml-node="mtable"] > .mjx-dotted {
-  stroke-linecap: round;
-  stroke-dasharray: 0,140;
-}
-
-g[data-mml-node="mtable"] > svg {
-  overflow: visible;
-}
-
-[jax="SVG"] mjx-tool {
-  display: inline-block;
-  position: relative;
-  width: 0;
-  height: 0;
-}
-
-[jax="SVG"] mjx-tool > mjx-tip {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-mjx-tool > mjx-tip {
-  display: inline-block;
-  padding: .2em;
-  border: 1px solid #888;
-  font-size: 70%;
-  background-color: #F8F8F8;
-  color: black;
-  box-shadow: 2px 2px 5px #AAAAAA;
-}
-
-g[data-mml-node="maction"][data-toggle] {
-  cursor: pointer;
-}
-
-mjx-status {
-  display: block;
-  position: fixed;
-  left: 1em;
-  bottom: 1em;
-  min-width: 25%;
-  padding: .2em .4em;
-  border: 1px solid #888;
-  font-size: 90%;
-  background-color: #F8F8F8;
-  color: black;
-}
-
-foreignObject[data-mjx-xml] {
-  font-family: initial;
-  line-height: normal;
-  overflow: visible;
-}
-
-.MathJax path {
-  stroke-width: 3;
-}
-
-mjx-container[display="true"] {
-  overflow: auto hidden;
-}
-
-mjx-container[display="true"] + br {
-  display: none;
-}
-</style></head>
-<body>
-  <header class="site-header">
-  <div class="header-inner">
-    <a href="/" class="site-logo">
-      <span class="logo-text">Chen Kai Blog</span>
-    </a>
-
-    <nav class="main-nav">
-      <a href="/" class="nav-link" data-i18n="nav.home">Home</a>
-      <a href="/series/" class="nav-link" data-i18n="nav.series">Series</a>
-      <a href="/projects/" class="nav-link" data-i18n="nav.projects">Projects</a>
-      <a href="/archives/" class="nav-link" data-i18n="nav.archives">Archives</a>
-      <a href="/about/" class="nav-link" data-i18n="nav.about">About</a>
-    </nav>
-
-    <div class="header-actions">
-      
-      <button class="lang-switcher" id="lang-switcher" aria-label="Switch language">
-        <span class="lang-label" id="lang-label">EN</span>
-      </button>
-      
-
-      
-      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
-        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      
-
-      
-      <button class="search-toggle" id="search-toggle" aria-label="Search">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      </button>
-      
-
-      <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-      </button>
-    </div>
-  </div>
-
-  
-  <div class="search-overlay" id="search-overlay">
-    <div class="search-container">
-      <div style="position: relative;">
-        <input type="text" class="search-input" id="search-input" placeholder="Search articles..." data-i18n-attr="placeholder:search.placeholder" autocomplete="off">
-        <div class="search-kbd" id="search-kbd-hint">
-          <kbd>Esc</kbd>
-        </div>
-      </div>
-      <div class="search-results" id="search-results"></div>
-    </div>
-  </div>
-  
-</header>
-
-<!-- Mobile Navigation Drawer -->
-<div class="mobile-drawer-overlay" id="mobile-drawer-overlay"></div>
-<nav class="mobile-drawer" id="mobile-drawer">
-  <div class="mobile-drawer-header">
-    <span class="mobile-drawer-title">Chen Kai Blog</span>
-    <button class="mobile-drawer-close" id="mobile-drawer-close" aria-label="Close menu">&times;</button>
-  </div>
-  <div class="mobile-drawer-nav">
-    <a href="/" class="" data-i18n="nav.home">Home</a>
-    <a href="/series/" class="" data-i18n="nav.series">Series</a>
-    <a href="/projects/" class="" data-i18n="nav.projects">Projects</a>
-    <a href="/archives/" class="" data-i18n="nav.archives">Archives</a>
-    <a href="/about/" class="" data-i18n="nav.about">About</a>
-  </div>
-  <div class="mobile-drawer-actions">
-    
-    <button id="mobile-theme-toggle" aria-label="Toggle dark mode">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-      Theme
-    </button>
-    
-    
-    <button id="mobile-lang-switcher" aria-label="Switch language">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      <span id="mobile-lang-label">EN</span>
-    </button>
-    
-  </div>
-</nav>
-
-
-  
-  <div class="reading-progress" id="reading-progress"></div>
-  
-
-  <main class="main-content">
-    
-<article class="article-page">
-  <div class="article-layout has-both-sidebars">
-    <!-- Series Sidebar (left) -->
-    
-    <aside class="series-sidebar" id="series-sidebar">
-      <div class="series-sidebar-inner">
-        <h4 class="series-sidebar-title">Natural Language Processing</h4>
-        <p class="series-sidebar-progress">Part 5 of 12</p>
-        <div class="series-progress-bar">
-          <div class="series-progress-fill" style="width: 41.66666666666667%"></div>
-        </div>
-        <nav class="series-chapter-list">
-          <!-- Series chapters populated by JS or by listing related posts -->
-        </nav>
-      </div>
-    </aside>
-    
-
-    <!-- Article Content (center) -->
-    <div class="article-main">
-      <!-- Breadcrumb Navigation -->
-      <nav class="breadcrumb" aria-label="Breadcrumb">
-        <a href="/" data-i18n="nav.home">Home</a>
-        <span class="breadcrumb-separator">&#9656;</span>
-        
-          
-          <a href="/categories/Natural-Language-Processing/">Natural Language Processing</a>
-          <span class="breadcrumb-separator">&#9656;</span>
-        
-        <span class="breadcrumb-current">NLP Part 5: BERT and Pretrained Models</span>
-      </nav>
-
-      <header class="article-header">
-        
-        <div class="article-category">
-          
-            <a href="/categories/Natural-Language-Processing/">Natural Language Processing</a>
-          
-        </div>
-        
-
-        <h1 class="article-title">NLP Part 5: BERT and Pretrained Models</h1>
-
-        <div class="article-meta">
-          <time datetime="2025-08-31">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            August 31, 2025
-          </time>
-          
-          <span class="update-time" title="Last updated">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-            Updated May 06, 2026
-          </span>
-          
-          
-          <span class="reading-time" data-auto-reading>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-            <span class="rt-num">—</span> <span data-i18n="post.minRead">min read</span>
-          </span>
-          
-          
-          <span class="word-count" data-auto-wordcount>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
-            <span class="wc-num">—</span> <span data-i18n="post.words">words</span>
-          </span>
-          
-        </div>
-
-        
-        <p class="article-description">How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code.</p>
-        
-      </header>
-
-      <div class="article-content markdown-body">
-        <p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_1.jpg" alt="Concept illustration"></p>
-<p>In October 2018, Google released BERT and broke eleven NLP benchmarks at once. The recipe is almost embarrassingly simple: take a Transformer encoder, train it to predict words that have been randomly hidden using both left and right context, and then fine-tune the same pretrained model for whatever downstream task you have. Before BERT, every task came with its own from-scratch model. After BERT, "pretrain once, fine-tune everywhere" became the default mental model for the entire field.</p>
-<p>If you have used a sentiment-analysis API, a search engine that understands intent, or a customer-support bot in the last few years, there is a very good chance BERT or one of its descendants is doing the heavy lifting underneath.</p>
-<h2 id="What-you-will-learn"><a class="header-anchor" href="#What-you-will-learn">¶</a>What you will learn</h2>
-<ul>
-<li>How pretraining evolved: Word2Vec to ELMo to GPT-1 to BERT</li>
-<li>BERT's architecture: a bidirectional Transformer encoder with WordPiece input</li>
-<li>Masked Language Modeling (MLM) and Next Sentence Prediction (NSP), and why the 80/10/10 mask split exists</li>
-<li>Fine-tuning BERT for classification, NER, QA and sentence-pair tasks</li>
-<li>The BERT family: RoBERTa, ALBERT, ELECTRA, and when to pick each</li>
-<li>Practical fine-tuning recipes (learning rate, warmup, gradient accumulation)</li>
-<li>A complete HuggingFace pipeline you can copy-paste</li>
-</ul>
-<p><strong>Prerequisites:</strong> Part 4 (Transformer architecture) and basic PyTorch.</p>
-<hr>
-<h2 id="The-rise-of-pretrain-then-finetune"><a class="header-anchor" href="#The-rise-of-pretrain-then-finetune">¶</a>The rise of pretrain-then-finetune</h2>
-<p>Before BERT, every NLP task started from a freshly initialized model trained on its own labeled dataset. That was expensive (compute), wasteful (no knowledge sharing across tasks), and brittle (small datasets gave shaky models). The story of how the field escaped this trap runs through four landmark systems.</p>
-<h3 id="A-short-evolution"><a class="header-anchor" href="#A-short-evolution">¶</a>A short evolution</h3>
-<p><strong>Word2Vec (2013).</strong> Static word embeddings learned from raw text. The same vector represented "bank" in <em>river bank</em> and in <em>bank account</em> -- there was no way for context to change a word's meaning.</p>
-<p><strong>ELMo (early 2018).</strong> A bidirectional LSTM produced context-dependent vectors by combining hidden states from every layer:</p>
-<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mtext>ELMo</mtext><mi>k</mi></msub><mo>=</mo><mi>γ</mi><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>0</mn></mrow><mi>L</mi></munderover><msub><mi>s</mi><mi>j</mi></msub><mtext> </mtext><msub><mi>h</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\text{ELMo}_k = \gamma \sum_{j=0}^{L} s_j \, h_{k,j}
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord text"><span class="mord">ELMo</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:3.2421em;vertical-align:-1.4138em;"></span><span class="mord mathnormal" style="margin-right:0.0556em;">γ</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8283em;"><span style="top:-1.8723em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span><span class="mrel mtight">=</span><span class="mord mtight">0</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">L</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.4138em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span></span></p>
-<p>where <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mrow><mi>k</mi><mo separator="true">,</mo><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">h_{k,j}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9805em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> is the hidden state of layer <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.854em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0572em;">j</span></span></span></span> at token position <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span> and <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">s_j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> are learned softmax weights. ELMo proved that contextual representations dramatically improve almost every downstream task -- but it was still RNN-based, so training was slow and hard to parallelize.</p>
-<p><strong>GPT-1 (June 2018).</strong> The first system to scale a Transformer through pretraining. It used a left-to-right language model:</p>
-<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><msub><mi>w</mi><mn>1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>w</mi><mi>n</mi></msub><mo stretchy="false">)</mo><mo>=</mo><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mi>P</mi><mo stretchy="false">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>w</mi><mn>1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>w</mi><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">P(w_1, \ldots, w_n) = \prod_{i=1}^{n} P(w_i \mid w_1, \ldots, w_{i-1})
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.9291em;vertical-align:-1.2777em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.6514em;"><span style="top:-1.8723em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∏</span></span></span><span style="top:-4.3em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.2777em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></span></p>
-<p>GPT-1 was strong but unidirectional: when reading "the bank is closed," it could not use "closed" to disambiguate "bank," because at the position of "bank" the model has not yet seen "closed."</p>
-<p><strong>BERT (October 2018).</strong> The breakthrough: change the pretraining objective so every token can attend to its full context, in <em>both</em> directions, simultaneously. That single decision unlocked an across-the-board jump in benchmark scores.</p>
-<h3 id="Why-the-paradigm-shift-matters"><a class="header-anchor" href="#Why-the-paradigm-shift-matters">¶</a>Why the paradigm shift matters</h3>
-<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig4_finetune_pipeline.png" alt="Pretrain once, fine-tune for many tasks"></p>
-<p>The pretrain-then-finetune pipeline has two stages:</p>
-<ol>
-<li><strong>Pretrain</strong> on massive unlabeled text (books, Wikipedia, the web) using a self-supervised objective. This is expensive but you do it once.</li>
-<li><strong>Fine-tune</strong> on a small labeled dataset for each downstream task by adding a tiny head and training end-to-end with a small learning rate.</li>
-</ol>
-<p>The wins are concrete:</p>
-<ul>
-<li><strong>Data-efficient.</strong> The backbone already "knows" syntax and a lot of world knowledge, so you usually need only hundreds to a few thousand labeled examples per task.</li>
-<li><strong>Universal.</strong> The same backbone serves classification, tagging, span extraction, and pairwise tasks.</li>
-<li><strong>Strong baselines.</strong> Plain BERT fine-tuning routinely beats the bespoke architectures it replaced.</li>
-</ul>
-<hr>
-<h2 id="BERT-s-architecture"><a class="header-anchor" href="#BERT-s-architecture">¶</a>BERT's architecture</h2>
-<p>BERT is the <strong>encoder</strong> half of the original Transformer, repeated 12 or 24 times. There is no decoder, no causal mask, and no autoregressive generation -- just a bidirectional stack of self-attention layers that turn a sequence of tokens into a sequence of contextual vectors.</p>
-<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig1_bert_architecture.png" alt="BERT bidirectional encoder and input embeddings"></p>
-<h3 id="Input-representation-three-embeddings-summed"><a class="header-anchor" href="#Input-representation-three-embeddings-summed">¶</a>Input representation: three embeddings, summed</h3>
-<p>For every token, BERT adds three learned embeddings of the same dimension:</p>
-<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mtext>Input</mtext><mi>i</mi></msub><mo>=</mo><msubsup><mi>E</mi><msub><mi>w</mi><mi>i</mi></msub><mtext>tok</mtext></msubsup><mo>+</mo><msubsup><mi>E</mi><msub><mi>s</mi><mi>i</mi></msub><mtext>seg</mtext></msubsup><mo>+</mo><msubsup><mi>E</mi><mi>i</mi><mtext>pos</mtext></msubsup></mrow><annotation encoding="application/x-tex">\text{Input}_i = E^{\text{tok}}_{w_i} + E^{\text{seg}}_{s_i} + E^{\text{pos}}_{i}
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9275em;vertical-align:-0.2441em;"></span><span class="mord"><span class="mord text"><span class="mord">Input</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2175em;"><span style="top:-2.4559em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2441em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.2462em;vertical-align:-0.3471em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8991em;"><span style="top:-2.453em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:-0.0269em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">tok</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3471em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.0615em;vertical-align:-0.3471em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-2.453em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">seg</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3471em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.0592em;vertical-align:-0.2769em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7823em;"><span style="top:-2.4231em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span style="top:-3.1809em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">pos</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2769em;"><span></span></span></span></span></span></span></span></span></span></span></p>
-<ul>
-<li><strong>Token embedding</strong> -- the WordPiece sub-token id, drawn from a 30K vocabulary.</li>
-<li><strong>Segment embedding</strong> -- <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>E</mi><mi>A</mi></msub></mrow><annotation encoding="application/x-tex">E_A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">A</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> for tokens belonging to the first sentence, <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>E</mi><mi>B</mi></msub></mrow><annotation encoding="application/x-tex">E_B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0502em;">B</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> for the second. This lets BERT model sentence-pair tasks (NLI, QA) without any architectural change.</li>
-<li><strong>Position embedding</strong> -- a <em>learned</em> vector for each absolute position from 0 to 511. (Unlike the original Transformer's sinusoidal positions, BERT learns its own.)</li>
-</ul>
-<p>Two special tokens carry most of the protocol:</p>
-<ul>
-<li><code>[CLS]</code> is prepended to every input. After all layers, its hidden state is treated as a pooled summary of the whole sequence and is the input to classification heads.</li>
-<li><code>[SEP]</code> separates sentence A from sentence B and marks the end of the input.</li>
-</ul>
-<h3 id="Bidirectional-self-attention"><a class="header-anchor" href="#Bidirectional-self-attention">¶</a>Bidirectional self-attention</h3>
-<p>Inside every encoder layer, multi-head self-attention lets every token look at every other token:</p>
-<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mtext>Attention</mtext><mo stretchy="false">(</mo><mi>Q</mi><mo separator="true">,</mo><mi>K</mi><mo separator="true">,</mo><mi>V</mi><mo stretchy="false">)</mo><mo>=</mo><mtext>softmax</mtext><mtext> ⁣</mtext><mrow><mo fence="true">(</mo><mfrac><mrow><mi>Q</mi><msup><mi>K</mi><mi mathvariant="normal">⊤</mi></msup></mrow><msqrt><msub><mi>d</mi><mi>k</mi></msub></msqrt></mfrac><mo fence="true">)</mo></mrow><mi>V</mi></mrow><annotation encoding="application/x-tex">\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord text"><span class="mord">Attention</span></span><span class="mopen">(</span><span class="mord mathnormal">Q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.4761em;vertical-align:-0.95em;"></span><span class="mord text"><span class="mord">softmax</span></span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size3">(</span></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.5261em;"><span style="top:-2.2528em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord sqrt"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8572em;"><span class="svg-align" style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord" style="padding-left:0.833em;"><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span><span style="top:-2.8172em;"><span class="pstrut" style="height:3em;"></span><span class="hide-tail" style="min-width:0.853em;height:1.08em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="1.08em" viewBox="0 0 400000 1080" preserveAspectRatio="xMinYMin slice"><path d="M95,702
-c-2.7,0,-7.17,-2.7,-13.5,-8c-5.8,-5.3,-9.5,-10,-9.5,-14
-c0,-2,0.3,-3.3,1,-4c1.3,-2.7,23.83,-20.7,67.5,-54
-c44.2,-33.3,65.8,-50.3,66.5,-51c1.3,-1.3,3,-2,5,-2c4.7,0,8.7,3.3,12,10
-s173,378,173,378c0.7,0,35.3,-71,104,-213c68.7,-142,137.5,-285,206.5,-429
-c69,-144,104.5,-217.7,106.5,-221
-l0 -0
-c5.3,-9.3,12,-14,20,-14
-H400000v40H845.2724
-s-225.272,467,-225.272,467s-235,486,-235,486c-2.7,4.7,-9,7,-19,7
-c-6,0,-10,-1,-12,-3s-194,-422,-194,-422s-65,47,-65,47z
-M834 80h400000v40h-400000z"></path></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1828em;"><span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal">Q</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">⊤</span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.93em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size3">)</span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span></span></span></span></span></p>
-<p>Crucially, <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Q</mi></mrow><annotation encoding="application/x-tex">Q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">Q</span></span></span></span>, <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi></mrow><annotation encoding="application/x-tex">K</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span></span></span></span>, and <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi></mrow><annotation encoding="application/x-tex">V</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span></span></span></span> all come from the same input sequence (self-attention) and there is <strong>no causal mask</strong> (bidirectional). So the representation of "bank" at position 3 can simultaneously incorporate "river" on its left and "is closed" on its right within a single forward pass.</p>
-<h3 id="Two-sizes"><a class="header-anchor" href="#Two-sizes">¶</a>Two sizes</h3>
-<p>The original paper released two configurations that are still the reference points today:</p>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>BERT-Base</th>
-<th>BERT-Large</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Layers</td>
-<td>12</td>
-<td>24</td>
-</tr>
-<tr>
-<td>Hidden size</td>
-<td>768</td>
-<td>1024</td>
-</tr>
-<tr>
-<td>Attention heads</td>
-<td>12</td>
-<td>16</td>
-</tr>
-<tr>
-<td>Parameters</td>
-<td>110M</td>
-<td>340M</td>
-</tr>
-</tbody>
-</table>
-<p>BERT-Base fits on a single consumer GPU for inference. BERT-Large was the workhorse that set most of the 2018 records.</p>
-<hr>
-<h2 id="Pretraining-objectives"><a class="header-anchor" href="#Pretraining-objectives">¶</a>Pretraining objectives</h2>
-<p>BERT's pretraining combines two self-supervised tasks. The first is the famous one; the second turned out to be optional.</p>
-<h3 id="Masked-Language-Modeling-MLM"><a class="header-anchor" href="#Masked-Language-Modeling-MLM">¶</a>Masked Language Modeling (MLM)</h3>
-<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig2_mlm_corruption.png" alt="MLM 80/10/10 corruption rule"></p>
-<p>For each input sequence, randomly select 15% of the token positions. At each chosen position:</p>
-<ul>
-<li>with probability <strong>80%</strong>, replace the token with <code>[MASK]</code>,</li>
-<li>with probability <strong>10%</strong>, replace it with a <em>random</em> vocabulary token,</li>
-<li>with probability <strong>10%</strong>, leave it unchanged.</li>
-</ul>
-<p>The model is trained to predict the <em>original</em> token at every chosen position by minimising</p>
-<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mtext>MLM</mtext></msub><mo>=</mo><mo>−</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi mathvariant="script">M</mi></mrow></munder><mi>log</mi><mo>⁡</mo><mi>P</mi><mo stretchy="false">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>∣</mo><mover accent="true"><mi>x</mi><mo>~</mo></mover><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{L}_{\text{MLM}} = -\sum_{i \in \mathcal{M}} \log P(w_i \mid \tilde{x})
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">MLM</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.3717em;vertical-align:-1.3217em;"></span><span class="mord">−</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.8557em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">∈</span><span class="mord mathcal mtight">M</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.3217em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6679em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3.35em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">~</span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></span></p>
-<p>where <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">M</mi></mrow><annotation encoding="application/x-tex">\mathcal{M}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathcal">M</span></span></span></span> is the set of masked positions and <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>x</mi><mo>~</mo></mover></mrow><annotation encoding="application/x-tex">\tilde{x}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6679em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6679em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3.35em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">~</span></span></span></span></span></span></span></span></span></span> is the corrupted input.</p>
-<p><strong>Why the 80/10/10 mix?</strong> It is engineered to prevent two failure modes:</p>
-<ul>
-<li>If you only used <code>[MASK]</code>, the model would never see <code>[MASK]</code> during fine-tuning (downstream inputs have no masks), creating a train/test mismatch.</li>
-<li>If you only replaced tokens with random ones, the model could not trust any input token and would underuse local information.</li>
-<li>Leaving 10% unchanged forces the model to use context even when the surface form looks correct -- otherwise it could learn the shortcut "if a token is not weird-looking, just copy it."</li>
-</ul>
-<p>The MLM objective is what makes BERT bidirectional in a clean way: predicting the masked word from <em>both sides</em> requires the encoder to fuse information from the entire sequence at every position.</p>
-<h3 id="Next-Sentence-Prediction-NSP"><a class="header-anchor" href="#Next-Sentence-Prediction-NSP">¶</a>Next Sentence Prediction (NSP)</h3>
-<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig3_nsp.png" alt="NSP: positive vs negative pairs"></p>
-<p>NSP was added so that BERT could learn sentence-pair semantics for tasks like NLI and QA. Each training example packs two sentences <code>[CLS] A [SEP] B [SEP]</code>, with the label generated by a coin flip:</p>
-<ul>
-<li>50% of the time, B is the <em>actual</em> sentence that followed A in the corpus (label <code>IsNext</code>).</li>
-<li>50% of the time, B is a <em>random</em> sentence from a different document (label <code>NotNext</code>).</li>
-</ul>
-<p>A linear-plus-softmax head reads the final <code>[CLS]</code> vector and predicts the label:</p>
-<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><mtext>IsNext</mtext><mo stretchy="false">)</mo><mo>=</mo><mtext>softmax</mtext><mo stretchy="false">(</mo><mi>W</mi><mtext> </mtext><msub><mi>h</mi><mtext>[CLS]</mtext></msub><mo>+</mo><mi>b</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">P(\text{IsNext}) = \text{softmax}(W \, h_{\text{[CLS]}} + b)
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mopen">(</span><span class="mord text"><span class="mord">IsNext</span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.1052em;vertical-align:-0.3552em;"></span><span class="mord text"><span class="mord">softmax</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.5198em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">[CLS]</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3552em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">b</span><span class="mclose">)</span></span></span></span></span></p>
-<p>The total pretraining loss is just the sum of the MLM and NSP losses.</p>
-<blockquote>
-<p>A footnote that aged badly: subsequent work (RoBERTa, ALBERT) found NSP contributes very little, and removing or replacing it actually <em>helps</em>. We will return to this in the variants section.</p>
-</blockquote>
-<h3 id="Pretraining-corpus"><a class="header-anchor" href="#Pretraining-corpus">¶</a>Pretraining corpus</h3>
-<p>BERT was trained on <strong>BooksCorpus</strong> (about 800M words) and <strong>English Wikipedia</strong> (about 2.5B words), totalling roughly 3.3B words. By 2026 standards that is tiny -- modern LLMs train on trillions of tokens -- but it was already enough to set a new bar.</p>
-<hr>
-<h2 id="WordPiece-tokenization"><a class="header-anchor" href="#WordPiece-tokenization">¶</a>WordPiece tokenization</h2>
-<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig6_wordpiece.png" alt="WordPiece subword tokenization"></p>
-<p>BERT does not work with whole words. Instead, it uses <strong>WordPiece</strong>, a subword scheme that strikes a balance between two extremes:</p>
-<ul>
-<li>Whole-word vocabularies need millions of entries to cover any real corpus and still hit out-of-vocabulary tokens at inference time.</li>
-<li>Pure character vocabularies are tiny but force the model to reconstruct word meaning from scratch every sequence.</li>
-</ul>
-<p>WordPiece picks a 30K-token vocabulary by greedily merging the character pairs whose merger most increases the likelihood of the training corpus. At tokenization time, it segments each word into the longest pieces it has in the vocabulary; pieces inside a word are prefixed with <code>##</code> to mark them as continuations:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">playing       -&gt; play  ##ing</span><br><span class="line">unbelievable  -&gt; un    ##bel  ##iev  ##able</span><br><span class="line">transformer   -&gt; transform  ##er</span><br><span class="line">Tokyo2024     -&gt; tokyo  ##20  ##24</span><br></pre></td></tr></table></figure>
-<p>This guarantees there is no out-of-vocabulary token (everything decomposes into known pieces, ultimately into single characters), while keeping common words as single tokens for efficiency.</p>
-<hr>
-<h2 id="Fine-tuning-BERT-for-downstream-tasks"><a class="header-anchor" href="#Fine-tuning-BERT-for-downstream-tasks">¶</a>Fine-tuning BERT for downstream tasks</h2>
-<p>The big idea behind fine-tuning is that the same backbone serves nearly every task; only the head differs.</p>
-<h3 id="Text-classification"><a class="header-anchor" href="#Text-classification">¶</a>Text classification</h3>
-<p>For a sentence-level label (sentiment, spam, intent), feed the input through BERT and project the final <code>[CLS]</code> vector through a linear layer:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForSequenceClassification</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForSequenceClassification.from_pretrained(</span><br><span class="line">    <span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">2</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">text = <span class="string">"I love this movie!"</span></span><br><span class="line">inputs = tokenizer(text, return_tensors=<span class="string">'pt'</span>, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">prediction = torch.argmax(outputs.logits, dim=-<span class="number">1</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f"Prediction: <span class="subst">{prediction.item()}</span>"</span>)  <span class="comment"># 0 or 1</span></span><br></pre></td></tr></table></figure>
-<p>Internally:</p>
-<ol>
-<li>Tokenize and add <code>[CLS]</code> and <code>[SEP]</code>.</li>
-<li>Pass through 12 encoder layers.</li>
-<li>Take the <code>[CLS]</code> hidden state (768-dim for BERT-Base).</li>
-<li>Apply a single linear layer mapping 768 -&gt; num_labels.</li>
-</ol>
-<h3 id="Named-entity-recognition-NER"><a class="header-anchor" href="#Named-entity-recognition-NER">¶</a>Named entity recognition (NER)</h3>
-<p>Token-level tasks use the per-token vectors instead of <code>[CLS]</code>:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForTokenClassification</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForTokenClassification.from_pretrained(</span><br><span class="line">    <span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">9</span>,  <span class="comment"># e.g. BIO tags for PER/ORG/LOC/MISC + O</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">text = <span class="string">"Barack Obama was born in Hawaii"</span></span><br><span class="line">inputs = tokenizer(text, return_tensors=<span class="string">'pt'</span>, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line"></span><br><span class="line">predictions = torch.argmax(outputs.logits, dim=-<span class="number">1</span>)</span><br><span class="line">tokens = tokenizer.convert_ids_to_tokens(inputs[<span class="string">'input_ids'</span>][<span class="number">0</span>])</span><br><span class="line"><span class="keyword">for</span> token, pred <span class="keyword">in</span> <span class="built_in">zip</span>(tokens, predictions[<span class="number">0</span>]):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f"<span class="subst">{token}</span>: tag <span class="subst">{pred.item()}</span>"</span>)</span><br></pre></td></tr></table></figure>
-<p>A subtlety: WordPiece can split a word ("Hawaii" might stay whole, but "Tokyo2024" splits into three pieces). When converting back to word-level entities, you typically take the prediction at the <em>first</em> sub-token of each word and ignore the continuation pieces.</p>
-<h3 id="Question-answering-extractive"><a class="header-anchor" href="#Question-answering-extractive">¶</a>Question answering (extractive)</h3>
-<p>For SQuAD-style QA, the model predicts the start and end positions of the answer span inside the context:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForQuestionAnswering</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForQuestionAnswering.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line"></span><br><span class="line">question = <span class="string">"Where was Barack Obama born?"</span></span><br><span class="line">context = <span class="string">"Barack Obama was born in Hawaii in 1961."</span></span><br><span class="line"></span><br><span class="line">inputs = tokenizer(question, context, return_tensors=<span class="string">'pt'</span>,</span><br><span class="line">                   padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line"></span><br><span class="line">start = torch.argmax(outputs.start_logits)</span><br><span class="line">end = torch.argmax(outputs.end_logits)</span><br><span class="line">answer = tokenizer.decode(inputs[<span class="string">'input_ids'</span>][<span class="number">0</span>][start:end + <span class="number">1</span>])</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f"Answer: <span class="subst">{answer}</span>"</span>)</span><br></pre></td></tr></table></figure>
-<p>The two heads are linear layers on top of every token vector, producing one start logit and one end logit per position. The predicted span is the contiguous range that maximizes start + end logits subject to start &lt;= end.</p>
-<h3 id="Sentence-pair-classification-NLI-paraphrase"><a class="header-anchor" href="#Sentence-pair-classification-NLI-paraphrase">¶</a>Sentence-pair classification (NLI, paraphrase)</h3>
-<p>Pack the two sentences with a <code>[SEP]</code> between them and use the <code>[CLS]</code> head:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForSequenceClassification</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForSequenceClassification.from_pretrained(</span><br><span class="line">    <span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">3</span>,  <span class="comment"># entailment / neutral / contradiction</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">premise = <span class="string">"A man is playing guitar"</span></span><br><span class="line">hypothesis = <span class="string">"Someone is making music"</span></span><br><span class="line"></span><br><span class="line">inputs = tokenizer(premise, hypothesis, return_tensors=<span class="string">'pt'</span>,</span><br><span class="line">                   padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">prediction = torch.argmax(outputs.logits, dim=-<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
-<p>Notice how minimal the architectural change is: the same <code>BertForSequenceClassification</code> class handles both single-sentence and sentence-pair classification just by tokenizing differently.</p>
-<hr>
-<h2 id="Fine-tuning-recipes-that-actually-work"><a class="header-anchor" href="#Fine-tuning-recipes-that-actually-work">¶</a>Fine-tuning recipes that actually work</h2>
-<p>Fine-tuning a 110M-parameter model with a few thousand labels is fundamentally different from training from scratch. The defaults that work for ResNet from scratch will overshoot and destroy the pretrained weights here.</p>
-<h3 id="Use-a-small-learning-rate-with-weight-decay"><a class="header-anchor" href="#Use-a-small-learning-rate-with-weight-decay">¶</a>Use a small learning rate, with weight decay</h3>
-<p>The pretrained weights live in a good basin; you want to nudge them, not bulldoze them. The standard trick is AdamW with separate parameter groups so that bias and LayerNorm parameters are <em>not</em> decayed:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> torch.optim <span class="keyword">import</span> AdamW</span><br><span class="line"></span><br><span class="line">no_decay = [<span class="string">"bias"</span>, <span class="string">"LayerNorm.weight"</span>]</span><br><span class="line">optimizer_grouped_parameters = [</span><br><span class="line">    {</span><br><span class="line">        <span class="string">"params"</span>: [p <span class="keyword">for</span> n, p <span class="keyword">in</span> model.named_parameters()</span><br><span class="line">                   <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">any</span>(nd <span class="keyword">in</span> n <span class="keyword">for</span> nd <span class="keyword">in</span> no_decay)],</span><br><span class="line">        <span class="string">"weight_decay"</span>: <span class="number">0.01</span>,</span><br><span class="line">    },</span><br><span class="line">    {</span><br><span class="line">        <span class="string">"params"</span>: [p <span class="keyword">for</span> n, p <span class="keyword">in</span> model.named_parameters()</span><br><span class="line">                   <span class="keyword">if</span> <span class="built_in">any</span>(nd <span class="keyword">in</span> n <span class="keyword">for</span> nd <span class="keyword">in</span> no_decay)],</span><br><span class="line">        <span class="string">"weight_decay"</span>: <span class="number">0.0</span>,</span><br><span class="line">    },</span><br><span class="line">]</span><br><span class="line">optimizer = AdamW(optimizer_grouped_parameters, lr=<span class="number">2e-5</span>)</span><br></pre></td></tr></table></figure>
-<h3 id="Warm-up-then-linearly-decay"><a class="header-anchor" href="#Warm-up-then-linearly-decay">¶</a>Warm up, then linearly decay</h3>
-<p>Even a tiny learning rate is too large if applied to the very first step on a freshly added head. Warmup ramps the LR up over the first ~10% of steps, then a linear schedule cools it back to zero:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> get_linear_schedule_with_warmup</span><br><span class="line"></span><br><span class="line">total_steps = <span class="built_in">len</span>(dataloader) * num_epochs</span><br><span class="line">scheduler = get_linear_schedule_with_warmup(</span><br><span class="line">    optimizer,</span><br><span class="line">    num_warmup_steps=<span class="built_in">int</span>(<span class="number">0.1</span> * total_steps),</span><br><span class="line">    num_training_steps=total_steps,</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-<h3 id="Gradient-accumulation-if-memory-is-tight"><a class="header-anchor" href="#Gradient-accumulation-if-memory-is-tight">¶</a>Gradient accumulation if memory is tight</h3>
-<p>When you cannot fit batch size 32 on your GPU, simulate it by accumulating gradients across several smaller forward/backward passes:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">accumulation_steps = <span class="number">4</span></span><br><span class="line">optimizer.zero_grad()</span><br><span class="line"><span class="keyword">for</span> i, batch <span class="keyword">in</span> <span class="built_in">enumerate</span>(dataloader):</span><br><span class="line">    loss = model(**batch).loss / accumulation_steps</span><br><span class="line">    loss.backward()</span><br><span class="line">    <span class="keyword">if</span> (i + <span class="number">1</span>) % accumulation_steps == <span class="number">0</span>:</span><br><span class="line">        optimizer.step()</span><br><span class="line">        scheduler.step()</span><br><span class="line">        optimizer.zero_grad()</span><br></pre></td></tr></table></figure>
-<h3 id="Default-recipe"><a class="header-anchor" href="#Default-recipe">¶</a>Default recipe</h3>
-<p>When in doubt, start here -- it is what most papers use:</p>
-<table>
-<thead>
-<tr>
-<th>Setting</th>
-<th>Recommended</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Learning rate</td>
-<td>2e-5 to 5e-5</td>
-</tr>
-<tr>
-<td>Batch size</td>
-<td>16-32 (use gradient accumulation if needed)</td>
-</tr>
-<tr>
-<td>Epochs</td>
-<td>2-4 (BERT fine-tunes fast; more epochs risk overfitting)</td>
-</tr>
-<tr>
-<td>Warmup</td>
-<td>10% of total steps</td>
-</tr>
-<tr>
-<td>Max sequence length</td>
-<td>128-512 (shorter is faster; pick the smallest that fits inputs)</td>
-</tr>
-<tr>
-<td>Optimizer</td>
-<td>AdamW with weight decay 0.01 on weights, 0.0 on bias/LayerNorm</td>
-</tr>
-</tbody>
-</table>
-<hr>
-<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/illustration_2.jpg" alt="Architecture illustration"></p>
-<h2 id="A-complete-HuggingFace-pipeline"><a class="header-anchor" href="#A-complete-HuggingFace-pipeline">¶</a>A complete HuggingFace pipeline</h2>
-<p>Putting it all together, here is an end-to-end fine-tuning pipeline on the IMDB sentiment dataset:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> (</span><br><span class="line">    BertTokenizer, BertForSequenceClassification,</span><br><span class="line">    Trainer, TrainingArguments, DataCollatorWithPadding,</span><br><span class="line">)</span><br><span class="line"><span class="keyword">from</span> datasets <span class="keyword">import</span> load_dataset</span><br><span class="line"></span><br><span class="line"><span class="comment"># 1. Load data and model</span></span><br><span class="line">dataset = load_dataset(<span class="string">"imdb"</span>)</span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForSequenceClassification.from_pretrained(</span><br><span class="line">    <span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">2</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. Tokenize</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">preprocess</span>(<span class="params">examples</span>):</span><br><span class="line">    <span class="keyword">return</span> tokenizer(examples[<span class="string">'text'</span>], truncation=<span class="literal">True</span>,</span><br><span class="line">                     padding=<span class="literal">True</span>, max_length=<span class="number">512</span>)</span><br><span class="line"></span><br><span class="line">tokenized = dataset.<span class="built_in">map</span>(preprocess, batched=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. Training config</span></span><br><span class="line">training_args = TrainingArguments(</span><br><span class="line">    output_dir=<span class="string">'./results'</span>,</span><br><span class="line">    num_train_epochs=<span class="number">3</span>,</span><br><span class="line">    per_device_train_batch_size=<span class="number">16</span>,</span><br><span class="line">    per_device_eval_batch_size=<span class="number">16</span>,</span><br><span class="line">    warmup_steps=<span class="number">500</span>,</span><br><span class="line">    weight_decay=<span class="number">0.01</span>,</span><br><span class="line">    logging_steps=<span class="number">100</span>,</span><br><span class="line">    evaluation_strategy=<span class="string">"epoch"</span>,</span><br><span class="line">    save_strategy=<span class="string">"epoch"</span>,</span><br><span class="line">    load_best_model_at_end=<span class="literal">True</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. Train</span></span><br><span class="line">trainer = Trainer(</span><br><span class="line">    model=model,</span><br><span class="line">    args=training_args,</span><br><span class="line">    train_dataset=tokenized[<span class="string">'train'</span>],</span><br><span class="line">    eval_dataset=tokenized[<span class="string">'test'</span>],</span><br><span class="line">    data_collator=DataCollatorWithPadding(tokenizer=tokenizer),</span><br><span class="line">)</span><br><span class="line">trainer.train()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. Evaluate</span></span><br><span class="line"><span class="built_in">print</span>(trainer.evaluate())</span><br></pre></td></tr></table></figure>
-<p>On a single modern GPU this trains in a few hours and reaches around 92-94% accuracy on IMDB -- a number that took years of hand-engineered features to hit before BERT.</p>
-<hr>
-<h2 id="How-big-was-the-jump-GLUE-in-2018"><a class="header-anchor" href="#How-big-was-the-jump-GLUE-in-2018">¶</a>How big was the jump? GLUE in 2018</h2>
-<p>To appreciate why BERT shocked the field, look at the eight-task GLUE benchmark from the original paper.</p>
-<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig7_glue_benchmark.png" alt="BERT vs prior SOTA on GLUE"></p>
-<p>The bars compare the previous task-specific best (gray) with BERT-Base (blue) and BERT-Large (purple). On structurally hard tasks like CoLA (linguistic acceptability) and the small RTE (textual entailment) dataset, the absolute gain was <em>double-digit</em>. A single pretrained model, fine-tuned with a few epochs and a tiny head, beat years of bespoke architectures simultaneously on every task.</p>
-<hr>
-<h2 id="The-BERT-family-RoBERTa-ALBERT-ELECTRA"><a class="header-anchor" href="#The-BERT-family-RoBERTa-ALBERT-ELECTRA">¶</a>The BERT family: RoBERTa, ALBERT, ELECTRA</h2>
-<p>BERT was the start, not the end. Within two years a small family of variants improved on it along orthogonal axes.</p>
-<p><img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig5_variants_comparison.png" alt="BERT vs RoBERTa vs ALBERT vs ELECTRA"></p>
-<h3 id="RoBERTa-Facebook-2019-just-train-it-properly"><a class="header-anchor" href="#RoBERTa-Facebook-2019-just-train-it-properly">¶</a>RoBERTa (Facebook, 2019): just train it properly</h3>
-<p>Liu et al. showed that BERT was significantly <em>under</em>-trained. Without changing the architecture, RoBERTa changes the recipe:</p>
-<ul>
-<li><strong>Drop NSP.</strong> It does not help and may hurt.</li>
-<li><strong>Dynamic masking.</strong> Generate a fresh mask for each epoch instead of reusing a static one created during preprocessing.</li>
-<li><strong>Bigger batches.</strong> 8K instead of 256.</li>
-<li><strong>Much more data.</strong> Add CC-News, OpenWebText, and Stories on top of BooksCorpus + Wikipedia (~160B tokens vs BERT's ~3.3B).</li>
-</ul>
-<p>The result is a 2-3 GLUE point jump using exactly the BERT-Large architecture.</p>
-<h3 id="ALBERT-Google-2019-squeeze-the-parameters"><a class="header-anchor" href="#ALBERT-Google-2019-squeeze-the-parameters">¶</a>ALBERT (Google, 2019): squeeze the parameters</h3>
-<p>ALBERT achieves competitive scores with far fewer <em>unique</em> parameters:</p>
-<ul>
-<li><strong>Factorized embeddings.</strong> Rather than a single <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mo>×</mo><mi>H</mi></mrow><annotation encoding="application/x-tex">V \times H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span> embedding matrix, decompose it into <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mo>×</mo><mi>E</mi></mrow><annotation encoding="application/x-tex">V \times E</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">E</span></span></span></span> and <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo>×</mo><mi>H</mi></mrow><annotation encoding="application/x-tex">E \times H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span> with <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo>≪</mo><mi>H</mi></mrow><annotation encoding="application/x-tex">E \ll H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7224em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≪</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span>. Token embeddings live in a small space and are projected up to the hidden size.</li>
-<li><strong>Cross-layer parameter sharing.</strong> All Transformer layers share the same weights, so depth no longer multiplies parameter count.</li>
-<li><strong>Sentence Order Prediction (SOP)</strong> replaces NSP with a harder task: given two adjacent sentences, decide whether their order has been swapped. This is harder than detecting random pairs and turns out to be a more useful signal.</li>
-</ul>
-<p>ALBERT-xxlarge has roughly 235M unique parameters (compare with BERT-Large's 340M) but matches or beats it on GLUE.</p>
-<h3 id="ELECTRA-Google-2020-use-every-token"><a class="header-anchor" href="#ELECTRA-Google-2020-use-every-token">¶</a>ELECTRA (Google, 2020): use every token</h3>
-<p>MLM only computes a loss at 15% of positions, which is wasteful. ELECTRA replaces MLM with <strong>Replaced Token Detection (RTD)</strong>:</p>
-<ol>
-<li>A small generator (a tiny MLM) plausibly replaces some tokens.</li>
-<li>A larger discriminator examines every token and decides: was this the original, or did the generator swap it in?</li>
-<li>We throw away the generator and keep only the discriminator.</li>
-</ol>
-<p>Because the discriminator gets a loss at <em>every</em> position, ELECTRA reaches BERT-quality scores with much less compute -- ELECTRA-Small matches BERT-Base while training in a quarter of the time.</p>
-<h3 id="Comparison"><a class="header-anchor" href="#Comparison">¶</a>Comparison</h3>
-<table>
-<thead>
-<tr>
-<th>Model</th>
-<th>Key innovation</th>
-<th>Parameters</th>
-<th>Relative GLUE</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>BERT</td>
-<td>Bidirectional MLM + NSP</td>
-<td>110M / 340M</td>
-<td>Baseline</td>
-</tr>
-<tr>
-<td>RoBERTa</td>
-<td>Drop NSP, dynamic masking, far more data</td>
-<td>110M / 355M</td>
-<td>+2-3</td>
-</tr>
-<tr>
-<td>ALBERT</td>
-<td>Factorized embeddings + parameter sharing</td>
-<td>12M to 235M</td>
-<td>+1-2</td>
-</tr>
-<tr>
-<td>ELECTRA</td>
-<td>RTD (loss on 100% of tokens)</td>
-<td>14M to 335M</td>
-<td>+2-3</td>
-</tr>
-</tbody>
-</table>
-<p>Picking among them is a recipe choice, not an architecture one: all four are encoder-only Transformers with very similar shape.</p>
-<hr>
-<h2 id="What-BERT-cannot-do"><a class="header-anchor" href="#What-BERT-cannot-do">¶</a>What BERT cannot do</h2>
-<p>It is just as important to know BERT's limits.</p>
-<ul>
-<li><strong>Cost.</strong> 110-340M parameters and quadratic attention make real-time inference uncomfortable without distillation (DistilBERT, TinyBERT) or quantization.</li>
-<li><strong>No generation.</strong> BERT is encoder-only with bidirectional attention. There is no sensible way to autoregressively decode text from it. For generation you need GPT-style decoder models -- the topic of Part 6.</li>
-<li><strong>512-token ceiling.</strong> Position embeddings are learned for positions 0-511. Long documents need sliding windows, hierarchical aggregation, or a different architecture (Longformer, BigBird).</li>
-<li><strong>English-centric.</strong> The original BERT was trained on English text only. Multilingual BERT covers 100+ languages but underperforms language-specific models (BERT-Chinese, CamemBERT, etc.) on their target language.</li>
-</ul>
-<hr>
-<h2 id="Common-questions"><a class="header-anchor" href="#Common-questions">¶</a>Common questions</h2>
-<p><strong>Why use <code>[CLS]</code> for classification?</strong> It is placed at position 0 of every input, so attention naturally lets it aggregate information from the whole sequence by the final layer. The pretraining NSP objective also conditions <code>[CLS]</code> to act as a sequence summary.</p>
-<p><strong>BERT or RoBERTa?</strong> If you want the highest score and have a few extra GPU-hours, RoBERTa. If you want the largest ecosystem, the most tutorials, and the most checkpoints to choose from, BERT remains the safest baseline.</p>
-<p><strong>How do I pick a variant?</strong> Use BERT for general baselines, RoBERTa for pushing accuracy, ALBERT when parameter count matters (mobile, embedded), ELECTRA when training compute is the bottleneck.</p>
-<p><strong>What about non-English languages?</strong> Use mBERT or XLM-RoBERTa as multilingual baselines. For best per-language performance, use a dedicated checkpoint -- BERT-wwm-ext or MacBERT for Chinese, CamemBERT for French, BERTje for Dutch, and so on.</p>
-<p><strong>Can BERT be used for sentence embeddings?</strong> Naively averaging BERT token vectors gives mediocre sentence embeddings. Use Sentence-BERT (a fine-tuned variant trained with a Siamese contrastive loss) when you need similarity scoring.</p>
-<hr>
-<h2 id="Key-takeaways"><a class="header-anchor" href="#Key-takeaways">¶</a>Key takeaways</h2>
-<ul>
-<li>BERT introduced <strong>bidirectional pretraining</strong> via Masked Language Modeling, letting every token see its full context in a single forward pass.</li>
-<li>The 80/10/10 mask split is engineered to avoid train-test mismatch and to force the model to use context even when the input looks unmasked.</li>
-<li>The <strong>pretrain-then-finetune</strong> paradigm means one expensive pretraining run amortizes across every downstream task; fine-tuning needs only a tiny head, a small learning rate, and a few epochs.</li>
-<li><strong>RoBERTa, ALBERT, and ELECTRA</strong> show that the recipe (data, masking, parameter sharing, training objective) matters as much as the architecture.</li>
-<li>BERT excels at <strong>understanding</strong> tasks but cannot generate text. For that we turn to GPT (Part 6).</li>
-</ul>
-<hr>
-<h2 id="Series-Navigation"><a class="header-anchor" href="#Series-Navigation">¶</a>Series Navigation</h2>
-<table>
-<thead>
-<tr>
-<th>Part</th>
-<th>Topic</th>
-<th>Link</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Introduction and Text Preprocessing</td>
-<td><a href="/en/nlp-introduction-and-preprocessing/">Read</a></td>
-</tr>
-<tr>
-<td>2</td>
-<td>Word Embeddings and Language Models</td>
-<td><a href="/en/nlp-word-embeddings-lm/">Read</a></td>
-</tr>
-<tr>
-<td>3</td>
-<td>RNN and Sequence Modeling</td>
-<td><a href="/en/nlp-rnn-sequence-modeling/">Read</a></td>
-</tr>
-<tr>
-<td>4</td>
-<td>Attention Mechanism and Transformer</td>
-<td><a href="/en/nlp-attention-transformer/">Previous</a></td>
-</tr>
-<tr>
-<td><strong>5</strong></td>
-<td><strong>BERT and Pretrained Models (this article)</strong></td>
-<td></td>
-</tr>
-<tr>
-<td>6</td>
-<td>GPT and Generative Models</td>
-<td><a href="/en/nlp-gpt-generative-models/">Read next</a></td>
-</tr>
-</tbody>
-</table>
-
-      </div>
-
-      <!-- Series Navigation -->
-      
-      <nav class="series-nav">
-        <div class="series-nav-inner">
-          <span class="series-nav-label">Natural Language Processing &mdash; Part 5 of 12</span>
-        </div>
-      </nav>
-      
-
-      <!-- Tags -->
-      
-      <div class="article-tags">
-        
-          <a href="/tags/NLP/" class="tag">#NLP</a>
-        
-          <a href="/tags/Deep-Learning/" class="tag">#Deep Learning</a>
-        
-          <a href="/tags/BERT/" class="tag">#BERT</a>
-        
-          <a href="/tags/Transfer-Learning/" class="tag">#Transfer Learning</a>
-        
-      </div>
-      
-
-      <!-- Post Navigation -->
-      
-      <nav class="post-nav">
-        
-        
-      </nav>
-    </div>
-
-    <!-- Table of Contents (right) -->
-    
-    <aside class="toc-sidebar" id="toc-sidebar">
-      <div class="toc-sidebar-inner">
-        <h4 class="toc-title" data-i18n="post.toc">On This Page</h4>
-        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#What-you-will-learn"><span class="toc-number">1.</span> <span class="toc-text">What you will learn</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#The-rise-of-pretrain-then-finetune"><span class="toc-number">2.</span> <span class="toc-text">The rise of pretrain-then-finetune</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#A-short-evolution"><span class="toc-number">2.1.</span> <span class="toc-text">A short evolution</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Why-the-paradigm-shift-matters"><span class="toc-number">2.2.</span> <span class="toc-text">Why the paradigm shift matters</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BERT-s-architecture"><span class="toc-number">3.</span> <span class="toc-text">BERT&#39;s architecture</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Input-representation-three-embeddings-summed"><span class="toc-number">3.1.</span> <span class="toc-text">Input representation: three embeddings, summed</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Bidirectional-self-attention"><span class="toc-number">3.2.</span> <span class="toc-text">Bidirectional self-attention</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Two-sizes"><span class="toc-number">3.3.</span> <span class="toc-text">Two sizes</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Pretraining-objectives"><span class="toc-number">4.</span> <span class="toc-text">Pretraining objectives</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Masked-Language-Modeling-MLM"><span class="toc-number">4.1.</span> <span class="toc-text">Masked Language Modeling (MLM)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Next-Sentence-Prediction-NSP"><span class="toc-number">4.2.</span> <span class="toc-text">Next Sentence Prediction (NSP)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pretraining-corpus"><span class="toc-number">4.3.</span> <span class="toc-text">Pretraining corpus</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WordPiece-tokenization"><span class="toc-number">5.</span> <span class="toc-text">WordPiece tokenization</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Fine-tuning-BERT-for-downstream-tasks"><span class="toc-number">6.</span> <span class="toc-text">Fine-tuning BERT for downstream tasks</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Text-classification"><span class="toc-number">6.1.</span> <span class="toc-text">Text classification</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Named-entity-recognition-NER"><span class="toc-number">6.2.</span> <span class="toc-text">Named entity recognition (NER)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Question-answering-extractive"><span class="toc-number">6.3.</span> <span class="toc-text">Question answering (extractive)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Sentence-pair-classification-NLI-paraphrase"><span class="toc-number">6.4.</span> <span class="toc-text">Sentence-pair classification (NLI, paraphrase)</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Fine-tuning-recipes-that-actually-work"><span class="toc-number">7.</span> <span class="toc-text">Fine-tuning recipes that actually work</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Use-a-small-learning-rate-with-weight-decay"><span class="toc-number">7.1.</span> <span class="toc-text">Use a small learning rate, with weight decay</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Warm-up-then-linearly-decay"><span class="toc-number">7.2.</span> <span class="toc-text">Warm up, then linearly decay</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Gradient-accumulation-if-memory-is-tight"><span class="toc-number">7.3.</span> <span class="toc-text">Gradient accumulation if memory is tight</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Default-recipe"><span class="toc-number">7.4.</span> <span class="toc-text">Default recipe</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-complete-HuggingFace-pipeline"><span class="toc-number">8.</span> <span class="toc-text">A complete HuggingFace pipeline</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#How-big-was-the-jump-GLUE-in-2018"><span class="toc-number">9.</span> <span class="toc-text">How big was the jump? GLUE in 2018</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#The-BERT-family-RoBERTa-ALBERT-ELECTRA"><span class="toc-number">10.</span> <span class="toc-text">The BERT family: RoBERTa, ALBERT, ELECTRA</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RoBERTa-Facebook-2019-just-train-it-properly"><span class="toc-number">10.1.</span> <span class="toc-text">RoBERTa (Facebook, 2019): just train it properly</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ALBERT-Google-2019-squeeze-the-parameters"><span class="toc-number">10.2.</span> <span class="toc-text">ALBERT (Google, 2019): squeeze the parameters</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ELECTRA-Google-2020-use-every-token"><span class="toc-number">10.3.</span> <span class="toc-text">ELECTRA (Google, 2020): use every token</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Comparison"><span class="toc-number">10.4.</span> <span class="toc-text">Comparison</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#What-BERT-cannot-do"><span class="toc-number">11.</span> <span class="toc-text">What BERT cannot do</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Common-questions"><span class="toc-number">12.</span> <span class="toc-text">Common questions</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Key-takeaways"><span class="toc-number">13.</span> <span class="toc-text">Key takeaways</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Series-Navigation"><span class="toc-number">14.</span> <span class="toc-text">Series Navigation</span></a></li></ol>
-      </div>
-    </aside>
-    
-  </div>
-</article>
-
-  </main>
-
-  <footer class="site-footer">
-  <div class="footer-inner">
-    <div class="footer-grid">
-      <div class="footer-col footer-about">
-        <div class="footer-about-title">Chen Kai Blog</div>
-        <p class="footer-about-desc">
-          Machine Learning, Mathematics, and Computer Science — explained for humans.
-        </p>
-        <div class="footer-social">
-          
-          <a href="https://github.com/chenkai66" target="_blank" rel="noopener" aria-label="GitHub">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-          </a>
-          
-          
-          <a href="mailto:chenkai.nb.666@gmail.com" aria-label="Email">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          </a>
-          
-          <a href="/atom.xml" aria-label="RSS Feed" title="RSS Feed">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
-          </a>
-        </div>
-      </div>
-
-      <div class="footer-col">
-        <div class="footer-col-title" data-i18n="footer.series">Series</div>
-        <ul class="footer-links">
-          
-            
-            
-              <li><a href="/categories/Recommendation-Systems/">Recommendation Systems</a></li>
-            
-              <li><a href="/categories/Linear-Algebra/">Linear Algebra</a></li>
-            
-              <li><a href="/categories/ML-Mathematical-Derivations/">ML Mathematical Derivations</a></li>
-            
-              <li><a href="/categories/Natural-Language-Processing/">Natural Language Processing</a></li>
-            
-              <li><a href="/categories/Reinforcement-Learning/">Reinforcement Learning</a></li>
-            
-          
-          <li><a href="/series/" data-i18n="footer.allseries">All series &rarr;</a></li>
-        </ul>
-      </div>
-
-      <div class="footer-col">
-        <div class="footer-col-title" data-i18n="footer.site">Site</div>
-        <ul class="footer-links">
-          <li><a href="/" data-i18n="nav.home">Home</a></li>
-          <li><a href="/series/" data-i18n="nav.series">Series</a></li>
-          <li><a href="/projects/" data-i18n="nav.projects">Projects</a></li>
-          <li><a href="/archives/" data-i18n="nav.archives">Archives</a></li>
-          <li><a href="/about/" data-i18n="nav.about">About</a></li>
-          <li><a href="/atom.xml" data-i18n="footer.rss">RSS Feed</a></li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="footer-bottom">
-      <div class="footer-info">
-        <p>&copy; 2026 Chen Kai. <span data-i18n="footer.copyright.suffix">Built with knowledge and curiosity.</span></p>
-        <p class="footer-powered"><span data-i18n="footer.powered">Powered by</span> <a href="https://hexo.io" target="_blank" rel="noopener">Hexo</a> &middot; <span data-i18n="footer.theme">Theme</span> <a href="https://www.chenk.top" rel="noopener">chenk</a></p>
-      </div>
-    </div>
-  </div>
-</footer>
-
-
-<button class="back-to-top" id="back-to-top" aria-label="Back to top">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+<!doctype html><html lang=en data-translation=/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>NLP (5): BERT and Pretrained Models · Chen Kai Blog</title>
+<meta name=description content="How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/nlp/bert-pretrained-models/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/nlp/bert-pretrained-models/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/nlp/bert-pretrained-models/><meta property="og:type" content="article"><meta property="og:title" content="NLP (5): BERT and Pretrained Models"><meta property="og:description" content="How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code."><meta property="og:url" content="https://www.chenk.top/en/nlp/bert-pretrained-models/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><meta property="og:image:alt" content="NLP (5): BERT and Pretrained Models"><meta property="article:published_time" content="2025-10-21T09:00:00Z"><meta property="article:modified_time" content="2025-10-21T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="NLP"><meta property="article:tag" content="BERT"><meta property="article:tag" content="Deep Learning"><meta property="article:tag" content="Transfer Learning"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="NLP (5): BERT and Pretrained Models"><meta name=twitter:description content="How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"NLP (5): BERT and Pretrained Models\"","description":"\"How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/nlp.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2025-10-21T09:00:00Z\"","dateModified":"\"2025-10-21T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/nlp/bert-pretrained-models/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.48695d4598bb53d567624582a86242920731127cc2ae5a4c8eced847d39abcee.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 </button>
-
-
-
-  
-<script src="/js/i18n.js"></script>
-
-  
-<script src="/js/main.js"></script>
-
-
-  
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-    onload="renderMathInElement(document.body, {
-      delimiters: [
-        {left: '$$', right: '$$', display: true},
-        {left: '$', right: '$', display: false}
-      ],
-      throwOnError: false
-    });">
-  </script>
-  
-
-  
-  
-<script src="/js/search.js"></script>
-
-  
-</body>
-</html>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>NLP</a>
+· Chapter 5</div><h1>NLP (5): BERT and Pretrained Models</h1><p class=deck>How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-10-21>October 21, 2025</time> · 16 min read · 3317 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/nlp/ class=tag>#NLP</a><a href=/en/tags/bert/ class=tag>#BERT</a><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/transfer-learning/ class=tag>#Transfer Learning</a></div><a class="pill pill-outline" href=/zh/nlp/05-bert%E4%B8%8E%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B/>阅读中文版 →</a></div></header><div class=prose><p>In October 2018, Google released BERT and broke eleven NLP benchmarks at once. The recipe is almost embarrassingly simple: take a Transformer encoder, train it to predict words that have been randomly hidden using both left and right context, and then fine-tune the same pretrained model for whatever downstream task you have. Before BERT, every task came with its own from-scratch model. After BERT, &ldquo;pretrain once, fine-tune everywhere&rdquo; became the default mental model for the entire field.</p><p>If you have used a sentiment-analysis API, a search engine that understands intent, or a customer-support bot in the last few years, there is a very good chance BERT or one of its descendants is doing the heavy lifting underneath.</p><h2 id=what-you-will-learn>What you will learn</h2><ul><li>How pretraining evolved: Word2Vec to ELMo to GPT-1 to BERT</li><li>BERT&rsquo;s architecture: a bidirectional Transformer encoder with WordPiece input</li><li>Masked Language Modeling (MLM) and Next Sentence Prediction (NSP), and why the 80/10/10 mask split exists</li><li>Fine-tuning BERT for classification, NER, QA and sentence-pair tasks</li><li>The BERT family: RoBERTa, ALBERT, ELECTRA, and when to pick each</li><li>Practical fine-tuning recipes (learning rate, warmup, gradient accumulation)</li><li>A complete HuggingFace pipeline you can copy-paste</li></ul><p><strong>Prerequisites:</strong> Part 4 (Transformer architecture) and basic PyTorch.</p><hr><h2 id=the-rise-of-pretrain-then-finetune>The rise of pretrain-then-finetune</h2><p>Before BERT, every NLP task started from a freshly initialized model trained on its own labeled dataset. That was expensive (compute), wasteful (no knowledge sharing across tasks), and brittle (small datasets gave shaky models). The story of how the field escaped this trap runs through four landmark systems.</p><h3 id=a-short-evolution>A short evolution</h3><p><strong>Word2Vec (2013).</strong> Static word embeddings learned from raw text. The same vector represented &ldquo;bank&rdquo; in <em>river bank</em> and in <em>bank account</em> &ndash; there was no way for context to change a word&rsquo;s meaning.</p><p><strong>ELMo (early 2018).</strong> A bidirectional LSTM produced context-dependent vectors by combining hidden states from every layer:</p>$$
+\text{ELMo}_k = \gamma \sum_{j=0}^{L} s_j \, h_{k,j}
+$$<p>where $h_{k,j}$ is the hidden state of layer $j$ at token position $k$ and $s_j$ are learned softmax weights. ELMo proved that contextual representations dramatically improve almost every downstream task &ndash; but it was still RNN-based, so training was slow and hard to parallelize.</p><p><strong>GPT-1 (June 2018).</strong> The first system to scale a Transformer through pretraining. It used a left-to-right language model:</p>$$
+P(w_1, \ldots, w_n) = \prod_{i=1}^{n} P(w_i \mid w_1, \ldots, w_{i-1})
+$$<p>GPT-1 was strong but unidirectional: when reading &ldquo;the bank is closed,&rdquo; it could not use &ldquo;closed&rdquo; to disambiguate &ldquo;bank,&rdquo; because at the position of &ldquo;bank&rdquo; the model has not yet seen &ldquo;closed.&rdquo;</p><p><strong>BERT (October 2018).</strong> The breakthrough: change the pretraining objective so every token can attend to its full context, in <em>both</em> directions, simultaneously. That single decision unlocked an across-the-board jump in benchmark scores.</p><h3 id=why-the-paradigm-shift-matters>Why the paradigm shift matters</h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig4_finetune_pipeline.png alt="Pretrain once, fine-tune for many tasks" loading=lazy decoding=async class=content-image></figure></p><p>The pretrain-then-finetune pipeline has two stages:</p><ol><li><strong>Pretrain</strong> on massive unlabeled text (books, Wikipedia, the web) using a self-supervised objective. This is expensive but you do it once.</li><li><strong>Fine-tune</strong> on a small labeled dataset for each downstream task by adding a tiny head and training end-to-end with a small learning rate.</li></ol><p>The wins are concrete:</p><ul><li><strong>Data-efficient.</strong> The backbone already &ldquo;knows&rdquo; syntax and a lot of world knowledge, so you usually need only hundreds to a few thousand labeled examples per task.</li><li><strong>Universal.</strong> The same backbone serves classification, tagging, span extraction, and pairwise tasks.</li><li><strong>Strong baselines.</strong> Plain BERT fine-tuning routinely beats the bespoke architectures it replaced.</li></ul><hr><h2 id=berts-architecture>BERT&rsquo;s architecture</h2><p>BERT is the <strong>encoder</strong> half of the original Transformer, repeated 12 or 24 times. There is no decoder, no causal mask, and no autoregressive generation &ndash; just a bidirectional stack of self-attention layers that turn a sequence of tokens into a sequence of contextual vectors.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig1_bert_architecture.png alt="BERT bidirectional encoder and input embeddings" loading=lazy decoding=async class=content-image></figure></p><h3 id=input-representation-three-embeddings-summed>Input representation: three embeddings, summed</h3><p>For every token, BERT adds three learned embeddings of the same dimension:</p>$$
+\text{Input}_i = E^{\text{tok}}_{w_i} + E^{\text{seg}}_{s_i} + E^{\text{pos}}_{i}
+$$<ul><li><strong>Token embedding</strong> &ndash; the WordPiece sub-token id, drawn from a 30K vocabulary.</li><li><strong>Segment embedding</strong> &ndash; $E_A$ for tokens belonging to the first sentence, $E_B$ for the second. This lets BERT model sentence-pair tasks (NLI, QA) without any architectural change.</li><li><strong>Position embedding</strong> &ndash; a <em>learned</em> vector for each absolute position from 0 to 511. (Unlike the original Transformer&rsquo;s sinusoidal positions, BERT learns its own.)</li></ul><p>Two special tokens carry most of the protocol:</p><ul><li><code>[CLS]</code> is prepended to every input. After all layers, its hidden state is treated as a pooled summary of the whole sequence and is the input to classification heads.</li><li><code>[SEP]</code> separates sentence A from sentence B and marks the end of the input.</li></ul><h3 id=bidirectional-self-attention>Bidirectional self-attention</h3><p>Inside every encoder layer, multi-head self-attention lets every token look at every other token:</p>$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V
+$$<p>Crucially, $Q$, $K$, and $V$ all come from the same input sequence (self-attention) and there is <strong>no causal mask</strong> (bidirectional). So the representation of &ldquo;bank&rdquo; at position 3 can simultaneously incorporate &ldquo;river&rdquo; on its left and &ldquo;is closed&rdquo; on its right within a single forward pass.</p><h3 id=two-sizes>Two sizes</h3><p>The original paper released two configurations that are still the reference points today:</p><table><thead><tr><th></th><th>BERT-Base</th><th>BERT-Large</th></tr></thead><tbody><tr><td>Layers</td><td>12</td><td>24</td></tr><tr><td>Hidden size</td><td>768</td><td>1024</td></tr><tr><td>Attention heads</td><td>12</td><td>16</td></tr><tr><td>Parameters</td><td>110M</td><td>340M</td></tr></tbody></table><p>BERT-Base fits on a single consumer GPU for inference. BERT-Large was the workhorse that set most of the 2018 records.</p><hr><h2 id=pretraining-objectives>Pretraining objectives</h2><p>BERT&rsquo;s pretraining combines two self-supervised tasks. The first is the famous one; the second turned out to be optional.</p><h3 id=masked-language-modeling-mlm>Masked Language Modeling (MLM)</h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig2_mlm_corruption.png alt="MLM 80/10/10 corruption rule" loading=lazy decoding=async class=content-image></figure></p><p>For each input sequence, randomly select 15% of the token positions. At each chosen position:</p><ul><li>with probability <strong>80%</strong>, replace the token with <code>[MASK]</code>,</li><li>with probability <strong>10%</strong>, replace it with a <em>random</em> vocabulary token,</li><li>with probability <strong>10%</strong>, leave it unchanged.</li></ul><p>The model is trained to predict the <em>original</em> token at every chosen position by minimising</p>$$
+\mathcal{L}_{\text{MLM}} = -\sum_{i \in \mathcal{M}} \log P(w_i \mid \tilde{x})
+$$<p>where $\mathcal{M}$ is the set of masked positions and $\tilde{x}$ is the corrupted input.</p><p><strong>Why the 80/10/10 mix?</strong> It is engineered to prevent two failure modes:</p><ul><li>If you only used <code>[MASK]</code>, the model would never see <code>[MASK]</code> during fine-tuning (downstream inputs have no masks), creating a train/test mismatch.</li><li>If you only replaced tokens with random ones, the model could not trust any input token and would underuse local information.</li><li>Leaving 10% unchanged forces the model to use context even when the surface form looks correct &ndash; otherwise it could learn the shortcut &ldquo;if a token is not weird-looking, just copy it.&rdquo;</li></ul><p>The MLM objective is what makes BERT bidirectional in a clean way: predicting the masked word from <em>both sides</em> requires the encoder to fuse information from the entire sequence at every position.</p><h3 id=next-sentence-prediction-nsp>Next Sentence Prediction (NSP)</h3><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig3_nsp.png alt="NSP: positive vs negative pairs" loading=lazy decoding=async class=content-image></figure></p><p>NSP was added so that BERT could learn sentence-pair semantics for tasks like NLI and QA. Each training example packs two sentences <code>[CLS] A [SEP] B [SEP]</code>, with the label generated by a coin flip:</p><ul><li>50% of the time, B is the <em>actual</em> sentence that followed A in the corpus (label <code>IsNext</code>).</li><li>50% of the time, B is a <em>random</em> sentence from a different document (label <code>NotNext</code>).</li></ul><p>A linear-plus-softmax head reads the final <code>[CLS]</code> vector and predicts the label:</p>$$
+P(\text{IsNext}) = \text{softmax}(W \, h_{\text{[CLS]}} + b)
+$$<p>The total pretraining loss is just the sum of the MLM and NSP losses.</p><blockquote><p>A footnote that aged badly: subsequent work (RoBERTa, ALBERT) found NSP contributes very little, and removing or replacing it actually <em>helps</em>. We will return to this in the variants section.</p></blockquote><h3 id=pretraining-corpus>Pretraining corpus</h3><p>BERT was trained on <strong>BooksCorpus</strong> (about 800M words) and <strong>English Wikipedia</strong> (about 2.5B words), totalling roughly 3.3B words. By 2026 standards that is tiny &ndash; modern LLMs train on trillions of tokens &ndash; but it was already enough to set a new bar.</p><hr><h2 id=wordpiece-tokenization>WordPiece tokenization</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig6_wordpiece.png alt="WordPiece subword tokenization" loading=lazy decoding=async class=content-image></figure></p><p>BERT does not work with whole words. Instead, it uses <strong>WordPiece</strong>, a subword scheme that strikes a balance between two extremes:</p><ul><li>Whole-word vocabularies need millions of entries to cover any real corpus and still hit out-of-vocabulary tokens at inference time.</li><li>Pure character vocabularies are tiny but force the model to reconstruct word meaning from scratch every sequence.</li></ul><p>WordPiece picks a 30K-token vocabulary by greedily merging the character pairs whose merger most increases the likelihood of the training corpus. At tokenization time, it segments each word into the longest pieces it has in the vocabulary; pieces inside a word are prefixed with <code>##</code> to mark them as continuations:</p><pre tabindex=0><code>playing       -&gt; play  ##ing
+unbelievable  -&gt; un    ##bel  ##iev  ##able
+transformer   -&gt; transform  ##er
+Tokyo2024     -&gt; tokyo  ##20  ##24
+</code></pre><p>This guarantees there is no out-of-vocabulary token (everything decomposes into known pieces, ultimately into single characters), while keeping common words as single tokens for efficiency.</p><hr><h2 id=fine-tuning-bert-for-downstream-tasks>Fine-tuning BERT for downstream tasks</h2><p>The big idea behind fine-tuning is that the same backbone serves nearly every task; only the head differs.</p><h3 id=text-classification>Text classification</h3><p>For a sentence-level label (sentiment, spam, intent), feed the input through BERT and project the final <code>[CLS]</code> vector through a linear layer:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForSequenceClassification</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForSequenceClassification</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>,</span> <span class=n>num_labels</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;I love this movie!&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>inputs</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s1>&#39;pt&#39;</span><span class=p>,</span> <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>outputs</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>inputs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>prediction</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Prediction: </span><span class=si>{</span><span class=n>prediction</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>  <span class=c1># 0 or 1</span>
+</span></span></code></pre></td></tr></table></div></div><p>Internally:</p><ol><li>Tokenize and add <code>[CLS]</code> and <code>[SEP]</code>.</li><li>Pass through 12 encoder layers.</li><li>Take the <code>[CLS]</code> hidden state (768-dim for BERT-Base).</li><li>Apply a single linear layer mapping 768 -> num_labels.</li></ol><h3 id=named-entity-recognition-ner>Named entity recognition (NER)</h3><p>Token-level tasks use the per-token vectors instead of <code>[CLS]</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForTokenClassification</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForTokenClassification</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>,</span> <span class=n>num_labels</span><span class=o>=</span><span class=mi>9</span><span class=p>,</span>  <span class=c1># e.g. BIO tags for PER/ORG/LOC/MISC + O</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;Barack Obama was born in Hawaii&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>inputs</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s1>&#39;pt&#39;</span><span class=p>,</span> <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>outputs</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>inputs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>predictions</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>tokens</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>convert_ids_to_tokens</span><span class=p>(</span><span class=n>inputs</span><span class=p>[</span><span class=s1>&#39;input_ids&#39;</span><span class=p>][</span><span class=mi>0</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>token</span><span class=p>,</span> <span class=n>pred</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>tokens</span><span class=p>,</span> <span class=n>predictions</span><span class=p>[</span><span class=mi>0</span><span class=p>]):</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>token</span><span class=si>}</span><span class=s2>: tag </span><span class=si>{</span><span class=n>pred</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>A subtlety: WordPiece can split a word (&ldquo;Hawaii&rdquo; might stay whole, but &ldquo;Tokyo2024&rdquo; splits into three pieces). When converting back to word-level entities, you typically take the prediction at the <em>first</em> sub-token of each word and ignore the continuation pieces.</p><h3 id=question-answering-extractive>Question answering (extractive)</h3><p>For SQuAD-style QA, the model predicts the start and end positions of the answer span inside the context:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForQuestionAnswering</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForQuestionAnswering</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>question</span> <span class=o>=</span> <span class=s2>&#34;Where was Barack Obama born?&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>context</span> <span class=o>=</span> <span class=s2>&#34;Barack Obama was born in Hawaii in 1961.&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>inputs</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>question</span><span class=p>,</span> <span class=n>context</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s1>&#39;pt&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                   <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>outputs</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>inputs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>start</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>start_logits</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>end</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>end_logits</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>answer</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>inputs</span><span class=p>[</span><span class=s1>&#39;input_ids&#39;</span><span class=p>][</span><span class=mi>0</span><span class=p>][</span><span class=n>start</span><span class=p>:</span><span class=n>end</span> <span class=o>+</span> <span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Answer: </span><span class=si>{</span><span class=n>answer</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The two heads are linear layers on top of every token vector, producing one start logit and one end logit per position. The predicted span is the contiguous range that maximizes start + end logits subject to start &lt;= end.</p><h3 id=sentence-pair-classification-nli-paraphrase>Sentence-pair classification (NLI, paraphrase)</h3><p>Pack the two sentences with a <code>[SEP]</code> between them and use the <code>[CLS]</code> head:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForSequenceClassification</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForSequenceClassification</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>,</span> <span class=n>num_labels</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>  <span class=c1># entailment / neutral / contradiction</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>premise</span> <span class=o>=</span> <span class=s2>&#34;A man is playing guitar&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>hypothesis</span> <span class=o>=</span> <span class=s2>&#34;Someone is making music&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>inputs</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>premise</span><span class=p>,</span> <span class=n>hypothesis</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s1>&#39;pt&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                   <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>outputs</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>inputs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>prediction</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Notice how minimal the architectural change is: the same <code>BertForSequenceClassification</code> class handles both single-sentence and sentence-pair classification just by tokenizing differently.</p><hr><h2 id=fine-tuning-recipes-that-actually-work>Fine-tuning recipes that actually work</h2><p>Fine-tuning a 110M-parameter model with a few thousand labels is fundamentally different from training from scratch. The defaults that work for ResNet from scratch will overshoot and destroy the pretrained weights here.</p><h3 id=use-a-small-learning-rate-with-weight-decay>Use a small learning rate, with weight decay</h3><p>The pretrained weights live in a good basin; you want to nudge them, not bulldoze them. The standard trick is AdamW with separate parameter groups so that bias and LayerNorm parameters are <em>not</em> decayed:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.optim</span> <span class=kn>import</span> <span class=n>AdamW</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>no_decay</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;bias&#34;</span><span class=p>,</span> <span class=s2>&#34;LayerNorm.weight&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>optimizer_grouped_parameters</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=p>[</span><span class=n>p</span> <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                   <span class=k>if</span> <span class=ow>not</span> <span class=nb>any</span><span class=p>(</span><span class=n>nd</span> <span class=ow>in</span> <span class=n>n</span> <span class=k>for</span> <span class=n>nd</span> <span class=ow>in</span> <span class=n>no_decay</span><span class=p>)],</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;weight_decay&#34;</span><span class=p>:</span> <span class=mf>0.01</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=p>[</span><span class=n>p</span> <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                   <span class=k>if</span> <span class=nb>any</span><span class=p>(</span><span class=n>nd</span> <span class=ow>in</span> <span class=n>n</span> <span class=k>for</span> <span class=n>nd</span> <span class=ow>in</span> <span class=n>no_decay</span><span class=p>)],</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;weight_decay&#34;</span><span class=p>:</span> <span class=mf>0.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>optimizer</span> <span class=o>=</span> <span class=n>AdamW</span><span class=p>(</span><span class=n>optimizer_grouped_parameters</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>2e-5</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=warm-up-then-linearly-decay>Warm up, then linearly decay</h3><p>Even a tiny learning rate is too large if applied to the very first step on a freshly added head. Warmup ramps the LR up over the first ~10% of steps, then a linear schedule cools it back to zero:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>get_linear_schedule_with_warmup</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>total_steps</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>dataloader</span><span class=p>)</span> <span class=o>*</span> <span class=n>num_epochs</span>
+</span></span><span class=line><span class=cl><span class=n>scheduler</span> <span class=o>=</span> <span class=n>get_linear_schedule_with_warmup</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>optimizer</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>num_warmup_steps</span><span class=o>=</span><span class=nb>int</span><span class=p>(</span><span class=mf>0.1</span> <span class=o>*</span> <span class=n>total_steps</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=n>num_training_steps</span><span class=o>=</span><span class=n>total_steps</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=gradient-accumulation-if-memory-is-tight>Gradient accumulation if memory is tight</h3><p>When you cannot fit batch size 32 on your GPU, simulate it by accumulating gradients across several smaller forward/backward passes:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>accumulation_steps</span> <span class=o>=</span> <span class=mi>4</span>
+</span></span><span class=line><span class=cl><span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>batch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>dataloader</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>loss</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>batch</span><span class=p>)</span><span class=o>.</span><span class=n>loss</span> <span class=o>/</span> <span class=n>accumulation_steps</span>
+</span></span><span class=line><span class=cl>    <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=n>accumulation_steps</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>optimizer</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>scheduler</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=default-recipe>Default recipe</h3><p>When in doubt, start here &ndash; it is what most papers use:</p><table><thead><tr><th>Setting</th><th>Recommended</th></tr></thead><tbody><tr><td>Learning rate</td><td>2e-5 to 5e-5</td></tr><tr><td>Batch size</td><td>16-32 (use gradient accumulation if needed)</td></tr><tr><td>Epochs</td><td>2-4 (BERT fine-tunes fast; more epochs risk overfitting)</td></tr><tr><td>Warmup</td><td>10% of total steps</td></tr><tr><td>Max sequence length</td><td>128-512 (shorter is faster; pick the smallest that fits inputs)</td></tr><tr><td>Optimizer</td><td>AdamW with weight decay 0.01 on weights, 0.0 on bias/LayerNorm</td></tr></tbody></table><hr><h2 id=a-complete-huggingface-pipeline>A complete HuggingFace pipeline</h2><p>Putting it all together, here is an end-to-end fine-tuning pipeline on the IMDB sentiment dataset:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertForSequenceClassification</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>Trainer</span><span class=p>,</span> <span class=n>TrainingArguments</span><span class=p>,</span> <span class=n>DataCollatorWithPadding</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>datasets</span> <span class=kn>import</span> <span class=n>load_dataset</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 1. Load data and model</span>
+</span></span><span class=line><span class=cl><span class=n>dataset</span> <span class=o>=</span> <span class=n>load_dataset</span><span class=p>(</span><span class=s2>&#34;imdb&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>BertForSequenceClassification</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;bert-base-uncased&#39;</span><span class=p>,</span> <span class=n>num_labels</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. Tokenize</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>preprocess</span><span class=p>(</span><span class=n>examples</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>examples</span><span class=p>[</span><span class=s1>&#39;text&#39;</span><span class=p>],</span> <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                     <span class=n>padding</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>max_length</span><span class=o>=</span><span class=mi>512</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tokenized</span> <span class=o>=</span> <span class=n>dataset</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>preprocess</span><span class=p>,</span> <span class=n>batched</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. Training config</span>
+</span></span><span class=line><span class=cl><span class=n>training_args</span> <span class=o>=</span> <span class=n>TrainingArguments</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>output_dir</span><span class=o>=</span><span class=s1>&#39;./results&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>num_train_epochs</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>per_device_train_batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>per_device_eval_batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>warmup_steps</span><span class=o>=</span><span class=mi>500</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>weight_decay</span><span class=o>=</span><span class=mf>0.01</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>logging_steps</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>evaluation_strategy</span><span class=o>=</span><span class=s2>&#34;epoch&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>save_strategy</span><span class=o>=</span><span class=s2>&#34;epoch&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>load_best_model_at_end</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 4. Train</span>
+</span></span><span class=line><span class=cl><span class=n>trainer</span> <span class=o>=</span> <span class=n>Trainer</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=n>model</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>args</span><span class=o>=</span><span class=n>training_args</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>train_dataset</span><span class=o>=</span><span class=n>tokenized</span><span class=p>[</span><span class=s1>&#39;train&#39;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>eval_dataset</span><span class=o>=</span><span class=n>tokenized</span><span class=p>[</span><span class=s1>&#39;test&#39;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>data_collator</span><span class=o>=</span><span class=n>DataCollatorWithPadding</span><span class=p>(</span><span class=n>tokenizer</span><span class=o>=</span><span class=n>tokenizer</span><span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>trainer</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 5. Evaluate</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>trainer</span><span class=o>.</span><span class=n>evaluate</span><span class=p>())</span>
+</span></span></code></pre></td></tr></table></div></div><p>On a single modern GPU this trains in a few hours and reaches around 92-94% accuracy on IMDB &ndash; a number that took years of hand-engineered features to hit before BERT.</p><hr><h2 id=how-big-was-the-jump-glue-in-2018>How big was the jump? GLUE in 2018</h2><p>To appreciate why BERT shocked the field, look at the eight-task GLUE benchmark from the original paper.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig7_glue_benchmark.png alt="BERT vs prior SOTA on GLUE" loading=lazy decoding=async class=content-image></figure></p><p>The bars compare the previous task-specific best (gray) with BERT-Base (blue) and BERT-Large (purple). On structurally hard tasks like CoLA (linguistic acceptability) and the small RTE (textual entailment) dataset, the absolute gain was <em>double-digit</em>. A single pretrained model, fine-tuned with a few epochs and a tiny head, beat years of bespoke architectures simultaneously on every task.</p><hr><h2 id=the-bert-family-roberta-albert-electra>The BERT family: RoBERTa, ALBERT, ELECTRA</h2><p>BERT was the start, not the end. Within two years a small family of variants improved on it along orthogonal axes.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/bert-pretrained-models/fig5_variants_comparison.png alt="BERT vs RoBERTa vs ALBERT vs ELECTRA" loading=lazy decoding=async class=content-image></figure></p><h3 id=roberta-facebook-2019-just-train-it-properly>RoBERTa (Facebook, 2019): just train it properly</h3><p>Liu et al. showed that BERT was significantly <em>under</em>-trained. Without changing the architecture, RoBERTa changes the recipe:</p><ul><li><strong>Drop NSP.</strong> It does not help and may hurt.</li><li><strong>Dynamic masking.</strong> Generate a fresh mask for each epoch instead of reusing a static one created during preprocessing.</li><li><strong>Bigger batches.</strong> 8K instead of 256.</li><li><strong>Much more data.</strong> Add CC-News, OpenWebText, and Stories on top of BooksCorpus + Wikipedia (~160B tokens vs BERT&rsquo;s ~3.3B).</li></ul><p>The result is a 2-3 GLUE point jump using exactly the BERT-Large architecture.</p><h3 id=albert-google-2019-squeeze-the-parameters>ALBERT (Google, 2019): squeeze the parameters</h3><p>ALBERT achieves competitive scores with far fewer <em>unique</em> parameters:</p><ul><li><strong>Factorized embeddings.</strong> Rather than a single $V \times H$ embedding matrix, decompose it into $V \times E$ and $E \times H$ with $E \ll H$. Token embeddings live in a small space and are projected up to the hidden size.</li><li><strong>Cross-layer parameter sharing.</strong> All Transformer layers share the same weights, so depth no longer multiplies parameter count.</li><li><strong>Sentence Order Prediction (SOP)</strong> replaces NSP with a harder task: given two adjacent sentences, decide whether their order has been swapped. This is harder than detecting random pairs and turns out to be a more useful signal.</li></ul><p>ALBERT-xxlarge has roughly 235M unique parameters (compare with BERT-Large&rsquo;s 340M) but matches or beats it on GLUE.</p><h3 id=electra-google-2020-use-every-token>ELECTRA (Google, 2020): use every token</h3><p>MLM only computes a loss at 15% of positions, which is wasteful. ELECTRA replaces MLM with <strong>Replaced Token Detection (RTD)</strong>:</p><ol><li>A small generator (a tiny MLM) plausibly replaces some tokens.</li><li>A larger discriminator examines every token and decides: was this the original, or did the generator swap it in?</li><li>We throw away the generator and keep only the discriminator.</li></ol><p>Because the discriminator gets a loss at <em>every</em> position, ELECTRA reaches BERT-quality scores with much less compute &ndash; ELECTRA-Small matches BERT-Base while training in a quarter of the time.</p><h3 id=comparison>Comparison</h3><table><thead><tr><th>Model</th><th>Key innovation</th><th>Parameters</th><th>Relative GLUE</th></tr></thead><tbody><tr><td>BERT</td><td>Bidirectional MLM + NSP</td><td>110M / 340M</td><td>Baseline</td></tr><tr><td>RoBERTa</td><td>Drop NSP, dynamic masking, far more data</td><td>110M / 355M</td><td>+2-3</td></tr><tr><td>ALBERT</td><td>Factorized embeddings + parameter sharing</td><td>12M to 235M</td><td>+1-2</td></tr><tr><td>ELECTRA</td><td>RTD (loss on 100% of tokens)</td><td>14M to 335M</td><td>+2-3</td></tr></tbody></table><p>Picking among them is a recipe choice, not an architecture one: all four are encoder-only Transformers with very similar shape.</p><hr><h2 id=what-bert-cannot-do>What BERT cannot do</h2><p>It is just as important to know BERT&rsquo;s limits.</p><ul><li><strong>Cost.</strong> 110-340M parameters and quadratic attention make real-time inference uncomfortable without distillation (DistilBERT, TinyBERT) or quantization.</li><li><strong>No generation.</strong> BERT is encoder-only with bidirectional attention. There is no sensible way to autoregressively decode text from it. For generation you need GPT-style decoder models &ndash; the topic of Part 6.</li><li><strong>512-token ceiling.</strong> Position embeddings are learned for positions 0-511. Long documents need sliding windows, hierarchical aggregation, or a different architecture (Longformer, BigBird).</li><li><strong>English-centric.</strong> The original BERT was trained on English text only. Multilingual BERT covers 100+ languages but underperforms language-specific models (BERT-Chinese, CamemBERT, etc.) on their target language.</li></ul><hr><h2 id=common-questions>Common questions</h2><p><strong>Why use <code>[CLS]</code> for classification?</strong> It is placed at position 0 of every input, so attention naturally lets it aggregate information from the whole sequence by the final layer. The pretraining NSP objective also conditions <code>[CLS]</code> to act as a sequence summary.</p><p><strong>BERT or RoBERTa?</strong> If you want the highest score and have a few extra GPU-hours, RoBERTa. If you want the largest ecosystem, the most tutorials, and the most checkpoints to choose from, BERT remains the safest baseline.</p><p><strong>How do I pick a variant?</strong> Use BERT for general baselines, RoBERTa for pushing accuracy, ALBERT when parameter count matters (mobile, embedded), ELECTRA when training compute is the bottleneck.</p><p><strong>What about non-English languages?</strong> Use mBERT or XLM-RoBERTa as multilingual baselines. For best per-language performance, use a dedicated checkpoint &ndash; BERT-wwm-ext or MacBERT for Chinese, CamemBERT for French, BERTje for Dutch, and so on.</p><p><strong>Can BERT be used for sentence embeddings?</strong> Naively averaging BERT token vectors gives mediocre sentence embeddings. Use Sentence-BERT (a fine-tuned variant trained with a Siamese contrastive loss) when you need similarity scoring.</p><hr><h2 id=key-takeaways>Key takeaways</h2><ul><li>BERT introduced <strong>bidirectional pretraining</strong> via Masked Language Modeling, letting every token see its full context in a single forward pass.</li><li>The 80/10/10 mask split is engineered to avoid train-test mismatch and to force the model to use context even when the input looks unmasked.</li><li>The <strong>pretrain-then-finetune</strong> paradigm means one expensive pretraining run amortizes across every downstream task; fine-tuning needs only a tiny head, a small learning rate, and a few epochs.</li><li><strong>RoBERTa, ALBERT, and ELECTRA</strong> show that the recipe (data, masking, parameter sharing, training objective) matters as much as the architecture.</li><li>BERT excels at <strong>understanding</strong> tasks but cannot generate text. For that we turn to GPT (Part 6).</li></ul></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/nlp/>NLP</a> <span class=count>12 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/nlp/attention-transformer/><span class=title>NLP (4): Attention Mechanism and Transformer</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/nlp/gpt-generative-models/><span class=title>NLP (6): GPT and Generative Language Models</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/introduction-and-preprocessing/><span class=series-nav-num>01</span>
+<span class=series-nav-title>NLP (1): Introduction and Text Preprocessing</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/word-embeddings-lm/><span class=series-nav-num>02</span>
+<span class=series-nav-title>NLP (2): Word Embeddings and Language Models</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/rnn-sequence-modeling/><span class=series-nav-num>03</span>
+<span class=series-nav-title>NLP (3): RNN and Sequence Modeling</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/attention-transformer/><span class=series-nav-num>04</span>
+<span class=series-nav-title>NLP (4): Attention Mechanism and Transformer</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>05</span>
+<span class=series-nav-title>NLP (5): BERT and Pretrained Models</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/gpt-generative-models/><span class=series-nav-num>06</span>
+<span class=series-nav-title>NLP (6): GPT and Generative Language Models</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/prompt-engineering-icl/><span class=series-nav-num>07</span>
+<span class=series-nav-title>NLP (7): Prompt Engineering and In-Context Learning</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/fine-tuning-peft/><span class=series-nav-num>08</span>
+<span class=series-nav-title>NLP (8): Model Fine-tuning and PEFT</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/llm-architecture-deep-dive/><span class=series-nav-num>09</span>
+<span class=series-nav-title>NLP (9): Deep Dive into LLM Architecture</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/rag-knowledge-enhancement/><span class=series-nav-num>10</span>
+<span class=series-nav-title>NLP (10): RAG and Knowledge Enhancement Systems</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/multimodal-nlp/><span class=series-nav-num>11</span>
+<span class=series-nav-title>NLP (11): Multimodal Large Language Models</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/nlp/frontiers-applications/><span class=series-nav-num>12</span>
+<span class=series-nav-title>NLP (12): Frontiers and Practical Applications</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#the-rise-of-pretrain-then-finetune>The rise of pretrain-then-finetune</a><ul><li><a href=#a-short-evolution>A short evolution</a></li><li><a href=#why-the-paradigm-shift-matters>Why the paradigm shift matters</a></li></ul></li><li><a href=#berts-architecture>BERT&rsquo;s architecture</a><ul><li><a href=#input-representation-three-embeddings-summed>Input representation: three embeddings, summed</a></li><li><a href=#bidirectional-self-attention>Bidirectional self-attention</a></li><li><a href=#two-sizes>Two sizes</a></li></ul></li><li><a href=#pretraining-objectives>Pretraining objectives</a><ul><li><a href=#masked-language-modeling-mlm>Masked Language Modeling (MLM)</a></li><li><a href=#next-sentence-prediction-nsp>Next Sentence Prediction (NSP)</a></li><li><a href=#pretraining-corpus>Pretraining corpus</a></li></ul></li><li><a href=#wordpiece-tokenization>WordPiece tokenization</a></li><li><a href=#fine-tuning-bert-for-downstream-tasks>Fine-tuning BERT for downstream tasks</a><ul><li><a href=#text-classification>Text classification</a></li><li><a href=#named-entity-recognition-ner>Named entity recognition (NER)</a></li><li><a href=#question-answering-extractive>Question answering (extractive)</a></li><li><a href=#sentence-pair-classification-nli-paraphrase>Sentence-pair classification (NLI, paraphrase)</a></li></ul></li><li><a href=#fine-tuning-recipes-that-actually-work>Fine-tuning recipes that actually work</a><ul><li><a href=#use-a-small-learning-rate-with-weight-decay>Use a small learning rate, with weight decay</a></li><li><a href=#warm-up-then-linearly-decay>Warm up, then linearly decay</a></li><li><a href=#gradient-accumulation-if-memory-is-tight>Gradient accumulation if memory is tight</a></li><li><a href=#default-recipe>Default recipe</a></li></ul></li><li><a href=#a-complete-huggingface-pipeline>A complete HuggingFace pipeline</a></li><li><a href=#how-big-was-the-jump-glue-in-2018>How big was the jump? GLUE in 2018</a></li><li><a href=#the-bert-family-roberta-albert-electra>The BERT family: RoBERTa, ALBERT, ELECTRA</a><ul><li><a href=#roberta-facebook-2019-just-train-it-properly>RoBERTa (Facebook, 2019): just train it properly</a></li><li><a href=#albert-google-2019-squeeze-the-parameters>ALBERT (Google, 2019): squeeze the parameters</a></li><li><a href=#electra-google-2020-use-every-token>ELECTRA (Google, 2020): use every token</a></li><li><a href=#comparison>Comparison</a></li></ul></li><li><a href=#what-bert-cannot-do>What BERT cannot do</a></li><li><a href=#common-questions>Common questions</a></li><li><a href=#key-takeaways>Key takeaways</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>NLP</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/introduction-and-preprocessing/><span class=chapter-num>01</span>
+<span class=chapter-title>NLP (1): Introduction and Text Preprocessing</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/word-embeddings-lm/><span class=chapter-num>02</span>
+<span class=chapter-title>NLP (2): Word Embeddings and Language Models</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/rnn-sequence-modeling/><span class=chapter-num>03</span>
+<span class=chapter-title>NLP (3): RNN and Sequence Modeling</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/attention-transformer/><span class=chapter-num>04</span>
+<span class=chapter-title>NLP (4): Attention Mechanism and Transformer</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>05</span>
+<span class=chapter-title>NLP (5): BERT and Pretrained Models</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/gpt-generative-models/><span class=chapter-num>06</span>
+<span class=chapter-title>NLP (6): GPT and Generative Language Models</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/prompt-engineering-icl/><span class=chapter-num>07</span>
+<span class=chapter-title>NLP (7): Prompt Engineering and In-Context Learning</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/fine-tuning-peft/><span class=chapter-num>08</span>
+<span class=chapter-title>NLP (8): Model Fine-tuning and PEFT</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/llm-architecture-deep-dive/><span class=chapter-num>09</span>
+<span class=chapter-title>NLP (9): Deep Dive into LLM Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/rag-knowledge-enhancement/><span class=chapter-num>10</span>
+<span class=chapter-title>NLP (10): RAG and Knowledge Enhancement Systems</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/multimodal-nlp/><span class=chapter-num>11</span>
+<span class=chapter-title>NLP (11): Multimodal Large Language Models</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/frontiers-applications/><span class=chapter-num>12</span>
+<span class=chapter-title>NLP (12): Frontiers and Practical Applications</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>16 min</strong></div><div class=row><span>Word count</span><strong>3317</strong></div><div class=row><span>Published</span><strong>Oct 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>About this site</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>About this site</h3><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/llm-engineering/>Llm-Engineering</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>
