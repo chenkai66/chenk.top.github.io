@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Terraform Agents</a>
 · 第 5 篇</div><h1>用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆</h1><p class=deck>Agent 有三种记忆，分别落到三个阿里云服务上：会话用 PolarDB/RDS，embedding 用 OpenSearch 向量版或 pgvector，产物用 OSS。每一层的真实 Terraform，再加上让账单不暴涨的 lifecycle 和备份规则。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-03-20>March 20, 2026</time> · 7 分钟 · 3031 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91/ class=tag>#阿里云</a><a href=/zh/tags/oss/ class=tag>#OSS</a><a href=/zh/tags/rds/ class=tag>#RDS</a><a href=/zh/tags/opensearch/ class=tag>#OpenSearch</a><a href=/zh/tags/ai-agent/ class=tag>#AI Agent</a></div><a class="pill pill-outline" href=/en/terraform-agents/05-storage-for-agent-memory/>Read in English →</a></div></header><div class=prose><p>Agent 的"记忆"是多数教程一笔带过的部分。&ldquo;embedding 丢 Pinecone，会话进 Postgres，截图传 S3。&ldquo;在阿里云上，三种都有托管服务，而正确地用 Terraform 把它们建出来，就是"记忆好用"和"凌晨四点磁盘满了我们丢了三周对话历史"的差。</p><p>本篇覆盖三层、每层的 Terraform，再加上无聊但关键的 lifecycle 和备份规则。</p><h2 id=三层记忆模型>三层记忆模型</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png alt="Agent 三种记忆映射到三个阿里云服务" loading=lazy decoding=async class=content-image></figure></p><p>心智模型：</p><ul><li><strong>短期 / 会话</strong>——Agent 在当前次和最近几次跑里做过的事。对话轮次、工具调用、中间状态。schema 稳定、低延迟、要事务。放关系型数据库。</li><li><strong>长期 / 语义</strong>——文档、历史输出、召回库的 embedding。混合 lexical + 向量检索。放向量库。</li><li><strong>产物 / blob</strong>——生成的图片、PDF、截图、运行快照。有时大、常常写一次很少读。放对象存储。</li></ul><p>不要混淆。我见过一个团队把 50 GB 生成的 PDF 塞进 Postgres，因为"它有 <code>bytea</code> 列&rdquo;。成本是 OSS 的十倍，查询延迟糊成一团，备份要几小时。</p><h2 id=第-1-层关系型rds-for-postgresql>第 1 层：关系型，RDS for PostgreSQL</h2><p>会话状态——对话轮次、工具调用 trace、用户身份——你需要一个真正的 RDBMS。PostgreSQL 是我的默认；MySQL 也行，如果团队偏好。需要横向 scale 时升 PolarDB。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-03-20>March 20, 2026</time> · 11 分钟 · 5158 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91/ class=tag>#阿里云</a><a href=/zh/tags/oss/ class=tag>#OSS</a><a href=/zh/tags/rds/ class=tag>#RDS</a><a href=/zh/tags/opensearch/ class=tag>#OpenSearch</a><a href=/zh/tags/ai-agent/ class=tag>#AI Agent</a></div><a class="pill pill-outline" href=/en/terraform-agents/05-storage-for-agent-memory/>Read in English →</a></div></header><div class=prose><p>Agent 的"记忆"是多数教程一笔带过的部分。&ldquo;embedding 丢 Pinecone，会话进 Postgres，截图传 S3。&ldquo;在阿里云上，三种都有托管服务，而正确地用 Terraform 把它们建出来，就是"记忆好用"和"凌晨四点磁盘满了我们丢了三周对话历史"的差。</p><p>本篇覆盖三层、每层的 Terraform，再加上无聊但关键的 lifecycle 和备份规则。</p><h2 id=三层记忆模型>三层记忆模型</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png alt="Agent 三种记忆映射到三个阿里云服务" loading=lazy decoding=async class=content-image></figure></p><p>心智模型：</p><ul><li><strong>短期 / 会话</strong>——Agent 在当前次和最近几次跑里做过的事。对话轮次、工具调用、中间状态。schema 稳定、低延迟、要事务。放关系型数据库。</li><li><strong>长期 / 语义</strong>——文档、历史输出、召回库的 embedding。混合 lexical + 向量检索。放向量库。</li><li><strong>产物 / blob</strong>——生成的图片、PDF、截图、运行快照。有时大、常常写一次很少读。放对象存储。</li></ul><p>不要混淆。我见过一个团队把 50 GB 生成的 PDF 塞进 Postgres，因为"它有 <code>bytea</code> 列&rdquo;。成本是 OSS 的十倍，查询延迟糊成一团，备份要几小时。</p><h2 id=第-1-层关系型rds-for-postgresql>第 1 层：关系型，RDS for PostgreSQL</h2><p>会话状态——对话轮次、工具调用 trace、用户身份——你需要一个真正的 RDBMS。PostgreSQL 是我的默认；MySQL 也行，如果团队偏好。需要横向 scale 时升 PolarDB。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -348,7 +348,201 @@
 </span></span><span class=line><span class=cl><span class=k>output</span> <span class=s2>&#34;artifacts_bucket&#34;</span> {
 </span></span><span class=line><span class=cl><span class=n>  value</span> <span class=o>=</span> <span class=k>alicloud_oss_bucket</span><span class=p>.</span><span class=k>artifacts</span><span class=p>.</span><span class=k>bucket</span>
 </span></span><span class=line><span class=cl>}
-</span></span></code></pre></td></tr></table></div></div></li></ol><p>Agent 从 cloud-init 写入的环境变量读这些。没有硬写的 endpoint，没有手工配置文件。</p><h2 id=月成本dev-workspace低流量>月成本（dev workspace、低流量）</h2><ul><li>RDS PostgreSQL (<code>pg.n2.medium.1c</code>, 100 GB ESSD)：~¥350/月</li><li>OpenSearch 向量（最小）：~¥800/月</li><li>OSS（10 GB 标准，lifecycle 开）：~¥1.5/月 + 流量</li><li>KMS（第三篇覆盖）：~¥10/月</li></ul><p>dev 存储层粗略 ¥1200/月。Prod 加 HA RDS、更大 OpenSearch、更多 OSS 会到 ¥3000-5000/月。这就是成本压力开始真实的地方——第七篇讲怎么追踪和告警。</p><h2 id=下一篇>下一篇</h2><p>第六篇在第四篇的计算和刚刚的存储前面建 LLM 网关。那是 API key 住的地方、配额执行的地方、按 Agent 归因成本的地方。第六篇结束你就拥有一个能跑 Agent 的完整 stack——最后两篇在上面接观测和成本控制。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/terraform-agents/>Terraform Agents</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/terraform-agents/04-compute-for-agent-runtime/><span class=title>用 Terraform 给 AI Agent 上云（四）：计算层选 ECS、ACK 还是函数计算？</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=title>用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=series-nav-num>01</span>
+</span></span></code></pre></td></tr></table></div></div></li></ol><p>Agent 从 cloud-init 写入的环境变量读这些。没有硬写的 endpoint，没有手工配置文件。</p><h2 id=月成本dev-workspace低流量>月成本（dev workspace、低流量）</h2><ul><li>RDS PostgreSQL (<code>pg.n2.medium.1c</code>, 100 GB ESSD)：~¥350/月</li><li>OpenSearch 向量（最小）：~¥800/月</li><li>OSS（10 GB 标准，lifecycle 开）：~¥1.5/月 + 流量</li><li>KMS（第三篇覆盖）：~¥10/月</li></ul><p>dev 存储层粗略 ¥1200/月。Prod 加 HA RDS、更大 OpenSearch、更多 OSS 会到 ¥3000-5000/月。这就是成本压力开始真实的地方——第七篇讲怎么追踪和告警。</p><h2 id=下一篇>下一篇</h2><p>第六篇在第四篇的计算和刚刚的存储前面建 LLM 网关。那是 API key 住的地方、配额执行的地方、按 Agent 归因成本的地方。第六篇结束你就拥有一个能跑 Agent 的完整 stack——最后两篇在上面接观测和成本控制。</p><h2 id=一次真实故障apply-错了-workspace-的那个夜晚>一次真实故障：apply 错了 workspace 的那个夜晚</h2><p>这事儿赔了我一个周六。值得讲是因为修法是结构性的，不是"小心点&rdquo;。</p><p>布景：三个 workspace——<code>dev</code>、<code>staging</code>、<code>prod</code>。dev RDS 是小的 <code>pg.n2.medium.1c</code>。Prod 是带 HA 的 <code>pg.x4.large.2c</code>。我笔记本上工作，切了个 feature 分支，跑 <code>terraform plan</code> 检查。看见 &ldquo;Plan: 2 to add, 1 to change, 0 to destroy&rdquo;——看起来干净。<code>terraform apply</code>。走开去煮咖啡。</p><p>回来发现 prod 数据库被销毁了。</p><p>根因：上一个 session 我选过 <code>prod</code> workspace，没切回来。我 apply 的改动（一个 tag 微调）在 dev 是无害的。在 prod，看起来"1 to change"实际是 force-replace——因为不相关的一次 provider 升级落进 <code>main</code> 触发了 RDS 重建。Provider 的 plan 输出本应更清楚的，没有。</p><p>咬到我的 HCL：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=c1># PR 里看似无辜的改动
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>resource</span> <span class=s2>&#34;alicloud_db_instance&#34; &#34;memory&#34;</span> {<span class=c1>
+</span></span></span><span class=line><span class=cl><span class=c1>  # ... 不变 ...
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=k>parameter</span> {
+</span></span><span class=line><span class=cl><span class=n>    name</span>  <span class=o>=</span> <span class=s2>&#34;log_min_duration_statement&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    value</span> <span class=o>=</span> <span class=s2>&#34;100&#34;   # 原本 &#34;1000&#34;</span><span class=err>，</span><span class=k>无害调优</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>但 provider 新升的 1.231 版决定这个参数对某些 engine version 现在是 <code>force_new</code>。Plan 写的是 <code>~ parameter</code>——看起来是原地改——apply 实际做了重建。</p><p>从自动备份恢复花了 90 分钟（万幸备份很新）。复盘出来四个结构性修复，两年来防住了所有复发：</p><h3 id=修复-1prod-有状态资源加-lifecycle--prevent_destroy--true->修复 1：prod 有状态资源加 <code>lifecycle { prevent_destroy = true }</code></h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_db_instance&#34; &#34;memory&#34;</span> {<span class=c1>
+</span></span></span><span class=line><span class=cl><span class=c1>  # ... 配置 ...
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl>  <span class=k>lifecycle</span> {
+</span></span><span class=line><span class=cl><span class=n>    prevent_destroy</span> <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>is_prod</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>任何会销毁 prod RDS 的 <code>terraform apply</code> 都会报 <code>Resource has lifecycle.prevent_destroy set</code> 失败。你必须主动从 HCL 里移除这一行、提 PR、过 approve、<strong>然后</strong>才允许销毁。这一行就能挡住我那个周六事故。</p><h3 id=修复-2shell-里的-workspace-提示>修复 2：shell 里的 workspace 提示</h3><p>每次调 <code>terraform</code> 都对我吼的 shell 函数：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=k>function</span> terraform<span class=o>()</span> <span class=o>{</span>
+</span></span><span class=line><span class=cl>  <span class=nb>local</span> <span class=nv>ws</span><span class=o>=</span><span class=k>$(</span>/usr/local/bin/terraform workspace show 2&gt;/dev/null<span class=k>)</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=o>[[</span> <span class=s2>&#34;</span><span class=nv>$ws</span><span class=s2>&#34;</span> <span class=o>==</span> <span class=s2>&#34;prod&#34;</span> <span class=o>]]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> -e <span class=s2>&#34;\033[1;31m================================\033[0m&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> -e <span class=s2>&#34;\033[1;31m WARNING: workspace = prod\033[0m&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> -e <span class=s2>&#34;\033[1;31m================================\033[0m&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>read</span> -p <span class=s2>&#34;Continue? [y/N] &#34;</span> -n <span class=m>1</span> -r
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span>
+</span></span><span class=line><span class=cl>    <span class=o>[[</span> ! <span class=nv>$REPLY</span> <span class=o>=</span>~ ^<span class=o>[</span>Yy<span class=o>]</span>$ <span class=o>]]</span> <span class=o>&amp;&amp;</span> <span class=k>return</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl>  <span class=k>fi</span>
+</span></span><span class=line><span class=cl>  /usr/local/bin/terraform <span class=s2>&#34;</span><span class=nv>$@</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=o>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>1 秒的暂停足够打断自动驾驶。我加进 <code>.zshrc</code> 之后再没误打 prod。</p><h3 id=修复-3prod-apply-只能从-ci绝不从笔记本>修复 3：prod apply 只能从 CI，绝不从笔记本</h3><p>更干净的版本：撤销你笔记本对 prod state 文件的 apply 权限。只有 GitHub Actions runner 的 RAM role 有 prod state prefix 上的 <code>oss:PutObject</code>。本地 <code>terraform plan</code> 能跑（只读）；本地 <code>apply</code> 报 <code>AccessDenied</code>。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=c1># 开发者 role 上挂这个 policy
+</span></span></span><span class=line><span class=cl><span class=c1></span>{
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;Effect&#34;: &#34;Deny&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;Action&#34;: &#34;oss:PutObject&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=s2>&#34;Resource&#34;: &#34;acs:oss:*:*:ck-tfstate-prod/agents/env:prod/*&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>开发者 role 上的 Deny 压过任何 Allow。开发者能 plan，只有 CI 能 apply。CI 跑由 PR 评审 gate。</p><h3 id=修复-4pre-apply-hook-总结销毁项>修复 4：<code>pre-apply</code> hook 总结销毁项</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># .git/hooks/pre-commit（或 tflint 自定义规则）</span>
+</span></span><span class=line><span class=cl><span class=nv>plan_file</span><span class=o>=</span><span class=nv>$1</span>
+</span></span><span class=line><span class=cl><span class=nv>n_destroy</span><span class=o>=</span><span class=k>$(</span>terraform show -json <span class=s2>&#34;</span><span class=nv>$plan_file</span><span class=s2>&#34;</span> <span class=p>|</span> jq <span class=s1>&#39;[.resource_changes[] | select(.change.actions[] == &#34;delete&#34;)] | length&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=o>[[</span> <span class=s2>&#34;</span><span class=nv>$n_destroy</span><span class=s2>&#34;</span> -gt <span class=m>0</span> <span class=o>]]</span><span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;Plan would destroy </span><span class=nv>$n_destroy</span><span class=s2> resources:&#34;</span>
+</span></span><span class=line><span class=cl>  terraform show -json <span class=s2>&#34;</span><span class=nv>$plan_file</span><span class=s2>&#34;</span> <span class=p>|</span> jq -r <span class=s1>&#39;.resource_changes[] | select(.change.actions[] == &#34;delete&#34;) | .address&#39;</span>
+</span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;Confirm with DESTROY=yes terraform apply&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=o>[[</span> <span class=s2>&#34;</span><span class=nv>$DESTROY</span><span class=s2>&#34;</span> !<span class=o>=</span> <span class=s2>&#34;yes&#34;</span> <span class=o>]]</span> <span class=o>&amp;&amp;</span> <span class=nb>exit</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>fi</span>
+</span></span></code></pre></td></tr></table></div></div><p>任何会删东西的 plan 都要环境变量里有 <code>DESTROY=yes</code>。手滑打不出来。这是 <code>prevent_destroy</code> 的腰带配吊带——挡住销毁发生在你忘了锁的子 module 里的情况。</p><p>四条都拿。任何一条单独都救不了我；四条一起把这种故障变成结构上不可能。</p><h2 id=rds-大版本升级走-terraform>RDS 大版本升级走 Terraform</h2><p>每两年 Postgres 出大版本，旧版 EOL。RDS for PostgreSQL 升级是真实运维事件——有停机、可能失败、Terraform provider 通过 <code>engine_version</code> 改动暴露给你，看起来无辜其实不是。</p><p>我跑通过的流程，以 v15 → v16 升级为例：</p><h3 id=第-1-步动手前先快照>第 1 步：动手前先快照</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun rds CreateBackup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId pgm-uf6abc123 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --BackupMethod Physical <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --BackupType FullBackup
+</span></span></code></pre></td></tr></table></div></div><p>等备份完成（<code>aliyun rds DescribeBackups ...</code>）。这是你的"卧槽"按钮。</p><h3 id=第-2-步克隆一个兄弟实例做-trial>第 2 步：克隆一个兄弟实例做 trial</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_db_instance&#34; &#34;memory_v16_trial&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  engine</span>           <span class=o>=</span> <span class=s2>&#34;PostgreSQL&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  engine_version</span>   <span class=o>=</span> <span class=s2>&#34;16.0&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_type</span>    <span class=o>=</span> <span class=k>alicloud_db_instance</span><span class=p>.</span><span class=k>memory</span><span class=p>.</span><span class=k>instance_type</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_storage</span> <span class=o>=</span> <span class=k>alicloud_db_instance</span><span class=p>.</span><span class=k>memory</span><span class=p>.</span><span class=k>instance_storage</span>
+</span></span><span class=line><span class=cl><span class=n>  vswitch_id</span>       <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span><span class=p>[</span><span class=m>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  source_db_instance_name</span> <span class=o>=</span> <span class=k>alicloud_db_instance</span><span class=p>.</span><span class=k>memory</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  backup_id</span>               <span class=o>=</span> <span class=k>data</span><span class=p>.</span><span class=k>alicloud_db_backups</span><span class=p>.</span><span class=k>latest</span><span class=p>.</span><span class=k>ids</span><span class=p>[</span><span class=m>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  instance_name</span> <span class=o>=</span> <span class=s2>&#34;memory-v16-trial&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p><code>terraform apply</code> 拉起一个用 v15 备份恢复的 v16 实例。QA 可以把 staging 流量指过去测一周。生产零风险。</p><h3 id=第-3-步有把握后原地升>第 3 步：有把握后原地升</h3><p>真生产升级就是改一个 <code>engine_version</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_db_instance&#34; &#34;memory&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  engine_version</span> <span class=o>=</span> <span class=s2>&#34;16.0&#34;   # 原本 &#34;15.0&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p><code>terraform plan</code> 显示 <code>~ engine_version: "15.0" -> "16.0"</code>，apply 触发原地升级。停机时间看库大小——小库 1 分钟内、多 TB 库可能 30 分钟。升级只能靠第 1 步的快照回滚。</p><h3 id=第-4-步拆掉-trial>第 4 步：拆掉 trial</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>terraform state rm alicloud_db_instance.memory_v16_trial
+</span></span><span class=line><span class=cl><span class=c1># 删 HCL 块</span>
+</span></span><span class=line><span class=cl><span class=c1># 下次 plan：0 changes</span>
+</span></span></code></pre></td></tr></table></div></div><p>控制台或 API 删掉 trial。别用同一个项目 <code>terraform destroy</code>——它会顺依赖走、可能动到兄弟资源。</p><p>整个过程跨 ~2 周自然时间、~3 小时专注工作、零计划外停机。走 Terraform 的好处是 trial-instance HCL 在 git 里——半年后做 v17 升级时 playbook 已经在那。</p><blockquote><p><strong>实操提示：</strong> 升级<strong>之前</strong>就在 agent 代码里测连接串变更。Postgres v16 一些特性（比如移除 <code>password_encryption = md5</code>）会破老 client 库。在 trial 实例上跑你 agent 完整一天再切。</p></blockquote><h2 id=跨区-dr-演练证明-oss-副本真能用>跨区 DR 演练：证明 OSS 副本真能用</h2><p>前文配过 <code>alicloud_oss_bucket_replication</code> 到北京副本。从未恢复过的副本就是不存在的备份。每月演练，脚本化：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/bin/bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=c1># scripts/dr-drill.sh —— 每月 1 号 CI cron</span>
+</span></span><span class=line><span class=cl><span class=nb>set</span> -euo pipefail
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>PRIMARY_BUCKET</span><span class=o>=</span><span class=s2>&#34;agents-artifacts-prod-abc12345&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>REPLICA_BUCKET</span><span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>PRIMARY_BUCKET</span><span class=si>}</span><span class=s2>-dr&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>DRILL_KEY</span><span class=o>=</span><span class=s2>&#34;dr-drill/</span><span class=k>$(</span>date -Iseconds<span class=k>)</span><span class=s2>.probe&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 1. 主桶写探针</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;drill </span><span class=k>$(</span>uuidgen<span class=k>)</span><span class=s2>&#34;</span> <span class=p>|</span> aliyun oss put oss://<span class=nv>$PRIMARY_BUCKET</span>/<span class=nv>$DRILL_KEY</span> -
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. 等复制（China 内通常 &lt;60s）</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> i in <span class=o>{</span>1..30<span class=o>}</span><span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> aliyun oss --region cn-beijing stat oss://<span class=nv>$REPLICA_BUCKET</span>/<span class=nv>$DRILL_KEY</span> &gt; /dev/null 2&gt;<span class=p>&amp;</span>1<span class=p>;</span> <span class=k>then</span>
+</span></span><span class=line><span class=cl>    <span class=nb>echo</span> <span class=s2>&#34;Replicated in </span><span class=k>$((</span>i*5<span class=k>))</span><span class=s2>s&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>break</span>
+</span></span><span class=line><span class=cl>  <span class=k>fi</span>
+</span></span><span class=line><span class=cl>  sleep <span class=m>5</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. 校验内容一致</span>
+</span></span><span class=line><span class=cl><span class=nv>PRIMARY_HASH</span><span class=o>=</span><span class=k>$(</span>aliyun oss cat oss://<span class=nv>$PRIMARY_BUCKET</span>/<span class=nv>$DRILL_KEY</span> <span class=p>|</span> sha256sum <span class=p>|</span> awk <span class=s1>&#39;{print $1}&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>REPLICA_HASH</span><span class=o>=</span><span class=k>$(</span>aliyun oss --region cn-beijing cat oss://<span class=nv>$REPLICA_BUCKET</span>/<span class=nv>$DRILL_KEY</span> <span class=p>|</span> sha256sum <span class=p>|</span> awk <span class=s1>&#39;{print $1}&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=o>[[</span> <span class=s2>&#34;</span><span class=nv>$PRIMARY_HASH</span><span class=s2>&#34;</span> <span class=o>==</span> <span class=s2>&#34;</span><span class=nv>$REPLICA_HASH</span><span class=s2>&#34;</span> <span class=o>]]</span> <span class=o>||</span> <span class=o>{</span> <span class=nb>echo</span> <span class=s2>&#34;HASH MISMATCH&#34;</span><span class=p>;</span> <span class=nb>exit</span> 1<span class=p>;</span> <span class=o>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 4. 清理探针</span>
+</span></span><span class=line><span class=cl>aliyun oss rm oss://<span class=nv>$PRIMARY_BUCKET</span>/<span class=nv>$DRILL_KEY</span>
+</span></span><span class=line><span class=cl>aliyun oss --region cn-beijing rm oss://<span class=nv>$REPLICA_BUCKET</span>/<span class=nv>$DRILL_KEY</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 5. 成功通知钉钉</span>
+</span></span><span class=line><span class=cl>curl -X POST <span class=s2>&#34;</span><span class=nv>$DINGTALK_WEBHOOK</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -H <span class=s1>&#39;Content-Type: application/json&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -d <span class=s1>&#39;{&#34;msgtype&#34;:&#34;text&#34;,&#34;text&#34;:{&#34;content&#34;:&#34;DR drill OK at &#39;</span><span class=k>$(</span>date -Iseconds<span class=k>)</span><span class=s1>&#39;&#34;}}&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>副本不健康，30 天内你就知道，不是真灾难发生时才知道。演练本身 2 分钟算力、零人工注意力。和 drift check 挂同一个 GitHub Actions cron 上。</p><p>这种模式——周期性自动演练那些你否则会在最坏时间发现是坏的东西——是我建立过杠杆率最高的运维习惯。OSS 复制、RDS 恢复、KMS 密钥轮换、每条 failover 路径都套上。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/terraform-agents/>Terraform Agents</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/terraform-agents/04-compute-for-agent-runtime/><span class=title>用 Terraform 给 AI Agent 上云（四）：计算层选 ECS、ACK 还是函数计算？</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=title>用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=series-nav-num>01</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/><span class=series-nav-num>02</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（二）：Provider、认证与 OSS 上的远程 State</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=series-nav-num>03</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（三）：可复用的 VPC 与安全基线</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/04-compute-for-agent-runtime/><span class=series-nav-num>04</span>
@@ -357,7 +551,7 @@
 <span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=series-nav-num>06</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><span class=series-nav-num>07</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/><span class=series-nav-num>08</span>
-<span class=series-nav-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></a></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#三层记忆模型>三层记忆模型</a></li><li><a href=#第-1-层关系型rds-for-postgresql>第 1 层：关系型，RDS for PostgreSQL</a></li><li><a href=#第-2-层向量库>第 2 层：向量库</a></li><li><a href=#第-3-层对象存储>第 3 层：对象存储</a><ul><li><a href=#bucket-名全局唯一>Bucket 名全局唯一</a></li><li><a href=#lifecycle-分层>Lifecycle 分层</a></li><li><a href=#版本化>版本化</a></li></ul></li><li><a href=#备份故事>备份故事</a></li><li><a href=#把计算和存储接起来>把计算和存储接起来</a></li><li><a href=#月成本dev-workspace低流量>月成本（dev workspace、低流量）</a></li><li><a href=#下一篇>下一篇</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>Terraform Agents</a>
+<span class=series-nav-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></a></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#三层记忆模型>三层记忆模型</a></li><li><a href=#第-1-层关系型rds-for-postgresql>第 1 层：关系型，RDS for PostgreSQL</a></li><li><a href=#第-2-层向量库>第 2 层：向量库</a></li><li><a href=#第-3-层对象存储>第 3 层：对象存储</a><ul><li><a href=#bucket-名全局唯一>Bucket 名全局唯一</a></li><li><a href=#lifecycle-分层>Lifecycle 分层</a></li><li><a href=#版本化>版本化</a></li></ul></li><li><a href=#备份故事>备份故事</a></li><li><a href=#把计算和存储接起来>把计算和存储接起来</a></li><li><a href=#月成本dev-workspace低流量>月成本（dev workspace、低流量）</a></li><li><a href=#下一篇>下一篇</a></li><li><a href=#一次真实故障apply-错了-workspace-的那个夜晚>一次真实故障：apply 错了 workspace 的那个夜晚</a><ul><li><a href=#修复-1prod-有状态资源加-lifecycle--prevent_destroy--true->修复 1：prod 有状态资源加 <code>lifecycle { prevent_destroy = true }</code></a></li><li><a href=#修复-2shell-里的-workspace-提示>修复 2：shell 里的 workspace 提示</a></li><li><a href=#修复-3prod-apply-只能从-ci绝不从笔记本>修复 3：prod apply 只能从 CI，绝不从笔记本</a></li><li><a href=#修复-4pre-apply-hook-总结销毁项>修复 4：<code>pre-apply</code> hook 总结销毁项</a></li></ul></li><li><a href=#rds-大版本升级走-terraform>RDS 大版本升级走 Terraform</a><ul><li><a href=#第-1-步动手前先快照>第 1 步：动手前先快照</a></li><li><a href=#第-2-步克隆一个兄弟实例做-trial>第 2 步：克隆一个兄弟实例做 trial</a></li><li><a href=#第-3-步有把握后原地升>第 3 步：有把握后原地升</a></li><li><a href=#第-4-步拆掉-trial>第 4 步：拆掉 trial</a></li></ul></li><li><a href=#跨区-dr-演练证明-oss-副本真能用>跨区 DR 演练：证明 OSS 副本真能用</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>Terraform Agents</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=chapter-num>01</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/><span class=chapter-num>02</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（二）：Provider、认证与 OSS 上的远程 State</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=chapter-num>03</span>
@@ -366,5 +560,5 @@
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><span class=chapter-num>07</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/><span class=chapter-num>08</span>
-<span class=chapter-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>7 min</strong></div><div class=row><span>字数</span><strong>3031</strong></div><div class=row><span>写于</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/ml-math-derivations/>Ml-Math-Derivations</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
+<span class=chapter-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>11 min</strong></div><div class=row><span>字数</span><strong>5158</strong></div><div class=row><span>写于</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/ml-math-derivations/>Ml-Math-Derivations</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

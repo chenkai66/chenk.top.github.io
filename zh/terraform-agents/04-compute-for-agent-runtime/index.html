@@ -20,7 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>Terraform Agents</a>
 · 第 4 篇</div><h1>用 Terraform 给 AI Agent 上云（四）：计算层选 ECS、ACK 还是函数计算？</h1><p class=deck>Agent 主循环在阿里云上有三个合理落点：长跑 ECS + pm2、ACK 上的 Kubernetes Pod、Function Compute 触发式调用。我用来挑选的成本拐点模型，再加一段真实的 cloud-init 脚本，从裸 Ubuntu 到 Agent 跑起来 90 秒搞定。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-03-18>March 18, 2026</time> · 6 分钟 · 2954 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91/ class=tag>#阿里云</a><a href=/zh/tags/ecs/ class=tag>#ECS</a><a href=/zh/tags/ack/ class=tag>#ACK</a><a href=/zh/tags/%E5%87%BD%E6%95%B0%E8%AE%A1%E7%AE%97/ class=tag>#函数计算</a><a href=/zh/tags/ai-agent/ class=tag>#AI Agent</a></div><a class="pill pill-outline" href=/en/terraform-agents/04-compute-for-agent-runtime/>Read in English →</a></div></header><div class=prose><p>Agent 系统最重要的架构决策就是 <em>Agent 主循环进程到底跑在哪里</em>。阿里云上正好有三个好答案。选错不会致命——后面可以迁——但会让你浪费几周搭无谓的脚手架。</p><p>本篇用真实 Terraform、成本拐点和运维坑走完三种方案。</p><h2 id=三种模式>三种模式</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png alt="三个 Agent 落点：ECS、ACK、FC" loading=lazy decoding=async class=content-image></figure></p><p>各自有甜蜜区：</p><ul><li><strong>ECS</strong> 是 Linux 虚拟机。长跑、有状态、debug 时 SSH 进去方便。原型、单租户 Agent、想保留一台带模型缓存或本地 state 的"暖机"——它都是对的。</li><li><strong>ACK</strong>（Container Service for Kubernetes）是规模生产的答案。多种 Agent、自动伸缩、滚动发布、GPU 调度。它配得上自己的运维重量，前提是你至少有三四个 Agent 服务，并且有一个对 K8s 自在的 SRE。</li><li><strong>Function Compute</strong> 是按调用计费、scale-to-zero。冷启动 200-800ms。Webhook 触发的 Agent、定时爬虫、所有"突发跑、空闲休眠"的负载都用它。</li></ul><h2 id=成本拐点>成本拐点</h2><p>按持续 QPS 看大致的月度成本：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig2_compute_cost_curve.png alt=计算成本拐点——粗略模型 loading=lazy decoding=async class=content-image></figure></p><p>持续 ~1 QPS 以下，FC 通杀——空闲几乎不花钱。~1 到 ~30 QPS，单台 ECS 最划算。再往上，ACK 较高的固定成本被足够流量摊薄之后，比往 ECS 上塞更便宜。</p><p>模型粗——具体数字要看实例族、网络、Agent 多嘴程度——但<em>形状</em>靠谱。我用的决策规则：</p><blockquote><p>突发 + 平均低 → Function Compute</p><p>稳态 + 中低 → ECS + pm2</p><p>多 Agent + 持续中高 → ACK</p></blockquote><h2 id=模式-1ecs--pm2>模式 1：ECS + pm2</h2><p>80% 的 Agent 项目你想要的就是这个。一两台 ECS 挂在 ALB 后面，每台用 <code>pm2</code> 当 Python 或 Node Agent 进程的 supervisor。</p><p>官方"Create an ECS instance"实践文档给了能跑的基线。我们在 Agent 场景下改写：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-03-18>March 18, 2026</time> · 11 分钟 · 5034 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/terraform/ class=tag>#Terraform</a><a href=/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91/ class=tag>#阿里云</a><a href=/zh/tags/ecs/ class=tag>#ECS</a><a href=/zh/tags/ack/ class=tag>#ACK</a><a href=/zh/tags/%E5%87%BD%E6%95%B0%E8%AE%A1%E7%AE%97/ class=tag>#函数计算</a><a href=/zh/tags/ai-agent/ class=tag>#AI Agent</a></div><a class="pill pill-outline" href=/en/terraform-agents/04-compute-for-agent-runtime/>Read in English →</a></div></header><div class=prose><p>Agent 系统最重要的架构决策就是 <em>Agent 主循环进程到底跑在哪里</em>。阿里云上正好有三个好答案。选错不会致命——后面可以迁——但会让你浪费几周搭无谓的脚手架。</p><p>本篇用真实 Terraform、成本拐点和运维坑走完三种方案。</p><h2 id=三种模式>三种模式</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png alt="三个 Agent 落点：ECS、ACK、FC" loading=lazy decoding=async class=content-image></figure></p><p>各自有甜蜜区：</p><ul><li><strong>ECS</strong> 是 Linux 虚拟机。长跑、有状态、debug 时 SSH 进去方便。原型、单租户 Agent、想保留一台带模型缓存或本地 state 的"暖机"——它都是对的。</li><li><strong>ACK</strong>（Container Service for Kubernetes）是规模生产的答案。多种 Agent、自动伸缩、滚动发布、GPU 调度。它配得上自己的运维重量，前提是你至少有三四个 Agent 服务，并且有一个对 K8s 自在的 SRE。</li><li><strong>Function Compute</strong> 是按调用计费、scale-to-zero。冷启动 200-800ms。Webhook 触发的 Agent、定时爬虫、所有"突发跑、空闲休眠"的负载都用它。</li></ul><h2 id=成本拐点>成本拐点</h2><p>按持续 QPS 看大致的月度成本：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/04-compute-for-agent-runtime/fig2_compute_cost_curve.png alt=计算成本拐点——粗略模型 loading=lazy decoding=async class=content-image></figure></p><p>持续 ~1 QPS 以下，FC 通杀——空闲几乎不花钱。~1 到 ~30 QPS，单台 ECS 最划算。再往上，ACK 较高的固定成本被足够流量摊薄之后，比往 ECS 上塞更便宜。</p><p>模型粗——具体数字要看实例族、网络、Agent 多嘴程度——但<em>形状</em>靠谱。我用的决策规则：</p><blockquote><p>突发 + 平均低 → Function Compute</p><p>稳态 + 中低 → ECS + pm2</p><p>多 Agent + 持续中高 → ACK</p></blockquote><h2 id=模式-1ecs--pm2>模式 1：ECS + pm2</h2><p>80% 的 Agent 项目你想要的就是这个。一两台 ECS 挂在 ALB 后面，每台用 <code>pm2</code> 当 Python 或 Node Agent 进程的 supervisor。</p><p>官方"Create an ECS instance"实践文档给了能跑的基线。我们在 Agent 场景下改写：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -344,7 +344,227 @@
 </span></span><span class=line><span class=cl><span class=n>    payload</span>        <span class=o>=</span> <span class=s2>&#34;{}&#34;</span>
 </span></span><span class=line><span class=cl>  }<span class=p>)</span>
 </span></span><span class=line><span class=cl>}
-</span></span></code></pre></td></tr></table></div></div><p>它给你的：Python 3.11 函数，1 GiB 内存，10 分钟超时，挂在和其他资源同一 VPC 同一安全组上，每天上午 9 点触发。零服务器维护。成本：这个规模约 ¥0.10/次调用，加上 ¥0.0001/GB-second 执行。</p><p>我反复栽过的三个坑：</p><ol><li><strong>冷启动。</strong> 空闲后第一次调用比后续多 200-800ms。亚秒 SLA 的 webhook 在意；cron 不在意。可以买 provisioned concurrency，但那就违背 FC 的初衷了。</li><li><strong>VPC 挂载</strong> 给冷启动再加 200-400ms，因为 FC 要给你 VPC 加一个 ENI。函数要访问 RDS/OpenSearch 时值得；只调公网 API 时跳过 <code>vpc_config</code>。</li><li><strong>24 小时最长运行时间。</strong> 长 Agent 循环不适合 FC。要么把循环切成短步骤，要么用 ECS。</li></ol><h2 id=一个真实例子混合>一个真实例子：混合</h2><p>我交付过的多数生产 Agent stack 都是混合的：</p><ul><li>ECS 跑常驻、持有会话状态的对话 Agent</li><li>ACK 跑后台 job worker fleet</li><li>FC 跑 webhook 接收和日/小时级 cron</li></ul><p>Terraform 让这件事很简单——一个项目里三个 module，共用第三篇里的 VPC 和安全组。技能在于知道哪种模式配哪种负载，不在于学完所有资源语法。</p><h2 id=实例规格选型>实例规格选型</h2><p>常见问题：Agent runtime 选哪个 <code>ecs.*</code> 族？我的默认：</p><table><thead><tr><th>负载</th><th>族</th><th>原因</th></tr></thead><tbody><tr><td>对话 Agent，无 GPU</td><td><code>ecs.c7</code></td><td>tokenize CPU 受限 + LLM 调用 I/O</td></tr><tr><td>大上下文，内存重</td><td><code>ecs.r7</code></td><td>每 vCPU 内存更大</td></tr><tr><td>突发批量</td><td><code>ecs.c7a</code>（AMD）</td><td>便宜 ~15%，单核略慢</td></tr><tr><td>小模型 GPU 推理</td><td><code>ecs.gn7i</code></td><td>T4 级，阿里云上最便宜的 GPU</td></tr><tr><td>预训练 / 大规模微调</td><td>用 PAI-DLC，不要 ECS</td><td>别重新发明编排</td></tr></tbody></table><p>Agent runtime 别用突发型 <code>ecs.t6</code>——CPU credit 在持续负载下耗光，延迟跳水。它适合跑 <code>terraform apply</code> 的堡垒机之类。</p><blockquote><p><strong>实操提示：</strong> 用 <code>data.alicloud_instance_types</code> 让 API 帮你找"现在这个 zone 里有 4 vCPU 16 GiB 实例"。硬写 <code>ecs.c7.xlarge</code>，遇到该 SKU 在你 zone 缺货时 Terraform 直接失败。让 data source 帮你挑，能拿到优雅降级。</p></blockquote><h2 id=下一篇>下一篇</h2><p>第五篇填存储层——向量库、关系库、对象存储、备份——刚才建的所有计算都需要一个地方去存取记忆。ECS 实例没有"放记忆的地方"就是空跑。</p><p>然后第六篇在所有计算前面建 LLM 网关，第七篇接观测和成本告警，第八篇用一次 <code>terraform apply</code> 把整个 stack 串起来。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/terraform-agents/>Terraform Agents</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=title>用 Terraform 给 AI Agent 上云（三）：可复用的 VPC 与安全基线</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/><span class=title>用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=series-nav-num>01</span>
+</span></span></code></pre></td></tr></table></div></div><p>它给你的：Python 3.11 函数，1 GiB 内存，10 分钟超时，挂在和其他资源同一 VPC 同一安全组上，每天上午 9 点触发。零服务器维护。成本：这个规模约 ¥0.10/次调用，加上 ¥0.0001/GB-second 执行。</p><p>我反复栽过的三个坑：</p><ol><li><strong>冷启动。</strong> 空闲后第一次调用比后续多 200-800ms。亚秒 SLA 的 webhook 在意；cron 不在意。可以买 provisioned concurrency，但那就违背 FC 的初衷了。</li><li><strong>VPC 挂载</strong> 给冷启动再加 200-400ms，因为 FC 要给你 VPC 加一个 ENI。函数要访问 RDS/OpenSearch 时值得；只调公网 API 时跳过 <code>vpc_config</code>。</li><li><strong>24 小时最长运行时间。</strong> 长 Agent 循环不适合 FC。要么把循环切成短步骤，要么用 ECS。</li></ol><h2 id=一个真实例子混合>一个真实例子：混合</h2><p>我交付过的多数生产 Agent stack 都是混合的：</p><ul><li>ECS 跑常驻、持有会话状态的对话 Agent</li><li>ACK 跑后台 job worker fleet</li><li>FC 跑 webhook 接收和日/小时级 cron</li></ul><p>Terraform 让这件事很简单——一个项目里三个 module，共用第三篇里的 VPC 和安全组。技能在于知道哪种模式配哪种负载，不在于学完所有资源语法。</p><h2 id=实例规格选型>实例规格选型</h2><p>常见问题：Agent runtime 选哪个 <code>ecs.*</code> 族？我的默认：</p><table><thead><tr><th>负载</th><th>族</th><th>原因</th></tr></thead><tbody><tr><td>对话 Agent，无 GPU</td><td><code>ecs.c7</code></td><td>tokenize CPU 受限 + LLM 调用 I/O</td></tr><tr><td>大上下文，内存重</td><td><code>ecs.r7</code></td><td>每 vCPU 内存更大</td></tr><tr><td>突发批量</td><td><code>ecs.c7a</code>（AMD）</td><td>便宜 ~15%，单核略慢</td></tr><tr><td>小模型 GPU 推理</td><td><code>ecs.gn7i</code></td><td>T4 级，阿里云上最便宜的 GPU</td></tr><tr><td>预训练 / 大规模微调</td><td>用 PAI-DLC，不要 ECS</td><td>别重新发明编排</td></tr></tbody></table><p>Agent runtime 别用突发型 <code>ecs.t6</code>——CPU credit 在持续负载下耗光，延迟跳水。它适合跑 <code>terraform apply</code> 的堡垒机之类。</p><blockquote><p><strong>实操提示：</strong> 用 <code>data.alicloud_instance_types</code> 让 API 帮你找"现在这个 zone 里有 4 vCPU 16 GiB 实例"。硬写 <code>ecs.c7.xlarge</code>，遇到该 SKU 在你 zone 缺货时 Terraform 直接失败。让 data source 帮你挑，能拿到优雅降级。</p></blockquote><h2 id=下一篇>下一篇</h2><p>第五篇填存储层——向量库、关系库、对象存储、备份——刚才建的所有计算都需要一个地方去存取记忆。ECS 实例没有"放记忆的地方"就是空跑。</p><p>然后第六篇在所有计算前面建 LLM 网关，第七篇接观测和成本告警，第八篇用一次 <code>terraform apply</code> 把整个 stack 串起来。</p><h2 id=eci大家忘了的第四种-agent-算力>ECI——大家忘了的第四种 Agent 算力</h2><p>ECS、ACK、FC 是文章主线讲的三个，覆盖大多数场景。但还有一个<strong>突发型</strong>批量 Agent 任务的天然解：<strong>弹性容器实例（ECI）</strong>。ECI 是"不带 K8s 节点的容器"——阿里云直接在他们管的裸金属池上跑你的容器，你只为运行的秒数付费。</p><p>场景很尖。你的 Agent 每次跑 2-30 分钟，每小时几次，常常并行。Function Compute 上限 24 小时但批任务的冷启动很糙；ECS 浪费（突发之间空着也付钱）；ACK 多了 K8s 的运维负担。ECI 在中间命中：冷启动 ~5 秒、零空闲成本、不用管 node pool。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_eci_container_group&#34; &#34;research_batch&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  container_group_name</span> <span class=o>=</span> <span class=s2>&#34;research-batch-${formatdate(&#34;YYYYMMDDhhmm&#34;, timestamp())}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  security_group_id</span>    <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>agent_runtime_sg_id</span>
+</span></span><span class=line><span class=cl><span class=n>  vswitch_id</span>           <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span><span class=p>[</span><span class=m>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  cpu</span>                  <span class=o>=</span> <span class=m>4</span>
+</span></span><span class=line><span class=cl><span class=n>  memory</span>               <span class=o>=</span> <span class=m>16</span>
+</span></span><span class=line><span class=cl><span class=n>  restart_policy</span>       <span class=o>=</span> <span class=s2>&#34;OnFailure&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  ram_role_name</span>        <span class=o>=</span> <span class=k>alicloud_ram_role</span><span class=p>.</span><span class=k>agent_eci</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>containers</span> {
+</span></span><span class=line><span class=cl><span class=n>    name</span>              <span class=o>=</span> <span class=s2>&#34;research&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    image</span>             <span class=o>=</span> <span class=s2>&#34;registry-vpc.cn-shanghai.aliyuncs.com/agents/research:${var.image_tag}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    image_pull_policy</span> <span class=o>=</span> <span class=s2>&#34;IfNotPresent&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    cpu</span>               <span class=o>=</span> <span class=m>4</span>
+</span></span><span class=line><span class=cl><span class=n>    memory</span>            <span class=o>=</span> <span class=m>16</span>
+</span></span><span class=line><span class=cl><span class=n>    working_dir</span>       <span class=o>=</span> <span class=s2>&#34;/app&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>    commands</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;python&#34;, &#34;-m&#34;, &#34;research_agent&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>    args</span>     <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;--session-id&#34;</span><span class=p>,</span> <span class=k>var</span><span class=p>.</span><span class=k>session_id</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>environment_vars</span> {
+</span></span><span class=line><span class=cl><span class=n>      key</span>   <span class=o>=</span> <span class=s2>&#34;LLM_GATEWAY_URL&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      value</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>gateway</span><span class=p>.</span><span class=k>url</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>volume_mounts</span> {
+</span></span><span class=line><span class=cl><span class=n>      name</span>       <span class=o>=</span> <span class=s2>&#34;scratch&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      mount_path</span> <span class=o>=</span> <span class=s2>&#34;/scratch&#34;</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>volumes</span> {
+</span></span><span class=line><span class=cl><span class=n>    name</span> <span class=o>=</span> <span class=s2>&#34;scratch&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    type</span> <span class=o>=</span> <span class=s2>&#34;EmptyDirVolume&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>image_registry_credential</span> {
+</span></span><span class=line><span class=cl><span class=n>    server</span>   <span class=o>=</span> <span class=s2>&#34;registry-vpc.cn-shanghai.aliyuncs.com&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    user_name</span> <span class=o>=</span> <span class=s2>&#34;agent-puller&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    password</span>  <span class=o>=</span> <span class=k>data</span><span class=p>.</span><span class=k>alicloud_kms_secret</span><span class=p>.</span><span class=k>acr_pull</span><span class=p>.</span><span class=k>secret_data</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>lifecycle</span> {
+</span></span><span class=line><span class=cl><span class=n>    create_before_destroy</span> <span class=o>=</span> <span class=kt>false</span>
+</span></span><span class=line><span class=cl><span class=n>    ignore_changes</span> <span class=o>=</span> <span class=p>[</span><span class=k>container_group_name</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>几个生产坑：</p><ul><li><strong>镜像仓库走 <code>registry-vpc</code> endpoint</strong>，不是公网。公网走 NAT 还要付出网费；VPC endpoint 免费而且更快。</li><li><strong><code>restart_policy = "OnFailure"</code> 不是 <code>"Always"</code>。</strong> ECI 设计上单次执行；<code>Always</code> 让它跑成功也循环——和批任务想要的相反。</li><li><strong><code>EmptyDirVolume</code> 是容器组级 ephemeral</strong>，和 K8s emptyDir 一样。别存任何不能重生的东西——输出写 OSS 或 RDS。</li><li><strong><code>ram_role_name</code></strong> 让容器从实例元数据拿凭据，和 ECS 一样的姿势。环境变量里没有 AK/SK。</li></ul><p><code>alicloud_eci_container_group</code> 资源有个烦人的怪癖：<code>containers[*]</code> 的变更不一定干净触发 replace，因为 API 部分是 merge 语义。生产批任务我用 Terraform 一次性 provision 容器组（运行时 spec 上 <code>ignore_changes</code>），新一轮跑通过 orchestrator 直接调 ECI API 触发，用 Terraform 准备好的 role 和 SG。Terraform 这边当<strong>模板</strong>用，不是<strong>执行器</strong>。</p><p>成本算术：4 vCPU / 16 GB ECI 大约 ¥0.96/小时，按秒计费、最少 1 分钟。一次 8 分钟的研究跑 ~¥0.13。每天 100 次 = ¥13/天 = ¥390/月。同样 workload 常驻 ECS 即使空闲也要 ¥250-400/月。利用率 50% 以下 ECI 赢；以上 ECS 或 ACK 赢。</p><h2 id=alicloud_pai_-不存在的时候以及-fallback><code>alicloud_pai_*</code> 不存在的时候（以及 fallback）</h2><p>如果你的 Agent 自己训模型或托管自定义 LLM，第一直觉是用 Terraform 拉起 PAI-EAS。现实检查：到 <code>alicloud</code> provider 1.230 为止，PAI 资源覆盖很薄。有 <code>alicloud_pai_workspace</code> 和几个相关资源，但完整 EAS 服务部署不是一等公民——没有 <code>alicloud_pai_eas_service</code> 让你在 HCL 声明式描述模型 serving endpoint。</p><p>我用的实操 fallback，按偏好顺序：</p><h3 id=fallback-1workspace-用-terraformeas-用-api>Fallback 1：workspace 用 Terraform，EAS 用 API</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_pai_workspace&#34; &#34;agents&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  workspace_name</span>        <span class=o>=</span> <span class=s2>&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  description</span>           <span class=o>=</span> <span class=s2>&#34;PAI workspace for agent inference&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  env_types</span>             <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;prod&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  display_name</span>          <span class=o>=</span> <span class=s2>&#34;Agents&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>output</span> <span class=s2>&#34;pai_workspace_id&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  value</span> <span class=o>=</span> <span class=k>alicloud_pai_workspace</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>然后 <code>Makefile</code> 里用 <code>eascmd</code> 声明 EAS 服务：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>eascmd create eas-service.json
+</span></span><span class=line><span class=cl><span class=c1># eas-service.json 描述 image、processor、实例规格、autoscaling 配置</span>
+</span></span></code></pre></td></tr></table></div></div><p>诚实分工：Terraform 管 workspace 和 IAM；命令行工具管运行时 spec。</p><h3 id=fallback-2eas-部分用-ros>Fallback 2：EAS 部分用 ROS</h3><p>ROS（阿里云原生 IaC）经常先于 Terraform provider 支持新资源。Terraform 通过 <code>alicloud_ros_stack</code> 调 ROS：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_ros_stack&#34; &#34;eas_serving&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  stack_name</span>        <span class=o>=</span> <span class=s2>&#34;eas-serving-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  template_body</span>     <span class=o>=</span> <span class=k>file</span><span class=p>(</span><span class=s2>&#34;${path.module}/eas-service.ros.json&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>  <span class=k>parameters</span> {
+</span></span><span class=line><span class=cl><span class=n>    parameter_key</span>   <span class=o>=</span> <span class=s2>&#34;WorkspaceId&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    parameter_value</span> <span class=o>=</span> <span class=k>alicloud_pai_workspace</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>  <span class=k>parameters</span> {
+</span></span><span class=line><span class=cl><span class=n>    parameter_key</span>   <span class=o>=</span> <span class=s2>&#34;ImageUrl&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    parameter_value</span> <span class=o>=</span> <span class=s2>&#34;registry-vpc.cn-shanghai.aliyuncs.com/agents/qwen-server:${var.model_version}&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl><span class=n>  timeout_in_minutes</span> <span class=o>=</span> <span class=m>30</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p><code>eas-service.ros.json</code> 是 ROS 模板——阿里云味道的 CloudFormation——给你 alicloud Terraform provider 还没暴露的 EAS 资源属性。Terraform 管 stack，ROS 管深云部分，你拿到跨两者的统一 <code>terraform plan</code>。</p><h3 id=fallback-3自己写-provider别>Fallback 3：自己写 provider（别）</h3><p>你可以写自定义 Terraform provider 包 EAS API。我做过一次。两周 Go 工作量。除非你有持续的、其他方式都覆盖不了的需求，别——阿里云团队每月都在发新 alicloud provider 资源，等他们追上比你维护 fork 更值。</p><p>通用原则：任何"Terraform 还不支持"的情况，<strong>Terraform 拥有稳定底座，更轻的工具拥有动态部分</strong>。RAM role、VPC、KMS、OSS——Terraform。全新资源、Beta API——<code>null_resource</code> + <code>local-exec</code>、嵌入 ROS、或单独的 orchestrator。等 provider 追上，把 <code>null_resource</code> 块迁成正经资源，用 <code>terraform import</code> 收编。</p><blockquote><p><strong>实操提示：</strong> <code>alicloud_ros_stack</code> 资源被严重低估。alicloud Terraform provider 落后时 ROS 经常超前一个季度。在 Terraform 里嵌 ROS 模板让你两头都拿。</p></blockquote><h2 id=真能扛住生产-bootstrap-的-cloud-init>真能扛住生产 bootstrap 的 cloud-init</h2><p>文章里的 <code>cloud-init.sh</code> 是 happy path。生产里 bootstrap 脚本要处理原版没讲的六件事。这是我实际跑的版本：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/bin/bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euxo pipefail
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 1. 等网络——cloud-init 启动时 DNS 不一定就绪</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> i in <span class=o>{</span>1..30<span class=o>}</span><span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  curl -sf https://mirrors.aliyun.com/ -o /dev/null <span class=o>&amp;&amp;</span> <span class=nb>break</span>
+</span></span><span class=line><span class=cl>  sleep <span class=m>2</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. 用阿里云 apt 镜像，丢掉 Ubuntu 默认源</span>
+</span></span><span class=line><span class=cl>sed -i <span class=s1>&#39;s|http://.*\.ubuntu\.com|http://mirrors.aliyun.com|g&#39;</span> /etc/apt/sources.list
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>apt-get update -y
+</span></span><span class=line><span class=cl>apt-get install -y python3.11 python3.11-venv git curl ca-certificates jq
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. 在任何需要凭据的工具之前先拿到 instance role 凭据</span>
+</span></span><span class=line><span class=cl><span class=nv>TOKEN_URL</span><span class=o>=</span><span class=s2>&#34;http://100.100.100.200/latest/meta-data/ram/security-credentials/</span><span class=si>${</span><span class=nv>role_name</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>TOKEN_JSON</span><span class=o>=</span><span class=k>$(</span>curl -s --max-time <span class=m>5</span> <span class=s2>&#34;</span><span class=nv>$TOKEN_URL</span><span class=s2>&#34;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>ALICLOUD_ACCESS_KEY_ID</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=nv>$TOKEN_JSON</span> <span class=p>|</span> jq -r .AccessKeyId<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>ALICLOUD_ACCESS_KEY_SECRET</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=nv>$TOKEN_JSON</span> <span class=p>|</span> jq -r .AccessKeySecret<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>ALICLOUD_SECURITY_TOKEN</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=nv>$TOKEN_JSON</span> <span class=p>|</span> jq -r .SecurityToken<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 4. 从 KMS 拉密钥，写到 tmpfs 路径——绝不落盘</span>
+</span></span><span class=line><span class=cl>mkdir -p /run/agent
+</span></span><span class=line><span class=cl>mount -t tmpfs -o <span class=nv>size</span><span class=o>=</span>64M tmpfs /run/agent
+</span></span><span class=line><span class=cl>python3 -c <span class=s2>&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>import os, json
+</span></span></span><span class=line><span class=cl><span class=s2>from alibabacloud_kms20160120.client import Client as KmsClient
+</span></span></span><span class=line><span class=cl><span class=s2># ... 拉每个 secret，写到 /run/agent/&lt;name&gt;
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>chmod <span class=m>600</span> /run/agent/*
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 5. 用服务账号跑应用，不要用 root</span>
+</span></span><span class=line><span class=cl>useradd -r -s /bin/false agent <span class=o>||</span> <span class=nb>true</span>
+</span></span><span class=line><span class=cl>chown -R agent:agent /opt/agent /run/agent
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 6. 让失败可见——写一个完成标记，让健康检查能 gate</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;</span><span class=k>$(</span>date -Iseconds<span class=k>)</span><span class=s2>&#34;</span> &gt; /run/agent/bootstrap-done
+</span></span></code></pre></td></tr></table></div></div><p>把 happy-path 脚本变成生产脚本的六个修复：</p><ol><li>等网络（DNS 在前 5 秒和 cloud-init 抢）</li><li>阿里云 apt 镜像（公网 Ubuntu 镜像在 cn-shanghai 慢）</li><li>在任何工具需要前先取 RAM 凭据</li><li>密钥写 tmpfs 不落盘（避免 boot 盘快照泄漏）</li><li>用非 root 服务账号跑</li><li>Bootstrap 完成标记，让 ALB 健康检查能 gate</li></ol><p>填完 Python 全部 ~80 行。每次写 cloud-init 都值得贴。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/terraform-agents/>Terraform Agents</a> <span class=count>8 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=title>用 Terraform 给 AI Agent 上云（三）：可复用的 VPC 与安全基线</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/><span class=title>用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=series-nav-num>01</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/><span class=series-nav-num>02</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（二）：Provider、认证与 OSS 上的远程 State</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=series-nav-num>03</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（三）：可复用的 VPC 与安全基线</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>04</span>
@@ -353,7 +573,7 @@
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=series-nav-num>06</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><span class=series-nav-num>07</span>
 <span class=series-nav-title>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/><span class=series-nav-num>08</span>
-<span class=series-nav-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></a></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#三种模式>三种模式</a></li><li><a href=#成本拐点>成本拐点</a></li><li><a href=#模式-1ecs--pm2>模式 1：ECS + pm2</a><ul><li><a href=#cloud-init-脚本>Cloud-init 脚本</a></li></ul></li><li><a href=#模式-2ack-跑生产-fleet>模式 2：ACK 跑生产 fleet</a></li><li><a href=#模式-3function-compute-跑事件触发-agent>模式 3：Function Compute 跑事件触发 Agent</a></li><li><a href=#一个真实例子混合>一个真实例子：混合</a></li><li><a href=#实例规格选型>实例规格选型</a></li><li><a href=#下一篇>下一篇</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>Terraform Agents</a>
+<span class=series-nav-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></a></li></ol></section><div class=article-end><h4>读完了？</h4><p>GitHub 上关注我，新文大约一周一篇。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#三种模式>三种模式</a></li><li><a href=#成本拐点>成本拐点</a></li><li><a href=#模式-1ecs--pm2>模式 1：ECS + pm2</a><ul><li><a href=#cloud-init-脚本>Cloud-init 脚本</a></li></ul></li><li><a href=#模式-2ack-跑生产-fleet>模式 2：ACK 跑生产 fleet</a></li><li><a href=#模式-3function-compute-跑事件触发-agent>模式 3：Function Compute 跑事件触发 Agent</a></li><li><a href=#一个真实例子混合>一个真实例子：混合</a></li><li><a href=#实例规格选型>实例规格选型</a></li><li><a href=#下一篇>下一篇</a></li><li><a href=#eci大家忘了的第四种-agent-算力>ECI——大家忘了的第四种 Agent 算力</a></li><li><a href=#alicloud_pai_-不存在的时候以及-fallback><code>alicloud_pai_*</code> 不存在的时候（以及 fallback）</a><ul><li><a href=#fallback-1workspace-用-terraformeas-用-api>Fallback 1：workspace 用 Terraform，EAS 用 API</a></li><li><a href=#fallback-2eas-部分用-ros>Fallback 2：EAS 部分用 ROS</a></li><li><a href=#fallback-3自己写-provider别>Fallback 3：自己写 provider（别）</a></li></ul></li><li><a href=#真能扛住生产-bootstrap-的-cloud-init>真能扛住生产 bootstrap 的 cloud-init</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/ class=series-name>Terraform Agents</a>
 <span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/01-why-terraform-for-agents/><span class=chapter-num>01</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/02-provider-and-state-setup/><span class=chapter-num>02</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（二）：Provider、认证与 OSS 上的远程 State</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/03-vpc-and-security-baseline/><span class=chapter-num>03</span>
@@ -362,5 +582,5 @@
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><span class=chapter-num>07</span>
 <span class=chapter-title>用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/><span class=chapter-num>08</span>
-<span class=chapter-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>6 min</strong></div><div class=row><span>字数</span><strong>2954</strong></div><div class=row><span>写于</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/ml-math-derivations/>Ml-Math-Derivations</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
+<span class=chapter-title>用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply 起整个 research-agent-stack</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>11 min</strong></div><div class=row><span>字数</span><strong>5034</strong></div><div class=row><span>写于</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><h2 class=visually-hidden>关于本站</h2><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>关于本站</h3><p>陈锴的笔记。机器、数学、云，中英文各自独立写作。</p></div><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/ml-math-derivations/>Ml-Math-Derivations</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 构建，托管于 GitHub Pages。</span>
 <span class=signature>杭州</span></div></div></footer></body></html>
