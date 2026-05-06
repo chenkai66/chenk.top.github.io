@@ -20,11 +20,11 @@
 &lt;/p>
 &lt;h2 id="本章要点">本章要点&lt;/h2>
 &lt;ul>
-&lt;li>重新讲解完整的 encoder-decoder Transformer，专门针对时间序列&lt;/li>
-&lt;li>为什么需要注入位置信息，以及正弦编码、学习式编码和时间感知编码的区别&lt;/li>
+&lt;li>详细解析完整的 encoder-decoder Transformer，重新设计用于时间序列&lt;/li>
+&lt;li>为什么必须加入位置信息，正弦编码、学习式编码和时间感知编码各自有什么不同&lt;/li>
 &lt;li>多头注意力在时间序列上到底学到了什么&lt;/li>
-&lt;li>朴素 attention 在哪里遇到瓶颈（O(n²)），以及四种优化方法：稀疏、线性、分块、仅解码器&lt;/li>
-&lt;li>提供一份简洁的 PyTorch 参考实现，告诉你什么时候该用 Autoformer、FEDformer、Informer 或 PatchTST&lt;/li>
+&lt;li>朴素 attention 的瓶颈在哪里（O(n²)），以及四种改进方向：稀疏、线性、分块、仅解码器&lt;/li>
+&lt;li>提供一份清晰的 PyTorch 参考实现，教你如何选择 Autoformer、FEDformer、Informer 或 PatchTST&lt;/li>
 &lt;/ul>
 &lt;h2 id="前置知识">前置知识&lt;/h2>
 &lt;ul>
@@ -34,40 +34,40 @@
 &lt;/ul>
 &lt;hr>
 &lt;h2 id="1-为什么时间序列要用-transformer">1. 为什么时间序列要用 Transformer&lt;/h2>
-&lt;p>LSTM 和 GRU 是一步步处理序列的，这带来了三个问题：&lt;/p></description></item><item><title>时间序列模型（四）：Attention 机制 -- 直接的长程依赖</title><link>https://www.chenk.top/zh/time-series/04-attention%E6%9C%BA%E5%88%B6/</link><pubDate>Wed, 16 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/04-attention%E6%9C%BA%E5%88%B6/</guid><description>&lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/04-Attention%E6%9C%BA%E5%88%B6/illustration_1.jpg" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
+&lt;p>LSTM 和 GRU 处理序列时是一步步来的，这带来了三个问题：&lt;/p></description></item><item><title>时间序列模型（四）：Attention 机制 -- 直接的长程依赖</title><link>https://www.chenk.top/zh/time-series/04-attention%E6%9C%BA%E5%88%B6/</link><pubDate>Wed, 16 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/04-attention%E6%9C%BA%E5%88%B6/</guid><description>&lt;p>&lt;figure class="article-figure">
+ &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.jpg" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
 &lt;h2 id="本章要点">本章要点&lt;/h2>
 &lt;ul>
-&lt;li>循环网络在长程依赖上为什么吃亏，注意力如何一击破解。&lt;/li>
-&lt;li>Query / Key / Value 机制、Scaled dot-product 公式，以及为什么必须除以 $\sqrt{d_k}$。&lt;/li>
+&lt;li>循环网络处理长程依赖时为什么力不从心，注意力机制又是如何轻松解决的。&lt;/li>
+&lt;li>Query / Key / Value 的工作机制、Scaled dot-product 公式，以及为什么需要除以 $\sqrt{d_k}$。&lt;/li>
 &lt;li>两种经典打分函数：&lt;strong>Bahdanau&lt;/strong>（加性）和 &lt;strong>Luong&lt;/strong>（乘性）。&lt;/li>
-&lt;li>如何把 &lt;strong>Attention 接到 LSTM 编码器/解码器&lt;/strong> 上做时间序列预测。&lt;/li>
-&lt;li>&lt;strong>多头注意力&lt;/strong>在时序场景下的&amp;quot;四种典型分工&amp;quot;：近期、长程、周期、异常。&lt;/li>
-&lt;li>$O(n^2)$ 显存墙，以及稀疏 / 线性注意力如何绕过去。&lt;/li>
-&lt;li>一个完整的 &lt;strong>股价预测案例&lt;/strong>，并用注意力权重叠加图解释模型决策。&lt;/li>
+&lt;li>如何将 &lt;strong>Attention 融入 LSTM 编码器/解码器&lt;/strong> 来做时间序列预测。&lt;/li>
+&lt;li>&lt;strong>多头注意力&lt;/strong>在时序任务中的分工：不同头分别捕捉近期、周期、异常等特征。&lt;/li>
+&lt;li>$O(n^2)$ 显存瓶颈，稀疏注意力和线性注意力如何突破这一限制。&lt;/li>
+&lt;li>一个完整的 &lt;strong>股价预测案例&lt;/strong>，附带注意力权重叠加图解析模型决策。&lt;/li>
 &lt;/ul>
-&lt;p>&lt;strong>前置&lt;/strong>：RNN/LSTM/GRU 的基本概念（第 2-3 部分）、线性代数、PyTorch 基本操作。&lt;/p></description></item><item><title>时间序列模型（三）：GRU -- 轻量门控与效率权衡</title><link>https://www.chenk.top/zh/time-series/03-gru/</link><pubDate>Tue, 01 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/03-gru/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;p>&lt;strong>前置知识&lt;/strong>：RNN/LSTM/GRU 的基本概念（第 2-3 部分）、线性代数基础、PyTorch 基本操作。&lt;/p></description></item><item><title>时间序列模型（三）：GRU -- 轻量门控与效率权衡</title><link>https://www.chenk.top/zh/time-series/03-gru/</link><pubDate>Tue, 01 Oct 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/03-gru/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/03-GRU/illustration_1.jpg" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
 &lt;h2 id="本章要点">本章要点&lt;/h2>
 &lt;ul>
-&lt;li>GRU 的&lt;strong>更新门&lt;/strong> $z_t$ 和&lt;strong>重置门&lt;/strong> $r_t$ 如何用更少的门、更少的状态实现 LSTM 级别的记忆能力。&lt;/li>
-&lt;li>为什么 GRU 比 LSTM &lt;strong>正好少 25% 参数&lt;/strong>，这在工程上意味着什么。&lt;/li>
-&lt;li>怎么读 GRU 的&lt;strong>门激活&lt;/strong>，把它当作训练诊断工具。&lt;/li>
-&lt;li>一份实用的 GRU vs LSTM &lt;strong>决策矩阵&lt;/strong>，附参数、速度、预测质量的基准对比。&lt;/li>
-&lt;li>一份干净、生产级的 PyTorch 参考实现，包含真正影响稳定性的初始化与正则化技巧。&lt;/li>
+&lt;li>GRU 的&lt;strong>更新门&lt;/strong> $z_t$ 和&lt;strong>重置门&lt;/strong> $r_t$ 凭借一个门和一个状态的优势，如何实现与 LSTM 相当的记忆能力。&lt;/li>
+&lt;li>GRU 参数量比 LSTM 少了整整 &lt;strong>25%&lt;/strong>，这在实际应用中能带来哪些好处。&lt;/li>
+&lt;li>如何通过观察 GRU 的&lt;strong>门激活值&lt;/strong>，分析模型到底关注哪些信息，辅助调试。&lt;/li>
+&lt;li>提供一份实用的 GRU 和 LSTM &lt;strong>选择决策表&lt;/strong>，基于参数量、运行速度和预测质量的对比数据。&lt;/li>
+&lt;li>给出一份简洁的 PyTorch 参考实现，包含真正影响模型稳定性和性能的正则化技巧。&lt;/li>
 &lt;/ul>
 &lt;h2 id="前置知识">前置知识&lt;/h2>
 &lt;ul>
-&lt;li>&lt;a href="https://www.chenk.top/zh/time-series/02-LSTM/">第二篇 LSTM&lt;/a>
+&lt;li>熟悉 &lt;a href="https://www.chenk.top/zh/time-series/02-LSTM/">第二篇 LSTM&lt;/a>
  中的三门机制。&lt;/li>
-&lt;li>基本 PyTorch（&lt;code>nn.Module&lt;/code>、autograd、optimizer）。&lt;/li>
-&lt;li>知道 vanilla RNN 因为梯度反复经过 tanh 非线性而出现梯度消失。&lt;/li>
+&lt;li>掌握 PyTorch 基础（&lt;code>nn.Module&lt;/code>、autograd、optimizer）。&lt;/li>
+&lt;li>了解 vanilla RNN 因梯度反复经过 tanh 非线性导致梯度消失的原因。&lt;/li>
 &lt;/ul>
 &lt;hr>
 &lt;p>&lt;figure class="article-figure">
@@ -75,7 +75,7 @@
  
 &lt;/figure>
 
-&lt;em>图 1. GRU 单元。两个门（&lt;code>r&lt;/code>、&lt;code>z&lt;/code>）+ 一个状态（&lt;code>h&lt;/code>），替代 LSTM 的三个门 + 独立细胞状态。橙色的 &lt;code>(1 - z) ⊙ h_{t-1}&lt;/code> 跳跃路径就是让长程依赖可学的线性梯度高速公路。&lt;/em>&lt;/p></description></item><item><title>时间序列模型（二）：LSTM -- 门控机制与长期依赖</title><link>https://www.chenk.top/zh/time-series/02-lstm/</link><pubDate>Mon, 16 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/02-lstm/</guid><description>&lt;p>&lt;figure class="article-figure">
+&lt;em>图 1. GRU 单元。两个门（&lt;code>r&lt;/code>、&lt;code>z&lt;/code>）和一个状态（&lt;code>h&lt;/code>），替代了 LSTM 的三个门和独立细胞状态。橙色的 &lt;code>(1 - z) ⊙ h_{t-1}&lt;/code> 跳跃路径是让长程依赖可学的线性梯度高速公路。&lt;/em>&lt;/p></description></item><item><title>时间序列模型（二）：LSTM -- 门控机制与长期依赖</title><link>https://www.chenk.top/zh/time-series/02-lstm/</link><pubDate>Mon, 16 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/02-lstm/</guid><description>&lt;p>&lt;figure class="article-figure">
  &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/illustration_1.jpg" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
