@@ -82,41 +82,41 @@
 &lt;/p>
 &lt;h2 id="本章要点">本章要点&lt;/h2>
 &lt;ul>
-&lt;li>普通 RNN 为什么处理不了长序列，LSTM 是怎么解决梯度问题的&lt;/li>
-&lt;li>遗忘门、输入门、输出门的作用逻辑，以及细胞状态这条“高速公路”是怎么工作的&lt;/li>
-&lt;li>单步和多步时间序列预测中，LSTM 的输入和输出应该怎么设计&lt;/li>
-&lt;li>实用技巧：正则化方法、序列长度的选择、双向 LSTM 和堆叠 LSTM 的对比、什么时候选 LSTM 而不是 GRU&lt;/li>
+&lt;li>普通 RNN 为什么搞不定长序列，LSTM 又是如何解决梯度问题的&lt;/li>
+&lt;li>遗忘门、输入门、输出门的作用逻辑，以及细胞状态这条“高速公路”的工作原理&lt;/li>
+&lt;li>单步和多步时间序列预测中，如何设计 LSTM 的输入和输出&lt;/li>
+&lt;li>实用技巧：正则化方法、序列长度的选择、双向 LSTM 和堆叠 LSTM 的对比、什么时候该选 LSTM 而不是 GRU&lt;/li>
 &lt;/ul>
-&lt;h2 id="前置要求">前置要求&lt;/h2>
+&lt;h2 id="准备工作">准备工作&lt;/h2>
 &lt;ul>
-&lt;li>掌握神经网络的基础知识（前向传播、反向传播）&lt;/li>
-&lt;li>熟悉 PyTorch 的核心概念（&lt;code>nn.Module&lt;/code>、张量、优化器）&lt;/li>
-&lt;li>了解本系列第 1 部分的内容（推荐但非必需）&lt;/li>
+&lt;li>了解神经网络的基本概念，比如前向传播和反向传播。&lt;/li>
+&lt;li>熟悉 PyTorch 的核心内容，包括 &lt;code>nn.Module&lt;/code>、张量和优化器。&lt;/li>
+&lt;li>最好读过本系列的第 1 部分，但这不是硬性要求。&lt;/li>
 &lt;/ul>
 &lt;hr>
 &lt;h2 id="1-lstm-要解决的问题">1. LSTM 要解决的问题&lt;/h2>
-$$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$$$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.$$&lt;p>这里会出现两种问题：&lt;/p></description></item><item><title>时间序列模型（一）：传统统计模型</title><link>https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/</link><pubDate>Sun, 01 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/</guid><description>&lt;blockquote>
-&lt;p>&lt;a href="https://www.chenk.top/zh/time-series/02-LSTM/">下一篇：深入解析 LSTM &amp;ndash;&amp;gt;&lt;/a>
+$$h_t = \tanh(W_h h_{t-1} + W_x x_t + b).$$$$\frac{\partial h_T}{\partial h_k} = \prod_{t=k+1}^{T} \mathrm{diag}\!\left(1 - h_t^2\right) W_h.$$&lt;p>这里会出现两种情况：&lt;/p></description></item><item><title>时间序列模型（一）：传统统计模型</title><link>https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/</link><pubDate>Sun, 01 Sep 2024 09:00:00 +0000</pubDate><guid>https://www.chenk.top/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/</guid><description>&lt;blockquote>
+&lt;p>&lt;a href="https://www.chenk.top/zh/time-series/02-LSTM/">下一篇：LSTM 详解 &amp;ndash;&amp;gt;&lt;/a>
 &lt;/p>
 &lt;/blockquote>
 &lt;p>&lt;figure class="article-figure">
- &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/illustration_1.jpg" alt="概念图" loading="lazy" decoding="async" class="content-image">
+ &lt;img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/01-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%9E%8B/illustration_1.jpg" alt="章节概念图" loading="lazy" decoding="async" class="content-image">
  
 &lt;/figure>
 &lt;/p>
 &lt;h2 id="本章要点">本章要点&lt;/h2>
 &lt;ul>
-&lt;li>&lt;strong>平稳性&lt;/strong>是 ARIMA 家族的敲门砖，差分是实现它的关键。&lt;/li>
-&lt;li>学会像 Box-Jenkins 专家那样看 &lt;strong>ACF 和 PACF&lt;/strong> 图：用“截尾”和“拖尾”区分 $p$ 和 $q$。&lt;/li>
-&lt;li>深入理解 &lt;strong>ARIMA / SARIMA&lt;/strong> 的完整机制，尤其是如何通过滞后 $s$ 算子引入季节性。&lt;/li>
-&lt;li>把 &lt;strong>VAR、GARCH、指数平滑、Prophet 和卡尔曼滤波&lt;/strong>放在一张图上：均值动态、方差动态和状态空间递推的区别与联系。&lt;/li>
-&lt;li>一个简单的判断方法：什么时候用传统模型就够了，什么时候该转向本系列后续的深度模型。&lt;/li>
+&lt;li>&lt;strong>平稳性&lt;/strong>是 ARIMA 家族的入场券，差分是获取它的核心手段。&lt;/li>
+&lt;li>像 Box-Jenkins 专家一样读懂 &lt;strong>ACF 和 PACF&lt;/strong> 图：用“截尾”和“拖尾”规则确定 $p$ 和 $q$。&lt;/li>
+&lt;li>深入掌握 &lt;strong>ARIMA / SARIMA&lt;/strong> 的完整框架，特别是如何通过滞后 $s$ 算子融入季节性。&lt;/li>
+&lt;li>将 &lt;strong>VAR、GARCH、指数平滑、Prophet 和卡尔曼滤波&lt;/strong> 放在同一张图上对比：均值动态、方差动态和状态空间递推各自的特点与关系。&lt;/li>
+&lt;li>提供一个决策准则：什么时候传统模型就够用了，什么时候需要转向本系列后续介绍的深度模型。&lt;/li>
 &lt;/ul>
 &lt;h2 id="前置知识">前置知识&lt;/h2>
 &lt;ul>
-&lt;li>了解基本的概率统计概念，包括均值、方差、协方差和相关系数。&lt;/li>
-&lt;li>熟悉 NumPy 和 &lt;code>pandas&lt;/code> 的时间索引用法。&lt;/li>
-&lt;li>VAR 和卡尔曼部分需要一点线性代数基础，比如矩阵乘法和特征值。&lt;/li>
+&lt;li>掌握基本的概率统计概念，比如均值、方差、协方差和相关系数。&lt;/li>
+&lt;li>熟悉 NumPy 和 &lt;code>pandas&lt;/code> 的时间索引操作。&lt;/li>
+&lt;li>VAR 和卡尔曼部分涉及一点线性代数，主要是矩阵乘法和特征值。&lt;/li>
 &lt;/ul>
 &lt;h2 id="1-为什么传统模型依然重要">1. 为什么传统模型依然重要&lt;/h2>
-&lt;p>在深度学习流行之前，时间序列分析的工具箱已经相当完备。ARIMA 能捕捉线性自相关，SARIMA 加入了日历效应，VAR 扩展到多维数据，GARCH 专注于波动率建模，而卡尔曼滤波通过状态空间递归把这些方法统一起来。这些传统模型有三个显著特点，是深度学习模型无法轻松提供的：&lt;/p></description></item></channel></rss>
+&lt;p>深度学习兴起之前，时间序列分析的工具箱已经非常成熟。ARIMA 能捕捉线性自相关，SARIMA 加入了日历效应，VAR 支持多维数据，GARCH 专注于波动率建模，而卡尔曼滤波通过状态空间递归将这些方法统一起来。这些传统模型有三个显著特点，是深度学习模型无法轻松提供的：&lt;/p></description></item></channel></rss>
