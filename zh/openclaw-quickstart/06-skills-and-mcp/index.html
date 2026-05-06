@@ -54,7 +54,7 @@
 
 ```bash
 openclaw skills list | grep summarize
-# summarize-headlines  (loaded)
+## summarize-headlines  (loaded)
 </code></pre><p>如果没加载出来，大概率是 front-matter 里的 <code>name</code> 字段和目录名不一致，或者 YAML 缩进有问题。OpenClaw 对这块的容错性较差，少一个引号就会静默跳过。建议检查一遍 <code>openclaw doctor</code> 的 skills 部分。</p><h2 id=第二步连接-mcp-服务器>第二步：连接 MCP 服务器</h2><p>OpenClaw 本身不支持 MCP 协议，需要借助 <code>MCPorter</code> 作为中间层。先安装它：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>npm i -g mcporter
@@ -97,8 +97,8 @@ openclaw skills list | grep summarize
 </span></span><span class=line><span class=cl>tools_required: [exec]
 </span></span><span class=line><span class=cl>---
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=gh># 今天的日历
-</span></span></span><span class=line><span class=cl><span class=gh></span>
+</span></span><span class=line><span class=cl><span class=gu>## 今天的日历
+</span></span></span><span class=line><span class=cl><span class=gu></span>
 </span></span><span class=line><span class=cl>运行命令 <span class=sb>`gcalcli agenda --tsv &#34;$(date +%F) 00:00&#34; &#34;$(date +%F) 23:59&#34;`</span>。
 </span></span><span class=line><span class=cl>
 </span></span><span class=line><span class=cl>解析 TSV 格式的输出，列包括：开始时间、结束时间、标题、地点。
@@ -131,8 +131,8 @@ openclaw skills list | grep summarize
 </span></span><span class=line><span class=cl>skills_required: [today-calendar, summarize-headlines]
 </span></span><span class=line><span class=cl>---
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=gh># 早间简报
-</span></span></span><span class=line><span class=cl><span class=gh></span>
+</span></span><span class=line><span class=cl><span class=gu>## 早间简报
+</span></span></span><span class=line><span class=cl><span class=gu></span>
 </span></span><span class=line><span class=cl><span class=k>1.</span> 调用 <span class=sb>`today-calendar`</span> 技能获取今天的日程安排。
 </span></span><span class=line><span class=cl><span class=k>2.</span> 使用 Playwright MCP 工具从 https://news.ycombinator.com 抓取前 5 条新闻。
 </span></span><span class=line><span class=cl><span class=k>3.</span> 对这 5 条新闻使用 <span class=sb>`summarize-headlines`</span> 技能生成摘要。
@@ -162,7 +162,7 @@ openclaw skills list | grep summarize
 </span></span></code></pre></td></tr></table></div></div><p><code>0 7 * * 1-5</code> 表示周一到周五早上 7 点。重启 Gateway 后，用以下命令验证：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw cron list
-</span></span><span class=line><span class=cl><span class=c1># morning-briefing | 0 7 * * 1-5 | next: 明天 07:00 | channel: telegram</span>
+</span></span><span class=line><span class=cl><span class=c1>## morning-briefing | 0 7 * * 1-5 | next: 明天 07:00 | channel: telegram</span>
 </span></span></code></pre></td></tr></table></div></div><p>第一次运行时，盯着 Gateway 的日志看。你会看到 Agent 循环启动、Skill 加载完成、Playwright 工具调用快速滚动，最后消息会出现在你的 Telegram 中。</p><p>不过第一次跑的时候，大概率会遇到一些小问题。比如 Playwright 首次启动需要下载浏览器内核，可能会超时；或者 gcalcli 需要在服务器端完成 OAuth 授权。这时可以把 Cron 表达式改成 <code>*/5 * * * *</code>，让它每 5 分钟运行一次，方便快速调试。等流程跑通了，再改回 <code>0 7 * * 1-5</code>。</p><h2 id=你现在有了什么>你现在有了什么</h2><ul><li>一个能长期运行并连接真实聊天平台的 Agent</li><li>把领域知识从 Agent 循环中独立出来的 Skills</li><li>一台提供 OpenClaw 原生不具备能力的 MCP 服务器</li><li>一条 cron 任务，把“我得主动问”变成“它自动出现”</li></ul><p>这就是整个流程。官方文档里的其他案例——第二大脑、内容流水线、运维自动化——全都是这五个步骤的不同变体。换个 Skill、换个 MCP、改条 cron 就行了。</p><h2 id=接下来我会做什么>接下来我会做什么</h2><p>按工作量从小到大排序：</p><ol><li><p><strong>增加反馈回路</strong><br>早上看简报时，直接回复需要调整的内容，比如“跳过加密货币头条”。写一个 Skill，把这些调整保存到 <code>~/.openclaw/memory/feedback/morning-briefing.md</code>。第二天的简报会自动应用这些反馈。</p></li><li><p><strong>让新闻源可配置</strong><br>写一个 Skill，从 <code>~/openclaw-workspace/sources.yaml</code> 读取数据并迭代处理。这样基本就实现了一个“作为 Agent 的 RSS 阅读器”，几乎不用额外花力气。</p></li><li><p><strong>接入第二个渠道</strong><br>同一个 Agent，工作时间也放到钉钉上用。Skills 不用改。</p></li></ol><p>QuickStart 就写到这里。官方文档的其他部分会对每一层深入讲解，现在你已经有一张清晰的地图，可以按需探索。</p><p>如果只能记住一点，那就是：真正有价值的地方在那些看似枯燥的部分——Skills、Memory 和 Channels。Agent 循环大家都差不多，让你的安装脱颖而出的是你构建的技能库，以及你选择接入的渠道。祝好运！</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/openclaw-quickstart/>OpenClaw 快速上手</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/openclaw-quickstart/05-channels/><span class=title>OpenClaw 快速上手（五）：接 Telegram、钉钉，以及微信的真实情况</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/openclaw-quickstart/07-memory-system/><span class=title>OpenClaw 快速上手（七）：把记忆系统讲清楚，不靠玄学</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=series-nav-num>01</span>
 <span class=series-nav-title>OpenClaw 快速上手（一）：这玩意到底是什么</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/02-install-and-first-chat/><span class=series-nav-num>02</span>
 <span class=series-nav-title>OpenClaw 快速上手（二）：10 分钟装好并完成第一次对话</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=series-nav-num>03</span>
