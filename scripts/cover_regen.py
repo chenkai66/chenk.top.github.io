@@ -119,7 +119,7 @@ def regen_one(key: str):
         last_score, last_sample = score, sample
         log.info("[%s] new score=%d sample=%r", key, score, sample[:60])
         if score <= CHAR_OK_THRESHOLD:
-            up = subprocess.run([OSSUTIL, "cp", "-f", \"--cache-control\", \"public, max-age=300, must-revalidate\", str(new_p), f"oss://{OSS_BUCKET}/{key}"],
+            up = subprocess.run([OSSUTIL, "cp", "-f", "--cache-control", "public, max-age=300, must-revalidate", str(new_p), f"oss://{OSS_BUCKET}/{key}"],
                                 capture_output=True, text=True)
             if up.returncode == 0:
                 log.info("[%s] uploaded text-free replacement (score=%d)", key, score)
