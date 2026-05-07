@@ -1,0 +1,85 @@
+{{- $series := .Params.series -}}
+{{- if $series -}}
+{{- $lang := .Lang -}}
+{{- $base := cond (eq $lang "en") "/en" "/zh" -}}
+{{- $key := string (partial "series-key.html" $series) -}}
+{{- $sname := $key | humanize -}}
+{{- with index site.Data.series $key -}}
+  {{- if eq $lang "zh" -}}{{ $sname = .name_zh | default .name }}{{- else -}}{{ $sname = .name }}{{- end -}}
+{{- end -}}
+{{- $sibs := where (where site.RegularPages "Lang" $lang) "Params.series" "eq" $series -}}
+{{- $sorted := sort $sibs "Params.series_order" "asc" -}}
+{{- $idx := -1 -}}
+{{- range $i, $p := $sorted -}}
+  {{- if eq $p.Permalink $.Permalink -}}{{- $idx = $i -}}{{- end -}}
+{{- end -}}
+{{- $prev := false -}}
+{{- $next := false -}}
+{{- if gt $idx 0 -}}{{- $prev = index $sorted (sub $idx 1) -}}{{- end -}}
+{{- if and (ge $idx 0) (lt $idx (sub (len $sorted) 1)) -}}{{- $next = index $sorted (add $idx 1) -}}{{- end -}}
+
+<section class="series-nav-block" aria-label="{{ if eq $lang "zh" }}本系列{{ else }}This series{{ end }}">
+  <div class="series-nav-head">
+    <div class="label">{{ if eq $lang "zh" }}本系列{{ else }}In this series{{ end }}</div>
+    <h3><a href="{{ $base }}/series/{{ $series | urlize }}/">{{ $sname }}</a> <span class="count">{{ len $sorted }} {{ if eq $lang "zh" }}篇{{ else }}parts{{ end }}</span></h3>
+  </div>
+
+  {{ if or $prev $next }}
+  <div class="series-nav-prev-next">
+    <div class="nav-item prev-item">
+      {{ if $prev }}
+        <div class="label">← {{ i18n "previous_in_series" }}</div>
+        <a href="{{ $prev.Permalink }}"><span class="title">{{ $prev.Title }}</span></a>
+      {{ else }}
+        <div class="label">{{ i18n "previous_in_series" }}</div>
+        <span class="title" style="color: var(--ink-faint)">—</span>
+      {{ end }}
+    </div>
+    <div class="nav-item next-item">
+      {{ if $next }}
+        <div class="label">{{ i18n "next_in_series" }} →</div>
+        <a href="{{ $next.Permalink }}"><span class="title">{{ $next.Title }}</span></a>
+      {{ else }}
+        <div class="label">{{ i18n "next_in_series" }} →</div>
+        <a href="{{ $base }}/series/{{ $series | urlize }}/"><span class="title">{{ if eq $lang "zh" }}返回 {{ $sname }}{{ else }}Back to {{ $sname }} index{{ end }}</span></a>
+      {{ end }}
+    </div>
+  </div>
+  {{ end }}
+
+  <ol class="series-nav-all">
+    {{- range $i, $p := $sorted -}}
+      {{- $num := $p.Params.series_order | default (add $i 1) -}}
+      {{- $isCurrent := eq $p.Permalink $.Permalink -}}
+      <li class="series-nav-item{{ if $isCurrent }} is-current{{ end }}">
+        {{- if $isCurrent -}}
+          <span class="series-nav-num">{{ printf "%02d" $num }}</span>
+          <span class="series-nav-title">{{ $p.Title }}</span>
+          <span class="series-nav-here">{{ if eq $lang "zh" }}当前{{ else }}you are here{{ end }}</span>
+        {{- else -}}
+          <a href="{{ $p.Permalink }}">
+            <span class="series-nav-num">{{ printf "%02d" $num }}</span>
+            <span class="series-nav-title">{{ $p.Title }}</span>
+          </a>
+        {{- end -}}
+      </li>
+    {{- end -}}
+  </ol>
+</section>
+
+{{- else -}}
+{{- $lang := .Lang -}}
+{{- $base := cond (eq $lang "en") "/en" "/zh" -}}
+<section class="series-nav-block standalone-nav" aria-label="{{ if eq $lang "zh" }}浏览{{ else }}Browse{{ end }}">
+  <div class="series-nav-prev-next">
+    <div class="nav-item prev-item">
+      <div class="label">{{ if eq $lang "zh" }}浏览全部{{ else }}Browse all{{ end }} →</div>
+      <a href="{{ $base }}/archives/"><span class="title">{{ if eq $lang "zh" }}归档{{ else }}Archives{{ end }}</span></a>
+    </div>
+    <div class="nav-item next-item">
+      <div class="label">{{ if eq $lang "zh" }}按主题{{ else }}By topic{{ end }} →</div>
+      <a href="{{ $base }}/series/"><span class="title">{{ if eq $lang "zh" }}全部系列{{ else }}All series{{ end }}</span></a>
+    </div>
+  </div>
+</section>
+{{- end -}}

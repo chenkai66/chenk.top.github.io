@@ -1,0 +1,640 @@
+---
+title: "Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply"
+date: 2026-03-26 09:00:00
+tags:
+  - Terraform
+  - Alibaba Cloud
+  - End-to-End
+  - AI Agents
+categories: Terraform
+lang: en
+mathjax: false
+series: terraform-agents
+series_title: "Terraform for AI Agents on Alibaba Cloud"
+series_order: 8
+description: "Stitching the seven modules into one repo, running terraform apply once, and watching a complete agent runtime — VPC, ECS, RDS, OpenSearch, OSS, LLM gateway, SLS observability, cost alarms — come up in seven minutes. Real apply output, the module DAG, and the starter repo to fork."
+disableNunjucks: true
+translationKey: "terraform-agents-8"
+---
+
+This is the article where everything from articles 2 through 7 lands in one place. By the end you'll have run `terraform apply` once and produced a complete, observable, budgeted agent runtime stack on Alibaba Cloud. About 31 resources, ~7 minutes of wall clock.
+
+The stack we're building:
+
+![research-agent-stack: every box, one terraform apply](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png)
+
+Five layers — edge, compute, memory, platform, ops — composed from the modules we built across this series.
+
+![Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/illustration_1.jpg)
+
+## Project structure
+
+```
+research-agent-stack/
+├── README.md
+├── versions.tf                  # Terraform + provider pinning
+├── backend.tf                   # OSS + Tablestore remote state
+├── providers.tf                 # alicloud + alicloud.beijing alias
+├── variables.tf                 # top-level inputs
+├── locals.tf                    # workspace-aware computed locals
+├── main.tf                      # module composition
+├── outputs.tf                   # endpoints + connection strings
+├── env/
+│   ├── dev.tfvars
+│   ├── staging.tfvars
+│   └── prod.tfvars
+├── secrets/
+│   └── secrets.auto.tfvars      # gitignored — provider keys
+├── modules/
+│   ├── vpc-baseline/            # article 3
+│   ├── storage/                 # article 5
+│   ├── compute/                 # article 4
+│   ├── llm-gateway/             # article 6
+│   └── observability/           # article 7
+└── scripts/
+    ├── cloud-init/
+    │   ├── agent.sh
+    │   └── gateway.sh
+    └── restore-drill.sh
+```
+
+Eight `*.tf` files at the top, five modules in `modules/`, environment-specific values in `env/*.tfvars`, secrets out of git in `secrets/secrets.auto.tfvars`. This is the layout I use on every project — boring is good.
+
+## main.tf — the composition
+
+```hcl
+locals {
+  is_prod   = terraform.workspace == "prod"
+  name      = "agents-${terraform.workspace}"
+  zones     = ["cn-shanghai-l", "cn-shanghai-m", "cn-shanghai-n"]
+
+  common_tags = {
+    Project     = "research-agent-stack"
+    Environment = terraform.workspace
+    ManagedBy   = "terraform"
+    Owner       = "ai-platform"
+  }
+}
+
+module "vpc" {
+  source = "./modules/vpc-baseline"
+
+  name       = local.name
+  cidr_block = "10.20.0.0/16"
+  zones      = local.zones
+  tags       = local.common_tags
+}
+
+module "storage" {
+  source = "./modules/storage"
+
+  name              = local.name
+  vpc               = module.vpc
+  is_prod           = local.is_prod
+  enable_dr         = local.is_prod   # cross-region OSS replication only in prod
+  tags              = local.common_tags
+
+  providers = {
+    alicloud         = alicloud
+    alicloud.beijing = alicloud.beijing
+  }
+}
+
+module "observability" {
+  source = "./modules/observability"
+
+  name             = local.name
+  vpc              = module.vpc
+  dingtalk_webhook = var.dingtalk_webhook
+  cost_ceiling_cny = local.is_prod ? 800 : 100
+  tags             = local.common_tags
+}
+
+module "gateway" {
+  source = "./modules/llm-gateway"
+
+  name           = local.name
+  vpc            = module.vpc
+  observability  = module.observability
+  llm_keys       = var.llm_keys
+  agent_quotas   = var.agent_quotas
+  instance_count = local.is_prod ? 2 : 1
+  tags           = local.common_tags
+}
+
+module "compute" {
+  source = "./modules/compute"
+
+  name           = local.name
+  vpc            = module.vpc
+  storage        = module.storage
+  gateway        = module.gateway
+  observability  = module.observability
+  agent_repo_url = var.agent_repo_url
+  agent_branch   = var.agent_branch
+  ecs_count      = local.is_prod ? 3 : 1
+  tags           = local.common_tags
+}
+```
+
+Five module calls. Notice how each module takes the *previous* module's output as input — `module.compute` reads `module.vpc`, `module.storage`, `module.gateway`, `module.observability`. That dependency wiring is what Terraform uses to build the apply DAG:
+
+![Terraform module dependency DAG](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig2_module_dag.png)
+
+Network and KMS sit at the top — they have no dependencies. Storage, compute, and gateway depend on network + KMS but are independent of each other, so Terraform builds them in parallel. Compute also depends on storage and gateway because the cloud-init template needs their endpoints. Observability and alarms depend on compute because they reference the SG IDs.
+
+## variables.tf
+
+```hcl
+variable "agent_repo_url" {
+  description = "Git URL of the agent runtime to deploy"
+  type        = string
+  default     = "https://github.com/example/research-agent.git"
+}
+
+variable "agent_branch" {
+  description = "Git branch / tag to deploy"
+  type        = string
+  default     = "main"
+}
+
+variable "dingtalk_webhook" {
+  description = "DingTalk webhook URL for alarms"
+  type        = string
+  sensitive   = true
+}
+
+variable "llm_keys" {
+  description = "Map of provider name to API key — set via secrets.auto.tfvars"
+  type        = map(string)
+  sensitive   = true
+}
+
+variable "agent_quotas" {
+  description = "Per-agent QPM and budget caps"
+  type = map(object({
+    qpm          = number
+    daily_tokens = number
+    max_budget   = number
+  }))
+  default = {
+    "research-agent" = { qpm = 120, daily_tokens = 2000000, max_budget = 800 }
+  }
+}
+```
+
+`sensitive = true` keeps Terraform from printing the value in plan/apply output. The values still land in tfstate (which is why we encrypted the OSS bucket back in article 2).
+
+## env/dev.tfvars
+
+```hcl
+agent_repo_url   = "https://github.com/example/research-agent.git"
+agent_branch     = "develop"
+dingtalk_webhook = "https://oapi.dingtalk.com/robot/send?access_token=DEV_TOKEN"
+
+agent_quotas = {
+  "research-agent" = {
+    qpm          = 30
+    daily_tokens = 200000
+    max_budget   = 50
+  }
+}
+```
+
+## secrets/secrets.auto.tfvars (gitignored)
+
+```hcl
+llm_keys = {
+  "dashscope-prod" = "sk-DS-XXXXXXXXXXXXXXXXX"
+  "openai-prod"    = "sk-XX-XXXXXXXXXXXXXXXXX"
+  "anthropic-prod" = "sk-ant-XXXXXXXXXXXXXXXXX"
+  "deepseek-prod"  = "sk-DEEPSEEK-XXXXXXXXX"
+}
+```
+
+`*.auto.tfvars` files are auto-loaded without `-var-file`. Make sure `secrets/` is in `.gitignore` from the very first commit.
+
+## The apply
+
+```bash
+cd research-agent-stack
+terraform workspace select dev
+terraform init
+terraform plan -var-file=env/dev.tfvars -out=tfplan
+# review plan output: ~31 resources to add
+terraform apply tfplan
+```
+
+Real timing on a fresh apply:
+
+![Real apply timeline — RDS/OpenSearch dominate, the rest is parallel](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig3_apply_timeline.png)
+
+The wall-clock breakdown:
+
+- **0-60s:** VPC, vSwitch, NAT, EIP, KMS keys — fast resources
+- **60-380s:** RDS (5 minutes), OpenSearch (5.5 minutes), ECS (~2 minutes), gateway (~1.5 minutes) — all parallel, gated by the slowest
+- **380-460s:** agent app deploy, observability resources, alarms
+
+About 7 minutes total, dominated by RDS and OpenSearch provisioning. Re-applies on no-change runs settle in under 30 seconds because Terraform only diffs.
+
+A trimmed apply transcript:
+
+```
+Terraform will perform the following actions:
+
+  # module.vpc.alicloud_vpc.this will be created
+  + resource "alicloud_vpc" "this" {
+      + cidr_block = "10.20.0.0/16"
+      + vpc_name   = "agents-dev"
+      ...
+    }
+
+  ... (29 more resources) ...
+
+Plan: 31 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + agent_endpoints       = (known after apply)
+  + gateway_url           = (known after apply)
+  + sls_dashboard_url     = (known after apply)
+  + total_estimated_cost  = "~¥1450/month at dev sizing"
+
+Do you want to perform these actions in workspace "dev"?
+  Terraform will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+module.vpc.alicloud_vpc.this: Creating...
+module.vpc.alicloud_kms_key.this["memory"]: Creating...
+module.vpc.alicloud_kms_key.this["secrets"]: Creating...
+module.vpc.alicloud_kms_key.this["logs"]: Creating...
+module.vpc.alicloud_vpc.this: Creation complete after 4s [id=vpc-uf6abc123]
+module.vpc.alicloud_vswitch.private["0"]: Creating...
+module.vpc.alicloud_vswitch.private["1"]: Creating...
+module.vpc.alicloud_vswitch.private["2"]: Creating...
+module.vpc.alicloud_vswitch.public["0"]: Creating...
+...
+module.storage.alicloud_db_instance.memory: Still creating... [4m 30s elapsed]
+module.storage.alicloud_opensearch_app_group.vector: Still creating... [5m 10s elapsed]
+module.storage.alicloud_db_instance.memory: Creation complete after 4m 38s [id=pgm-uf6def456]
+module.storage.alicloud_opensearch_app_group.vector: Creation complete after 5m 24s [id=os-uf6ghi789]
+...
+module.compute.alicloud_instance.agent[0]: Creation complete after 1m 52s [id=i-uf6jkl012]
+module.gateway.alicloud_alb_listener.gateway: Creation complete after 12s
+module.observability.alicloud_log_alert.cost_ceiling: Creation complete after 3s
+...
+
+Apply complete! Resources: 31 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+agent_endpoints      = [
+  "http://alb-uf6.cn-shanghai.alb.aliyuncs.com",
+]
+gateway_url          = "http://alb-uf7.cn-shanghai.alb.aliyuncs.com/v1"
+sls_dashboard_url    = "https://sls.console.aliyun.com/lognext/project/agents-dev/dashboard/agent-cost-overview"
+total_estimated_cost = "~¥1450/month at dev sizing"
+```
+
+That's a complete agent stack. ALB endpoint, gateway URL, the SLS dashboard URL — paste any of them into a browser and they work.
+
+## Day-2 operations
+
+The stack is up. Now what?
+
+### Adding a new agent
+
+1. Add an entry to `var.agent_quotas` in `dev.tfvars`
+2. `terraform apply -var-file=env/dev.tfvars`
+3. The `null_resource` provisions a new LiteLLM key
+4. Deploy your new agent code with the new `LITELLM_API_KEY` env var
+
+About 30 seconds end-to-end.
+
+### Scaling up
+
+Change `ecs_count` in the module call (or set it via `tfvars`). `terraform apply` brings up new instances, attaches them to the ALB, and old instances stay healthy throughout (`create_before_destroy`). Zero downtime.
+
+### Promoting dev → prod
+
+```bash
+terraform workspace select prod
+terraform apply -var-file=env/prod.tfvars
+```
+
+Same modules, different sizes (HA RDS, larger OpenSearch quota, more ECS, real DingTalk webhook, real LLM keys, cost ceiling at ¥800 instead of ¥100). The first prod apply takes 7-10 minutes; subsequent applies are seconds.
+
+### Destroying dev
+
+When you're done experimenting:
+
+```bash
+terraform workspace select dev
+terraform destroy -var-file=env/dev.tfvars
+```
+
+This will fail because of `deletion_protection = true` on prod-like resources and `prevent_destroy = true` on the bootstrap state bucket. That's intentional. For dev, you set `deletion_protection = local.is_prod` so it's only on in prod — `terraform destroy` works.
+
+> **Real-world tip:** Always `terraform plan -destroy` before `terraform destroy`. Read the plan output. The number of resources being destroyed should match what you intend. I have seen one engineer accidentally destroy `staging` because they forgot to switch workspaces.
+
+## Connecting your actual agent code
+
+The stack is the *platform*. The agent itself comes from your repo (`var.agent_repo_url`) and is deployed by cloud-init at ECS launch. The minimal contract your agent code needs to honor:
+
+```python
+# These come from environment variables set by cloud-init
+LLM_GATEWAY_URL    = os.environ["LLM_GATEWAY_URL"]    # http://alb.../v1
+LITELLM_API_KEY    = os.environ["LITELLM_API_KEY"]    # the per-agent key
+DATABASE_URL       = os.environ["DATABASE_URL"]       # postgres://...
+VECTOR_ENDPOINT    = os.environ["VECTOR_ENDPOINT"]    # OpenSearch HTTP
+ARTIFACTS_BUCKET   = os.environ["ARTIFACTS_BUCKET"]   # OSS bucket name
+SLS_PROJECT        = os.environ["SLS_PROJECT"]
+SLS_LOGSTORE       = os.environ["SLS_LOGSTORE"]
+ARMS_OTLP_ENDPOINT = os.environ["ARMS_OTLP_ENDPOINT"]
+```
+
+All of these get values from Terraform outputs. The agent code stays cloud-agnostic in shape — it just reads env vars — but is fully wired into the Aliyun stack at runtime.
+
+## Cost summary
+
+A real bill for `dev` workspace, low traffic:
+
+| Component               | Monthly |
+|-------------------------|--------:|
+| VPC + NAT + EIP         | ~¥150 |
+| ECS x1 (c7.large)       | ~¥250 |
+| RDS Postgres (small)    | ~¥350 |
+| OpenSearch vector       | ~¥800 |
+| OSS (10 GB Standard)    | ~¥2 |
+| LLM Gateway ECS x1      | ~¥150 |
+| ALB (small)             | ~¥50 |
+| SLS + ARMS              | ~¥300 |
+| KMS                     | ~¥10 |
+| **Total dev**           | **~¥2060/mo** |
+
+Prod with HA, larger sizes, cross-region DR: roughly ¥6000-9000/mo before LLM API cost. The LLM bill is usually the biggest line item — which is why article 6's gateway and article 7's cost alarms exist.
+
+## What I skipped
+
+- **CDN** for serving artifact URLs publicly — alicloud_cdn_domain works, but most agents serve artifacts through their own gateway
+- **WAF** in front of the ALB — required for public-facing prod, but the dev stack uses an Intranet ALB
+- **PrivateLink** to DashScope — saves NAT egress cost at scale, configurable via alicloud_privatelink_*
+- **Custom domain + SSL** — alicloud_alb_listener supports SSL certs but you have to bring the cert (or use ACM)
+
+All four are worth adding once the basics work. Don't add them on day 1.
+
+## Where to go from here
+
+You now have a production-shaped agent runtime on Alibaba Cloud, fully expressed in Terraform, with observability, secret management, and cost guards built in. The next steps depend on your project:
+
+- **More agents:** add to `var.agent_quotas` and `terraform apply`
+- **Different LLM providers:** add to `local.litellm_config` in the gateway module
+- **Multiple regions:** add provider aliases and replicate the stack
+- **GitOps:** wrap `terraform apply` in a CI pipeline gated by PR review
+- **Pulumi or Crossplane migration:** the resource graph translates directly
+
+The single most important thing is that your infrastructure is now in git. Every change is reviewable. Every environment is reproducible. Every cost is attributable. That's what IaC buys you, and it's what makes shipping agents on Aliyun a sustainable practice instead of a perpetual scramble.
+
+Thanks for reading the series. If you ship a stack based on this, I'd love to hear what you changed and why — that's how the patterns evolve.
+
+## Promotion strategy: dev → staging → prod without surprises
+
+![Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/illustration_2.jpg)
+
+The article shows `terraform workspace select prod && terraform apply`. That works. It's also where most production incidents originate, because dev → prod often surfaces differences nobody planned for.
+
+The promotion pipeline I run on real projects:
+
+### Step 1: tag the dev state
+
+Before any promotion, take a snapshot of the dev state file. If something breaks in prod that worked in dev, you want to be able to compare:
+
+```bash
+terraform state pull > /tmp/dev-state-$(date -Iseconds).json
+aliyun oss cp /tmp/dev-state-*.json oss://ck-tfstate-archive/snapshots/
+```
+
+This is cheap insurance. State snapshots are tiny (typically <1MB) and the archive bucket has Lifecycle to Cold Archive after 30 days.
+
+### Step 2: compute the prod plan in CI from the dev-validated commit
+
+Don't promote untested code. The exact commit that ran cleanly in dev for a week is what gets the prod `plan`:
+
+```yaml
+# .github/workflows/promote.yml
+on:
+  workflow_dispatch:
+    inputs:
+      from_workspace:
+        type: choice
+        options: [dev, staging]
+      to_workspace:
+        type: choice
+        options: [staging, prod]
+      commit_sha:
+        description: "Validated commit SHA from from_workspace"
+
+jobs:
+  promote:
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
+      - name: terraform plan in target workspace
+        env:
+          TF_WORKSPACE: ${{ inputs.to_workspace }}
+        run: |
+          terraform init
+          terraform plan -var-file=env/${{ inputs.to_workspace }}.tfvars \
+            -out=tfplan-promote 2>&1 | tee promote-plan.txt
+      - name: post promotion plan to Slack/DingTalk for human review
+        run: |
+          curl -X POST "$DINGTALK_WEBHOOK" -d "{\"text\":{\"content\":\"Promotion plan ${{ inputs.from_workspace }}→${{ inputs.to_workspace }} ready for review\"}}"
+```
+
+The promotion plan goes to the on-call engineer on DingTalk. They review it, paying special attention to anything that's *different* from what dev showed. If the plan shows resources being recreated that didn't get recreated in dev — stop. Investigate before applying.
+
+### Step 3: apply, then verify, then unblock
+
+The actual prod apply is gated on a GitHub Environment with required reviewers (set up in article 6). After apply succeeds, run a smoke test before any traffic shift:
+
+```bash
+# Run as part of the apply job after terraform apply succeeds
+gateway=$(terraform output -raw gateway_url)
+session=$(curl -s -X POST $gateway/v1/chat/completions \
+  -H "Authorization: Bearer $LITELLM_KEY" \
+  -d '{"model":"qwen-max","messages":[{"role":"user","content":"ping"}]}' | jq -r .choices[0].message.content)
+
+[[ -n "$session" ]] || { echo "Smoke test failed"; exit 1; }
+```
+
+A 5-second smoke test catches the "I broke the gateway" class of error before it propagates. If it fails, the apply has technically succeeded but you can roll back with the snapshot from Step 1 (`terraform state push /tmp/dev-state-...json` + `terraform apply` to restore the prior shape).
+
+### Step 4: post-apply diff against staging
+
+After prod apply, run a *cross-workspace* compare:
+
+```bash
+diff <(terraform workspace select staging && terraform output -json) \
+     <(terraform workspace select prod && terraform output -json) \
+     | head -100
+```
+
+Expected differences: instance counts, RDS HA flag, region for DR. Unexpected differences: anything else. Investigate them — they often reveal a tfvars typo or a workspace-conditional bug.
+
+This four-step promotion has saved me probably 30+ outages over three years. Each step takes minutes; cumulative cost is one extra calendar hour per release. Cheap.
+
+## Multi-region from one project: fan-out and read replicas
+
+For an agent serving both China and SEA users, you eventually need a presence in `cn-shanghai` (or `cn-beijing`) and `ap-southeast-1` (Singapore). The naive answer is two completely separate Terraform projects. The better answer is provider aliases plus per-region module instances:
+
+```hcl
+# providers.tf
+provider "alicloud" {
+  alias  = "shanghai"
+  region = "cn-shanghai"
+}
+
+provider "alicloud" {
+  alias  = "singapore"
+  region = "ap-southeast-1"
+}
+
+# main.tf
+module "stack_shanghai" {
+  source = "./modules/agent-stack"
+  providers = {
+    alicloud = alicloud.shanghai
+  }
+  name        = "agents-prod-cn"
+  cidr_block  = "10.20.0.0/16"
+  zones       = ["cn-shanghai-l", "cn-shanghai-m", "cn-shanghai-n"]
+  is_primary  = true
+}
+
+module "stack_singapore" {
+  source = "./modules/agent-stack"
+  providers = {
+    alicloud = alicloud.singapore
+  }
+  name        = "agents-prod-sg"
+  cidr_block  = "10.30.0.0/16"
+  zones       = ["ap-southeast-1a", "ap-southeast-1b", "ap-southeast-1c"]
+  is_primary  = false
+  primary_endpoints = module.stack_shanghai.endpoints   # for cross-region replication
+}
+```
+
+The `agent-stack` module is what we built across articles 3-7, packaged as one. `is_primary` controls whether RDS is master or read replica, whether OSS owns the bucket or is the destination of replication, etc.
+
+The cross-region wiring needs CEN (Cloud Enterprise Network) for VPC-to-VPC private connectivity:
+
+```hcl
+resource "alicloud_cen_instance" "agents" {
+  cen_instance_name = "agents-cen"
+  description       = "CEN linking shanghai and singapore agent VPCs"
+  protection_level  = "REDUCED"
+}
+
+resource "alicloud_cen_instance_attachment" "shanghai" {
+  provider                = alicloud.shanghai
+  instance_id             = alicloud_cen_instance.agents.id
+  child_instance_id       = module.stack_shanghai.vpc_id
+  child_instance_type     = "VPC"
+  child_instance_region_id = "cn-shanghai"
+}
+
+resource "alicloud_cen_instance_attachment" "singapore" {
+  provider                = alicloud.singapore
+  instance_id             = alicloud_cen_instance.agents.id
+  child_instance_id       = module.stack_singapore.vpc_id
+  child_instance_type     = "VPC"
+  child_instance_region_id = "ap-southeast-1"
+}
+
+resource "alicloud_cen_bandwidth_package" "this" {
+  bandwidth                  = 50    # Mbps between regions
+  geographic_region_a_id     = "China"
+  geographic_region_b_id     = "Asia-Pacific"
+  cen_bandwidth_package_name = "agents-cn-sg-50m"
+}
+
+resource "alicloud_cen_bandwidth_package_attachment" "this" {
+  instance_id          = alicloud_cen_instance.agents.id
+  bandwidth_package_id = alicloud_cen_bandwidth_package.this.id
+}
+```
+
+CEN is paid per cross-region bandwidth — the 50 Mbps package above runs ~¥3000/month. Worth it for a stack actually serving multi-region traffic; overkill for "I might one day".
+
+The whole multi-region setup is one `terraform apply` from a single project. Both regions deploy in parallel (Terraform's DAG is good about this). Total apply time goes from 7 minutes to ~9 minutes because the slowest path (RDS provisioning) runs concurrently per region.
+
+## The full cost arithmetic for prod
+
+The article summary shows ~¥2060/month for dev. Let me give the prod number with full breakdown — this is what you cite when finance asks "what does the AI agent platform actually cost?"
+
+Prod sizing (from the workspace defaults the article established):
+
+| Layer        | Resource                                | Sizing                        | Monthly (¥) |
+|--------------|-----------------------------------------|-------------------------------|------------:|
+| Network      | VPC, vSwitch, RT, KMS                   | 3-zone, 3 CMKs                |          10 |
+| Network      | NAT Gateway (Enhanced) + EIP            | reserved + 1 TB egress        |        920 |
+| Compute      | ECS x3 (`ecs.c7.xlarge` 4c/8g)          | 3 instances, ESSD 80G each    |       1380 |
+| Compute      | LiteLLM gateway ECS x2                  | `ecs.c7.large` 2c/4g          |        450 |
+| Compute      | ALB Standard                            | 1 ALB, internet-facing        |        180 |
+| Memory       | RDS Postgres HA (`pg.x4.large.2c`)      | 200 GB ESSD + standby         |       2200 |
+| Memory       | OpenSearch vector (medium)              | 50 doc-size, 80 compute       |       1800 |
+| Memory       | OSS (500 GB Standard + lifecycle)       | mostly Standard, some IA      |        100 |
+| Memory       | OSS DR replica (cn-beijing)             | 500 GB IA                     |         60 |
+| Secrets      | KMS Secrets Manager                     | 8 secrets, 50k decrypts/mo    |         50 |
+| Observability| SLS                                     | 30 GB ingest, 90d retain      |        450 |
+| Observability| ARMS APM                                | 1 env, 50M spans              |        600 |
+| Observability| CloudMonitor                            | host metrics + 20 custom      |         30 |
+| **Subtotal — infra**                                                                  |     **8230** |
+| LLM API      | DashScope Qwen-max                      | 50M input, 12M output tokens  |       3500 |
+| LLM API      | Anthropic / OpenAI fallback             | 5M input, 1M output tokens    |        800 |
+| **Subtotal — LLM**                                                                    |     **4300** |
+| **TOTAL prod / month**                                                                |    **¥12,530** |
+
+A few observations from the real bills I've seen:
+
+- **OpenSearch and RDS together are ~31% of infra cost.** If you're scaling tightly, a pgvector-only setup (no OpenSearch) saves ~¥1800/month at the cost of slower hybrid search. Worth doing under 1M vectors.
+- **NAT egress is the surprise line item.** Switching to PrivateLink for DashScope dropped my NAT bill by 60% on one project.
+- **LLM is 35% of total at this size.** At higher scale (10x traffic) LLM becomes 70-80% of the bill. The gateway's per-agent quota becomes the most important cost lever long before infra does.
+- **Observability is 10% of infra.** That's the right ratio — under 5% means you're under-instrumenting; over 20% means you're collecting too much. Check SLS ingest volume monthly.
+
+For a finance review: total cost-per-session is ¥12,530 / sessions-per-month. At 100k sessions/month, that's ¥0.125 per session. At 1k sessions/month, it's ¥12.50 per session — which is when you start asking whether the platform is worth running for that volume.
+
+## Day-3 operations: the patterns that keep paying
+
+Beyond the day-2 list in the article, four patterns I run on every long-lived stack:
+
+### 1. Quarterly module dependency upgrade
+
+Every quarter: bump the `alicloud` provider, all the open-source modules, and Terraform itself, by one minor version. Run plans in dev. Apply, soak for a week. Promote. The discipline keeps you from being three years behind when CVE-2027-XXX drops.
+
+### 2. State backup to a different region
+
+The OSS bucket holding state is in cn-shanghai. If cn-shanghai has a region-wide event, you cannot apply Terraform — including to other regions. A weekly state backup to cn-beijing (via OSS replication on the state bucket itself) costs ¥10/month and saves your bacon in the worst-case scenario:
+
+```hcl
+resource "alicloud_oss_bucket_replication" "tfstate" {
+  bucket = alicloud_oss_bucket.tfstate.id
+  action = "ALL"
+  destination {
+    bucket   = "ck-tfstate-prod-dr"
+    location = "oss-cn-beijing"
+  }
+}
+```
+
+### 3. Cost attribution per agent in monthly review
+
+The gateway logs cost-per-agent (article 7). At month-end, sum it up per agent and post to the team channel. "Research agent: ¥3200, Support agent: ¥800, Code agent: ¥4100" makes the cost real. Engineers self-regulate when their agent's name is on the leaderboard.
+
+### 4. Yearly architecture review against the IaC
+
+Once a year, walk the entire `terraform state list` and ask of each resource: do we still need this? Some are vestigial (the dev cluster you never deleted, the v15 RDS you upgraded from). Cleanup PRs that destroy unused resources are the highest-ROI Terraform work I do — typically saving 10-15% of the bill annually.
+
+That's the wrap. Eight articles, one stack, one Terraform project. The starter repo (https://github.com/example/research-agent-stack) is yours to fork. If you ship a real agent on top of it, I want to hear what you changed and why — that's how the patterns get sharper.

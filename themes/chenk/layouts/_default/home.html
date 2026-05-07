@@ -1,0 +1,123 @@
+{{ define "bodyclass" }}home-page{{ end }}
+
+{{ define "main" }}
+{{ $lang := .Lang }}
+{{ $base := cond (eq $lang "en") "/en" "/zh" }}
+
+{{ $allPosts := where site.RegularPages "Lang" $lang }}
+{{ $featured := index (sort $allPosts "Date" "desc") 0 }}
+{{ $skey := $featured.Params.series | default "standalone" }}
+{{ $key := string (partial "series-key.html" $skey) }}
+{{ $hue := 1 }}
+{{ with index site.Data.series $key }}{{ $hue = .hue | default 1 }}{{ end }}
+{{ $featuredCover := $featured.Params.cover | default (printf "https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/%s.jpg" $key) }}
+
+<section class="hero">
+  <div class="shell hero-inner">
+    <div class="hero-eyebrow">{{ i18n "home_eyebrow" }}</div>
+    <h1 class="fade-up">
+      Long-form notes on <span class="accent">machines</span>, <span class="accent">math</span>, and the cloud.
+    </h1>
+    <p class="lede fade-up delay-1">{{ i18n "home_lede" }}</p>
+    <div class="btn-row fade-up delay-2">
+      <a class="btn btn-primary" href="{{ $base }}/series/">{{ i18n "explore_series" }} <span class="arrow">→</span></a>
+      <a class="btn btn-ghost" href="{{ $base }}/archives/">{{ i18n "archive" }}</a>
+    </div>
+  </div>
+</section>
+
+{{ if $featured }}
+<section class="featured" style="--accent: var(--hue-{{ $hue }});">
+  <div class="shell">
+    <div class="featured-card">
+      <a class="featured-visual has-cover" href="{{ $featured.Permalink }}" style="background: var(--grad-{{ $hue }});" data-mark="{{ $featured.Title | truncate 80 }}">
+        <img src="{{ $featuredCover }}" alt="" loading="eager" decoding="async" fetchpriority="high" width="1200" height="675"
+             onerror="this.parentNode.classList.remove('has-cover');this.remove();">
+      </a>
+      <div class="featured-text">
+        <div class="eyebrow">{{ i18n "featured" }} · {{ with index site.Data.series $key }}{{ if eq $lang "zh" }}{{ .name_zh | default .name }}{{ else }}{{ .name }}{{ end }}{{ else }}{{ $skey | humanize }}{{ end }}</div>
+        <h2><a href="{{ $featured.Permalink }}">{{ $featured.Title }}</a></h2>
+        <p class="excerpt">{{ with $featured.Description }}{{ . | truncate 240 }}{{ else }}{{ $featured.Summary | plainify | truncate 240 }}{{ end }}</p>
+        <a class="btn btn-primary" href="{{ $featured.Permalink }}">{{ i18n "read_full" }} <span class="arrow">→</span></a>
+        <div class="byline">
+          <div class="avatar">CK</div>
+          <div class="byline-info">
+            <span class="name">{{ site.Params.author }}</span>
+            <span class="meta-line"><time>{{ $featured.Date.Format "January 2, 2006" }}</time> · {{ $featured.ReadingTime }} {{ i18n "minutes_short" }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{{ end }}
+
+<section class="series-section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <h2>{{ i18n "ongoing_series" }}</h2>
+        <p class="section-sub">{{ i18n "ongoing_series_sub" }}</p>
+      </div>
+      <a class="more" href="{{ $base }}/series/">{{ i18n "all_series" }} <span>→</span></a>
+    </div>
+    <div class="series-grid">
+      {{- $seriesMap := dict -}}
+      {{- range $allPosts -}}
+        {{- $sk := .Params.series -}}
+        {{- if $sk -}}
+          {{- $sk = string (partial "series-key.html" $sk) -}}
+          {{- $cur := index $seriesMap $sk | default (slice) -}}
+          {{- $seriesMap = merge $seriesMap (dict $sk (append . $cur)) -}}
+        {{- end -}}
+      {{- end -}}
+      {{- $rendered := 0 -}}
+      {{- range $sk, $sd := site.Data.series -}}
+        {{- if lt $rendered 6 -}}
+          {{- $posts := index $seriesMap $sk -}}
+          {{- if $posts -}}
+            {{- $count := len $posts -}}
+            {{- $sorted := sort $posts "Params.series_order" "asc" -}}
+            {{- $first := index $sorted 0 -}}
+            {{- $hue := $sd.hue | default 1 -}}
+            {{- $progress := mul (div (float $count) 12.0) 100 -}}
+            {{- if gt $progress 100.0 -}}{{ $progress = 100.0 }}{{- end -}}
+            {{- $cover := printf "https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/%s.jpg" $sk -}}
+            <a class="series-card has-cover" href="{{ $first.Permalink }}" style="--card-color: var(--hue-{{ $hue }}); --card-grad: var(--grad-{{ $hue }});">
+              <div class="series-card-cover">
+                <img src="{{ $cover }}" alt="" loading="lazy" decoding="async" width="600" height="400"
+                     onerror="this.parentNode.parentNode.classList.remove('has-cover');this.parentNode.remove();">
+              </div>
+              <div class="top">
+                <span>{{ if eq $lang "zh" }}{{ $sd.name_zh | default $sd.name }}{{ else }}{{ $sd.name }}{{ end }}</span>
+                <span class="num">{{ $count }}</span>
+              </div>
+              <h3>{{ if eq $lang "zh" }}{{ $sd.name_zh | default $sd.name }}{{ else }}{{ $sd.name }}{{ end }}</h3>
+              <p class="desc">{{ if eq $lang "zh" }}{{ $sd.description_zh | default $sd.description }}{{ else }}{{ $sd.description }}{{ end }}</p>
+              <div class="progress"><span style="width: {{ printf "%.0f" $progress }}%"></span></div>
+            </a>
+            {{- $rendered = add $rendered 1 -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    </div>
+  </div>
+</section>
+
+<section class="recent-section">
+  <div class="shell">
+    <div class="section-head">
+      <div>
+        <h2>{{ i18n "latest_writing" }}</h2>
+        <p class="section-sub">{{ i18n "latest_writing_sub" }}</p>
+      </div>
+      <a class="more" href="{{ $base }}/archives/">{{ i18n "archive" }} <span>→</span></a>
+    </div>
+    <div class="posts-grid">
+      {{ range first 9 (sort $allPosts "Date" "desc") }}
+        {{ partial "post-card.html" . }}
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

@@ -1,0 +1,41 @@
+{{- $p := . -}}
+{{- $skey := $p.Params.series | default "standalone" -}}
+{{- $key := string (partial "series-key.html" $skey) -}}
+{{- $hue := 1 -}}
+{{- with index site.Data.series $key -}}{{ $hue = .hue | default 1 }}{{- end -}}
+{{- $letter := substr $p.Title 0 1 -}}
+{{- /* Cover lookup priority:
+       1. $p.Params.cover (manual override in front matter)
+       2. Per-article OSS cover at posts/covers/articles/{series}/{file-stem}.jpg
+       3. Series cover at posts/covers/{series}.jpg
+       The <img onerror> handler removes the image if the URL 404s, but we want
+       the per-article cover to be the primary src and only fall back to the
+       series cover on error. We do this with a JS onerror swap. */ -}}
+{{- $cover := $p.Params.cover -}}
+{{- $articleCover := "" -}}
+{{- $seriesCover := printf "https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/%s.jpg" $key -}}
+{{- if not $cover -}}
+  {{- with $p.File -}}
+    {{- $articleCover = printf "https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/%s/%s.jpg" $key .BaseFileName -}}
+  {{- end -}}
+  {{- if $articleCover -}}
+    {{- $cover = $articleCover -}}
+  {{- else -}}
+    {{- $cover = $seriesCover -}}
+  {{- end -}}
+{{- end -}}
+<article class="post-card" style="--card-color: var(--hue-{{ $hue }}); --card-grad: var(--grad-{{ $hue }});">
+  <a class="thumb has-cover" href="{{ $p.Permalink }}" data-letter="{{ $letter }}" aria-hidden="true">
+    <img src="{{ $cover }}" alt="" loading="lazy" decoding="async"
+         data-fallback="{{ $seriesCover }}"
+         onerror="if(this.src!==this.dataset.fallback){this.src=this.dataset.fallback;}else{this.parentNode.classList.remove('has-cover');this.remove();}">
+  </a>
+  <div class="post-meta">
+    <span class="series-tag">{{ with index site.Data.series $key }}{{ if eq $p.Lang "zh" }}{{ .name_zh | default .name }}{{ else }}{{ .name }}{{ end }}{{ else }}{{ $skey | humanize }}{{ end }}</span>
+    <span class="dot"></span>
+    <time datetime="{{ $p.Date.Format "2006-01-02" }}">{{ $p.Date.Format "Jan 2, 2006" }}</time>
+  </div>
+  <h3><a href="{{ $p.Permalink }}">{{ $p.Title }}</a></h3>
+  <p class="excerpt">{{ with $p.Description }}{{ . | truncate 140 }}{{ else }}{{ $p.Summary | plainify | truncate 140 }}{{ end }}</p>
+  <span class="read-time">{{ $p.ReadingTime }} {{ i18n "minutes_short" }} · {{ $p.WordCount }} {{ i18n "words" }}</span>
+</article>

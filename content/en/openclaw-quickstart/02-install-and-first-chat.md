@@ -1,0 +1,155 @@
+---
+title: "OpenClaw QuickStart (2): Install and First Chat in 10 Minutes"
+date: 2026-04-04 09:00:00
+tags:
+  - openclaw
+  - installation
+  - tui
+  - dashscope
+categories: OpenClaw
+lang: en
+mathjax: false
+series: openclaw-quickstart
+series_title: "OpenClaw QuickStart"
+series_order: 2
+description: "Install OpenClaw on macOS or Ubuntu, plug in a model provider, run the TUI, and have a working agent in ten minutes. Plus the small Node-version landmine that wastes the most time."
+disableNunjucks: true
+translationKey: "openclaw-quickstart-2"
+---
+
+The README claims five minutes. I will say ten — the extra five is for the Node version mistake almost everyone makes the first time.
+
+![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_1.jpg)
+
+## Prerequisites
+
+- Node `v22.16` or newer. The project really means it. Older Node will install but the gateway throws on optional chaining in some places. I run `v24` because that's the recommended track.
+- About 2 GB free RAM at runtime, more if you load big skills.
+- An LLM API key from one of: DashScope (free tier works), Anthropic, OpenAI, or the Aliyun Bailian Coding Plan (200元/month for eight models).
+
+Check Node first:
+
+```bash
+node -v
+# v24.0.x — good
+# v20.x.x — too old, see next block
+```
+
+If you are stuck on something old, install `nvm`:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
+source ~/.bashrc
+nvm install 24
+nvm use 24
+```
+
+That is the one foot-gun. From here it's smooth.
+
+## Install OpenClaw
+
+Two flavors — `npm` global, or the curl-bash. I prefer npm because I want to know where the binary lives:
+
+```bash
+npm install -g @anthropic-ai/openclaw@latest
+openclaw --version
+# 2026.3.13
+```
+
+(Yes, the npm scope is `@anthropic-ai`. The project's relationship with that org is a long story; the short version is "trademark history, harmless now".)
+
+## Onboard
+
+Run the onboarding wizard. It writes a config file into `~/.openclaw/`:
+
+```bash
+openclaw onboard
+```
+
+It will ask:
+
+1. What to call the agent — I pick something memorable so I can scold it by name in chat. Mine is `Lobster`.
+2. What it should call you — I use my actual handle, not "Boss". Helps when reading logs.
+3. Which provider — pick the one whose key you have. I'll use DashScope for this walkthrough since it has a free tier.
+4. The API key.
+5. The default model — `qwen-plus` is the right default for general use.
+
+The wizard writes to `~/.openclaw/openclaw.json`. You can edit by hand later.
+
+## Start the gateway
+
+```bash
+openclaw gateway start
+```
+
+You should see something like:
+
+```
+[gateway] listening on http://127.0.0.1:18789
+[agent] loaded skills: 17
+[memory] index ready (0 entries)
+[channels] none configured (yet)
+```
+
+The gateway is a long-running process. In the next pieces we attach channels and skills to it. For now it is sitting there with no input.
+
+## TUI: talk to it from your terminal
+
+![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_2.jpg)
+
+Open a second terminal and run:
+
+```bash
+openclaw tui
+```
+
+You get a chat-like terminal UI. Try a few things in order:
+
+```
+Hi — introduce yourself in one sentence.
+
+Read the file ~/.zshrc and tell me what aliases I have.
+
+Make a directory ~/openclaw-test and create a file
+notes.md inside with the words "first run" in it.
+```
+
+Three things should happen:
+
+1. The first message returns a one-liner — model is talking.
+2. The second triggers the `read` tool — the agent asks the gateway to read a file, and you see a tool-call line scroll past in the gateway log.
+3. The third actually mutates your filesystem. Verify with `ls ~/openclaw-test/`.
+
+If all three worked, the install is done. If only the first worked, the agent isn't getting access to tools — most likely the model you picked is too small to do tool-calling reliably. Switch to `qwen-plus` or `qwen3-max` and try again.
+
+## Web dashboard (optional, useful)
+
+There's a web UI if you prefer:
+
+```bash
+openclaw web start
+# open http://127.0.0.1:18790
+```
+
+I leave this off most of the time — TUI is faster — but it is useful for inspecting memory and skill state visually. It also shows the cron jobs once you have any.
+
+## What just happened, architecturally
+
+```
+your terminal --(stdin)--> openclaw tui
+                                |
+                                v
+                         openclaw gateway   :18789
+                                |
+                +---------------+-------------------+
+                |               |                   |
+                v               v                   v
+            agent loop     skills index      tool registry
+                |
+                v
+         LLM provider (DashScope, Anthropic, ...)
+```
+
+`tui` is just a thin client. The gateway is where the agent loop lives. That separation is what lets you later attach Telegram, DingTalk, or the web UI as alternate front-ends, all talking to the same agent.
+
+Next piece, we open up that gateway and look at what's actually happening when you type a message.

@@ -1,0 +1,47 @@
+{{ define "main" }}
+{{- $base := cond (eq .Lang "en") "/en" "/zh" -}}
+<section class="page-head">
+  <div class="shell">
+    <h1>{{ i18n "ongoing_series" }}</h1>
+  </div>
+</section>
+
+<section class="list-section">
+  <div class="shell">
+    <div class="series-index">
+    {{- $allPosts := where site.RegularPages "Lang" .Lang -}}
+    {{- $seriesMap := dict -}}
+    {{- range $allPosts -}}
+      {{- $sk := .Params.series -}}
+      {{- if $sk -}}
+        {{- $sk = string (partial "series-key.html" $sk) -}}
+        {{- $cur := index $seriesMap $sk | default (slice) -}}
+        {{- $seriesMap = merge $seriesMap (dict $sk (append . $cur)) -}}
+      {{- end -}}
+    {{- end -}}
+    {{- range $sk, $sd := site.Data.series -}}
+      {{- $posts := index $seriesMap $sk -}}
+      {{- if $posts -}}
+        {{- $count := len $posts -}}
+        {{- $sorted := sort $posts "Params.series_order" "asc" -}}
+        {{- $first := index $sorted 0 -}}
+        {{- $hue := $sd.hue | default 1 -}}
+        {{- $progress := mul (div (float $count) 12.0) 100 -}}
+        {{- if gt $progress 100.0 -}}{{ $progress = 100.0 }}{{- end -}}
+        <a class="series-index-card" href="{{ $first.Permalink }}" style="--card-color: var(--hue-{{ $hue }}); --card-grad: var(--grad-{{ $hue }});">
+          <div class="topline">
+            <span class="name">{{ if eq $.Lang "zh" }}{{ $sd.name_zh | default $sd.name }}{{ else }}{{ $sd.name }}{{ end }}</span>
+            <span class="count">{{ $count }} {{ i18n "chapters" }}</span>
+          </div>
+          <p class="desc">{{ if eq $.Lang "zh" }}{{ $sd.description_zh | default $sd.description }}{{ else }}{{ $sd.description }}{{ end }}</p>
+          <div class="progress-row">
+            <div class="progress-bar"><div class="progress-fill" style="width: {{ printf "%.0f" $progress }}%"></div></div>
+            <span class="progress-text">{{ printf "%.0f" $progress }}%</span>
+          </div>
+        </a>
+      {{- end -}}
+    {{- end -}}
+    </div>
+  </div>
+</section>
+{{ end }}
