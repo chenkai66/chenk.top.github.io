@@ -145,7 +145,7 @@ def oss_head(url: str) -> bool:
         return False
 
 def oss_upload(local: Path, oss_path: str) -> bool:
-    cmd = [OSSUTIL, "cp", "-f", "--meta", "Cache-Control:public, max-age=300, must-revalidate", str(local), f"oss://{OSS_BUCKET}/{oss_path}"]
+    cmd = [OSSUTIL, "cp", "-f", \"--cache-control\", \"public, max-age=300, must-revalidate\", str(local), f"oss://{OSS_BUCKET}/{oss_path}"]
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         log.error("ossutil cp failed: %s", r.stderr)

@@ -29,7 +29,7 @@ OUT = Path("/tmp/figaudit/fixed"); OUT.mkdir(parents=True, exist_ok=True)
 def upload(local: Path, key: str):
     """key = path under bucket (no leading slash). e.g. posts/en/.../fig.png"""
     oss_url = f"oss://{OSS_BUCKET}/{key}"
-    cmd = [OSSUTIL, "cp", "-f", "--meta", "Cache-Control:public, max-age=300, must-revalidate", "--meta", "Cache-Control:public, max-age=300, must-revalidate",
+    cmd = [OSSUTIL, "cp", "-f", \"--cache-control\", \"public, max-age=300, must-revalidate\", \"--cache-control\", \"public, max-age=300, must-revalidate\",
            "-i", OSS_AK, "-k", OSS_SK, "-e", OSS_ENDPOINT,
            "--region", "cn-beijing",
            str(local), oss_url]
@@ -266,6 +266,7 @@ TARGETS = {
         "posts/en/standalone/prompt-engineering-complete-guide/fig3_cot_flow.png",
         "posts/zh/standalone/提示词工程完全指南-从零基础到高级优化/fig3_cot_flow.png",
         "posts/zh/nlp/07-提示工程与In-Context-Learning/fig3_cot_flow.png",
+        "posts/en/nlp/prompt-engineering-icl/fig3_cot_flow.png",
     ],
     "fig5_react_flow.png": [
         "posts/en/standalone/ai-agents-complete-guide/fig5_react_flow.png",

@@ -231,7 +231,7 @@ def upload_oss(local: Path, slug: str) -> str | None:
     oss_url = f"oss://{OSS_BUCKET}/{key}"
     public = f"https://{OSS_BUCKET}.{OSS_ENDPOINT}/{key}"
     cmd = [
-        OSSUTIL, "cp", "-f", "--meta", "Cache-Control:public, max-age=300, must-revalidate", "--meta", "Cache-Control:public, max-age=300, must-revalidate",
+        OSSUTIL, "cp", "-f", \"--cache-control\", \"public, max-age=300, must-revalidate\", \"--cache-control\", \"public, max-age=300, must-revalidate\",
         "-i", OSS_AK, "-k", OSS_SK, "-e", OSS_ENDPOINT,
         "--region", "cn-beijing",
         str(local), oss_url,
