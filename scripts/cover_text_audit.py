@@ -217,7 +217,7 @@ def regen_one(key: str) -> tuple[bool, int, str]:
         if score <= CHAR_THRESHOLD:
             # upload replace
             up = subprocess.run(
-                [OSSUTIL, "cp", "-f", str(new_p), f"oss://{OSS_BUCKET}/{key}"],
+                [OSSUTIL, "cp", "-f", "--meta", "Cache-Control:public, max-age=300, must-revalidate", str(new_p), f"oss://{OSS_BUCKET}/{key}"],
                 capture_output=True, text=True,
             )
             if up.returncode == 0:

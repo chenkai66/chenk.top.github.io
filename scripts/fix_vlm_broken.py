@@ -47,7 +47,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 def upload(local: Path, key: str) -> bool:
     cmd = [
-        OSSUTIL, "cp", "-f",
+        OSSUTIL, "cp", "-f", "--meta", "Cache-Control:public, max-age=300, must-revalidate", "--meta", "Cache-Control:public, max-age=300, must-revalidate",
         "-i", OSS_AK, "-k", OSS_SK, "-e", OSS_ENDPOINT,
         "--region", "cn-beijing",
         str(local), f"oss://{OSS_BUCKET}/{key}",

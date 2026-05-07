@@ -348,7 +348,7 @@ def upload_oss(local: Path, job: dict) -> str | None:
     key = oss_key(job)
     target = f"oss://{OSS_BUCKET}/{key}"
     cmd = [
-        OSSUTIL, "cp", "-f",
+        OSSUTIL, "cp", "-f", "--meta", "Cache-Control:public, max-age=300, must-revalidate", "--meta", "Cache-Control:public, max-age=300, must-revalidate",
         "-i", OSS_AK, "-k", OSS_SK, "-e", OSS_ENDPOINT,
         "--region", "cn-beijing",
         str(local), target,

@@ -29,7 +29,7 @@ OUT = Path("/tmp/figaudit/fixed"); OUT.mkdir(parents=True, exist_ok=True)
 def upload(local: Path, key: str):
     """key = path under bucket (no leading slash). e.g. posts/en/.../fig.png"""
     oss_url = f"oss://{OSS_BUCKET}/{key}"
-    cmd = [OSSUTIL, "cp", "-f",
+    cmd = [OSSUTIL, "cp", "-f", "--meta", "Cache-Control:public, max-age=300, must-revalidate", "--meta", "Cache-Control:public, max-age=300, must-revalidate",
            "-i", OSS_AK, "-k", OSS_SK, "-e", OSS_ENDPOINT,
            "--region", "cn-beijing",
            str(local), oss_url]

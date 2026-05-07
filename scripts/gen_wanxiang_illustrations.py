@@ -351,7 +351,7 @@ def generate_image(prompt: str, tag: str) -> bytes | None:
 
 def upload_oss(local: Path, lang: str, series: str, stem: str, n: int) -> bool:
     target = f"oss://{OSS_BUCKET}/{oss_key(lang, series, stem, n)}"
-    cmd = [OSSUTIL, "cp", "-f", "-i", OSS_AK, "-k", OSS_SK, "-e", OSS_ENDPOINT,
+    cmd = [OSSUTIL, "cp", "-f", "--meta", "Cache-Control:public, max-age=300, must-revalidate", "--meta", "Cache-Control:public, max-age=300, must-revalidate", "-i", OSS_AK, "-k", OSS_SK, "-e", OSS_ENDPOINT,
            "--region", "cn-beijing", str(local), target]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if r.returncode != 0:
