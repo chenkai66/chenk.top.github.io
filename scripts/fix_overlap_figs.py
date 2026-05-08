@@ -301,3 +301,56 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ====================== FIG 5: Qwen Model Family ======================
+def make_qwen_family():
+    fig = plt.figure(figsize=(14, 9))
+    ax = fig.add_subplot(111)
+    ax.set_xlim(0, 100); ax.set_ylim(0, 100); ax.axis('off')
+    ax.set_title('Qwen Model Family — Capabilities and Specializations',
+                 fontsize=15, pad=12)
+    # Central hub
+    hub_x, hub_y = 50, 52
+    hub = mpatches.FancyBboxPatch((hub_x-8, hub_y-4), 16, 8,
+                                  boxstyle='round,pad=0.4', fc='#1f6feb', ec='#1454b8', lw=2)
+    ax.add_patch(hub)
+    ax.text(hub_x, hub_y, 'Qwen3', ha='center', va='center',
+            fontsize=16, fontweight='bold', color='white')
+    # Satellite models around the hub
+    models = [
+        (20, 80, 'Qwen3-Max', '200B MoE\nFlagship', '#6d28d9'),
+        (50, 88, 'Qwen3-Plus', 'High-perf\nBalanced', '#7c3aed'),
+        (80, 80, 'Qwen3-Turbo', 'Fast & cheap\nMost workloads', '#2563eb'),
+        (15, 52, 'Qwen-VL', 'Vision + Language\nImage understanding', '#1f8a70'),
+        (85, 52, 'Qwen-Audio', 'Speech + Sound\nTranscription & TTS', '#b45309'),
+        (20, 22, 'Qwen-Coder', 'Code generation\n+ completion', '#c0392b'),
+        (50, 14, 'Qwen-Math', 'Math reasoning\n+ computation', '#0e6a2a'),
+        (80, 22, 'Qwen-Long', '10M context\nLong documents', '#6d28d9'),
+    ]
+    for mx, my, name, desc, color in models:
+        # Connection line from hub to model
+        ax.plot([hub_x, mx], [hub_y, my], color=color, alpha=0.3, lw=2, zorder=1)
+        # Model box
+        bw, bh = 16, 10
+        box = mpatches.FancyBboxPatch((mx-bw/2, my-bh/2), bw, bh,
+                                      boxstyle='round,pad=0.3',
+                                      fc='white', ec=color, lw=2, zorder=2)
+        ax.add_patch(box)
+        ax.text(mx, my+2.2, name, ha='center', va='center',
+                fontsize=11, fontweight='bold', color=color, zorder=3)
+        ax.text(mx, my-2, desc, ha='center', va='center',
+                fontsize=9, color='#404040', zorder=3, linespacing=1.3)
+    # Footer
+    ax.text(50, 3, 'All accessible via DashScope API (OpenAI-compatible) or Alibaba Cloud Bailian console.',
+            ha='center', fontsize=10, style='italic', color='#555555')
+    out = OUT / 'fig1_qwen_family.png'
+    fig.savefig(out, dpi=150, bbox_inches='tight', facecolor='white')
+    plt.close(fig)
+    return out
+
+# Add to targets and generators
+TARGETS['fig1_qwen_family.png'] = [
+    'posts/en/aliyun-bailian/02-qwen-llm-api/fig1_qwen_family.png',
+    'posts/zh/aliyun-bailian/02-qwen-llm-api/fig1_qwen_family.png',
+]
+GEN['fig1_qwen_family.png'] = make_qwen_family
