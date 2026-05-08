@@ -40,17 +40,21 @@ npx @openclaw-china/setup
 
 Then the choices:
 
-| Channel | Audience | Public IP needed | Reaches WeChat users | Group chat | Streaming |
-|---|---|:---:|:---:|:---:|:---:|
-| DingTalk | internal team | no | no | yes | yes |
-| Feishu | internal team | yes | no | yes | partial |
-| WeCom smart bot (long-poll) | internal team | no | no | yes | yes |
-| WeCom self-built app | external WeChat users | yes | yes | no | no |
-| WeChat customer service | external WeChat users | yes | yes | no | no |
-| WeChat public account | followers | yes | yes | no | no |
-| WorkBuddy (Tencent QClaw) | personal WeChat/QQ | no | yes | yes | yes |
+| Channel | Audience | Public IP needed | Reaches WeChat users | Group chat | Streaming | Latency | Msg formats | Cost |
+|---|---|:---:|:---:|:---:|:---:|---|---|---|
+| DingTalk | internal team | no | no | yes | yes | 200-500ms | text, markdown, cards | free |
+| Feishu | internal team | yes | no | yes | partial | 300-600ms | text, markdown, cards | deprecated |
+| WeCom smart bot | internal team | no | no | yes | yes | 300-700ms | text, markdown, files | free |
+| WeCom self-built app | external WeChat | yes | yes | no | no | 800-1500ms | text, images | ~2000 RMB/yr |
+| WeChat customer service | external WeChat | yes | yes | no | no | 1000-2000ms | text, images | per-seat |
+| WeChat public account | followers | yes | yes | no | no | 1500-3000ms | text, news cards | free |
+| WorkBuddy (QClaw) | personal WeChat/QQ | no | yes | yes | yes | 500-1000ms | text, images | free |
 
 Two notes: Feishu is officially listed as deprecated for new openclaw-china installs as of March 2026 — pick DingTalk or WeCom. WeChat public accounts in subscription mode have a 5-second passive reply window and cannot push proactively; service accounts and test accounts don't.
+
+Latency numbers are round-trip message-to-response timings measured from Beijing/Shanghai during business hours. The biggest latency killer is the webhook delivery path — public accounts and WeCom self-built apps route through Tencent's dispatcher, adding 500-1000ms compared to long-poll channels.
+
+Message format support matters more than it looks. Markdown means your agent can send code blocks and formatted lists. DingTalk and WeCom smart bot handle GitHub-flavored markdown well. WeChat channels require plain text or proprietary card schemas.
 
 ## The three-question picker
 
@@ -89,6 +93,16 @@ Where to get those values: 钉钉开放平台 → 应用开发 → 创建企业�
 
 The most common failure: messages stop arriving after 30 minutes. Cause: the org's network egress is rotating IPs and the long-poll connection is being killed mid-stream. Fix: bump the reconnect interval down to 60s in `dingtalk.reconnectMs`, and put the Gateway behind a stable egress.
 
+## DingTalk deep dive — the gotchas
+
+**Message size limits.** Single messages cap at 2048 characters for text, 4096 for markdown cards. If your agent generates longer responses, set `dingtalk.autoChunk: true` — it splits automatically but you'll see multiple message bubbles.
+
+**Rate limiting at 20 messages per second.** Per bot, not per user. If you have a busy group chat, you'll hit this. The plugin queues and retries automatically, but latency spikes. Consider splitting heavy users into separate bot instances.
+
+**The org-admin approval flow.** You create the app, add scopes, test in the developer console — everything works. Then you publish and the bot goes silent. Cause: enterprise apps require org-admin approval before messaging users outside the developer's department. Check 钉钉管理后台 → 工作台 → 应用管理 → 待审批.
+
+**Clock drift kills connections.** DingTalk's long-poll dies silently if your server clock drifts more than 5 minutes from NTP. No errors, just silence. Run `ntpdate` or point at a reliable NTP source.
+
 ## WeCom — three flavors, pick by audience
 
 The "WeCom" name covers three different APIs that share nothing except the brand:
@@ -97,13 +111,67 @@ The "WeCom" name covers three different APIs that share nothing except the brand
 - **Self-built app (自建应用).** Reaches external WeChat users *if* the org has the WeCom-WeChat互通 license. Requires public IP and a verified domain. No streaming.
 - **Customer service (微信客服).** External WeChat users without the互通 license. Routes from public-account menus, mini-programs, video accounts, livestream entries. Markdown not supported.
 
-For 90% of "we need a bot in our team" cases, the smart bot is what you want. The self-built app comes up when the goal is "talk to our customers on WeChat from inside our agent system" — and at that point you're also going to want to read [the WeChat专题](../04-channels/06-wechat-workbuddy.md).
+For 90% of "we need a bot in our team" cases, the smart bot is what you want.
 
-## What I tell people who just want to play
+## WeCom deep dive
+
+**Smart bot registration.** 企业微信管理后台 → 应用管理 → 创建应用 → 机器人. You get a webhook URL immediately. For long-poll mode, enable the callback server and grab the `token` and `encodingAESKey`. No domain verification, no public IP. Caveat: smart bots cannot initiate conversations — they can only reply.
+
+**Self-built app registration.** Need: verified domain (ICP filing required), public IP for callback, and the互通 license (~2000 RMB/year base tier). Once you have the license, external WeChat users can add your bot as a contact. No group chats with external users, no streaming, and message formats are limited.
+
+**The互通 license cost.** Base tier (100 external contacts): ~2000 RMB/year. Mid tier (1000 contacts): ~10000 RMB/year. Enterprise: negotiable from 50000 RMB/year. If testing, ask for a 3-month trial (up to 50 contacts).
+
+**Session management.** WeCom doesn't maintain conversation history server-side. The `openclaw-china` plugin handles this with a session store keyed on `(userId, channelId)`, expiring after 30 minutes. Important: user IDs are channel-scoped — same person in smart bot vs self-built app has different IDs.
+
+## WorkBuddy — the desktop bridge
 
 WorkBuddy. It's Tencent's official QClaw bridge, runs on your desktop, no IP, no app review, talks to your real personal WeChat and QQ. It is the only "I just want my agent in WeChat tonight" answer that doesn't end in regret.
 
 The catch: it's a desktop application, so it lives or dies with that machine being awake. Fine for a personal assistant. Bad for production.
+
+**Setup steps:**
+1. Register at `qclaw.tencent.com` with a mainland China phone number. Pick "personal assistant" as use case.
+2. Wait 1-3 business days for approval.
+3. Download the desktop client (Windows/macOS only), log in with QR code.
+4. Configure OpenClaw:
+
+```json
+{
+  "channels": {
+    "workbuddy": {
+      "enabled": true,
+      "endpoint": "http://localhost:8765",
+      "accounts": ["wechat"],
+      "agents": ["main"]
+    }
+  }
+}
+```
+
+No API keys, no webhooks. The plugin talks to WorkBuddy on localhost, and WorkBuddy talks to WeChat/QQ on your behalf.
+
+## Migration guide — switching channels
+
+You built on DingTalk because it was fast. Now you need WeCom for external users. How to switch without losing history:
+
+1. **Switch to persistent sessions** (Redis) before migrating — in-memory sessions die with the process.
+2. **Update config**: disable old channel, enable new one.
+3. **Remap user IDs**: user IDs are channel-scoped, so you need a cross-reference mapping (verify via phone/email on first message in new channel).
+4. **Test in shadow mode**: run both channels in parallel, old one in `shadowMode: true` (receives but doesn't respond), for a week before cutting over.
+
+## Monitoring health
+
+**Heartbeat endpoint** — poll every 60s:
+```bash
+curl http://localhost:3000/api/channels/dingtalk/health
+# {"status": "connected", "lastMessageAt": "...", "reconnectCount": 2}
+```
+
+Alert if `status != connected` or `lastMessageAt` is stale during business hours. If `reconnectCount` climbs every minute, the network path is flaky.
+
+**End-to-end test** — send a test message hourly and verify response. Catches issues heartbeat misses (agent stuck in retry loop).
+
+**Reconnection patterns** — healthy: reconnect once every few hours. Unhealthy: every 30 seconds. Check gateway logs for disconnect codes (1006 = network, 1008 = policy violation/IP blocked).
 
 ## The lesson behind the matrix
 

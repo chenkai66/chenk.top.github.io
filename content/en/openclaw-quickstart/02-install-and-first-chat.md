@@ -46,6 +46,28 @@ nvm use 24
 
 That is the one foot-gun. From here it's smooth.
 
+### Getting your API key
+
+**DashScope (recommended for first-timers, especially from China)**
+
+1. Go to [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com).
+2. Sign up with an Aliyun account — phone number verification is required for mainland accounts.
+3. Once in the console, click "API-KEY管理" in the left sidebar.
+4. Click "创建新的API-KEY". Copy it immediately; they only show it once.
+5. The free tier gives you a generous quota for `qwen-plus` and `qwen-turbo`. Enough for days of experimentation before you hit any limit.
+
+DashScope is the path of least resistance if you are in mainland China. Latency to their endpoints from any domestic network is under 200ms. No proxy, no VPN, no fuss.
+
+**Anthropic** — [console.anthropic.com](https://console.anthropic.com), create an account, add a payment method, generate a key under Settings > API Keys. Minimum top-up is $5. Claude Sonnet is the sweet spot for agent use.
+
+**OpenAI** — [platform.openai.com](https://platform.openai.com), generate a key under API keys. GPT-4o works well as the backing model.
+
+**Network considerations**
+
+If you are in mainland China: DashScope endpoints are domestic and fast. Anthropic and OpenAI endpoints require either a proxy, a Hong Kong VPS forwarding requests, or a SOCKS5 tunnel. OpenClaw respects `HTTPS_PROXY` and `ALL_PROXY` environment variables, so if you already have a proxy running locally you can export those before starting the gateway. Do not waste time debugging "connection timeout" errors before checking whether you can actually reach the provider's endpoint from your network.
+
+If you are outside China: all three providers work without extra configuration. DashScope's international endpoint is available but slightly higher latency from US/Europe.
+
 ## Install OpenClaw
 
 Two flavors — `npm` global, or the curl-bash. I prefer npm because I want to know where the binary lives:
@@ -57,6 +79,32 @@ openclaw --version
 ```
 
 (Yes, the npm scope is `@anthropic-ai`. The project's relationship with that org is a long story; the short version is "trademark history, harmless now".)
+
+## Troubleshooting the install
+
+Five things that trip people up, in order of frequency:
+
+**(a) npm permission errors (EACCES on global install)** — Never `sudo npm install -g`. Use `nvm` instead (installs Node into your home directory), or configure npm's prefix to a user-owned path:
+
+```bash
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+export PATH="$HOME/.npm-global/bin:$PATH"  # add to shell profile
+```
+
+**(b) node-gyp build failures on macOS** — Some optional deps compile native addons. Fix: `xcode-select --install`, wait for the 1.2 GB download, retry.
+
+**(c) Network timeouts in China** — Default npm registry is unreliable from mainland. Use npmmirror:
+
+```bash
+npm install -g @anthropic-ai/openclaw@latest --registry=https://registry.npmmirror.com
+```
+
+This only affects package downloads, not your LLM API calls.
+
+**(d) `openclaw: command not found` after install** — nvm's bin directory is not in your PATH. Open a new terminal, or run `source ~/.nvm/nvm.sh`. Also check you did not install into a different Node version than the one currently active (`nvm list` shows this).
+
+**(e) Version mismatch — global vs local** — A local `node_modules/@anthropic-ai/openclaw` takes priority over the global one when you run from that directory. Causes confusing "feature not found" errors. Delete the local copy: `rm -rf node_modules/@anthropic-ai/openclaw`. Rule: one global install, no local copies unless you are developing OpenClaw itself.
 
 ## Onboard
 
@@ -121,6 +169,121 @@ Three things should happen:
 3. The third actually mutates your filesystem. Verify with `ls ~/openclaw-test/`.
 
 If all three worked, the install is done. If only the first worked, the agent isn't getting access to tools — most likely the model you picked is too small to do tool-calling reliably. Switch to `qwen-plus` or `qwen3-max` and try again.
+
+### More interactions to try
+
+Once the basics work, push it further:
+
+```
+Fetch https://news.ycombinator.com and tell me the top 3 stories right now.
+```
+
+This triggers the `web_fetch` tool. In the gateway log you will see a line like:
+
+```
+[tool:web_fetch] url=https://news.ycombinator.com status=200 bytes=48231
+```
+
+That confirms the agent made an outbound HTTP request, got a response, and is now summarizing it.
+
+```
+Run `git log --oneline -5` in ~/my-project and explain what the last five commits did.
+```
+
+This uses the `exec` tool. The gateway log shows:
+
+```
+[tool:exec] cmd="git log --oneline -5" cwd=/Users/you/my-project exit=0
+```
+
+The agent sees the stdout and reasons over it. If the exit code is non-zero, it will tell you what went wrong.
+
+For a multi-step task:
+
+```
+In ~/my-project, find all files that import lodash, then tell me which lodash
+functions are used and whether any of them have native ES equivalents I should
+switch to.
+```
+
+Watch the gateway log — you will see multiple tool calls chained: an `exec` to grep, then several `read` calls to inspect individual files, then the final synthesis. This is the agent loop doing what it does: plan, act, observe, repeat.
+
+### Reading the gateway log
+
+Keep the gateway terminal visible while you experiment. Every tool invocation prints a single line with the tool name, key parameters, and result status. If something fails silently in the TUI, the gateway log is where you find out why. Common things to look for:
+
+- `[tool:*] ... exit=1` — a shell command failed.
+- `[tool:web_fetch] ... status=403` — a website blocked the request.
+- `[agent] retrying with backoff` — the LLM provider returned a rate-limit or transient error.
+
+## First things to try after install
+
+Five tasks in increasing order of complexity. Each one exercises a different part of the system:
+
+**1. Pure LLM — no tools**
+
+```
+What is the difference between a coroutine and a thread? Two sentences max.
+```
+
+This round-trips through the model and back. No tools involved. If this works, your API key and provider config are correct.
+
+**2. Read a local file**
+
+```
+Read /etc/hosts and tell me if there are any custom entries beyond localhost.
+```
+
+The agent calls the `read` tool. You are testing that the gateway has filesystem access and the tool registry is loaded.
+
+**3. Search the web**
+
+```
+Search the web for "OpenClaw changelog 2026" and summarize what shipped in March.
+```
+
+This exercises `web_search`. If it fails with "tool not found", the web skill may not be enabled — check `openclaw skill list` and enable it with `openclaw skill enable web`.
+
+**4. Create and edit a file**
+
+```
+Create a file ~/openclaw-test/shopping.md with a grocery list: eggs, milk, bread.
+Then add "butter" to the list.
+```
+
+Two tool calls: `write` then `edit`. The agent should handle both in a single turn. Verify the final file content with `cat ~/openclaw-test/shopping.md`.
+
+**5. Multi-step reasoning — exec + read**
+
+```
+Find all TODO comments in ~/my-project/src and list them grouped by file,
+with the line number and the text of each TODO.
+```
+
+This typically produces an `exec` call (`grep -rn "TODO" src/`), then the agent formats the output. For large codebases it may paginate with multiple calls. The point is to confirm multi-step execution works end-to-end.
+
+## What the directory structure looks like
+
+After a successful install and first run, `~/.openclaw/` looks like this:
+
+```
+~/.openclaw/
+├── openclaw.json          # Main config: provider, model, agent name, preferences
+├── workspace/
+│   └── default/           # Default workspace for general tasks
+│       ├── memory.json    # Conversation memory index
+│       └── sessions/      # Individual session transcripts
+│           └── 2026-04-04_001.json
+├── skills/
+│   ├── builtin/           # Ships with the install — read, write, exec, web_fetch, etc.
+│   └── community/         # Installed via `openclaw skill install <name>`
+├── agents/
+│   └── lobster.json       # Agent personality and config (named during onboard)
+└── logs/
+    └── gateway.log        # Rolling log, last 7 days kept by default
+```
+
+Key points: `openclaw.json` is plain JSON with comments — edit it directly any time. `memory.json` starts empty and grows as the agent extracts facts from conversations (this is how it "remembers" across sessions). `skills/builtin/` has the tool definitions the gateway loads at startup — reading them is instructive if you plan to write custom skills later. `logs/gateway.log` persists the same output you see in the gateway terminal; rotation is configurable via `logging.retention_days` in the config.
 
 ## Web dashboard (optional, useful)
 

@@ -1,133 +1,485 @@
 ---
-title: "OpenClaw 快速上手（八）：Heartbeat、Cron，以及怎么让它早上 7 点叫你"
+title: "OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒"
 date: 2026-04-10 09:00:00
 tags:
   - openclaw
   - cron
   - heartbeat
-  - automation
+  - 自动化
 categories: OpenClaw
 lang: zh-CN
 mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 8
-description: "OpenClaw 的两个调度原语——Heartbeat 是带脉搏的巡逻员，Cron 是厨房计时器。给一份能跑的早报、周报、竞品监控配置，外加那个会半夜把你叫醒的反模式。"
+description: "OpenClaw 的两个调度原语——Heartbeat 是带脉搏的巡逻，Cron 是厨房计时器。每日简报、周报、竞品监控的完整配置，以及那个会让你凌晨三点被吵醒的反模式。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-8"
 ---
-第一次部署 OpenClaw 时，我坐在那儿不停地给它发消息。折腾了两天，我才突然明白：自己搞出来的是个聊天机器人，根本不是什么 Agent。直到它**主动给我发消息**的那一刻，才算是真正迈进了 Agent 的门槛。
 
-这篇文章就来聊聊实现这个目标的两种方法。
-![OpenClaw 快速上手（八）：Heartbeat、Cron，以及怎么让它早上 7 点叫你 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.jpg)
+## 从聊天机器人到主动 Agent
 
-## Heartbeat 和 Cron——先在脑子里分清楚
+部署完 OpenClaw 的头两天，我一直在给它发消息。问它问题、让它跑脚本、叫它总结文档。用了两天后突然意识到——这跟 ChatGPT 有什么区别？本质上还是一个被动应答的聊天机器人。
 
-这两个都能用来调度任务，但完全是两回事。
+转折点发生在第三天早上。我还没拿起手机，钉钉就弹了一条：
 
-| | Heartbeat | Cron |
-|---|---|---|
-| 触发方式 | 固定间隔（比如每 30 分钟一次） | 固定时间点（比如每天 8:30） |
-| 默认逻辑 | "转一圈，有事才叫我" | "到点就执行，到点就推送" |
-| 适用场景 | 捕捉异常、查漏补缺 | 日常例行、定时报告 |
-| 会话模式 | 使用最近活跃的通道 | 默认隔离运行 |
+> 早上好。昨晚 CI 跑挂了 2 个 job，是 lint 报错，看起来是昨天那个 PR 引入的。已经贴了报错截图在下面。要我开个修复 PR 吗？
 
-> **Heartbeat 是巡逻员，Cron 是闹钟。**
+这一刻它不再是聊天机器人了。它是一个会主动巡逻、主动汇报的 Agent。
 
-我自己在生产环境里两个都用：Cron 负责早上 7 点的晨会简报和下午 5 点的收工总结；Heartbeat 每 45 分钟跑一次，检查有没有忘记处理的 PR。
-## 先启用
+让 OpenClaw 从"被动回答"变成"主动行动"，只需要两个调度原语：**Heartbeat** 和 **Cron**。
 
-```json
+![Heartbeat 和 Cron 的调度模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.jpg)
+
+## Heartbeat vs Cron：巡逻员与厨房计时器
+
+先搞清楚这两个东西的本质区别：
+
+| 维度 | Heartbeat（心跳） | Cron（定时任务） |
+|------|-------------------|-----------------|
+| 触发方式 | 固定间隔（如每 45 分钟） | 固定时刻（如每天 6:47） |
+| 语义 | "有事才报告" | "到点就执行" |
+| 输出 | 无异常时沉默（HEARTBEAT_OK） | 每次都产出结果 |
+| 适用场景 | 监控、异常捕获 | 日报、周报、定时清理 |
+| 类比 | 巡逻的保安——没事就不打扰你 | 厨房计时器——滴滴滴，时间到了 |
+
+一句话总结：**Heartbeat 是巡逻员，Cron 是厨房计时器。**
+
+Heartbeat 的逻辑是："我每隔一段时间检查一下，如果一切正常就闭嘴，只有发现问题才喊你。"
+
+Cron 的逻辑是："不管天塌不塌，到了这个时间点就执行这个任务，然后把结果发给你。"
+
+搞混这两个，你就会在凌晨三点收到"一切正常"的通知。
+
+## 开启调度功能
+
+在 `openclaw.config.json5` 中开启调度：
+
+```json5
 {
+  // 基础配置省略...
+  "scheduling": {
+    "enabled": true,
+    "heartbeat": { /* 下面详细讲 */ },
+    "cron": { /* 下面详细讲 */ }
+  },
   "tools": {
-    "cron":    { "enabled": true },
-    "message": { "enabled": true }
+    "message": true,    // 允许主动发消息
+    "cron": true,       // 允许管理定时任务
+    "system": true      // 允许读取系统信息
   }
 }
 ```
 
-`message` 很关键。不开的话，Agent 根本没法主动发送任何消息。
-## Heartbeat——巡逻机制
+关键：`tools.message` 必须开启。不然 Agent 有话说但嘴被封住了。
+
+## Heartbeat 配置
+
+完整的 Heartbeat 配置块：
 
 ```json5
 {
-  agents: {
-    defaults: {
-      heartbeat: {
-        every: "45m",
-        target: "last",
-        prompt: "Read HEARTBEAT.md if it exists. Follow it strictly. If nothing needs attention, reply HEARTBEAT_OK.",
-        activeHours: {
-          start: "09:00",
-          end:   "22:00",
-          timezone: "Asia/Shanghai"
-        }
-      }
+  "scheduling": {
+    "heartbeat": {
+      // 每 45 分钟执行一次心跳检查
+      "every": "45m",
+
+      // 结果发到哪个对话：last = 最近活跃对话
+      "target": "last",
+
+      // 活跃时段——只在这些时间内执行心跳
+      "activeHours": {
+        "start": "08:00",
+        "end": "21:00",
+        "timezone": "Asia/Shanghai"
+      },
+
+      // 静默约定：返回这个字符串时不发送任何消息
+      "silentToken": "HEARTBEAT_OK",
+
+      // 心跳指令文件
+      "promptFile": "./HEARTBEAT.md",
+
+      // 单次心跳最大执行时间
+      "timeout": "30s"
     }
   }
 }
 ```
 
-关键是 `HEARTBEAT_OK` 这个约定。我希望巡逻是安静的，默认提示明确告诉 Agent：没事就别出声。少了这一句，每隔 45 分钟就会收到一条“一切正常”的消息，烦得让人抓狂。
+核心设计：`HEARTBEAT_OK` 约定。当 Agent 检查完一切发现没有异常时，返回 `HEARTBEAT_OK` 这个字符串，调度器看到后就不发送任何消息。只有返回其他内容时，才会推送到目标对话。
 
-真正的规则写在 `HEARTBEAT.md` 里：
+这就是"有事才报告"的实现方式。
+
+## 写好 HEARTBEAT.md
+
+`HEARTBEAT.md` 是心跳的灵魂。它告诉 Agent 每次心跳时应该检查什么、怎么判断是否有异常、什么情况该通知我。
+
+一份生产级的 HEARTBEAT.md：
 
 ```markdown
-# Heartbeat 规则
-```
-## 每次巡逻
-- 执行 `gh pr list --search "review-requested:@me"`，如果有结果就总结一下。
-- 用 `mail-count` skill 查看收件箱，超过 20 封邮件就发提醒。
-- 如果都没问题，回复 HEARTBEAT_OK。
-```
-## Cron——定时任务
+# Heartbeat 巡逻清单
 
-有两种方式。CLI 最靠谱，Gateway 重启也不会丢：
+你是我的基础设施巡逻员。每次心跳时按以下顺序检查，发现异常立即报告。
+
+## 代码与 CI（优先级：高）
+- 检查最近 1 小时的 CI/CD 状态，有失败的 pipeline 吗？
+- 有新的 PR 等待我 review 吗？超过 4 小时未处理的标记为紧急。
+- main 分支最近一次部署是否成功？
+
+## 通讯与消息（优先级：中）
+- 钉钉是否有 @我 的未读消息？
+- 是否有超过 2 小时未回复的紧急工单？
+- 团队群里有没有需要我关注的讨论？
+
+## 基础设施（优先级：中）
+- 服务器磁盘使用率是否超过 85%？
+- 核心服务健康检查是否全部通过？
+- 最近 1 小时是否有异常告警？
+
+## 判断规则
+- 如果以上全部正常：返回 HEARTBEAT_OK
+- 如果有异常但不紧急（如 PR 等待 review）：简短汇报，一句话说清楚
+- 如果有紧急问题（CI 挂了、服务宕机）：立即详细报告，附上关键信息
+
+## 周末模式
+周六周日只检查"基础设施"部分，其他跳过。
+```
+
+写 HEARTBEAT.md 的几个原则：
+
+1. **分类清晰**：让 Agent 知道检查什么、按什么顺序
+2. **设定阈值**：不是"有 PR 就报告"，而是"超过 4 小时未处理才报告"
+3. **优先级分级**：什么值得打断你，什么可以等
+4. **周末降级**：别让 Agent 在周末告诉你有 PR 等你 review
+
+## Cron 命令
+
+Cron 任务通过 CLI 管理：
 
 ```bash
-openclaw cron add \
-  --name "morning-brief" \
-  --cron "30 7 * * *" \
-  --tz "Asia/Shanghai" \
-  --session main \
-  --system-event "生成今日简报：天气、日程、PR/issue 前三条" \
-  --wake now
-```
+# 添加持久化定时任务（重启后依然存在）
+openclaw cron add --schedule "47 6 * * *" \
+  --name "daily-brief" \
+  --prompt "生成今日简报" \
+  --target "#my-channel" \
+  --timezone "Asia/Shanghai" \
+  --durable
 
-如果只需要一次性延时（比如"20 分钟后提醒我"）：
+# 添加一次性延迟任务（执行完自动删除）
+openclaw cron delay --after "2h" \
+  --prompt "提醒我回复那封邮件" \
+  --target "last"
 
-```bash
-openclaw cron add \
-  --name "standup-prep" \
-  --at "20m" \
-  --session main \
-  --system-event "20 分钟后开站会，总结昨天的工作"
-```
-
-查看和删除任务也很简单：
-
-```bash
+# 查看所有定时任务
 openclaw cron list
-openclaw cron delete --name morning-brief
+
+# 删除指定任务
+openclaw cron delete --name "daily-brief"
 ```
 
-Cron 任务会保存到磁盘。即使重启 Gateway，任务也会自动恢复。
-## 我常用的三种模式
+`--durable` 标记很重要。没有它的任务在 Gateway 重启后就消失了。生产环境永远加 `--durable`。
 
-**早报 —— Cron，6:47。** 天气、当天日程、GitHub 上最活跃的三条动态。消息会发到我昨天看得最多的那个频道。时间定在 6:47 而不是 7:00 是有讲究的——大多数人拿起手机时，消息已经在那里等着了。
+## 四种实战模式
 
-**仓库监控 —— Cron，每小时一次。** 新 PR、新 issue、主分支 CI 构建失败、依赖库的安全告警。只有发现问题时才会发送；如果一切正常，机器人会自动跳过。
+### 模式一：每日简报（6:47 AM）
 
-**竞品追踪 —— Cron，每天 21:00。** 对比一份我关注的小页面列表：新博客文章、新定价方案、新功能页面 → 触发提醒。这个工具上线不到两周就值回票价了。
+为什么是 6:47 而不是 7:00？因为所有人都在整点设闹钟，网关在整点的负载最高。错开几分钟是最佳实践。
+
+```json5
+{
+  "cron": {
+    "jobs": [
+      {
+        "name": "daily-brief",
+        "schedule": "47 6 * * *",
+        "timezone": "Asia/Shanghai",
+        "durable": true,
+        "target": "#daily-channel",
+        "event": "system.cron.daily_brief",
+        "prompt": "生成今日简报。包含：1) 昨天的 Git 提交摘要；2) 今天的日历事项；3) 待处理 PR 列表；4) 未完成的 TODO 项。格式简洁，用 bullet points。",
+        "timeout": "60s"
+      }
+    ]
+  }
+}
+```
+
+示例输出：
+
+```
+早安。今日简报：
+
+- Git: 昨天 3 个 commit 合入 main，涉及用户鉴权模块重构
+- 日历: 10:00 周会，14:30 和前端对齐接口
+- PR: #247 等待 review（已 6 小时），#251 CI 通过待合入
+- TODO: 竞品分析文档还差结论部分
+
+需要我先处理哪一项？
+```
+
+### 模式二：仓库监控（每小时）
+
+```json5
+{
+  "name": "repo-watcher",
+  "schedule": "15 * * * *",
+  "timezone": "Asia/Shanghai",
+  "durable": true,
+  "target": "#dev-alerts",
+  "prompt": "检查 GitLab 仓库最近 1 小时的变动。关注：1) 新开的 PR；2) CI 失败；3) main 分支直接 push（应该禁止）。如果什么都没发生，不要输出任何内容。",
+  "skipEmpty": true,
+  "timeout": "45s"
+}
+```
+
+`skipEmpty: true` —— 如果 Agent 判断没有值得报告的内容，就不发送消息。这是 Cron 版的"静默模式"。
+
+### 模式三：竞品监控（每晚 9 点）
+
+```json5
+{
+  "name": "competitor-watch",
+  "schedule": "0 21 * * 1-5",
+  "timezone": "Asia/Shanghai",
+  "durable": true,
+  "target": "#product-intel",
+  "prompt": "访问以下竞品页面，与昨天的快照对比差异。有变动就报告具体改了什么；没变动就说'无更新'。\n\n- https://competitor-a.com/pricing\n- https://competitor-b.com/changelog\n- https://competitor-c.com/features",
+  "timeout": "90s",
+  "tools": ["web_fetch", "diff", "memory"]
+}
+```
+
+这个模式的威力在于 `memory` 工具——Agent 会把每天的页面快照存入记忆，第二天再取出来做 diff。不需要外部数据库。
+
+### 模式四：收工总结（每天 5 点）
+
+```json5
+{
+  "name": "eod-shutdown",
+  "schedule": "0 17 * * 1-5",
+  "timezone": "Asia/Shanghai",
+  "durable": true,
+  "target": "last",
+  "prompt": "一天结束了。请：1) 总结今天处理的所有任务和对话；2) 列出未完成的事项；3) 将今日摘要写入 memory，key 为 daily_summary_YYYY-MM-DD；4) 如果有明天需要跟进的事，列出来。",
+  "tools": ["memory", "list_conversations"],
+  "timeout": "60s"
+}
+```
+
+这是我最喜欢的一个模式。每天下班时 Agent 自动归档当天的工作，写入记忆。第二天早上的 daily-brief 可以引用昨天的总结，形成完整的工作流闭环。
+
+## 组合使用：全天候工作流
+
+最强大的用法是把 Heartbeat 和 Cron 组合起来，形成完整的一天：
+
+```json5
+{
+  "scheduling": {
+    "heartbeat": {
+      "every": "45m",
+      "target": "last",
+      "activeHours": {
+        "start": "08:00",
+        "end": "21:00",
+        "timezone": "Asia/Shanghai"
+      },
+      "silentToken": "HEARTBEAT_OK",
+      "promptFile": "./HEARTBEAT.md",
+      "timeout": "30s"
+    },
+    "cron": {
+      "jobs": [
+        {
+          "name": "morning-brief",
+          "schedule": "47 6 * * 1-5",
+          "timezone": "Asia/Shanghai",
+          "durable": true,
+          "target": "#daily-channel",
+          "prompt": "生成今日简报，引用 memory 中昨天的 daily_summary。"
+        },
+        {
+          "name": "eod-summary",
+          "schedule": "0 17 * * 1-5",
+          "timezone": "Asia/Shanghai",
+          "durable": true,
+          "target": "last",
+          "prompt": "归档今天的工作，写入 memory。列出明天待办。"
+        }
+      ]
+    }
+  }
+}
+```
+
+工作流是这样的：
+
+1. **6:47** — Cron 触发早报，Agent 读取昨天的记忆，生成今日待办
+2. **8:00-21:00** — Heartbeat 每 45 分钟巡逻一次，CI 挂了立刻通知，PR 超时提醒
+3. **17:00** — Cron 触发收工总结，归档当天工作，写入记忆供明天引用
+
+三个组件各司其职，不重叠、不遗漏。
+
+![全天工作流时间线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.jpg)
+
+## Cron 调试指南
+
+定时任务不触发是最烦人的 bug，因为你只能等。以下是最常见的四个坑：
+
+### 时区不匹配
+
+```bash
+# 检查 Gateway 的系统时区
+openclaw debug timezone
+
+# 输出示例：
+# System: UTC
+# Config: Asia/Shanghai (UTC+8)
+# Next fire: 2026-04-10 06:47 CST = 2026-04-09 22:47 UTC
+```
+
+如果你的 `schedule` 写的是 `47 6 * * *`，但没设 `timezone`，默认按 UTC 算。你期望早上 6:47 收到简报，实际要等到下午 14:47。永远显式指定 `timezone: "Asia/Shanghai"`。
+
+### 输出没有送达
+
+定时任务执行了，但你没收到消息。检查：
+
+```bash
+# 查看任务执行历史
+openclaw cron history --name "daily-brief" --last 5
+
+# 常见问题：
+# - target 指向了不存在的频道
+# - Agent 输出了空字符串（skipEmpty 生效）
+# - 消息工具没有开启（tools.message = false）
+```
+
+### Gateway 重启导致漏执行
+
+Gateway 重启时，非 durable 的任务会丢失。即使是 durable 任务，如果重启时间恰好跨过了触发时刻，也会 miss fire。
+
+```json5
+{
+  "cron": {
+    "missedFirePolicy": "run_immediately",  // 启动后补执行
+    // 或者
+    "missedFirePolicy": "skip"              // 跳过，等下次
+  }
+}
+```
+
+生产环境建议 `run_immediately`。启动后先把欠的账还了。
+
+### 任务超时
+
+复杂任务（如竞品监控需要抓取多个页面）可能超过默认 timeout：
+
+```bash
+# 查看哪些任务超时了
+openclaw cron history --status timeout
+
+# 解决：增大 timeout 或拆分任务
+```
+
+## Token 成本估算
+
+调度功能意味着 Agent 会在你不知情的情况下持续消耗 token。提前算清楚：
+
+**Heartbeat 成本：**
+
+- 间隔：每 45 分钟
+- 活跃时段：08:00-21:00 = 13 小时
+- 每天调用次数：13 * 60 / 45 = **约 17 次**
+- 每次心跳约 800 token（读取 HEARTBEAT.md + 检查 + 返回判断）
+- 日消耗：17 * 800 = **13,600 token/天**
+- 按 qwen-plus 计费（输入 0.8元/百万 token）：约 **0.01 元/天**
+- 按 Claude Sonnet 计费（输入 $3/百万 token）：约 **0.04 元/天**
+
+**加上 Cron 任务：**
+
+- daily-brief：约 2000 token
+- repo-watcher：24 次 * 1000 token = 24,000 token
+- eod-summary：约 3000 token
+- 日合计：约 **42,600 token/天**
+
+总计不到 **0.15 元/天**。一杯咖啡都不到的成本换一个 24 小时在线的助手，我觉得很值。
+
+**但要注意一个陷阱：** 当 Heartbeat 检测到异常并触发复杂 Skill 时（比如自动修复 CI），单次消耗可能飙到 10,000+ token。如果你的 HEARTBEAT.md 写得太激进（每次都让 Agent 深入分析），成本会翻 10 倍。
+
+建议：
+
+- Heartbeat prompt 保持精简，只做快速检查
+- 复杂操作交给 Cron 或手动触发
+- 设置月度 token 预算告警
+
 ## 凌晨三点的反模式
 
-![OpenClaw 快速上手（八）：Heartbeat、Cron，以及怎么让它早上 7 点叫你 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.jpg)
+分享一个真实教训。
 
-这种错误绝对能把你吵醒：给 Heartbeat 设置了 `target: "all"`，但忘了加 `activeHours`，而且 HEARTBEAT.md 还没在正常情况下返回 `HEARTBEAT_OK`。
+我最初的配置长这样：
 
-结果就是：每隔 45 分钟，你加入的所有频道都会弹出一条“已巡查，无异常”。凌晨三点也不例外。更惨的是，连那些根本没人要求你发消息的群聊也逃不掉。
+```json5
+{
+  "heartbeat": {
+    "every": "30m",
+    "target": "all",          // 发到所有频道
+    // 注意：没有 activeHours
+    // 注意：没有 silentToken
+    "promptFile": "./HEARTBEAT.md"
+  }
+}
+```
 
-解决办法有两个：一是老老实实加上 `activeHours`，二是把规则文件里的默认值改成显眼的 `HEARTBEAT_OK`。
-## 收尾
+三个致命错误：
 
-OpenClaw 的核心思想就是让 Agent 主动来找你。Heartbeat 和 Cron 是实现这个目标的两个关键工具。需要用固定周期执行的任务交给 Cron；需要在出问题时才通知你的任务交给 Heartbeat。千万别弄混了。
+1. **`target: "all"`** —— 检查结果发到所有关联的对话和群组
+2. **没有 `activeHours`** —— 7x24 小时不间断执行
+3. **没有 `silentToken`** —— 即使一切正常也会发消息（"已检查，一切正常"）
+
+后果：凌晨 3:15，我的手机、钉钉群、同事的群全部炸了。Agent 在所有频道发了一条"已巡检完毕，未发现异常"。
+
+三个同事被吵醒。第二天站会变成了批斗会。
+
+正确配置：
+
+```json5
+{
+  "heartbeat": {
+    "every": "45m",
+    "target": "last",                    // 只发到最近对话
+    "activeHours": {
+      "start": "08:00",
+      "end": "21:00",
+      "timezone": "Asia/Shanghai"
+    },
+    "silentToken": "HEARTBEAT_OK",       // 没事别说话
+    "promptFile": "./HEARTBEAT.md"
+  }
+}
+```
+
+记住这三条规则：
+
+1. **永远设置 `activeHours`**，除非你真的需要 7x24 监控（那也应该只发到告警频道）
+2. **永远设置 `silentToken`**，没有异常就闭嘴
+3. **`target` 永远用 `last` 或指定频道**，别用 `all`
+
+## 总结
+
+|  | Heartbeat | Cron |
+|--|-----------|------|
+| 用途 | 发现异常 | 按时执行 |
+| 触发 | 间隔 | 时刻 |
+| 无事时 | 沉默 | 仍然输出 |
+| 典型场景 | CI 监控、服务告警 | 日报、归档、竞品监控 |
+
+两条原则：
+
+- **Heartbeat 用于"坏了告诉我"** —— 被动发现问题
+- **Cron 用于"到点就做"** —— 主动执行计划
+
+不要混用。不要让 Heartbeat 做日报（因为它可能因为 HEARTBEAT_OK 而跳过），不要让 Cron 做监控（因为 1 小时的间隔可能漏掉关键告警）。
+
+配好这两个之后，OpenClaw 就真正从一个"你问它答"的聊天机器人，变成了一个"替你盯着、到点干活"的数字同事。
+
+下一篇我们讲 Skill 编排——怎么让 Agent 在检测到 CI 失败后，自动定位问题、生成修复 PR、并通知你 review。
