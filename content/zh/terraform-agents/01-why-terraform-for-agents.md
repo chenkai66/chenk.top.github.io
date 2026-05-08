@@ -27,81 +27,108 @@ translationKey: "terraform-agents-1"
 
 ![用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/illustration_1.jpg)
 
-## 一个 Agent 系统到底需要哪些东西？
+## 一个 Agent 系统到底需要哪些东西
 
-在聊基础设施之前，我们先明确一下一个 Agent 系统的核心组件——这些通常是 `pip install langgraph` 的 README 文件里不会提到的内容：
+在聊基础设施之前，先把一个 Agent 系统的核心组件列清楚——这些通常是 `pip install langgraph` 的 README 里不会提的：
 
-1. **运行时环境**  
-   这是承载 Agent 主循环的地方，通常用 Python 或 Node.js 实现。它需要能够应对服务重启的情况，确保进程持续运行。
+1. 运行时——承载 Agent 主循环的进程，通常是 Python 或 Node，且需要在重启后存活
+2. 向量存储——保存语义记忆，包括文档 embedding、历史对话、工具输出
+3. 关系型数据库——保存会话状态、逐轮对话、工具调用追踪、用户身份
+4. 对象存储——存放产物，比如生成的图片、PDF、截图、运行快照
+5. LLM 网关——统一持有 API key，按 Agent 维度强制配额
+6. 出网通道——调用 DashScope、OpenAI、Anthropic，或抓取目标站点
+7. 可观测性——Agent 运行是非确定性的，所以日志和 trace 不是可选项
+8. 密钥管理——provider key、OAuth token、OSS 凭证、数据库密码
+9. 成本控制——因为 Agent 一旦自循环，token 账单一夜之间能涨十倍
 
-2. **向量存储**  
-   用于保存语义记忆，比如文档的嵌入表示（embeddings）、历史对话记录、工具输出等数据。
+至少九个阿里云服务，互相之间还要按特定方式接好。每个服务都有自己的控制台页、自己的 RAM 权限、自己的地域范围、自己的网络。手工把这些接齐，再让 `dev`、`staging`、`prod` 在三个月迭代后还彼此一致——概率约等于零。
 
-3. **关系型数据库**  
-   存储会话状态，包括每一轮对话的上下文、工具调用的追踪记录以及用户身份信息。
+## 控制台和 IaC 的分水岭
 
-4. **对象存储**  
-   用来存放生成的各种文件，比如图片、PDF 文档、截图以及运行时的快照。
-
-5. **LLM 网关**  
-   统一管理 API 密钥，并为每个 Agent 设置调用配额，避免资源滥用。
-
-6. **外网访问能力**  
-   提供出网通道，用于调用 DashScope、OpenAI、Anthropic 等外部服务，或者抓取目标网站的数据。
-
-7. **可观测性支持**  
-   Agent 的运行本质上是非确定性的，因此日志和分布式追踪（traces）是必不可少的，而不是可选项。
-
-8. **密钥管理**  
-   包括第三方服务的 API 密钥、OAuth 令牌、OSS 凭证以及数据库密码等敏感信息。
-
-9. **成本控制机制**  
-   因为当 Agent 不小心进入自循环时，Token 消耗可能会在一夜之间暴涨 10 倍。
-
-这至少涉及九个不同的阿里云服务，它们之间还有特定的交互方式。每个服务都有独立的控制台页面、RAM 权限配置、地域范围限制以及网络设置。试想一下，经过三个月的迭代后，手动配置的 `dev`、`staging` 和 `prod` 环境还能完全一致的概率，几乎为零。
-## 控制台与 IaC 的分水岭
-
-这个痛点太普遍了，我已经总结出一个经典的对比图：
+九个服务手工接，就是九个漂移面。这个痛点太普遍了，我画了一张固定对比图：
 
 ![控制台操作 vs Terraform —— 差异从何而来](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig1_console_vs_iac.png)
 
-仔细看左边那一列。每一步都看似合理——没有明显的低级错误。这些步骤其实是聪明人在几个月的时间里，基于一个个小而合理的决策逐步积累出来的结果。右边那列走的是同样的流程，但每一步都在 git 中留下了记录。两者的差距，其实就是“我完成了交付”和“凌晨两点被叫起来救火，因为没人清楚 `cn-beijing` 上到底运行了什么”的区别。
+仔细看左边那一列。每一步都说得通——没有低级错误。这是聪明人在几个月里基于一连串小而合理的决策累积出来的样子。右边走的是同一条路，但每一步都在 git 里留了痕迹。两者的差距，就是"我交付了它"和"凌晨两点被叫醒，因为没人知道 `cn-beijing` 上跑着什么"的区别。
 
-阿里云 Terraform 官方文档用更委婉的方式描述了这一点。在《What Is Alibaba Cloud Terraform?》中提到：
+阿里云 Terraform 官方文档说得更克制：
 
 > 控制台操作：通过界面一步步点击并输入参数。重复手动操作——难以保证一致性。依赖文档和口头沟通。
 >
 > Terraform：通过配置文件描述资源的期望状态。配置文件可评审、可共享、可复用。将配置文件存储在版本控制系统中，变更可追溯、可回滚。
 
-第二段话就是 Terraform 的核心价值主张。至于本系列的其他内容，不过是围绕这个核心的具体实现细节罢了。
+第二段就是整个核心价值主张。本系列剩下的内容，都是围绕这个主张的实现细节。
+
 ## 用两句话解释 Terraform 是什么
 
-Terraform 是 HashiCorp 推出的一款开源声明式工具。你通过编写 `.tf` 文件（使用 **HashiCorp Configuration Language (HCL)**）来描述所需的云资源；Terraform 会将这些期望的状态与存储在 **状态文件** 中的实际状态进行对比，生成一个执行计划（**plan**）；你审核这个计划后，运行 `apply` 命令，Terraform 便会将计划转化为对云服务提供商 API 的调用。
+Terraform 是 HashiCorp 推出的开源声明式工具。你用 HashiCorp Configuration Language（HCL）写 `.tf` 文件描述想要的云资源；Terraform 把这份期望状态和记录在状态文件里的实际状态做 diff，生成 plan；你审 plan、`apply`，Terraform 把 plan 翻译成对 provider 的 API 调用。
 
-需要牢记的三点是：
+需要内化的三点：
 
-- **声明式而非命令式。** 你不用写“创建一个实例”，而是描述“这里应该有一个这样的实例”。如果配置没有变化，重复执行同样的代码不会产生任何操作（no-op）。这正是 Terraform 可以安全地集成到 CI/CD 流程、每次提交都自动运行的原因。
-- **状态文件至关重要。** `terraform.tfstate` 文件是一个 JSON 格式的映射表，它将你的 HCL 资源定义与云平台上的实际资源 ID 对应起来。一旦丢失状态文件，Terraform 就会认为这些资源不存在了。后续我们会讨论如何将状态文件存储在一个可靠的远程位置。
-- **先规划再执行。** 这是 Terraform 的核心亮点。每次变更前，它都会明确告诉你具体会发生什么——哪些资源会被创建、修改或销毁。养成将 `plan` 输出粘贴到 PR 描述中的习惯吧，未来的你会感激现在这么做的自己。
-## 阿里云 Provider 的功能覆盖范围
+- 声明式而非命令式。你不写"创建一个实例"，你写"存在一个这种形状的实例"。配置没变就是 no-op。这是 Terraform 可以在 CI 里每次提交都跑的根本原因。
+- 状态是真实存在的。`terraform.tfstate` 是一个 JSON map，把你的 HCL 资源地址映射到云上真实的资源 ID。状态文件丢了，Terraform 就以为什么都不存在。第二篇会讲怎么把状态文件放在一个不会丢的地方——但状态的意义远不止"别丢文件"，下文会展开。
+- 先 plan 再 apply。这是杀手级特性。每次变更前你都能看到将要新建、修改、销毁哪些资源的字面 diff。养成把 plan 输出贴到 PR description 的习惯，未来的你会感激你。
 
-云平台通过 **Provider 插件**与 Terraform 进行交互。官方的 `alicloud` Provider 是中国首个正式发布的 Terraform Provider，由阿里巴巴维护。截至目前，它已经支持 **300 多种资源类型**，涵盖大约六大领域：
+## State：Agent 栈的物料清单
+
+"状态是真实存在的"这一点值得单独一节，因为对 Agent 栈来说，state 文件兼任你的资源清单。
+
+我经手的每个 Agent 栈迟早都会被审计——可能是安全评审，可能是财务核对云开销，也可能是新来的 SRE 想搞清楚到底跑着什么。每次问的问题都一样：有什么资源、谁建的、花多少钱。
+
+如果基础设施在 Terraform state 里，回答这三个问题只需要 30 秒：
+
+```bash
+terraform state list | wc -l                                  # 资源总数
+terraform state list | awk -F. '{print $1"."$2}' | sort -u    # 资源类型
+terraform show -json | jq '[.values.root_module.resources[] | {addr:.address, type:.type}]'
+```
+
+我现在管的四个 Agent 栈，跑这三条命令几秒钟就能出一份完整清单。在 Terraform 之前，同样的审计要打开十二个控制台 tab——ECS、VPC、RDS、OSS、RAM、KMS、SLS、ARMS、ACK、CloudMonitor、ALB、OpenSearch——运气好靠 tag 过滤，运气不好靠记忆。
+
+state 也是供应链意义上的物料清单。每个资源都带着 provider 版本和 module 来源。alicloud provider 一年发几次破坏性变更或安全相关更新，CVE 一旦下来，你能在几分钟内 grep 所有项目，找出哪些栈受影响：
+
+```bash
+for d in stack-*/; do
+  (cd "$d" && terraform providers schema -json 2>/dev/null \
+     | jq -r '.provider_schemas | keys[]' \
+     | grep -F 'aliyun/alicloud' && echo "  位于 $d")
+done
+```
+
+更深一层：state 把基础设施变成了数据。一旦它是数据，你就能围绕它写工具。我有一个小 Python 脚本，遍历所有项目的 state 文件，输出一份 CSV——`(stack, resource_type, resource_id, region, monthly_cost_estimate)`。这份 CSV 是每月成本会议的输入。没有 state 这个统一的结构化数据源，这一切都不存在。
+
+代价是 state 很贵重。一旦丢失，Terraform 就再也看不见那些资源——下次 plan 会得到一堆"资源已存在"的错误。第二篇会专门讲怎么把 state 放在一个不会丢的地方，本系列后续都默认你已经做到了。
+
+## alicloud provider 覆盖了什么
+
+state 有用的前提是有 provider 真能创建你声明的东西。云平台通过 provider 插件和 Terraform 对话。官方 `alicloud` provider 是中国第一个正式的 Terraform provider，由阿里巴巴维护。截至本文，它支持 300+ 资源类型，覆盖大致六个领域：
 
 ![alicloud provider 覆盖范围](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig2_provider_coverage.png)
 
-根据官方文档《What Is Alibaba Cloud Terraform?》的介绍，支持的类别包括：
+按官方文档的口径：
 
-- **计算与容器**：ECS、ACK（Kubernetes）、函数计算（Function Compute）、弹性伸缩（Auto Scaling）
-- **网络**：VPC、SLB、ALB、NLB、NAT 网关、云企业网（Cloud Enterprise Network）
-- **存储与数据库**：OSS、NAS、RDS、PolarDB、Redis、MongoDB
-- **安全与管理**：RAM、KMS、WAF
-- **大数据与 AI**：MaxCompute、PAI
+- 计算与容器：ECS、ACK（Kubernetes）、函数计算、弹性伸缩
+- 网络：VPC、SLB、ALB、NLB、NAT 网关、云企业网（CEN）
+- 存储与数据库：OSS、NAS、RDS、PolarDB、Redis、MongoDB
+- 安全与管理：RAM、KMS、WAF
+- 可观测性：SLS、ARMS、CloudMonitor
+- 大数据与 AI：MaxCompute、PAI
 
-这基本上涵盖了我们之前提到的九个核心组件，除了“可观测性”相关的部分（如 SLS、ARMS、CloudMonitor，其实也支持，只是未列在这份简短清单中）以及针对不同 LLM 提供商的密钥管理部分（这部分会在第六篇文章中通过 KMS Secrets Manager 解决）。
+我们前面那张九组件清单，全都覆盖到了，包括各家 LLM provider 的 key（第六篇用 KMS Secrets Manager 处理）。
 
-以下是一个最简化的 HCL 示例，直接摘自阿里云官方 ECS 实践文档：
+一个最小 HCL 示例，并且从第一天就锁定 provider 版本——这是一定要做的：
 
 ```hcl
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    alicloud = {
+      source  = "aliyun/alicloud"
+      version = "~> 1.230"
+    }
+  }
+}
+
 provider "alicloud" {
   region = "cn-shanghai"
 }
@@ -123,114 +150,84 @@ resource "alicloud_security_group" "agent_runtime" {
 }
 ```
 
-这个例子中定义了三个资源，其中通过 `vpc_id` 引用建立了资源之间的依赖关系。Terraform 会自动解析这些依赖，并生成正确的执行顺序。你不需要明确指定“先创建 VPC，再创建 vSwitch，最后创建安全组”，只需描述目标状态，Terraform 会帮你构建出对应的有向无环图（DAG）。
-## 模块：基础设施复用的基本单元
+三个资源，通过 `vpc_id` 引用建立依赖。Terraform 自己解析依赖、生成正确的执行顺序。你不需要写"先 VPC 再 vSwitch 再 SG"，写出目标状态，Terraform 帮你建 DAG。
 
-在使用 Terraform 的早期阶段，最重要的习惯之一就是学会使用 **模块（module）**。简单来说，一个模块就是一个包含 `.tf` 文件的目录，它通过输入参数生成输出结果。当你设计出一个可靠的模式——比如一个带有三个 vSwitch、NAT 网关和安全组基线的 VPC——可以将其封装为模块，然后在 `dev`、`staging`、`prod` 和 `intl-prod` 等环境中轻松复用，而无需复制粘贴 HCL 代码。
+## 模块：复用的基本单元
 
-以下是一个简单的模块调用示例：
+三个资源是玩具版本。真实栈有几百个，让几百个保持可控的方法是模块。一个 module 就是一个 `.tf` 目录，吃输入、吐输出。一旦你设计出一个稳定的模式——比如三个 vSwitch + NAT + 安全组基线的 VPC——就把它包成 module，在 `dev`、`staging`、`prod`、`intl-prod` 反复使用，不再复制 HCL。
+
+最简调用：
 
 ```hcl
 module "vpc" {
   source = "./modules/vpc-baseline"
 
-  vpc_name   = "agents-${var.env}"
+  for_each = toset(["dev", "staging", "prod"])
+
+  vpc_name   = "agents-${each.key}"
   cidr_block = "10.20.0.0/16"
   zones      = ["cn-shanghai-l", "cn-shanghai-m", "cn-shanghai-n"]
 }
 ```
 
-在这个例子中，`./modules/vpc-baseline/main.tf` 文件中定义了实际的 `alicloud_vpc`、`alicloud_vswitch` 和 `alicloud_nat_gateway` 资源。调用者不需要关心这些实现细节，他们只需要一个配置合理的 VPC。这就像在编程中调用一个函数一样，只不过这里的“函数”是用来构建基础设施的。
+`./modules/vpc-baseline/main.tf` 里是真正的 `alicloud_vpc`、`alicloud_vswitch`、`alicloud_nat_gateway`。调用方不需要关心实现，他们只想要一个有合理默认值的 VPC。和 Python 函数一个意思，只是作用对象是基础设施。（只要迭代对象是有意义的命名集合，优先用 `for_each` 而不是 `count`——`count` 在你删掉中间元素时会重排索引，导致 Terraform 销毁并重建一堆无关资源。）
 
-我们将在第三篇文章中详细讲解如何构建这个模块，并在后续的文章中反复使用它来搭建不同的环境。
-## Terraform、Pulumi、Crossplane 和 ROS 的对比
+第三篇会构建这个 module，并在后续每一篇里复用它。
 
-在正式决定之前，快速了解一下其他选项。这些工具没有绝对的对错，选择时应该考虑团队的实际需求，而不是盲目追求某种“信仰”：
+## IaC 真正能预防的 Agent 特有故障
+
+在比较 Terraform 和它的替代品之前，先把"你具体在买什么"钉住。通用 IaC 宣传聚焦在"一致性"和"可复现性"——没错，但太弱。三年下来，最让我痛的故障都是 Agent 形状的，每一个都对应一个 Terraform 形状的修复：
+
+1. 凌晨三点的 token 泄漏。Agent 自循环——停止条件写错、工具无限重试、planner 状态幻觉——一夜烧掉 ¥40,000 的 LLM 预算。控制台搭的栈没有可编程预算护栏，因为没人写。Terraform 栈从第一天就带 `alicloud_log_alert`（第七篇），因为 module 默认包含。多一条资源的成本，远低于财务半夜打电话的成本。
+
+2. "谁拿走了我的 key" 恐慌。一个外包离职，他手里有一份原型时期复制的 OpenAI key。控制台搭的栈把那个 key 散落在三台 ECS 的 `.env` 文件和一条钉钉私聊里。轮换一次是半天 `grep -r OPENAI_API_KEY ~/projects` 加祈祷。Terraform 栈里每个 key 都在 KMS Secrets Manager（第六篇），后面挂着 RAM 角色，唯一一个权威位置——轮换就是改 `secrets.auto.tfvars` 然后 `terraform apply`。
+
+3. 幽灵 NAT 账单。Agent 本来就话痨，调 LLM 更话痨。路由配错，流量从错误地域的公网 NAT 出去，出网账单翻三倍。控制台不会告诉你这件事，只会下个月在账单里出现一个新条目。Terraform 里 `alicloud_nat_gateway` 和它服务的 `alicloud_vswitch` 在同一个 module，依赖关系在 plan 阶段就看得见。第三篇会把这种结构定为默认。
+
+4. "生产到底在哪个区？" 阿里云有 30+ 地域。两个月前入职的工程师在排障时，搞不清楚 prod RDS 是在 `cn-shanghai` 还是 `cn-beijing`，得翻钉钉历史。Terraform 的答案是 `terraform output rds_endpoint`，五秒钟，永久可追溯。
+
+5. "我们丢了 LLM 网关配置"的周末。网关负责路由模型、持有配额、记录流量，是两台 ECS——有人 SSH 上去手改了 `/etc/litellm/config.yaml`，重启之后 `/etc/litellm` 被清空，服务挂了。Terraform 版本把配置写进 cloud-init（第六篇），每台实例启动时都自带相同配置，零手工步骤。
+
+这些故障没有一个是异国情调的。每一个都在我经手的项目上发生过。每一个都是被 IaC 模式预防掉的，而不是事后恢复掉的。这才是 Terraform 在 Agent 栈上的真正卖点——不是抽象的可复现性，而是一份具体的"不会发生的灾难"清单。
+
+## Terraform、Pulumi、Crossplane、ROS 怎么选
+
+接受了 IaC 的论点，为什么偏偏是 Terraform？快速过一下其他选项。没有绝对对错，按团队契合度选，不要按信仰：
 
 ![四种 IaC 工具对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig3_iac_tools_compare.png)
 
-在深入使用过这四个工具之后，我的真实感受如下：
+把这四个都用过之后，我的真实判断：
 
-- **Terraform** 是目前最稳妥的默认选择。它的生态最为庞大，无论是 provider、module 还是社区支持都非常成熟。HCL 语法刚开始可能会让人觉得有点奇怪，但用一天就能适应。除非你有特别的理由不用它，否则选 Terraform 准没错。
-- **Pulumi** 基于 Terraform 的 provider 构建，但它允许你用 Python、TypeScript 或 Go 来编写代码。这种灵活性带来了真正的表达能力——比如循环、条件判断，以及 IDE 能实时检查的类型系统。不过，代价是调试复杂度增加：出问题时你需要跨越两层（你的代码 → Pulumi → TF provider）来排查。如果你的团队实在受不了 HCL，可以考虑这个。
-- **Crossplane** 完全运行在 Kubernetes 中，所有的云资源都被抽象为 CRD，你可以通过 `kubectl apply` 来创建 VPC 等资源。如果你的团队已经全面拥抱 Kubernetes 并且采用 GitOps 流程，这种方式会显得非常优雅；但如果你还没到那个阶段，学习和迁移成本可能会让你头疼。
-- **ROS**（资源编排服务）是阿里云原生的解决方案，与阿里云控制台深度集成，模板支持 JSON 或 YAML 格式，也不需要额外安装 provider 插件。只有当你完全扎根于阿里云，并且运维团队更倾向于使用托管服务时，才建议选择 ROS。
+- Terraform 是默认。provider、module、会用的人都最多。HCL 用第一天觉得怪，第二天就习惯了。除非你有强理由不用，否则就选它。
+- Pulumi 在 Terraform 的 provider 之上套了一层，让你用 Python/TypeScript/Go 写。表达力是真的——你有循环、条件、IDE 真能查类型。代价是调试链路：出问题时要穿过两层（你的代码 → Pulumi → TF provider）。如果团队真心讨厌 HCL，值得。
+- Crossplane 活在 Kubernetes 里——每个云资源都是一个 CRD，你 `kubectl apply` 出 VPC。如果你已经是纯 Kubernetes + GitOps 的团队，很优雅；否则痛苦。
+- ROS（资源编排服务）是阿里云原生方案，和控制台深度集成，模板用 JSON 或 YAML，不需要装 provider 插件。只有当你 100% 长期绑死阿里云、运维团队偏好托管服务时再选。
 
-阿里云官方文档的 FAQ 中有一段很中肯的对比说明：
+阿里云官方文档的 FAQ 给出的对比挺中肯：
 
-> Terraform 和 ROS 都是声明式的基础设施即代码（IaC）工具。Terraform 是开源的第三方工具，支持多云环境管理；而 ROS 是阿里云原生服务，与阿里云管理控制台深度集成。如果你需要多云支持，或者已经在其他地方使用了 Terraform，那么 Terraform 是更好的选择。
+> Terraform 和 ROS 都是声明式 IaC 工具。Terraform 是开源的第三方工具，支持多云管理；ROS 是阿里云原生服务，与阿里云管理控制台深度集成。如果你需要多云支持，或已经在其他地方使用了 Terraform，那么 Terraform 是更好的选择。
 
-对于一个需要调用多个 LLM 提供商、未来可能扩展到美国或新加坡区域的 Agent 系统来说，支持多云的 Terraform 显然是更合理的默认选择。
-## 这个系列的内容范围：做什么，不做什么
+对一个会调用多家 LLM provider、未来可能要新加坡或硅谷地域的 Agent 系统来说，多云友好的 Terraform 才是合理的默认。
 
-我们会做：
+## 这个系列做什么、不做什么
 
-- 用八篇文章的篇幅，带你从 `terraform init` 开始，最终在阿里云上部署一个完整的 `research-agent-stack`。
-- 提供真实可用的 HCL 配置代码，涵盖 VPC、ECS、ACK、OSS、RDS、OpenSearch、KMS、SLS 和 CloudMonitor 等资源的创建与管理。
-- 分享文档中未提及的实际问题和解决方案，比如状态漂移（state drift）、tfstate 文件锁定、GFW 下载 Terraform Provider 的限制，以及某些区域资源库存不足的情况。
-- 在系列结束时，提供一个可以直接 fork 的初始代码仓库，帮助你快速启动自己的项目。
+会做：
 
-我们不会做：
+- 用八篇文章带你从 `terraform init` 走到一个真能跑的 `research-agent-stack`，部署在阿里云上。
+- 给出 VPC、ECS、ACK、OSS、RDS、OpenSearch、KMS、SLS、CloudMonitor 的真实可用 HCL。
+- 覆盖文档里没有的故障模式——state drift、tfstate 锁死、GFW 拉 provider、地域库存不足。
+- 系列结束时给一个可以 fork 的初始仓库。
 
-- 深入讲解 HCL 语法。除了我们在实践中用到的部分，更多内容可以参考 HashiCorp 官方教程，它们讲得更系统、更全面。
-- 教你如何编写 Agent 本身。目前已经有针对 LangGraph、AutoGen、MetaGPT 和 Claude Code 的专门系列文章，你可以根据需求选择适合的教程。
-- 对比阿里云与 AWS 或 GCP 的具体功能差异。虽然不同云服务的资源名称可能不同，但基础设施即代码（IaC）的设计模式是通用的，学习这些模式更有价值。
-## 接下来的内容
+不会做：
 
-第二篇文章将带你进行第一次动手实践：安装 alicloud provider，选择适合的认证方式（静态 AK/SK、AssumeRole 和 ECS RAM role 这三种方式并不完全等价），配置基于 OSS 和 Tablestore 的远程状态存储与锁定机制，以及如何使用 workspace 模式来管理 `dev`、`staging` 和 `prod` 环境。
+- 教 HCL 语法，超出我们用到的范围。HashiCorp 官方教程做得更系统。
+- 教你怎么写 Agent 本身。LangGraph、AutoGen、MetaGPT、Claude Code 的系列都已经有了，挑一个看。
+- 把阿里云和 AWS、GCP 做逐项功能对比。IaC 模式跨云通用，资源名字不通用。
 
-如果你今天只能完成一件事，那就先安装 Terraform（在 macOS 上可以通过 `brew install terraform` 安装，或者参考官方文档《Install Terraform》中的步骤），然后运行 `terraform version` 确认安装成功。后续文章默认你已经完成了这一步。
+## 接下来
 
-> **实战建议：** 从一开始就为 `required_providers` 中的 alicloud provider 锁定版本号。这个 provider 正在快速迭代中，虽然小版本之间的破坏性变更很少，但并非完全没有。锁定版本的好处是，你在周五运行的 `terraform plan` 结果，周一还能保持一致，避免意外问题。
-## State：Agent 栈的物料清单
+第二篇是第一次动手：装 alicloud provider；选认证方式（静态 AK/SK、AssumeRole、ECS RAM 角色——这三种并不等价）；把 state 放在 OSS 上、用 Tablestore 做锁；以及 `dev`/`staging`/`prod` 的 workspace 模式。
 
-![用 Terraform 部署 AI Agent（一）：为什么 IaC 是唯一靠谱的交付方式 —— 视觉化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/illustration_2.jpg)
+如果今天只能做一件事，就是装上 Terraform（macOS 上 `brew install terraform`，或按官方 `Install Terraform` 步骤），然后跑 `terraform version` 确认。后续文章默认你已经装好了。
 
-我经手过的每个 Agent 栈，迟早都会经历一次审计——可能是安全团队的审查，可能是财务对云支出的核对，也可能是新来的 SRE 想搞清楚到底线上跑着什么。每次问的问题都大同小异：**“有哪些资源？谁创建的？花了多少钱？”**
-
-如果基础设施的状态存储在 Terraform 的 state 文件里，回答这些问题只需要 30 秒：
-
-```bash
-terraform state list | wc -l                            # 资源总数
-terraform state list | awk -F. '{print $1"."$2}' | sort -u   # 资源类型
-terraform show -json | jq '[.values.root_module.resources[] | {addr:.address, type:.type}]'
-```
-
-我现在管理的四个 Agent 栈，运行这三条命令几秒钟就能生成一份完整的资源清单。而在没有 Terraform 的时代，完成同样的审计需要打开十几个控制台页面——ECS、VPC、RDS、OSS、RAM、KMS、SLS、ARMS、ACK、CloudMonitor、ALB、OpenSearch——运气好还能靠标签筛选，运气不好就只能凭经验瞎猜。
-
-state 文件不仅是基础设施的快照，它还是一份**供应链意义上的物料清单**。每个资源都记录了 provider 的版本、module 的来源，甚至在较新的 Terraform 版本中还有内容哈希值。假设某天 alicloud provider 爆出了 CVE-2025-XXXXX，你可以在几分钟内横扫所有项目，找出受影响的部分：
-
-```bash
-for d in stack-*/; do
-  cd $d
-  terraform providers schema -json 2>/dev/null | jq -r '.provider_schemas | keys[]' \
-    | grep -F 'aliyun/alicloud' && echo "  位于 $d"
-  cd ..
-done
-```
-
-这不是假设，而是现实。`alicloud` provider 每年都会发布几次破坏性变更或安全相关的更新。如果没有清单，你根本不知道哪些栈受到影响；而有了 Terraform，你只需要简单地 grep 一下。
-
-更深层次的意义在于：**state 把基础设施变成了数据。** 只要它是数据，你就可以围绕它构建工具。我写了一个简单的 Python 脚本，遍历所有项目的 state 文件，生成一份 CSV 表格，内容包括 `(stack, resource_type, resource_id, region, monthly_cost_estimate)`。这份表格是我们每月成本会议的核心输入。没有 state 文件作为统一的结构化数据源，这一切都无法实现。
-
-当然，state 文件的价值也意味着它的脆弱性。一旦丢失，Terraform 就再也无法感知到那些资源的存在——下一次执行 `terraform plan` 时，你会看到一堆“资源已存在”的错误。本系列的第二篇文章会详细讨论如何妥善保存 state 文件，而后续内容也都基于这一前提展开。
-## IaC 真正能预防的 Agent 特有故障
-
-通常，IaC 的宣传点都集中在“一致性”和“可复现性”上。这些确实重要，但它们远远低估了 Terraform 在 **Agent 栈** 上的实际价值。在运行这类系统三年后，我发现最让人头疼的故障几乎都与 Agent 相关：
-
-**1. 凌晨三点的 Token 泄漏危机。**  
-某个 Agent 因为停止条件写错、工具无限重试或者状态管理出问题，陷入死循环，结果一夜之间烧掉了 ¥40,000 的 LLM 预算。如果是手动通过控制台搭建的环境，通常不会有预算防护机制，因为没人专门去写这个逻辑。而用 Terraform 搭建的栈，从第一天起就自带 `alicloud_log_alert`（详见第七篇），因为模块默认集成了这一功能。多一条资源的成本，远低于没有它时财务部门半夜打来的问责电话。
-
-**2. “谁拿了我的密钥？”恐慌。**  
-一位外包员工离职了，他手里有一份当初用来做原型的 OpenAI 密钥副本。如果环境是通过控制台手动搭建的，这个密钥可能散落在三台 ECS 实例的 `.env` 文件中，甚至还有人通过 Slack 私聊发过。轮换密钥时，你得花半天时间运行 `grep -r OPENAI_API_KEY ~/projects`，然后祈祷没有遗漏。而在 Terraform 栈中，所有密钥都存储在 KMS Secrets Manager 中（详见第六篇），并通过 RAM 角色进行管理，集中在一个地方——轮换密钥只需修改 `secrets.auto.tfvars` 文件，然后执行 `terraform apply` 即可。
-
-**3. NAT 账单突增的幽灵问题。**  
-Agent 本身就很“话痨”，尤其是调用 LLM 时流量更大。如果路由配置错误，流量可能会通过错误区域的公网 NAT 出口，导致出网账单翻三倍。控制台不会主动提醒你这个问题，只能等下个月账单出来才发现异常。而在 Terraform 中，`alicloud_nat_gateway` 和它服务的 `alicloud_vswitch` 位于同一个模块中，依赖关系在 `terraform plan` 阶段就能清晰看到。这种设计在第三篇中有详细说明，并且是默认配置。
-
-**4. “生产环境到底在哪个区域？”的困惑。**  
-阿里云有 30 多个可用区。一个两个月前入职的工程师，在排查生产环境故障时，搞不清楚 RDS 是在 `cn-shanghai` 还是 `cn-beijing`，最后不得不翻钉钉聊天记录来找答案。而使用 Terraform 时，只需运行 `terraform output rds_endpoint`，五秒钟就能得到确切答案，并且可以永久追溯。
-
-**5. “LLM 网关配置丢失”的周末噩梦。**  
-网关负责路由模型请求、管理配额、记录流量日志等功能。有人通过 SSH 登录到两台 ECS 实例，手动编辑了 `/etc/litellm/config.yaml` 文件。结果服务器重启后，配置文件被清空，服务中断。而 Terraform 的实现方式是将配置写入 cloud-init（详见第六篇）——每台实例启动时都会自动加载相同的配置，完全不需要手工干预。
-
-这些问题并不罕见，每一个我都曾在实际项目中遇到过。更重要的是，这些问题不是靠 IaC 事后补救的，而是直接被 **预防** 了。这才是 Terraform 在 Agent 栈上的真正价值所在——不是抽象的“可复现性”，而是一份实实在在的“灾难预防清单”。
+> 实战建议：从第一天就在 `required_providers` 里给 alicloud provider 锁版本，并在 `required_version` 里给 Terraform 自身锁版本。provider 在快速迭代，小版本之间的破坏性变更很少，但不是零。锁定版本意味着你周五跑的 `terraform plan`，周一还能拿到一样的结果。

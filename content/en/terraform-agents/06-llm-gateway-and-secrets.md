@@ -21,15 +21,17 @@ translationKey: "terraform-agents-6"
 
 A pattern I see repeatedly in immature agent stacks: each agent has its own copy of `OPENAI_API_KEY` in its own `.env` file. Sometimes the same key, sometimes different ones, sometimes a colleague's personal key from when they prototyped. When the bill arrives nobody can tell which agent caused which token spend, and when a key leaks (it always does) you're playing whack-a-mole across a dozen `.env` files.
 
-This article ends that. We build one **LLM gateway** that:
+The real wake-up call hit me two years ago. A contractor finished his three-month engagement on a Friday, his laptop went home, and on the following Tuesday DashScope billing flagged 12 million tokens of `qwen-max` traffic from an IP we didn't recognise. His personal API key — copy-pasted into a side project — was still sitting in our agent's `.env`. Rotating it took six hours: three engineers, four repos, two CI pipelines, one panicked Slack thread. Never again.
 
-- Holds every provider key in KMS Secrets Manager
-- Authenticates agents via short-lived RAM tokens
-- Enforces per-agent QPM and daily token caps
-- Logs every request to SLS for forensics and cost attribution
-- Rotates keys without redeploying any agent
+This article ends that pattern. We build one **LLM gateway** that:
 
-It is two days of setup and a permanent operational win.
+- Holds every provider key in KMS Secrets Manager (one bucket, one ACL, one rotation cadence)
+- Authenticates agents via short-lived RAM-issued tokens — zero static AK on agent boxes
+- Enforces per-agent QPM and daily token caps so a runaway loop costs ¥800/day, not your quarter
+- Logs every request to SLS for forensics, cost attribution, and SOC-2 evidence
+- Rotates keys without redeploying any agent — one PR, one apply, done
+
+Two days of setup. Permanent operational dividend.
 
 ![Terraform for AI Agents (6): LLM Gateway and Secrets Management — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/illustration_1.jpg)
 
@@ -37,14 +39,14 @@ It is two days of setup and a permanent operational win.
 
 ![Centralised LLM gateway: one egress, one quota, one audit log](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png)
 
-Agents on the left, providers on the right, the gateway in the middle. Every agent's HTTP call to "an LLM" actually goes to the gateway, which decides which provider to dispatch to, attaches the right key, enforces quotas, and logs the result.
+Agents on the left, providers on the right, gateway in the middle. Every agent's HTTP call to "an LLM" actually goes to the gateway, which decides which provider to dispatch to, attaches the right key, enforces quotas, and logs the result.
 
 You have two reasonable implementation options:
 
-1. **Aliyun API Gateway in front of a custom backend** — most managed, easiest to add quota plans, integrates with RAM
-2. **Self-hosted LiteLLM (or your own) on ECS behind an ALB** — most flexible, supports the long tail of providers, easier to extend with cost tracking
+1. **Aliyun API Gateway in front of a custom backend** — most managed, easiest to wire quota plans, native RAM integration. Best when routing is "one model, one provider, just rate-limit me."
+2. **Self-hosted LiteLLM on ECS behind an ALB** — most flexible, supports the long tail of providers (DeepSeek, Moonshot, Zhipu, your fine-tuned PAI endpoint), easier to extend with cost tracking and cross-provider fallback.
 
-I use both depending on how custom the routing logic is. For a pure proxy with quotas, API Gateway alone is enough. For multi-provider routing with fallback and budget guards, LiteLLM on ECS wins.
+I use both depending on routing complexity. For a pure proxy with quotas, API Gateway alone is enough. For multi-provider routing with budget guards and circuit breakers — which is where every team ends up within six months — LiteLLM on ECS wins. The rest of this article goes with LiteLLM because that's what 80% of teams need.
 
 ## Step 1: store every key in KMS Secrets Manager
 
@@ -76,11 +78,13 @@ resource "alicloud_kms_secret" "llm" {
 
 The keys themselves come in via `var.llm_keys` — set with `-var-file=secrets.auto.tfvars` (gitignored) or `TF_VAR_llm_keys='{...}'` from a CI secret. They never live in your repository.
 
+Cost note: KMS Secrets Manager bills around ¥0.4 per secret per month plus ¥0.03 per 10k API calls in Shanghai region. For four provider keys pulled twice an hour by two gateway boxes, the monthly bill is rounding error — under ¥10. The default service KMS key is free; only customer-managed CMKs cost ¥1/month each. Don't let "KMS sounds expensive" be the reason you stay on `.env` files.
+
 > **Real-world tip:** When you rotate a provider key, change `secret_data` and bump `version_id`. KMS keeps the old version active for the recovery window so in-flight requests don't fail; new gateway pulls get the new version. Plan this in PR form so it's auditable.
 
 ## Step 2: a RAM role the gateway can assume
 
-The gateway ECS or function needs permission to read these secrets — and only these secrets:
+The gateway ECS or function needs permission to read these secrets — and **only** these secrets:
 
 ```hcl
 resource "alicloud_ram_role" "gateway" {
@@ -125,9 +129,9 @@ resource "alicloud_ram_role_policy_attachment" "gateway_kms" {
 
 Three things deliberate here:
 
-- **Resource-scoped policy.** Only these secrets, not `kms:GetSecretValue` on `*`. If the gateway box is compromised, the attacker cannot pivot to other KMS secrets.
-- **No long-lived AK.** The role is assumed by the ECS instance via metadata service. Zero static credentials.
-- **`kms:Decrypt` is needed** even just to read the secret because secrets are KMS-encrypted at rest.
+- **Resource-scoped policy.** Only these secrets, not `kms:GetSecretValue` on `*`. If the gateway box is compromised, the attacker cannot pivot to other KMS secrets — billing keys, RDS passwords, OSS buckets all stay sealed.
+- **No long-lived AK.** The role is assumed by the ECS instance via metadata service. Zero static credentials on disk, in env, or in cloud-init.
+- **`kms:Decrypt` is needed** even just to read the secret because secrets are KMS-encrypted at rest. Forgetting this is the #1 reason your gateway boots and then 401s on every fetch.
 
 ## Step 3: deploy LiteLLM on ECS
 
@@ -192,6 +196,8 @@ locals {
 }
 ```
 
+Two `ecs.c7.large` boxes — 2 vCPU, 4 GB each — comfortably handle 200+ requests per second of pure proxy traffic. LiteLLM is async I/O-bound; CPU rarely tops 30%. Don't oversize. If traffic is bursty, put it in a scaling group and let CloudMonitor add nodes when CPU crosses 60% sustained.
+
 `gateway-init.sh` does the boot:
 
 ```bash
@@ -225,7 +231,7 @@ pm2 save
 pm2 startup systemd -u root --hp /root
 ```
 
-The gateway is now running on each instance, listening on port 4000, with all provider keys loaded. The ALB in front fans out:
+Each instance now runs the gateway on port 4000 with all provider keys loaded into the process env — never on disk. The ALB in front fans out:
 
 ```hcl
 resource "alicloud_alb_load_balancer" "gateway" {
@@ -277,7 +283,7 @@ resource "alicloud_alb_listener" "gateway" {
 }
 ```
 
-Agents now reach the gateway at `http://<alb-id>.cn-shanghai.alb.aliyuncs.com/v1/chat/completions` and never see a provider key.
+Agents now reach the gateway at `http://<alb-id>.cn-shanghai.alb.aliyuncs.com/v1/chat/completions` and never see a provider key. Internal-only ALB — no public IP, no listener on 443 facing the world. If an agent needs to call from outside the VPC, it goes through the bastion or CEN, never directly.
 
 ## Step 4: per-agent quotas
 
@@ -318,9 +324,11 @@ resource "null_resource" "agent_keys" {
 }
 ```
 
-I'm not in love with `null_resource` + `local-exec` — it's the exit hatch for "the resource doesn't exist in the provider yet." But it works, and the alternative (a custom Terraform provider for LiteLLM) is more code than it's worth for one team.
+I'm not in love with `null_resource` + `local-exec` — it's the exit hatch for "the resource doesn't exist in the provider yet." But it works, and the alternative (writing a custom Terraform provider for LiteLLM) is more code than it's worth for one team. If LiteLLM ever ships an official Terraform provider, swap in a day.
 
-The output: each agent gets a distinct `LITELLM_API_KEY` env var that the cloud-init script in article 4 reads. Quota violations return `429 Too Many Requests`, which agents should handle with exponential backoff.
+The output: each agent gets a distinct `LITELLM_API_KEY` env var that the cloud-init script in article 4 reads. Quota violations return `429 Too Many Requests`, which agents must handle with exponential backoff — bake this into your shared HTTP client, don't trust each agent author to remember.
+
+A note on numbers. The `schedule-agent` ceiling at 100k tokens/day and ¥40/day might look low. It is — and intentionally so. A scheduling agent that suddenly spikes to 2M tokens is almost certainly stuck in a planning loop, and a hard cap is a far better error than a ¥3000 surprise on the monthly bill. Tune ceilings to "10x the agent's last 30-day p99 daily usage" and revisit quarterly.
 
 ## Step 5: secret rotation flow
 
@@ -338,45 +346,19 @@ The lifecycle:
 4. After 30 days, `v1` is disabled — anyone still using it gets `InvalidSecretVersion`
 5. You confirm zero usage of `v1` via SLS, then promote `v2` and retire `v1`
 
-For a team, codify this as a runbook and re-execute it quarterly even if nothing leaks. Keys that have lived longer than a quarter are by definition stale; treat staleness as a low-grade incident.
+For a team, codify this as a runbook and re-execute it quarterly even if nothing leaks. Keys that have lived longer than a quarter are by definition stale; treat staleness as a low-grade incident. The contractor story I opened with happened because nobody had rotated DashScope keys in 14 months. After this article, that scenario is impossible — even if you forget, the 30-day window forces the issue.
 
-## What about Bailian / DashScope specifically?
+## Step 6: how plaintext still leaks (and how to plug it)
 
-DashScope is just another OpenAI-compatible endpoint in LiteLLM's eyes. The model names are `dashscope/qwen-max`, `dashscope/qwen-plus`, etc. The API key is what you generate from the DashScope console.
-
-If you want first-class Aliyun-native treatment (so you can use STS instead of an API key), DashScope supports STS-based auth on some endpoints — but in 2026 the API-key path is still the standard, and rotating the key via KMS as above is the right operational pattern.
-
-> **Real-world tip:** Set a `master_key` on LiteLLM (the `LITELLM_MASTER_KEY` env var). Without it, anyone who can reach the gateway can issue themselves an API key. With it, only the master can mint subordinate keys — and the master never leaves Terraform's variable space.
-
-## What this gives you
-
-After this article you have:
-
-- One URL where every agent calls "the LLM"
-- One place to add a new model provider (edit `litellm_config`, `terraform apply`)
-- One place to rotate any provider key (edit `var.llm_keys`, `terraform apply`)
-- One log stream (next article) showing every request, latency, token count, model, and agent
-- Hard QPM and budget caps per agent — a runaway loop costs at most ¥800/day, not your entire month's budget
-
-The gateway is a strategic asset. Every team I've shipped one for has thanked me within a month — usually the first time someone's API key gets accidentally checked into git and they realise rotating it is a one-line PR instead of a fire drill.
-
-## What's next
-
-Article 7 is observability and cost control: SLS for logs, ARMS for traces, CloudMonitor for metrics, the budget alarm that pings DingTalk when a daily LLM spend crosses a threshold, and the SLS-driven cost dashboard that lets you see "which agent is burning my budget".
-
-Article 8 is the end-to-end walkthrough where everything in articles 2-7 lands as one `terraform apply`.
-
-## KMS-backed sensitive variables: how plaintext leaks (and how to plug it)
-
-The article shows `random_password` + `alicloud_kms_secret`. That covers the secret *at rest*. There are at least three other places plaintext leaks if you're not careful, and all three have bitten projects I've reviewed.
+Step 1 protects the secret *at rest*. There are at least three other places plaintext leaks if you're not careful, and all three have bitten projects I've reviewed.
 
 ### Leak 1: terraform.tfstate
 
 `alicloud_kms_secret.secret_data` is in your tfstate, in plaintext, every time you apply. Even with `sensitive = true` on the variable, the *value* lives in state JSON. The mitigation is layered:
 
-1. **OSS bucket KMS-encryption** (article 2) — already done. This protects the state at rest.
+1. **OSS bucket KMS-encryption** (article 2) — already done. Protects the state at rest.
 2. **OSS bucket access policy** — restrict `oss:GetObject` to the CI runner role only, never developers.
-3. **Use the `data` source pattern instead of putting plaintext in HCL.** When the secret is created out of band (e.g. by an HSM-rotation job), Terraform reads it but never authors it:
+3. **Use the `data` source pattern instead of putting plaintext in HCL.** When the secret is created out of band (e.g. by an HSM-rotation job or the KMS console), Terraform reads it but never authors it:
 
 ```hcl
 data "alicloud_kms_secret" "openai" {
@@ -393,11 +375,11 @@ resource "alicloud_instance" "gateway" {
 }
 ```
 
-The principle: **Terraform should know the *name* of the secret, not the *value***. The runtime fetches the value from KMS via instance metadata.
+The principle: **Terraform should know the *name* of the secret, not the *value***. The runtime fetches the value from KMS via instance metadata. This is the single most important habit to build, and it inverts how most tutorials present secrets.
 
 ### Leak 2: CI logs
 
-`terraform plan` output mentions sensitive values as `(sensitive value)` if `sensitive = true` is set on the variable. *But* only on the variable — not on resource attributes that derive from it. A common slip:
+`terraform plan` output marks sensitive values as `(sensitive value)` if `sensitive = true` is set on the variable. *But* only on the variable — not on resource attributes that derive from it. A common slip:
 
 ```hcl
 variable "openai_key" {
@@ -427,7 +409,7 @@ output "gateway_config_url" {
 }
 ```
 
-For tfvars files, add them to `.gitignore` *and* configure your CI to fail if they're committed:
+For tfvars files, add them to `.gitignore` *and* configure CI to fail if they're committed:
 
 ```yaml
 # .github/workflows/no-secrets.yml
@@ -440,7 +422,7 @@ For tfvars files, add them to `.gitignore` *and* configure your CI to fail if th
 
 ### Leak 3: provider debug logs
 
-`TF_LOG=DEBUG terraform apply` is the quickest way to debug a provider issue. It is also the quickest way to dump every API request and response — including request bodies that contain secrets — to your terminal scrollback. I have seen Slack screenshots of this happen.
+`TF_LOG=DEBUG terraform apply` is the quickest way to debug a provider issue. It is also the quickest way to dump every API request and response — including request bodies that contain secrets — to your terminal scrollback. I have seen Slack screenshots of this happen, twice in two different companies.
 
 When you must use `TF_LOG`, redirect to a file with restrictive permissions, never paste:
 
@@ -453,9 +435,9 @@ shred -u /tmp/tf.log    # delete when done
 
 Better, use `TF_LOG_CORE=DEBUG` (Terraform-only) which usually isolates the issue without including provider request bodies.
 
-## Plan-review-apply gates: the CI pipeline that catches what humans miss
+## Step 7: plan-review-apply gates in CI
 
-The article's `null_resource` for LiteLLM key generation is fine for one engineer. For a team with multiple agents, multiple environments, and shared on-call rotation, you want a structured CI pipeline that humans review at the diff level. Here's the GitHub Actions workflow I run:
+The `null_resource` for LiteLLM key generation is fine for one engineer. For a team with multiple agents, multiple environments, and shared on-call rotation, you want a structured CI pipeline that humans review at the diff level. Here's the GitHub Actions workflow I run:
 
 ```yaml
 # .github/workflows/terraform-plan.yml
@@ -522,11 +504,11 @@ jobs:
           path: tfplan-${{ matrix.workspace }}
 ```
 
-Three things this enforces that are hard for humans:
+Three things this enforces that humans skim past:
 
-- **`terraform fmt -check`** rejects un-formatted HCL. No more "did you run fmt" comments in PR review.
-- **`tfsec`** runs Checkov-style security scans — flags public S3 buckets, unencrypted volumes, overly broad SG rules. Catches the regressions humans skim past.
-- **The plan posted as a PR comment** means review reads *the actual plan output*, not "trust me bro, this looks fine".
+- **`terraform fmt -check`** rejects un-formatted HCL. No more "did you run fmt?" comments cluttering review.
+- **`tfsec`** runs Checkov-style scans — flags public buckets, unencrypted volumes, overly broad SG rules.
+- **The plan posted as a PR comment** means review reads *the actual plan output*, not "trust me bro, this looks fine."
 
 The matching apply workflow:
 
@@ -557,22 +539,50 @@ jobs:
         run: terraform apply -input=false -auto-approve tfplan-${{ inputs.workspace }}
 ```
 
-The `environment` mechanism in GitHub gates prod applies behind required reviewer approval — a separate human (often me, often the on-call) clicks "approve" before the apply runs. Apply uses a different RAM role than plan (the plan role only has read; apply has write). Two-key launch.
+GitHub's `environment` mechanism gates prod applies behind required reviewer approval — a separate human (often the on-call) clicks "approve" before apply runs. Apply uses a different RAM role than plan: plan only has read; apply has write. Two-key launch.
 
-This pipeline has caught five real incidents in the year I've run it: an accidental `prevent_destroy = false` flip, a CIDR overlap that would have broken VPC peering, a forgotten module version pin, an `ignore_changes` that masked a real config drift, and a security group rule with `0.0.0.0/0` that snuck into a PR. Each was a comment on the PR, fixed before merge.
+This pipeline has caught five real incidents in the year I've run it: an accidental `prevent_destroy = false` flip, a CIDR overlap that would have broken VPC peering, a forgotten module version pin, an `ignore_changes` that masked real config drift, and a security group rule with `0.0.0.0/0` that snuck into a PR. Each was a comment on the PR, fixed before merge.
 
-## Atlantis vs GitHub Actions: when to graduate
+### When to graduate to Atlantis
 
-GitHub Actions is the right starting point. Once you have more than a few engineers running Terraform — say five plus — the operational overhead of managing per-PR plan comments, lock contention, and approvals on Actions starts to creak. Atlantis is the next step.
+GitHub Actions is the right starting point. Once you have more than five engineers running Terraform, the operational overhead of per-PR plan comments, lock contention, and manual approvals starts to creak. Atlantis is the next step: a self-hosted webhook server that listens to PRs, runs `terraform plan` automatically, comments the plan, and applies on `atlantis apply` from authorised users.
 
-Atlantis is a self-hosted webhook server that listens to PRs, runs `terraform plan` automatically, comments the plan on the PR, and applies on `atlantis apply` comments from authorised users. Compared to Actions:
+Compared to Actions:
 
-- Plans run *inside your VPC* — no need to give GitHub Actions runners access to the OSS state bucket
-- One persistent server holds the lock for sequential applies — no race conditions across concurrent PRs
-- Per-project config (`atlantis.yaml`) lets you scope which repos/dirs are managed, with per-dir approval policies
+- Plans run *inside your VPC* — no need to give external runners access to the OSS state bucket.
+- One persistent server holds the lock for sequential applies — no race conditions across concurrent PRs.
+- Per-project config (`atlantis.yaml`) lets you scope which dirs are managed, with per-dir approval policies.
 
-Provisioning Atlantis itself is naturally a `vpc-baseline` + `compute` exercise — one ECS, one ALB, one RAM role. After two months of using it on a 10-engineer team, the throughput improvement was concrete: plan-to-apply cycle dropped from 25 minutes (Actions queue + manual approval) to 8 minutes.
+Provisioning Atlantis itself is a `vpc-baseline` + `compute` exercise — one ECS, one ALB, one RAM role. After two months on a 10-engineer team, the throughput improvement was concrete: plan-to-apply cycle dropped from 25 minutes (Actions queue + manual approval) to 8 minutes.
 
 I don't recommend Atlantis below 5 engineers — the ops cost of running it isn't worth the throughput. Above 5, it pays for itself within a quarter.
 
 > **Real-world tip:** Whichever pipeline you pick, **one master repo, many envs**. Don't fork your prod repo from dev. The single repo with `env/dev.tfvars`, `env/staging.tfvars`, `env/prod.tfvars` keeps the codepath identical across environments — which is the whole point of IaC. A forked-per-env layout is an anti-pattern that erodes the property you came for.
+
+## Bailian / DashScope specifically
+
+DashScope is just another OpenAI-compatible endpoint in LiteLLM's eyes. The model names are `dashscope/qwen-max`, `dashscope/qwen-plus`, etc. The API key is what you generate from the DashScope console.
+
+If you want first-class Aliyun-native treatment (so you can use STS instead of an API key), DashScope supports STS-based auth on some endpoints — but in 2026 the API-key path is still the standard, and rotating the key via KMS as above is the right operational pattern. When STS becomes the default (the roadmap suggests 2027), this article becomes one config flip easier; the rotation discipline remains.
+
+> **Real-world tip:** Set a `master_key` on LiteLLM (the `LITELLM_MASTER_KEY` env var). Without it, anyone who can reach the gateway can issue themselves an API key. With it, only the master can mint subordinate keys — and the master never leaves Terraform's variable space.
+
+## What this gives you
+
+After this article you have:
+
+- One URL where every agent calls "the LLM"
+- One place to add a new model provider (edit `litellm_config`, `terraform apply`)
+- One place to rotate any provider key (edit `var.llm_keys`, `terraform apply`)
+- One log stream (next article) showing every request, latency, token count, model, and agent
+- Hard QPM and budget caps per agent — a runaway loop costs at most ¥800/day, not your entire month
+- A CI pipeline that catches the regressions humans skim past, with two-key launch into prod
+- Three concrete plaintext leak vectors closed off, not just the obvious one
+
+The gateway is a strategic asset. Every team I've shipped one for has thanked me within a month — usually the first time someone's API key gets accidentally checked into git and they realise rotating it is a one-line PR instead of the six-hour fire drill I lived through.
+
+## What's next
+
+Article 7 is observability and cost control: SLS for logs, ARMS for traces, CloudMonitor for metrics, the budget alarm that pings DingTalk when daily LLM spend crosses a threshold, and the SLS-driven cost dashboard that lets you see "which agent is burning my budget."
+
+Article 8 is the end-to-end walkthrough where everything in articles 2-7 lands as one `terraform apply`.

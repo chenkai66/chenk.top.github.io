@@ -45,13 +45,13 @@ That is at least nine separate Aliyun services touching each other in specific w
 
 ## The console-vs-IaC moment
 
-The pain pattern is universal enough that I have a stock figure for it:
+Nine services touched by hand is also nine drift surfaces. The pain pattern is universal enough that I have a stock figure for it:
 
 ![Console clicks vs Terraform — where the divergence happens](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig1_console_vs_iac.png)
 
 Read the left column carefully. Every step is plausible — none of them are dumb mistakes. They are what happens when smart people make small reasonable decisions over months. The right column is the same path, but every step leaves an artifact in git. The diff between the two columns is the difference between "I shipped this" and "I am paged at 2am because nobody knows what's running in `cn-beijing`."
 
-The official Alibaba Cloud Terraform doc puts it more diplomatically. Quoting from the *What Is Alibaba Cloud Terraform?* topic:
+The official Alibaba Cloud Terraform doc puts it more diplomatically:
 
 > Console operations: Click and enter parameters step by step. Repeat manual steps — hard to ensure consistency. Rely on documentation and verbal agreements.
 >
@@ -66,28 +66,69 @@ Terraform is an open-source declarative tool from HashiCorp. You write `.tf` fil
 Three things to internalize from that:
 
 - **Declarative, not imperative.** You don't say "create an instance" — you say "an instance of this shape exists." Re-running the same config is a no-op if nothing changed. This is what makes Terraform safe to run from CI on every commit.
-- **State is real.** The `terraform.tfstate` file is a JSON map from your HCL resource addresses to the cloud's actual resource IDs. Lose the state file and Terraform thinks nothing exists. Article 2 is about putting state somewhere durable.
+- **State is real.** The `terraform.tfstate` file is a JSON map from your HCL resource addresses to the cloud's actual resource IDs. Lose the state file and Terraform thinks nothing exists. Article 2 is about putting state somewhere durable — but the implications run deeper than "don't lose the file," and we'll come back to that below.
 - **Plan before apply.** This is the killer feature. Every change shows you a literal diff of what will create, modify, or destroy *before* anything happens. Cultivate the habit of pasting the plan output into PR descriptions — your future self will thank you.
+
+## State as the agent stack's bill of materials
+
+The "state is real" point deserves more than one bullet, because for an agent stack the state file is doing double duty as your inventory.
+
+Every agent stack I've shipped has at some point been audited — by a security review, by finance reconciling cloud spend, by a new SRE trying to figure out what's actually running. In every case the question is the same: *what exists, who created it, and what is it costing me?*
+
+If your infra lives in a Terraform state file, that question takes 30 seconds to answer:
+
+```bash
+terraform state list | wc -l                                  # how many resources
+terraform state list | awk -F. '{print $1"."$2}' | sort -u    # what kinds
+terraform show -json | jq '[.values.root_module.resources[] | {addr:.address, type:.type}]'
+```
+
+For the four agent stacks I run today, those three commands produce a comprehensive inventory in seconds. Before Terraform, the same audit involved opening twelve console tabs across ECS, VPC, RDS, OSS, RAM, KMS, SLS, ARMS, ACK, CloudMonitor, ALB, and OpenSearch — each one filtered by tag if I was lucky and by gut feeling if I wasn't.
+
+The state file is also a *bill of materials* in the supply-chain sense. Each resource carries its provider version and module source. When a CVE drops on the alicloud provider — and it does, a couple of times a year — you grep state files across all your projects in minutes:
+
+```bash
+for d in stack-*/; do
+  (cd "$d" && terraform providers schema -json 2>/dev/null \
+     | jq -r '.provider_schemas | keys[]' \
+     | grep -F 'aliyun/alicloud' && echo "  in $d")
+done
+```
+
+The deeper point: **state turns infrastructure into data**. Once it's data, you can write tooling against it. I have a small Python script that walks every state file across every project and produces a single CSV of `(stack, resource_type, resource_id, region, monthly_cost_estimate)`. That CSV gets read by my monthly cost meeting. None of it would exist without the state file as a uniform structured source of truth.
+
+The flip side is that the state file is precious. Lose it and the universe of resources becomes invisible to Terraform — you'll get wholesale "resource already exists" errors on the next plan. Article 2 is entirely about putting the state somewhere that won't disappear.
 
 ## What the Aliyun provider covers
 
-Cloud platforms talk to Terraform through **provider plug-ins**. The official `alicloud` provider was the first official Terraform provider in China and is maintained by Alibaba. As of this writing it ships **300+ resource types** across roughly six domains:
+State is only useful if there's a provider that can actually create the things you've declared. Cloud platforms talk to Terraform through **provider plug-ins**. The official `alicloud` provider was the first official Terraform provider in China and is maintained by Alibaba. As of this writing it ships **300+ resource types** across roughly six domains:
 
 ![alicloud provider coverage](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig2_provider_coverage.png)
 
-Per the official `What Is Alibaba Cloud Terraform?` page, supported categories include:
+Per the official documentation, supported categories include:
 
 - **Compute and containers**: ECS, ACK (Kubernetes), Function Compute, Auto Scaling
 - **Networking**: VPC, SLB, ALB, NLB, NAT Gateway, Cloud Enterprise Network
 - **Storage and databases**: OSS, NAS, ApsaraDB RDS, PolarDB, Redis, MongoDB
 - **Security and management**: RAM, KMS, WAF
+- **Observability**: SLS, ARMS, CloudMonitor
 - **Big data and AI**: MaxCompute, PAI
 
-That covers everything in our nine-component checklist above except observability (SLS, ARMS, CloudMonitor — also covered, just not on this short list) and the per-LLM-provider key bits (which we'll handle through KMS Secrets Manager in article 6).
+That covers everything in our nine-component checklist, including the per-LLM-provider keys (handled through KMS Secrets Manager in article 6).
 
-A minimal HCL example, straight from the official ECS practice doc, looks like this:
+A minimal HCL example, with a pinned provider version because you should always pin from day one:
 
 ```hcl
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    alicloud = {
+      source  = "aliyun/alicloud"
+      version = "~> 1.230"
+    }
+  }
+}
+
 provider "alicloud" {
   region = "cn-shanghai"
 }
@@ -113,7 +154,7 @@ Three resources, with `vpc_id` references that Terraform resolves into the right
 
 ## Modules: the unit of reuse
 
-The single most important habit to build early is **modules**. A module is just a directory of `.tf` files that takes inputs and produces outputs. Once you have a working pattern — a VPC with three vSwitches, a NAT, and a security group baseline — wrap it in a module and you can stamp it out across `dev`, `staging`, `prod`, and `intl-prod` without copying HCL.
+Three resources is the toy version. Real stacks have hundreds, and the way you keep hundreds tractable is **modules**. A module is just a directory of `.tf` files that takes inputs and produces outputs. Once you have a working pattern — a VPC with three vSwitches, a NAT, and a security group baseline — wrap it in a module and you can stamp it out across `dev`, `staging`, `prod`, and `intl-prod` without copying HCL.
 
 A bare-bones module call:
 
@@ -121,19 +162,37 @@ A bare-bones module call:
 module "vpc" {
   source = "./modules/vpc-baseline"
 
-  vpc_name   = "agents-${var.env}"
+  for_each = toset(["dev", "staging", "prod"])
+
+  vpc_name   = "agents-${each.key}"
   cidr_block = "10.20.0.0/16"
   zones      = ["cn-shanghai-l", "cn-shanghai-m", "cn-shanghai-n"]
 }
 ```
 
-The body of `./modules/vpc-baseline/main.tf` contains the actual `alicloud_vpc`, `alicloud_vswitch`, `alicloud_nat_gateway` resources. The caller doesn't need to know — they just want a VPC with sane defaults. This is the same idea as a Python function, applied to infrastructure.
+The body of `./modules/vpc-baseline/main.tf` contains the actual `alicloud_vpc`, `alicloud_vswitch`, `alicloud_nat_gateway` resources. The caller doesn't need to know — they just want a VPC with sane defaults. Same idea as a Python function, applied to infrastructure. (Use `for_each` over `count` whenever the iteration is over a meaningful set of names — `count` re-numbers everything when you delete the middle item, which causes Terraform to destroy and recreate unrelated resources.)
 
 We will build exactly this module in article 3 and reuse it in every subsequent article.
 
+## The agent-specific failure modes IaC actually prevents
+
+Before comparing Terraform against alternatives, it's worth pinning down what specifically you're buying. Generic IaC pitches focus on "consistency" and "reproducibility" — true but underwhelming. After three years of running these systems, the failure modes that have hurt me most are agent-shaped, and each one has a Terraform-shaped fix:
+
+**1. The 3am token leak.** An agent loops on itself — bad stop condition, infinite tool retry, hallucinated planner state — and burns ¥40,000 of LLM budget overnight. The console-clicked stack has no programmatic budget guard because nobody wrote one. The Terraform stack has `alicloud_log_alert` provisioned from day one (article 7) because the module includes it by default. The cost of the alert is one extra resource in the plan; the cost of not having it is a phone call from finance.
+
+**2. The "who has my keys" panic.** A contractor leaves. They had a copy of the OpenAI key they prototyped with. The console-clicked stack scatters that key in `.env` files on three ECS instances and a DingTalk DM. Rotating it is a half-day of `grep -r OPENAI_API_KEY ~/projects` and praying. The Terraform stack puts every key in KMS Secrets Manager (article 6), behind a RAM role, with one canonical location — rotation is `terraform apply` after editing `secrets.auto.tfvars`.
+
+**3. The phantom NAT charge.** Agents are chatty; LLM calls are the chattiest. A misconfigured route makes them go through a public NAT in the wrong region and your egress bill triples. The console doesn't tell you this — it just shows the line item next month. The Terraform `alicloud_nat_gateway` is in the same module as the `alicloud_vswitch` it serves, so the dependency is visible at plan time. Article 3 makes this the default.
+
+**4. The "what region is prod in?" question.** Aliyun has 30+ regions. An engineer who joined two months ago, debugging an outage, doesn't know whether the prod RDS is in `cn-shanghai` or `cn-beijing` and has to grep through DingTalk history. The Terraform answer is `terraform output rds_endpoint`. Resolved in five seconds, traceable forever.
+
+**5. The "we lost the LLM gateway config" weekend.** The gateway routes models, holds quotas, logs traffic. It's two ECS instances that someone configured by SSH-ing in and editing `/etc/litellm/config.yaml`. Server reboots wipe `/etc/litellm`. The Terraform version puts the config in cloud-init (article 6) — every instance comes up with the same config, no manual step.
+
+None of these failure modes are exotic. Each has happened to a project I've worked on. Each is *prevented*, not just *recovered from*, by the IaC pattern. That's the actual case for Terraform on an agent stack — not abstract reproducibility, but a concrete list of disasters that don't occur.
+
 ## Terraform vs Pulumi vs Crossplane vs ROS
 
-Before you commit, a quick look at the alternatives. None are wrong; pick on team fit, not religion:
+Granting the case for IaC, why Terraform specifically? A quick look at the alternatives. None are wrong; pick on team fit, not religion:
 
 ![IaC tools compared](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/fig3_iac_tools_compare.png)
 
@@ -144,7 +203,7 @@ My honest read after using all four:
 - **Crossplane** lives in Kubernetes — every cloud resource becomes a CRD, and you `kubectl apply` your way to a VPC. Beautiful if you're already a pure-Kubernetes shop with GitOps, painful if you aren't.
 - **ROS** (Resource Orchestration Service) is Aliyun's native equivalent. Deeply integrated with the console, JSON or YAML templates, no provider plug-in to install. Pick this only if you're 100% on Aliyun forever and the ops team prefers a managed service.
 
-The official Aliyun docs have a fair comparison in their FAQ:
+The Aliyun docs themselves are fair on the comparison:
 
 > Both [Terraform and ROS] are declarative IaC tools. Terraform is an open source, third-party tool that supports multi-cloud management. ROS is a native Alibaba Cloud service deeply integrated with the Alibaba Cloud Management Console. Choose Terraform if you need multi-cloud support or already use Terraform elsewhere.
 
@@ -171,53 +230,4 @@ Article 2 is the first hands-on: installing the alicloud provider, picking your 
 
 If you only do one thing today, install Terraform (`brew install terraform` on macOS, or follow the official `Install Terraform` topic) and run `terraform version` to confirm. The rest of the series assumes you have it.
 
-> **Real-world tip:** Pin the alicloud provider version in `required_providers` from day one. The provider is actively developed and breaking changes between minor versions are rare but not zero. A pinned version means your Friday `terraform plan` returns the same result on Monday.
-
-## State as the agent stack's bill of materials
-
-![Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/01-why-terraform-for-agents/illustration_2.jpg)
-
-Every agent stack I've shipped has at some point been audited — by a security review, by finance reconciling cloud spend, by a new SRE trying to figure out what's actually running. In every case the question is the same: *what exists, who created it, and what is it costing me?*
-
-If your infra lives in a Terraform state file, that question takes 30 seconds to answer:
-
-```bash
-terraform state list | wc -l                            # how many resources
-terraform state list | awk -F. '{print $1"."$2}' | sort -u   # what kinds
-terraform show -json | jq '[.values.root_module.resources[] | {addr:.address, type:.type}]'
-```
-
-For the four agent stacks I run today, those three commands produce a comprehensive inventory in seconds. Before Terraform, the same audit involved opening twelve console tabs across ECS, VPC, RDS, OSS, RAM, KMS, SLS, ARMS, ACK, CloudMonitor, ALB, and OpenSearch — each one filtered by tag if I was lucky and by gut feeling if I wasn't.
-
-The state file is also a *bill of materials* in the supply-chain sense. Each resource carries its provider version, the module source, and (in newer Terraform) a content hash. When CVE-2025-XXXXX drops on the alicloud provider, you grep the state across all your projects in minutes:
-
-```bash
-for d in stack-*/; do
-  cd $d
-  terraform providers schema -json 2>/dev/null | jq -r '.provider_schemas | keys[]' \
-    | grep -F 'aliyun/alicloud' && echo "  in $d"
-  cd ..
-done
-```
-
-This isn't a hypothetical. The `alicloud` provider ships breaking and security-relevant changes a couple of times a year. Without an inventory, you don't know which of your stacks are exposed. With Terraform, you grep.
-
-There's a deeper point here. **State turns infrastructure into data.** Once it's data, you can write tooling against it. I have a small Python script that walks every state file across every project and produces a single CSV: `(stack, resource_type, resource_id, region, monthly_cost_estimate)`. That CSV gets read by my monthly cost meeting. None of it would exist without the state file as a uniform structured source of truth.
-
-The flip side is that the state file is precious. Lose it and the universe of resources becomes invisible to Terraform — you'll get wholesale "resource already exists" errors on the next plan. Article 2 is entirely about putting the state somewhere that won't disappear, and the rest of this series assumes it.
-
-## The agent-specific failure modes IaC actually prevents
-
-Generic IaC pitches focus on "consistency" and "reproducibility". Those matter, but they undersell what Terraform buys for an *agent* stack specifically. After three years of running these systems, the failure modes that have hurt me most are agent-shaped:
-
-**1. The 3am token leak.** An agent loops on itself — bad stop condition, infinite tool retry, hallucinated planner state — and burns ¥40,000 of LLM budget overnight. The console-clicked stack has no programmatic budget guard because nobody wrote one. The Terraform stack has `alicloud_log_alert` provisioned from day one (article 7) because the module includes it by default. The cost of the alert is one extra resource in the plan; the cost of not having it is a phone call from finance.
-
-**2. The "who has my keys" panic.** A contractor leaves. They had a copy of the OpenAI key they prototyped with. The console-clicked stack scatters that key in `.env` files on three EC2 instances and a Slack DM. Rotating it is a half-day of `grep -r OPENAI_API_KEY ~/projects` and praying. The Terraform stack puts every key in KMS Secrets Manager (article 6), behind a RAM role, with one canonical location — rotation is `terraform apply` after editing `secrets.auto.tfvars`.
-
-**3. The phantom NAT charge.** Agents are chatty; LLM calls are the chattiest. A misconfigured route makes them go through a public NAT in the wrong region and your egress bill triples. The console doesn't tell you this — it just shows the line item next month. The Terraform `alicloud_nat_gateway` is in the same module as the `alicloud_vswitch` it serves, so the dependency is visible at plan time. Article 3 makes this the default.
-
-**4. The "what region is prod in?" question.** Aliyun has 30+ regions. An engineer who joined two months ago, debugging an outage, doesn't know whether the prod RDS is in `cn-shanghai` or `cn-beijing` and has to grep through DingTalk history. The Terraform answer is `terraform output rds_endpoint`. Resolved in five seconds, traceable forever.
-
-**5. The "we lost the LLM gateway config" weekend.** The gateway routes models, holds quotas, logs traffic. It's two ECS instances that someone configured by SSH-ing in and editing `/etc/litellm/config.yaml`. Server reboots wipe `/etc/litellm`. The Terraform version puts the config in cloud-init (article 6) — every instance comes up with the same config, no manual step.
-
-None of these failure modes are exotic. Each has happened to a project I've worked on. Each is *prevented*, not just *recovered from*, by the IaC pattern. That's the actual case for Terraform on an agent stack — not abstract reproducibility, but a concrete list of disasters that don't occur.
+> **Real-world tip:** Pin the alicloud provider version in `required_providers` from day one, and pin Terraform itself with `required_version`. The provider is actively developed and breaking changes between minor versions are rare but not zero. A pinned version means your Friday `terraform plan` returns the same result on Monday.

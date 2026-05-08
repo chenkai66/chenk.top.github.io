@@ -19,11 +19,9 @@ disableNunjucks: true
 translationKey: "terraform-agents-7"
 ---
 
-Agents are non-deterministic, multi-step, and call expensive APIs. The combination means you cannot debug them after the fact unless you instrumented them on day one. This article wires three pipelines through Terraform — logs, traces, metrics — into a unified dashboard, then layers four alarms that have actually fired and saved my projects in production.
+Agents are non-deterministic, multi-step, and call expensive APIs. The combination means you cannot debug them after the fact unless you instrumented them on day one. This article wires three pipelines through Terraform — logs, traces, metrics — into a unified dashboard, layers six SLS queries that solve real incidents, and provisions four alarms that have actually fired and saved my projects in production.
 
-By the end you have one DingTalk channel that pings before the bill explodes, the latency dies, the error rate spikes, or some agent starts looping on itself.
-
-![Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/illustration_1.jpg)
+By the end you have one DingTalk channel that pings before the bill explodes, the latency dies, the error rate spikes, or some agent starts looping on itself — plus the SLO budgets that turn ops feel into ops data.
 
 ## The three pipelines
 
@@ -41,6 +39,8 @@ Don't pick "just logs" or "just metrics". You need all three:
 - Traces answer "where did the time go?"
 - Metrics answer "is this happening more often than usual?"
 
+The cheapest mistake here is shipping with only `print()` to stdout. The most expensive is shipping with all three but never opening the dashboard until the first incident — at which point you discover your `agent` field is sometimes `null` because the SDK didn't propagate context. Wire it on day one, then poke it weekly so you know it works.
+
 ## Step 1: SLS project and logstores
 
 Everything observability-related starts with one SLS project. One per environment is right; one per agent is too granular.
@@ -57,10 +57,10 @@ resource "alicloud_log_project" "agents" {
 
 locals {
   logstores = {
-    "agent-runs"        = { ttl = 30, shard_count = 4 }
-    "gateway-requests"  = { ttl = 90, shard_count = 4 }
-    "ecs-syslog"        = { ttl = 14, shard_count = 2 }
-    "ack-cluster"       = { ttl = 30, shard_count = 4 }
+    "agent-runs"        = { ttl = 30,  shard_count = 4 }
+    "gateway-requests"  = { ttl = 90,  shard_count = 4 }
+    "ecs-syslog"        = { ttl = 14,  shard_count = 2 }
+    "ack-cluster"       = { ttl = 30,  shard_count = 4 }
     "audit"             = { ttl = 365, shard_count = 2 }
   }
 }
@@ -95,7 +95,7 @@ Five logstores cover the practical needs:
 - `ack-cluster` — Kubernetes events and pod logs (only if using ACK)
 - `audit` — every change Terraform makes, retained for a year for compliance
 
-The `audit` store has a year retention because it's small and you need it years later when "who changed the prod ALB on March 12" comes up.
+The `audit` store has a year retention because it's small and you need it years later when "who changed the prod ALB on March 12" comes up. The 90-day window on `gateway-requests` is the one I tune most often — short enough to keep storage under ¥30/mo at 5 GB/day, long enough to do quarter-over-quarter cost trending without a Hive job.
 
 ## Step 2: ship logs from ECS
 
@@ -152,7 +152,7 @@ resource "alicloud_logtail_attachment" "agent" {
 }
 ```
 
-Now any file matching `/var/log/agents/*.log` on any tagged machine flows into SLS as JSON, queryable by every field. The agent code just does `logger.info(json.dumps({...}))` and the rest is automatic.
+Now any file matching `/var/log/agents/*.log` on any tagged machine flows into SLS as JSON, queryable by every field. The agent code just does `logger.info(json.dumps({...}))` and the rest is automatic. The trick is being disciplined about the schema — settle on `ts`, `agent`, `session_id`, `step`, `phase`, `tokens`, `latency_ms`, `cost_cny`, `status`, `error_message` early, document it, and reject PRs that emit ad-hoc fields. Every undocumented field is a query you can't write at 3am.
 
 ## Step 3: traces via OpenTelemetry → ARMS
 
@@ -194,7 +194,7 @@ with tracer.start_as_current_span("research_loop") as span:
 
 The two env vars come from ARMS — `ARMS_OTLP_ENDPOINT` is in the ARMS console, `ARMS_LICENSE_KEY` from your account. Wire both via Terraform outputs into the cloud-init template.
 
-The reward: in ARMS you can see "this agent run took 12s; 9s of it was the third LLM call to qwen-max." That's the kind of visibility that actually changes how you build agents.
+The reward: in ARMS you can see "this agent run took 12s; 9s of it was the third LLM call to qwen-max." That's the kind of visibility that actually changes how you build agents. The first time I saw a span tree from a real production session I rewrote the planner to skip retrieval when the user message was short — saved ~30% on p95 the same week.
 
 ## Step 4: metrics with CloudMonitor
 
@@ -205,11 +205,9 @@ wget http://cms-agent-cn-shanghai.oss-cn-shanghai.aliyuncs.com/release/cms_go_ag
 chmod +x cms_go_agent_install.sh && ./cms_go_agent_install.sh
 ```
 
-For custom application metrics — "tokens consumed by research-agent" — emit them as SLS log entries with structured fields, then alert via SLS query. SLS-as-metrics is the pattern Aliyun pushes; CloudMonitor custom metrics work too but are clunkier to wire from Terraform.
+For custom application metrics — "tokens consumed by research-agent" — emit them as SLS log entries with structured fields, then alert via SLS query. SLS-as-metrics is the pattern Aliyun pushes; CloudMonitor custom metrics work too but are clunkier to wire from Terraform, and you end up splitting your alerts across two consoles. Pick one. I pick SLS for everything except host CPU/memory/disk.
 
 ## Step 5: the cost dashboard
-
-![Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/illustration_2.jpg)
 
 Here's where it gets interesting. Every LLM request hits the gateway, and the gateway logs one row per request to `gateway-requests` with fields like:
 
@@ -272,11 +270,135 @@ Open the SLS console and you have a live dashboard:
 
 ![Stacked daily cost by category](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig2_cost_dashboard.png)
 
-The dashboard is the answer to "which agent is burning my budget?" — a question you will be asked monthly.
+The dashboard is the answer to "which agent is burning my budget?" — a question you will be asked monthly, usually by someone who doesn't know what an agent is.
+
+## Six SLS queries that earn their keep
+
+A dashboard answers the long-running questions. Incidents need ad-hoc ones. After two years of agent ops, I have ~12 SLS queries pinned in a personal notes file. Six are worth sharing because they generalise across stacks.
+
+### Query 1: top offending agents in the last hour
+
+```sql
+* | SELECT agent,
+           COUNT(*) AS calls,
+           SUM(input_tokens + output_tokens) AS tokens,
+           SUM(cost_cny) AS cost,
+           AVG(latency_ms) AS avg_ms,
+           approx_percentile(latency_ms, 0.95) AS p95_ms
+    FROM log
+    WHERE __time__ > now() - INTERVAL '1' HOUR
+    GROUP BY agent
+    ORDER BY cost DESC
+    LIMIT 20
+```
+
+My "who is doing the most" quick board. Run it on the cost-spike alarm and the offender is usually visible in two seconds.
+
+### Query 2: error trace by status code
+
+```sql
+status >= 400 |
+  SELECT date_trunc('minute', __time__) AS minute,
+         status,
+         model,
+         COUNT(*) AS errors,
+         arbitrary(error_message) AS sample_msg
+  FROM log
+  WHERE __time__ > now() - INTERVAL '30' MINUTE
+  GROUP BY minute, status, model
+  ORDER BY minute DESC, errors DESC
+```
+
+Distinguishes between "DashScope is throwing 500s" and "agents are sending bad requests" within seconds. The `arbitrary(error_message)` plucks one example so you don't have to drill in.
+
+### Query 3: token-per-step distribution to find runaway loops
+
+```sql
+* | SELECT session_id,
+           agent,
+           COUNT(*) AS step_count,
+           SUM(input_tokens + output_tokens) AS total_tokens,
+           MAX(step_index) AS final_step
+    FROM log
+    WHERE __time__ > now() - INTERVAL '1' HOUR
+    GROUP BY session_id, agent
+    HAVING step_count > 50 OR total_tokens > 500000
+    ORDER BY total_tokens DESC
+```
+
+Sessions with > 50 steps or > 500k tokens are usually loops. The runaway alarm fires; this query identifies the specific session ID. SSH to the box and `kill -9` the offender, then post-mortem in calm.
+
+### Query 4: latency breakdown by phase
+
+If your agent emits structured timing per phase (planning, retrieval, LLM call, tool exec, reflection):
+
+```sql
+* | SELECT phase,
+           agent,
+           approx_percentile(phase_ms, 0.5) AS p50,
+           approx_percentile(phase_ms, 0.95) AS p95,
+           approx_percentile(phase_ms, 0.99) AS p99,
+           COUNT(*) AS samples
+    FROM log
+    WHERE __time__ > now() - INTERVAL '1' HOUR
+      AND phase IS NOT NULL
+    GROUP BY phase, agent
+    ORDER BY p95 DESC
+```
+
+My "where did the time go" board. Catches when a tool starts taking 3x longer (usually because the upstream API got slower), or when retrieval starts dominating because the vector index needs reindexing.
+
+### Query 5: cost-per-session leaderboard
+
+```sql
+* | SELECT session_id,
+           agent,
+           MIN(__time__) AS started,
+           MAX(__time__) AS ended,
+           SUM(cost_cny) AS session_cost
+    FROM log
+    WHERE __time__ > now() - INTERVAL '24' HOUR
+    GROUP BY session_id, agent
+    HAVING session_cost > 5
+    ORDER BY session_cost DESC
+    LIMIT 50
+```
+
+The "expensive sessions" board. ¥5 per session is a useful threshold — anything above means either a long conversation (legitimate) or a buggy loop (not). Inspect the top 10 weekly to catch patterns before they become tomorrow's incident.
+
+### Query 6: drop-off funnel for multi-step agents
+
+```sql
+* | SELECT phase,
+           COUNT(DISTINCT session_id) AS sessions,
+           COUNT(DISTINCT session_id) * 100.0 /
+             FIRST_VALUE(COUNT(DISTINCT session_id)) OVER (ORDER BY phase) AS pct_of_start
+    FROM log
+    WHERE __time__ > now() - INTERVAL '24' HOUR
+    GROUP BY phase
+    ORDER BY phase
+```
+
+For an agent with phases like `start → plan → tool_call → reflect → answer`, this shows how many sessions reach each phase. A sudden drop-off at `tool_call` means the tool is failing for many users — different from "the LLM is broken" or "the planner is dumb".
+
+Save these as SLS Saved Queries via `alicloud_log_savedsearch` so they're discoverable from the console search bar:
+
+```hcl
+resource "alicloud_log_savedsearch" "top_offenders" {
+  project_name      = alicloud_log_project.agents.name
+  saved_search_name = "top_offending_agents_1h"
+  search_query      = "* | SELECT agent, COUNT(*) AS calls, SUM(cost_cny) AS cost FROM log WHERE __time__ > now() - INTERVAL '1' HOUR GROUP BY agent ORDER BY cost DESC LIMIT 20"
+  logstore          = alicloud_log_store.this["gateway-requests"].name
+  display_name      = "Top offending agents (1h)"
+  topic             = "incident-response"
+}
+```
+
+Your future self at 3am will thank you. Repeat for the other five — it's a one-evening Terraform exercise that pays back the first time you're paged.
 
 ## Step 6: the four alarms
 
-Four alarms have earned their keep across multiple agent stacks I've shipped:
+Queries answer the *what*. Alarms surface the *when*. Four alarms have earned their keep across multiple agent stacks I've shipped:
 
 ![Four alerts you should provision on day one](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig3_alert_rules.png)
 
@@ -315,7 +437,7 @@ resource "alicloud_log_alert" "cost_ceiling" {
 }
 ```
 
-This fires once per 30 minutes if the day's LLM spend so far is above ¥800. Tune the threshold to your real budget. The throttling matters — without it, the alert fires every 5 minutes and the team mutes the channel.
+Fires once per 30 minutes if the day's LLM spend so far is above ¥800. Tune the threshold to your real budget. The throttling matters — without it, the alert fires every 5 minutes and the team mutes the channel within a week.
 
 ### Alarm 2: latency
 
@@ -350,7 +472,7 @@ resource "alicloud_log_alert" "latency" {
 
 ### Alarm 3: error rate
 
-Same shape, query is `SUM(IF(status >= 500, 1, 0)) * 1.0 / COUNT(*) AS err_ratio`, condition `err_ratio > 0.02`. Throttling is shorter (5 minutes) because errors are usually a real ongoing event.
+Same shape, query is `SUM(IF(status >= 500, 1, 0)) * 1.0 / COUNT(*) AS err_ratio`, condition `err_ratio > 0.02`. Throttling is shorter (5 minutes) because errors are usually a real ongoing event, not a transient blip. If 2% of requests are 5xx and that holds for five minutes, you have an incident, not a glitch.
 
 ### Alarm 4: token leak (runaway loop)
 
@@ -389,159 +511,13 @@ resource "alicloud_log_alert" "token_spike" {
 }
 ```
 
-This is the one that has paid for itself. An agent with a buggy stop condition can burn ¥10,000 in tokens overnight; this alert catches it within 2 minutes and gives you time to kill the offender.
-
-## Why DingTalk?
-
-In China, DingTalk is the team-chat default for most engineering orgs. SLS supports DingTalk webhooks natively. You can also fan out to email, SMS, and (via webhook) Slack/Teams/Lark. Pick whatever your team checks at 2am.
-
-## What about ARMS-side alerts?
-
-ARMS has its own alerting — useful for trace-level conditions ("any trace with > 30 spans"). For the four alarms above, SLS-side is enough and avoids splitting your alerting story across two systems. Use ARMS alerts only when SLS can't express what you need.
-
-## What it costs
-
-Observability has a real cost — usually 10-15% of the rest of your bill:
-
-- SLS: ~¥0.35/GB ingested + ¥0.15/GB stored. A medium-traffic agent stack ingests ~5 GB/day → ¥50/mo for ingest, ¥20/mo for 30-day retention
-- ARMS APM: ~¥600/mo for 1 environment with up to 100M spans
-- CloudMonitor: free for standard metrics, ¥0.005 per custom metric per day
-
-Budget ¥1000-1500/mo for full observability on a real production agent stack. Cheap compared to one missed cost-runaway alarm.
-
-## What's next
-
-Article 8 is the end-to-end walkthrough. We compose every module from articles 2-7 — vpc-baseline, compute, storage, gateway, observability — into one `research-agent-stack` project and watch it come up with a single `terraform apply`. Real apply output, real timing, the full module DAG. The starter repo at the end is yours to fork.
-
-## SLS query patterns I reach for in incident response
-
-The four alarms tell you *something is wrong*. The next 10 minutes are spent in the SLS query box answering *what specifically*. After two years of agent ops, I have ~12 queries pinned in a personal notes file. Six are worth sharing because they generalise.
-
-### Query 1: top offending agents in the last hour
-
-```sql
-* | SELECT agent,
-           COUNT(*) AS calls,
-           SUM(input_tokens + output_tokens) AS tokens,
-           SUM(cost_cny) AS cost,
-           AVG(latency_ms) AS avg_ms,
-           approx_percentile(latency_ms, 0.95) AS p95_ms
-    FROM log
-    WHERE __time__ > now() - INTERVAL '1' HOUR
-    GROUP BY agent
-    ORDER BY cost DESC
-    LIMIT 20
-```
-
-This is my "who is doing the most" quick board. Run it on the cost-spike alarm and the offender is usually visible in two seconds.
-
-### Query 2: error trace by status code
-
-```sql
-status >= 400 |
-  SELECT date_trunc('minute', __time__) AS minute,
-         status,
-         model,
-         COUNT(*) AS errors,
-         arbitrary(error_message) AS sample_msg
-  FROM log
-  WHERE __time__ > now() - INTERVAL '30' MINUTE
-  GROUP BY minute, status, model
-  ORDER BY minute DESC, errors DESC
-```
-
-Distinguishes between "DashScope is throwing 500s" and "agents are sending bad requests" within seconds. The `arbitrary(error_message)` plucks one example so you don't have to drill in.
-
-### Query 3: token-per-step distribution to find runaway loops
-
-```sql
-* | SELECT session_id,
-           agent,
-           COUNT(*) AS step_count,
-           SUM(input_tokens + output_tokens) AS total_tokens,
-           MAX(step_index) AS final_step
-    FROM log
-    WHERE __time__ > now() - INTERVAL '1' HOUR
-    GROUP BY session_id, agent
-    HAVING step_count > 50 OR total_tokens > 500000
-    ORDER BY total_tokens DESC
-```
-
-Sessions with > 50 steps or > 500k tokens are usually loops. The runaway alarm fires; this query identifies the specific session ID. SSH to the box and `kill -9` the offender, then post-mortem.
-
-### Query 4: latency breakdown by phase
-
-If your agent emits structured timing per phase (planning, retrieval, LLM call, tool exec, reflection):
-
-```sql
-* | SELECT phase,
-           agent,
-           approx_percentile(phase_ms, 0.5) AS p50,
-           approx_percentile(phase_ms, 0.95) AS p95,
-           approx_percentile(phase_ms, 0.99) AS p99,
-           COUNT(*) AS samples
-    FROM log
-    WHERE __time__ > now() - INTERVAL '1' HOUR
-      AND phase IS NOT NULL
-    GROUP BY phase, agent
-    ORDER BY p95 DESC
-```
-
-This is my "where did the time go" board. Catches when a tool starts taking 3x longer (usually because the upstream API got slower), or when retrieval starts dominating because the vector index needs reindexing.
-
-### Query 5: cost-per-session leaderboard
-
-```sql
-* | SELECT session_id,
-           agent,
-           MIN(__time__) AS started,
-           MAX(__time__) AS ended,
-           SUM(cost_cny) AS session_cost
-    FROM log
-    WHERE __time__ > now() - INTERVAL '24' HOUR
-    GROUP BY session_id, agent
-    HAVING session_cost > 5
-    ORDER BY session_cost DESC
-    LIMIT 50
-```
-
-The "expensive sessions" board. ¥5 per session is a useful threshold — anything above means either a long conversation (legitimate) or a buggy loop (not). Inspect the top 10 weekly to catch patterns before they become tomorrow's incident.
-
-### Query 6: drop-off funnel for multi-step agents
-
-```sql
-* | SELECT phase,
-           COUNT(DISTINCT session_id) AS sessions,
-           COUNT(DISTINCT session_id) * 100.0 /
-             FIRST_VALUE(COUNT(DISTINCT session_id)) OVER (ORDER BY phase) AS pct_of_start
-    FROM log
-    WHERE __time__ > now() - INTERVAL '24' HOUR
-    GROUP BY phase
-    ORDER BY phase
-```
-
-For an agent with phases like `start → plan → tool_call → reflect → answer`, this shows how many sessions reach each phase. A sudden drop-off at `tool_call` means the tool is failing for many users — different from "the LLM is broken" or "the planner is dumb".
-
-Save these as SLS Saved Queries via `alicloud_log_savedsearch`:
-
-```hcl
-resource "alicloud_log_savedsearch" "top_offenders" {
-  project_name      = alicloud_log_project.agents.name
-  saved_search_name = "top_offending_agents_1h"
-  search_query      = "* | SELECT agent, COUNT(*) AS calls, SUM(cost_cny) AS cost FROM log WHERE __time__ > now() - INTERVAL '1' HOUR GROUP BY agent ORDER BY cost DESC LIMIT 20"
-  logstore          = alicloud_log_store.this["gateway-requests"].name
-  display_name      = "Top offending agents (1h)"
-  topic             = "incident-response"
-}
-```
-
-Now they're discoverable from the SLS console search bar — your future self at 3am will thank you.
+This is the one that has paid for itself, twice. An agent with a buggy stop condition can burn ¥10,000 in tokens overnight; this alert catches it within 2 minutes and gives you time to kill the offender. The first time it fired on a real prod stack of mine, it saved roughly ¥6,400 — a malformed JSON tool response was sending the planner back to step 1 forever.
 
 ## Alarm fatigue: the rules I follow to keep the channel signal-rich
 
-The four alarms in the article are the right *types*. They become noise quickly if you don't tune them. Three rules that have kept my DingTalk channel useful:
+The four alarms above are the right *types*. They become noise quickly if you don't tune them. Three rules have kept my DingTalk channel useful for years.
 
-### Rule 1: throttle + de-dupe always
+### Rule 1: throttle and de-dupe, always
 
 Every alarm gets `throttling = "30m"` minimum. Without throttling, a sustained 1-hour issue produces 12 messages. Engineers mute the channel. The alarm stops working.
 
@@ -590,13 +566,14 @@ resource "alicloud_log_alert" "this" {
 }
 ```
 
-Now the cost-runaway alarm pages me; the latency p95 alarm waits until I look at it Monday.
+Now the cost-runaway alarm pages me; the latency p95 alarm waits until I look at it Monday. Different webhooks per severity is the cheapest way to get this right — cheaper than building a router service.
 
 ### Rule 3: every alarm has a runbook URL
 
 The DingTalk message includes a link to a wiki page that documents:
+
 1. What this alarm means
-2. The first three diagnostic queries to run (from the section above)
+2. The first three diagnostic queries to run (from the six above)
 3. Common causes
 4. The escalation contact if it's not fixable in 30 min
 
@@ -612,17 +589,17 @@ content = <<-MSG
 MSG
 ```
 
-The runbook URL turns "why is this paging me" into "I know what to do". Cuts mean-time-to-resolution roughly in half. Maintain runbooks like code — review them when alarms change.
+The runbook URL turns "why is this paging me" into "I know what to do". Cuts mean-time-to-resolution roughly in half. Maintain runbooks like code — review them when alarms change, prune stale ones quarterly.
 
 ## SLOs as the meta-layer above alarms
 
-Alarms catch *now*. SLOs (Service Level Objectives) catch *trends*. Track three:
+Alarms catch *now*. SLOs (Service Level Objectives) catch *trends*. I track three for any agent in production:
 
 1. **Availability**: % of agent requests that returned a non-5xx within 30s. Target: 99.5% rolling 30 days.
 2. **Latency**: p95 end-to-end agent response time. Target: under 6 seconds.
 3. **Cost-per-session**: median ¥-per-session. Target: under ¥0.30 for the support agent, under ¥1.50 for the research agent.
 
-Each SLO has a *budget* (the slack you have before missing it). When the budget is at 70%+ for the month, you're shipping freely. When it drops to 30%, you stop shipping new agent features and focus on stability. Below 0%, you've missed the SLO — that's a quarterly review item.
+Each SLO has a *budget* — the slack you have before missing it. When the budget is at 70%+ for the month, you're shipping freely. When it drops to 30%, you stop shipping new agent features and focus on stability. Below 0%, you've missed the SLO — that's a quarterly review item, not a "fix it tomorrow".
 
 Provision SLO tracking as another SLS dashboard:
 
@@ -646,4 +623,24 @@ resource "alicloud_log_dashboard" "slo" {
 }
 ```
 
-Look at this dashboard weekly in the team standup. It's the single best tool I know for converting "we're vaguely okay" into "we're 65% through this month's error budget — let's prioritise the retry logic fix." Turns ops feel into ops data.
+Look at this dashboard weekly in the team standup. It's the single best tool I know for converting "we're vaguely okay" into "we're 65% through this month's error budget — let's prioritise the retry logic fix." Turns ops feel into ops data, which is the difference between an engineering team and a panic team.
+
+## Routing choices: DingTalk and ARMS-side alerts
+
+In China, DingTalk is the team-chat default for most engineering orgs and SLS supports DingTalk webhooks natively. You can also fan out to email, SMS, and (via webhook) Slack/Teams/Lark. Pick whatever your team checks at 2am — that's the only criterion that matters.
+
+ARMS has its own alerting too, useful for trace-level conditions ("any trace with > 30 spans" or "spans where `llm.model = qwen-max` and duration > 5s"). For the four alarms above, SLS-side is enough and avoids splitting your alerting story across two consoles. Use ARMS alerts only when SLS can't express what you need — usually that means span-tree shape conditions you can't reduce to a flat log query.
+
+## What it costs
+
+Observability has a real cost — usually 10-15% of the rest of your bill:
+
+- **SLS**: ~¥0.35/GB ingested + ¥0.15/GB stored. A medium-traffic agent stack ingests ~5 GB/day → ¥50/mo for ingest, ¥20/mo for 30-day retention
+- **ARMS APM**: ~¥600/mo for 1 environment with up to 100M spans
+- **CloudMonitor**: free for standard metrics, ¥0.005 per custom metric per day
+
+Budget ¥1000-1500/mo for full observability on a real production agent stack. Cheap compared to one missed cost-runaway alarm — the token-leak alert alone has paid for two years of SLS in my projects.
+
+## What's next
+
+Article 8 is the end-to-end walkthrough. We compose every module from articles 2-7 — vpc-baseline, compute, storage, gateway, observability — into one `research-agent-stack` project and watch it come up with a single `terraform apply`. Real apply output, real timing, the full module DAG. The starter repo at the end is yours to fork.
