@@ -152,7 +152,7 @@ Notice the skill is essentially a recipe, not a function. The model is the runti
 
 ## Step 4: A composing skill
 
-![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_2.jpg)
+![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_2.png)
 
 Now a skill that uses both:
 

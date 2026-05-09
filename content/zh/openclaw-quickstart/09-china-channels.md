@@ -278,7 +278,7 @@ channels:
 
 另外，WorkBuddy 目前还在内测阶段，功能和稳定性都不如钉钉和企微的适配器成熟。如果你只是需要一个本地调试工具，考虑直接用 OpenClaw 的 CLI 模式（`openclaw dev --interactive`）可能更省事。
 
-![渠道切换与会话迁移示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_2.jpg)
+![渠道切换与会话迁移示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_2.png)
 
 ## 渠道迁移：不丢历史记录
 

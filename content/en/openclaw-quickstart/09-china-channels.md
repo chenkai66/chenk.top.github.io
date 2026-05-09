@@ -73,7 +73,7 @@ In practice I land on one of two stacks:
 
 ## DingTalk — the path that always works
 
-![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_2.jpg)
+![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_2.png)
 
 Stream mode (long-poll) is the only reason DingTalk is fast to ship. No public IP, no domain verification, just register a bot and grab two values:
 

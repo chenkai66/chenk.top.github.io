@@ -322,7 +322,7 @@ openclaw cron delete --name "daily-brief"
 
 三个组件各司其职，不重叠、不遗漏。
 
-![全天工作流时间线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.jpg)
+![全天工作流时间线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.png)
 
 ## Cron 调试指南
 

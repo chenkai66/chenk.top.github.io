@@ -79,7 +79,7 @@ OpenClaw is the most polished way to live in that cell that I have found in 2026
 
 ## Three things it earns its keep on
 
-![OpenClaw QuickStart (1): What This Thing Actually Is — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_2.jpg)
+![OpenClaw QuickStart (1): What This Thing Actually Is — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_2.png)
 
 I want to be honest about the things a wrapper would *not* solve and OpenClaw does.
 

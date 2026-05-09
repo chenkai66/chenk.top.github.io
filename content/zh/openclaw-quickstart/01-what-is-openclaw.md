@@ -239,7 +239,7 @@ OpenClaw 的 Memory Store 是分区的，每个区域有明确的语义：
 
 而且你可以直接编辑 Memory 文件（它就是 Markdown），这比对着 ChatGPT 说"请记住我叫张三"然后祈祷它真的记住了要可靠得多。
 
-![Skill 和 Memory 的协作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/01-what-is-openclaw/illustration_2.jpg)
+![Skill 和 Memory 的协作流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/01-what-is-openclaw/illustration_2.png)
 
 ---
 

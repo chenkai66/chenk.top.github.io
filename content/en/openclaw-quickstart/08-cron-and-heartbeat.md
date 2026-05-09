@@ -232,7 +232,7 @@ The `1-5` means weekdays only. The memory write means tomorrow's brief can refer
 
 ## The 3am anti-pattern
 
-![OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.jpg)
+![OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_2.png)
 
 The mistake that wakes you up: setting `target: "all"` on a Heartbeat without `activeHours`, then writing a HEARTBEAT.md that doesn't reply `HEARTBEAT_OK` when nothing's wrong.
 

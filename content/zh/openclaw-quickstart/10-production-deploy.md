@@ -314,7 +314,7 @@ agent:
 
 成本大概 5000 token，一周跑一次完全可以接受。
 
-![故障排查流程图](/posts/zh/openclaw-quickstart/10-production-deploy/illustration_2.jpg)
+![故障排查流程图](/posts/zh/openclaw-quickstart/10-production-deploy/illustration_2.png)
 
 ## 升级路径
 

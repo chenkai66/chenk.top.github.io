@@ -118,7 +118,7 @@ After restart, in your DingTalk group, mention your bot: `@Lobster how are you`.
 
 ## WeChat — the honest version
 
-![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_2.jpg)
+![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_2.png)
 
 There are three paths and only one of them is sane.
 

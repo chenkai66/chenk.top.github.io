@@ -143,7 +143,7 @@ The gateway is a long-running process. In the next pieces we attach channels and
 
 ## TUI: talk to it from your terminal
 
-![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_2.jpg)
+![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_2.png)
 
 Open a second terminal and run:
 

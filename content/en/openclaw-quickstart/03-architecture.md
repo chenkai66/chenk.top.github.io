@@ -57,7 +57,7 @@ If you have ever seen "the agent confused two of my conversations", that is a se
 
 ## Pi Agent — the loop
 
-![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/illustration_2.jpg)
+![OpenClaw QuickStart (3): The Six Layers That Make the Agent Loop Work — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/illustration_2.png)
 
 This is the actual agent loop. It is the bit that looks like:
 

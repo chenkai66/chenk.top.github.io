@@ -61,7 +61,7 @@ translationKey: "openclaw-quickstart-3"
 
 ## Pi Agent — 智能体循环
 
-![OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_2.jpg)
+![OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_2.png)
 
 这是真正的智能体循环。核心逻辑长这样：
 

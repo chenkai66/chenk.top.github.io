@@ -182,7 +182,7 @@ channels:
 
 如果需要 7x24 运行，建议在一台始终开机的工作站上部署 WorkBuddy。
 
-![多渠道架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_2.jpg)
+![多渠道架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_2.png)
 
 ---
 

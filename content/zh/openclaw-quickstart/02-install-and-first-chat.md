@@ -381,7 +381,7 @@ http://localhost:18790
 
 日常使用 TUI 就够了。Dashboard 在调试复杂问题、给别人演示、或者你想看完整的工具调用时间线时比较有用。
 
-![Web Dashboard 界面](/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_2.jpg)
+![Web Dashboard 界面](/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_2.png)
 
 ## 安装后的目录结构
 

@@ -227,7 +227,7 @@ skill 级别 `model_override` 让不同任务选最合适的模型：
 - `require_confirmation`：有副作用的操作放这里，执行前等人工确认。
 - `network_allowlist`：国内 `*.aliyuncs.com` + `registry.npmmirror.com` 够日常开发。
 
-![安全配置与模型路由的关系](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_2.jpg)
+![安全配置与模型路由的关系](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_2.png)
 
 ## channels 部分（预告）
 
