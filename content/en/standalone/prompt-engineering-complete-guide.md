@@ -344,7 +344,7 @@ Requirements:
 {format_test_cases(tests) if tests else ''}
 
 Provide complete, runnable code:
-```{language}
+    ```{language}
 """
     code = extract_code_block(llm_call(prompt, temperature=0.3))
     if tests:

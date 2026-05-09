@@ -102,7 +102,7 @@ CSR breaks even with dense storage at about 67% density (8 / (8+4)). Below ~10% 
 
 ---
 
-##$L_1$Regularization: the Practical Key
+## $L_1$Regularization: the Practical Key
 
 ###$L_0$is intractable
 
