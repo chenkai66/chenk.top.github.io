@@ -19,6 +19,9 @@ translationKey: "openclaw-quickstart-4"
 
 上一篇我们把 OpenClaw 跑起来了。但真正让 Agent 好用的关键不在代码，而在配置。今天把 `openclaw.json` 从头到尾拆一遍——模型怎么选、钱怎么省、安全边界怎么画。
 
+
+![OpenClaw 配置文件结构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_1.jpg)
+
 ## 最小可用配置
 
 ![配置层级与 Provider 解析顺序](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/fig_config.png)
@@ -48,7 +51,6 @@ translationKey: "openclaw-quickstart-4"
 
 走阿里云 DashScope 接口，国内零延迟、无需代理，新账号有免费额度。
 
-![OpenClaw 配置文件结构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_1.jpg)
 
 ## 完整配置参考
 

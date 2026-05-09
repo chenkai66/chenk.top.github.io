@@ -17,6 +17,8 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-8"
 ---
 
+![Heartbeat 和 Cron 的调度模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
+
 ## 从聊天机器人到主动 Agent
 
 部署完 OpenClaw 的头两天，我一直在给它发消息。问它问题、让它跑脚本、叫它总结文档。用了两天后突然意识到——这跟 ChatGPT 有什么区别？本质上还是一个被动应答的聊天机器人。
@@ -29,7 +31,6 @@ translationKey: "openclaw-quickstart-8"
 
 让 OpenClaw 从"被动回答"变成"主动行动"，只需要两个调度原语：**Heartbeat** 和 **Cron**。
 
-![Heartbeat 和 Cron 的调度模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
 
 ## Heartbeat vs Cron：巡逻员与厨房计时器
 

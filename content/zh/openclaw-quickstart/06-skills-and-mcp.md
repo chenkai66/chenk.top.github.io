@@ -18,13 +18,14 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-6"
 ---
 
+![技能系统架构示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
+
 ## 从"能回答"到"能做事"
 
 大语言模型很聪明，但聪明不等于靠谱。你问它怎么写 SQL，它答得头头是道；让它连上数据库执行查询、格式化结果、发到钉钉群——这就是另一回事了。差距在哪？**缺少标准操作流程**。
 
 OpenClaw 的技能系统填补这个缺口。一个 Skill 定义了做什么、什么时候做、用什么工具做、按什么步骤做。再配合 MCP 把外部能力统一接入，Agent 就从问答机器人变成了能干活的助手。
 
-![技能系统架构示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
 ## Skill 的组成
 

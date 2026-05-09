@@ -18,6 +18,8 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-5"
 ---
 
+![渠道架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_1.png)
+
 ## 为什么要接入聊天渠道
 
 前四篇我们搭建了一个能跑、会思考、有记忆的 Agent。但它一直活在终端里——你需要 SSH 到服务器，敲命令，盯着输出。这不是一个"助手"该有的样子。
@@ -32,7 +34,6 @@ OpenClaw 目前支持三条渠道路径：
 | 钉钉 | 国内企业、团队协作 | 否（Stream） | 中 |
 | 微信（WorkBuddy） | 个人微信触达 | 否（本地桥接） | 中高 |
 
-![渠道架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_1.png)
 
 ---
 

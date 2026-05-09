@@ -16,6 +16,8 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-1"
 ---
 
+![OpenClaw 架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
+
 ## 又一个 LLM Wrapper？
 
 每次有人跟我说"我在搞一个 AI Agent 框架"，我的第一反应都是：又一个把 system prompt 套在 API 外面的东西？
@@ -26,7 +28,6 @@ OpenClaw 不是这个东西。它解决的问题是：**你在哪跟 AI 对话**
 
 这篇文章的目标很简单：把 OpenClaw 是什么讲清楚，让你能判断它值不值得占用你硬盘上那几百 MB 空间。后续文章负责安装和配置，这篇只负责"认知对齐"。
 
-![OpenClaw 架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
 
 ---
 

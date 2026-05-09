@@ -17,6 +17,8 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-7"
 ---
 
+![记忆系统架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/illustration_1.png)
+
 ## 记忆是第一个翻车的地方
 
 装完 OpenClaw 的人，十个有八个第一天就在记忆系统上栽跟头。不是配置难——配置反而简单——而是对"记忆"这个词的预期完全错了。
@@ -25,7 +27,6 @@ translationKey: "openclaw-quickstart-7"
 
 这不是 bug，这是设计。Agent 的上下文窗口是有限的，记忆系统的本质是一套**决定什么该出现在上下文里**的工程。本篇把这套工程拆开讲。
 
-![记忆系统架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/illustration_1.png)
 
 ## Workspace 目录结构
 
