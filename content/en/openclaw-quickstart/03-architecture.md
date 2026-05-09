@@ -23,31 +23,7 @@ You can use OpenClaw for months without reading this piece. But the first time y
 
 ## The six layers
 
-```
-        +-----------------------------------------------+
-        |                  Channels                     |
-        +-----------------------------------------------+
-                          |
-        +-----------------------------------------------+
-        |                  Gateway                      |
-        +-----------------------------------------------+
-                          |
-        +-----------------------------------------------+
-        |   Router  +  Sessions   +  Pi Agent (loop)    |
-        +-----------------------------------------------+
-                          |
-        +-----------------------------------------------+
-        |   Tools (26)        Skills (53+ built-in)     |
-        +-----------------------------------------------+
-                          |
-        +-----------------------------------------------+
-        |   Memory + ContextEngine                      |
-        +-----------------------------------------------+
-                          |
-        +-----------------------------------------------+
-        |   LLM provider                                |
-        +-----------------------------------------------+
-```
+![The six layers of an OpenClaw agent: Channels, Gateway, Router+Sessions+Pi Agent, Tools+Skills, Memory+ContextEngine, LLM provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/03-architecture/fig1_six_layers.png)
 
 I will walk top to bottom.
 

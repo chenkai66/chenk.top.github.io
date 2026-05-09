@@ -54,16 +54,7 @@ If you have used Claude Code or Cursor, the agent loop will feel familiar. The d
 
 I find it useful to put it on a 2x2.
 
-```
-                hosted              self-hosted
-            +------------------+------------------+
-   chat-app | ChatGPT, Claude  | (rare)           |
-   surface  | (Anthropic UI)   |                  |
-            +------------------+------------------+
-   yours    | Many SaaS bots   | OpenClaw         |
-   surface  | (Glean, Slack AI)|                  |
-            +------------------+------------------+
-```
+![Where OpenClaw sits in the agent landscape: hosted vs self-hosted, chat-app vs your-surface](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/fig1_quadrant.png)
 
 The bottom-right cell is small but it is the one I want. I want my agent to:
 

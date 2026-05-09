@@ -94,13 +94,7 @@ OpenClaw 本身不是模型，它是你和模型之间的一层"智能路由"。
 
 整体分三层：
 
-```
-[聊天平台] ←→ [Channel Adapter] ←→ [Agent Runtime] ←→ [LLM API]
-                                          ↕
-                                   [Memory Store]
-                                   [Skill System]
-                                   [Tool/MCP Layer]
-```
+![OpenClaw 架构鸟瞰：聊天平台 - Channel Adapter - Agent Runtime - LLM](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/01-what-is-openclaw/fig1_birds_eye.png)
 
 **Agent Runtime** 是核心，它实现了一个经典的 Agent Loop：
 

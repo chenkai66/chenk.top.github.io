@@ -298,20 +298,7 @@ I leave this off most of the time — TUI is faster — but it is useful for ins
 
 ## What just happened, architecturally
 
-```
-your terminal --(stdin)--> openclaw tui
-                                |
-                                v
-                         openclaw gateway   :18789
-                                |
-                +---------------+-------------------+
-                |               |                   |
-                v               v                   v
-            agent loop     skills index      tool registry
-                |
-                v
-         LLM provider (DashScope, Anthropic, ...)
-```
+![Architecture topology: terminal -> tui -> gateway -> agent loop / skills index / tool registry -> LLM provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/fig1_topology.png)
 
 `tui` is just a thin client. The gateway is where the agent loop lives. That separation is what lets you later attach Telegram, DingTalk, or the web UI as alternate front-ends, all talking to the same agent.
 

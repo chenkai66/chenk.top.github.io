@@ -407,19 +407,7 @@ http://localhost:18790
 
 理解了目录结构之后，再看一下运行时的数据流：
 
-```
-┌─────────┐      HTTP       ┌───────────┐     API Call    ┌──────────────┐
-│   TUI   │ ──────────────> │  Gateway  │ ─────────────> │ LLM Provider │
-│ (终端)   │ <────────────── │ (Agent Loop)│ <───────────── │ (DashScope)  │
-└─────────┘   WebSocket     └───────────┘                └──────────────┘
-                                  │
-                                  │ Tool Calls
-                                  ▼
-                            ┌───────────┐
-                            │ 本地系统    │
-                            │ (文件/Shell) │
-                            └───────────┘
-```
+![运行时数据流：TUI - Gateway - LLM Provider，Gateway 同时调用本地系统](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/fig1_dataflow.png)
 
 工作流程：
 
