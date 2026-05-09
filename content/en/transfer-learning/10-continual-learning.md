@@ -68,7 +68,7 @@ $$\mathrm{BWT} \;=\; \frac{1}{T-1}\sum_{j=1}^{T-1} (R_{T,j} - R_{j,j}),
 
 where $b_j$ is a random/untrained baseline on task $j$. **BWT < 0** is forgetting; **BWT > 0** is the rare and desirable phenomenon of *positive backward transfer* (learning later tasks helps earlier ones). **FWT > 0** means earlier tasks pre-shape representations that help future tasks zero-shot.
 
-![Transfer matrix R[i,j] with FWT and BWT regions](./10-continual-learning/fig6_transfer_matrix.png)
+![Transfer matrix R[i,j] with FWT and BWT regions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig6_transfer_matrix.png)
 
 ---
 

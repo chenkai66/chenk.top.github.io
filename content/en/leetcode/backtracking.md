@@ -110,7 +110,7 @@ Example: `nums = [1,2,3]` -> `[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]`
 
 The recursion tree for `[1,2,3]` is a perfect 3-2-1 fan-out — three first choices, two second choices, one final element forced — and produces exactly `3! = 6` leaves.
 
-![Permutations recursion tree for [1,2,3]](./backtracking/fig2_permutations_tree.png)
+![Permutations recursion tree for [1,2,3]](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/backtracking/fig2_permutations_tree.png)
 
 ## Implementation
 

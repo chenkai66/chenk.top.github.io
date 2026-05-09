@@ -215,7 +215,7 @@ Normalised so that $P_n(1) = 1$:
 
 A compact closed form:$$P_n(x) = \frac{1}{2^n n!}\,\frac{d^n}{dx^n}(x^2 - 1)^n.$$And the central identity that makes Legendre series possible:$$\int_{-1}^{1} P_m(x)\,P_n(x)\,dx = \frac{2}{2n+1}\,\delta_{mn}.$$Any reasonable function on $[-1,1]$ admits a **Legendre expansion** $f(x) = \sum_{n=0}^{\infty} c_n P_n(x)$ with $c_n = \frac{2n+1}{2}\int_{-1}^{1} f(x) P_n(x)\,dx$ -- the basis of the multipole expansion in electromagnetism and gravitation.
 
-![Legendre polynomials on $[-1,1]$ with the orthogonality interval shaded.](./05-laplace-transform/fig5_legendre_polynomials.png)
+![Legendre polynomials on $[-1,1]$ with the orthogonality interval shaded.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/fig5_legendre_polynomials.png)
 *Legendre polynomials $P_0,\dots,P_5$. They all pass through $(1,1)$ by normalisation, and through $(-1, (-1)^n)$ by parity. Every $P_n$ has exactly $n$ simple zeros inside $(-1,1)$ -- the roots used by Gauss-Legendre quadrature.*
 
 ```python

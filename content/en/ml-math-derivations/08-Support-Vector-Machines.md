@@ -296,7 +296,7 @@ Clip and back-substitute:
 $$\alpha_2^{\text{new}} \;=\; \operatorname{clip}(\alpha_2^{\text{new, unc}},\, L,\, H), \qquad
 \alpha_1^{\text{new}} \;=\; \alpha_1^{\text{old}} + y_1 y_2\,(\alpha_2^{\text{old}} - \alpha_2^{\text{new}}).$$
 
-![One step of SMO in the $(\alpha_1, \alpha_2)$ plane: the feasibility line, the box $[0,C]^2$, the unconstrained optimum and the clipped result](./08-Support-Vector-Machines/fig7_smo_step.png)
+![One step of SMO in the $(\alpha_1, \alpha_2)$ plane: the feasibility line, the box $[0,C]^2$, the unconstrained optimum and the clipped result](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/08-Support-Vector-Machines/fig7_smo_step.png)
 
 ### 4.4 Heuristics and convergence
 

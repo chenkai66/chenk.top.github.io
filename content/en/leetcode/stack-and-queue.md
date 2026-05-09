@@ -130,7 +130,7 @@ def isValid(s: str) -> bool:
 
 Figure 2 traces the algorithm on `({[]})`. Each column is one step: the highlighted character is the one being read, the bottom column shows the stack *after* the action. Notice how the stack grows to depth 3, then unwinds symmetrically.
 
-![Valid Parentheses: stack trace on "({[]})"](./stack-and-queue/fig2_valid_parentheses.png)
+![Valid Parentheses: stack trace on "({[]})"](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/stack-and-queue/fig2_valid_parentheses.png)
 
 **Complexity.** Each character is pushed and popped at most once, so time is **O(n)** and space is **O(n)** in the worst case (`((((` would push everything).
 

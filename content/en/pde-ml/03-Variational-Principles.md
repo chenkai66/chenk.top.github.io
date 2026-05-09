@@ -60,7 +60,7 @@ Integrate the second term by parts; the boundary contribution vanishes because $
 $$\int_a^b \left(\frac{\partial F}{\partial y} - \frac{d}{dx}\frac{\partial F}{\partial y'}\right)\eta\, dx = 0$$
 for *every* admissible $\eta$. The fundamental lemma of the calculus of variations then forces the parenthesised expression to vanish identically, which is the Euler-Lagrange equation. $\square$
 
-![Euler-Lagrange in pictures: a perturbation $y + \varepsilon\eta$ with $\eta(a)=\eta(b)=0$ on the left; the value $J(\varepsilon) = J[y+\varepsilon\eta]$ on the right, with the extremum manifesting itself as $J'(0)=0$.](./03-Variational-Principles/fig2_euler_lagrange.png)
+![Euler-Lagrange in pictures: a perturbation $y + \varepsilon\eta$ with $\eta(a)=\eta(b)=0$ on the left; the value $J(\varepsilon) = J[y+\varepsilon\eta]$ on the right, with the extremum manifesting itself as $J'(0)=0$.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig2_euler_lagrange.png)
 *Figure 2. The first-variation argument geometrically. The extremal curve is the unique candidate at which $J(\varepsilon)$ has a horizontal tangent in every admissible direction $\eta$.*
 
 ### 1.2 The Brachistochrone
@@ -136,7 +136,7 @@ is the heat equation $\partial_t \rho = \Delta \rho$.
 
 The same machine produces other classical PDEs. With the free-energy $\mathcal{F}[\rho] = \int V \rho\, dx + \int \rho\log\rho\, dx$ one obtains the **Fokker-Planck equation** $\partial_t \rho = \nabla\cdot(\rho \nabla V) + \Delta \rho$, whose stationary measure is the Gibbs density $\rho_\infty \propto e^{-V}$. With internal energy $\int \rho^m \, dx$ one gets the **porous-medium equation** $\partial_t \rho = \Delta(\rho^m)$. With an attractive interaction term added, one recovers the **Keller-Segel** chemotaxis system.
 
-![Wasserstein gradient flow of $F[\rho] = \int V\rho + \int \rho\log\rho$: snapshots of the density (left) and the dissipation of $F$ along the flow (right).](./03-Variational-Principles/fig3_wasserstein_gradient_flow.png)
+![Wasserstein gradient flow of $F[\rho] = \int V\rho + \int \rho\log\rho$: snapshots of the density (left) and the dissipation of $F$ along the flow (right).](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/03-Variational-Principles/fig3_wasserstein_gradient_flow.png)
 *Figure 3. A 1-D Fokker-Planck simulation. The density $\rho_t$ travels in $\mathcal{P}_2(\mathbb{R})$ along the steepest-descent direction of the free energy and converges to the Gibbs measure $\rho_\ast \propto e^{-V}$. The right panel shows monotone dissipation of $F[\rho_t] - F[\rho_\ast]$ together with the drift of the mean — direct numerical evidence that we are watching a gradient flow.*
 
 ## 3. Mean-Field Theory of Neural-Network Training

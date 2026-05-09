@@ -236,7 +236,7 @@ $$\lambda
 
 where $\mathbf{P} \in \mathbb{R}^{3 \times 4}$ is the **projection matrix** and $\lambda$ absorbs the scalar coming from perspective division. Eleven parameters live in $\mathbf{P}$: five intrinsics plus six pose parameters (three rotation angles, three translations).
 
-![Pinhole camera projection: 3D world points become 2D pixels via P = K[R|t].](./17-linear-algebra-in-computer-vision/fig5_camera_projection.png)
+![Pinhole camera projection: 3D world points become 2D pixels via P = K[R|t].](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/17-linear-algebra-in-computer-vision/fig5_camera_projection.png)
 
 ```python
 def project(X_world, K, R, t):

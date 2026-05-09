@@ -226,7 +226,7 @@ A few non-obvious implementation details:
 
 For sequence-based recommenders (SASRec, BERT4Rec, GRU4Rec...), the analogous question is "how do I create two views of *the same behaviour sequence*?". CL4SRec (Xie et al., ICDE 2022) proposed three augmentations that have become the defaults.
 
-![Three augmentations on a behaviour sequence: crop a contiguous span, mask a random fraction with [M], reorder a contiguous chunk](./11-contrastive-learning/fig5_cl4srec_augmentations.png)
+![Three augmentations on a behaviour sequence: crop a contiguous span, mask a random fraction with [M], reorder a contiguous chunk](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/11-contrastive-learning/fig5_cl4srec_augmentations.png)
 
 - **Crop**: keep a contiguous subsequence of length $\eta L$. Preserves local order; teaches invariance to "starting later" or "stopping earlier".
 - **Mask**: replace a random $\gamma$ fraction of items with a special `[M]` token. The same idea as masked language modelling — the encoder must infer hidden items from context.
