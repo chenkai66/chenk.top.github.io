@@ -32,7 +32,7 @@ Imitation learning takes that intuition seriously: instead of optimising a hand-
 - **GAIL and AIRL**: matching expert _occupancy measures_ end-to-end through adversarial training.
 - **A selection rubric**: which method to reach for given expert availability, environment access, and need for transfer.
 
-**Prerequisites**: policy gradients ([Part 5](/en/reinforcement-learning/05-model-based-rl-and-world-models/)) and PPO ([Part 6](/en/transfer-learning/06-multi-task-learning/)). PyTorch fundamentals are assumed for the code snippets.
+**Prerequisites**: policy gradients ([Part 5](/en/reinforcement-learning/05-model-based-rl-and-world-models/)) and PPO ([Part 6](/en/reinforcement-learning/06-ppo-and-trpo/)). PyTorch fundamentals are assumed for the code snippets.
 
 ---
 
@@ -408,6 +408,6 @@ Partly. The supervised fine-tuning stage of RLHF is BC on human-written demonstr
 
 ## Series navigation
 
-- **Previous**: [Part 6 -- Advanced Policy Optimization](/en/transfer-learning/06-multi-task-learning/)
+- **Previous**: [Part 6 -- Advanced Policy Optimization](/en/reinforcement-learning/06-ppo-and-trpo/)
 - **Next**: [Part 8 -- AlphaGo and Monte Carlo Tree Search](/en/reinforcement-learning/08-alphago-and-mcts/)
 - [View all 12 parts in the RL series](/en/tags/reinforcement-learning/)

@@ -2,7 +2,7 @@
 title: "大模型工程（十一）：安全与对齐"
 date: 2026-05-06 09:00:00
 tags:
-  - llm
+  - LLM
   - safety
   - alignment
   - red-team

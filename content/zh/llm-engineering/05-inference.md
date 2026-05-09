@@ -2,7 +2,7 @@
 title: "大模型工程（五）：推理优化"
 date: 2026-04-30 09:00:00
 tags:
-  - llm
+  - LLM
   - inference
   - vllm
   - quantization

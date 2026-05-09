@@ -2,7 +2,7 @@
 title: "大模型工程（九）：生产规模的 Prompting"
 date: 2026-05-04 09:00:00
 tags:
-  - llm
+  - LLM
   - prompting
   - chain-of-thought
   - prompt-caching

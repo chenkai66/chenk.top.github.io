@@ -2,7 +2,7 @@
 title: "LLM Engineering (9): Prompting at Production Scale"
 date: 2026-05-04 09:00:00
 tags:
-  - llm
+  - LLM
   - prompting
   - chain-of-thought
   - prompt-caching

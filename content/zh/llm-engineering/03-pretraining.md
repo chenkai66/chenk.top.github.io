@@ -2,7 +2,7 @@
 title: "大模型工程（三）：规模化预训练"
 date: 2026-04-28 09:00:00
 tags:
-  - llm
+  - LLM
   - pretraining
   - fsdp
   - zero

@@ -10,7 +10,7 @@ tags:
   - Random Forest
   - AdaBoost
   - GBDT
-  - Mathematical Derivation
+  - Mathematical Derivations
   - Machine Learning
 series: ml-math-derivations
 lang: en

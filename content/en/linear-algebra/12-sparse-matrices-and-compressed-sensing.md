@@ -102,19 +102,19 @@ CSR breaks even with dense storage at about 67% density (8 / (8+4)). Below ~10% 
 
 ---
 
-## $L_1$Regularization: the Practical Key
+## $L_1$ Regularization: the Practical Key
 
-###$L_0$is intractable
+### $L_0$is intractable
 
 Find the sparsest representation of$\vec{x}$in dictionary$D$:$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_0 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$This is **NP-hard**. Naively you would enumerate all$\binom{p}{k}$possible supports -- combinatorial explosion. No polynomial-time algorithm is known for the general problem.
 
-###$L_1$as a convex relaxation
+### $L_1$ as a convex relaxation
 
 Replace$\|\cdot\|_0$with$\|\cdot\|_1 = \sum |\alpha_i|$:$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_1 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$This problem is a **linear program** -- solvable in polynomial time. The remarkable fact is that, under mild conditions on$D$, the$L_1$solution coincides with the$L_0$solution. Convex relaxation is **exact**.
 
 ### Why does$L_1$promote sparsity? The geometric picture
 
-Imagine the constraint set$\{\vec{\alpha} : D\vec{\alpha} = \vec{x}\}$as an affine subspace cutting through$\mathbb{R}^p$. Minimizing$\|\vec{\alpha}\|_1$means inflating an$L_1$ball from the origin until it just kisses the constraint.
+Imagine the constraint set$\{\vec{\alpha} : D\vec{\alpha} = \vec{x}\}$ as an affine subspace cutting through$\mathbb{R}^p$. Minimizing$\|\vec{\alpha}\|_1$means inflating an$L_1$ball from the origin until it just kisses the constraint.
 
 - The$L_1$**ball** is a diamond: it has **sharp corners exactly on the coordinate axes**.
 - The$L_2$**ball** is a sphere: smooth everywhere.
@@ -125,7 +125,7 @@ A diamond inflated against a generic line touches it first at a corner -- and co
 
 This picture is the entire intuition for why$L_1$, LASSO, basis pursuit, and compressed sensing exist. Every higher-dimensional version is the same story: the$L_1$ball in$\mathbb{R}^n$has$2n$corners on the axes, and the geometry of "first contact at a corner" persists.
 
-###$L_1$vs$L_2$at a glance
+### $L_1$ vs $L_2$ at a glance
 
 | Property |$L_1$|$L_2$|
 |---|---|---|
@@ -350,7 +350,7 @@ A$k$-sparse vector in$\mathbb{R}^n$has roughly$k \log(n/k)$bits of structural in
 
 ### Coding
 
-8. Implement FISTA and ISTA on the same compressed-sensing problem. Plot the objective vs iteration on log-scale and read off the$O(1/t)$vs$O(1/t^2)$rates.
+8. Implement FISTA and ISTA on the same compressed-sensing problem. Plot the objective vs iteration on log-scale and read off the$O(1/t)$ vs $O(1/t^2)$rates.
 9. Compare OMP, IHT, and LASSO recovery success on synthetic problems with$k$ranging from 1 to$m/2$. Plot success rate vs$k$.
 10. Take a$64 \times 64$grayscale image. Acquire$m = 1500$random Fourier samples. Reconstruct with$L_1$on the wavelet coefficients. Compare to zero-fill inverse FFT.
 

@@ -2,7 +2,7 @@
 title: "大模型工程（十）：评估"
 date: 2026-05-05 09:00:00
 tags:
-  - llm
+  - LLM
   - evaluation
   - benchmarks
   - llm-as-judge

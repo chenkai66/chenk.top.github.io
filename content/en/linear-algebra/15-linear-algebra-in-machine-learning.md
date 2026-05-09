@@ -5,7 +5,7 @@ tags:
   - Linear Algebra
   - PCA
   - SVM
-  - machine learning
+  - Machine Learning
 categories:
   - Linear Algebra
 series: linear-algebra

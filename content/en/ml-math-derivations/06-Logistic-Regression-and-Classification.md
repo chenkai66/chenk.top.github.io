@@ -7,7 +7,7 @@ tags:
   - Classification
   - Maximum Likelihood Estimation
   - Gradient Descent
-  - Mathematical Derivation
+  - Mathematical Derivations
 categories: Machine Learning
 series: ml-math-derivations
 lang: en

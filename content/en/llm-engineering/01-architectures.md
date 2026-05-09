@@ -2,8 +2,8 @@
 title: "LLM Engineering (1): Architectures from Transformer to MoE"
 date: 2026-04-26 09:00:00
 tags:
-  - llm
-  - transformer
+  - LLM
+  - Transformer
   - moe
   - architecture
   - mamba

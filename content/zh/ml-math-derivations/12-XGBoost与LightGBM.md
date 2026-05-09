@@ -7,7 +7,7 @@ tags:
   - LightGBM
   - Regularization
   - Histogram Algorithm
-  - Mathematical Derivation
+  - Mathematical Derivations
   - Machine Learning
 categories: 机器学习
 series: ml-math-derivations

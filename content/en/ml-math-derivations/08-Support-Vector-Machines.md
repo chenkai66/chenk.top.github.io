@@ -8,7 +8,7 @@ tags:
   - Kernel Methods
   - KKT Conditions
   - Dual Problem
-  - Mathematical Derivation
+  - Mathematical Derivations
 categories: Machine Learning
 series: ml-math-derivations
 lang: en

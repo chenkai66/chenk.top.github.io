@@ -2,7 +2,7 @@
 title: "LLM Engineering (11): Safety and Alignment"
 date: 2026-05-06 09:00:00
 tags:
-  - llm
+  - LLM
   - safety
   - alignment
   - red-team

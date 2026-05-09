@@ -7,7 +7,7 @@ tags:
   - Gaussian Mixture Model
   - GMM
   - Latent Variables
-  - Mathematical Derivation
+  - Mathematical Derivations
   - Machine Learning
 categories: 机器学习
 series: ml-math-derivations

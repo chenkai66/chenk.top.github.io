@@ -7,7 +7,7 @@ tags:
   - Probabilistic Models
   - Bayes Theorem
   - Text Classification
-  - Mathematical Derivation
+  - Mathematical Derivations
 categories: Machine Learning
 series: ml-math-derivations
 lang: en

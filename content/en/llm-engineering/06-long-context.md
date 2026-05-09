@@ -2,7 +2,7 @@
 title: "LLM Engineering (6): Long Context — RoPE, YaRN, Sinks"
 date: 2026-05-01 09:00:00
 tags:
-  - llm
+  - LLM
   - long-context
   - rope
   - yarn

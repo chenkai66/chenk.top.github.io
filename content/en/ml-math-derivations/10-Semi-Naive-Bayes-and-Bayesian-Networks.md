@@ -8,7 +8,7 @@ tags:
   - Probabilistic Graphical Models
   - TAN
   - AODE
-  - Mathematical Derivation
+  - Mathematical Derivations
 categories: Machine Learning
 series: ml-math-derivations
 lang: en

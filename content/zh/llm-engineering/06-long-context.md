@@ -2,7 +2,7 @@
 title: "大模型工程（六）：长上下文 —— RoPE、YaRN、Attention Sinks"
 date: 2026-05-01 09:00:00
 tags:
-  - llm
+  - LLM
   - long-context
   - rope
   - yarn

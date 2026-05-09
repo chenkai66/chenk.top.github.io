@@ -9,7 +9,7 @@ tags:
   - Viterbi Algorithm
   - Forward Algorithm
   - Baum-Welch Algorithm
-  - Mathematical Derivation
+  - Mathematical Derivations
   - Machine Learning
 series: ml-math-derivations
 lang: en

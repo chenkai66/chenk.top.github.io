@@ -2,7 +2,7 @@
 title: "大模型工程（二）：Tokenization 深挖"
 date: 2026-04-27 09:00:00
 tags:
-  - llm
+  - LLM
   - tokenization
   - bpe
   - sentencepiece

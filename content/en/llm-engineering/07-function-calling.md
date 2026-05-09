@@ -2,7 +2,7 @@
 title: "LLM Engineering (7): Function Calling and Tool Use"
 date: 2026-05-02 09:00:00
 tags:
-  - llm
+  - LLM
   - function-calling
   - tools
   - agents

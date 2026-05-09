@@ -4,8 +4,8 @@ date: 2025-04-16 09:00:00
 tags:
   - Linear Algebra
   - neural networks
-  - deep learning
-  - transformers
+  - Deep Learning
+  - Transformer
 categories:
   - Linear Algebra
 series: linear-algebra

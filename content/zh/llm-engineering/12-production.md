@@ -2,7 +2,7 @@
 title: "大模型工程（十二）：生产 —— 部署、监控、成本"
 date: 2026-05-06 15:00:00
 tags:
-  - llm
+  - LLM
   - production
   - deployment
   - monitoring

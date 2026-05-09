@@ -2,7 +2,7 @@
 title: "LLM Engineering (12): Production — Deployment, Monitoring, Cost"
 date: 2026-05-06 15:00:00
 tags:
-  - llm
+  - LLM
   - production
   - deployment
   - monitoring

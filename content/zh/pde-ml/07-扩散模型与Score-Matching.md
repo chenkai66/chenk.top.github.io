@@ -271,4 +271,4 @@ $$\boxed{\;\frac{d\mathbf{x}}{dt} = f(\mathbf{x}, t) - \tfrac{1}{2}\,g(t)^2\,\na
 
 ---
 
-*This is Part 7 of the [PDE and Machine Learning](/zh/categories/pde-and-machine-learning/) series. Next: [Part 8 — Reaction-Diffusion Systems and GNN](/en/pde-ml/08-reaction-diffusion-systems/). Previous: [Part 6 — Continuous Normalizing Flows](/en/pde-ml/06-continuous-normalizing-flows).*
+*This is Part 7 of the [PDE and Machine Learning](/zh/categories/pde-and-machine-learning/) series. Next: [Part 8 — Reaction-Diffusion Systems and GNN](/zh/pde-ml/08-reaction-diffusion-systems/). Previous: [Part 6 — Continuous Normalizing Flows](/zh/pde-ml/06-continuous-normalizing-flows).*

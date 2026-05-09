@@ -9,7 +9,7 @@ tags:
   - KL Divergence
   - Mean Field
   - Variational Bayes
-  - Mathematical Derivation
+  - Mathematical Derivations
   - Machine Learning
 series: ml-math-derivations
 lang: en

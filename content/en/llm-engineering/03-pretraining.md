@@ -2,7 +2,7 @@
 title: "LLM Engineering (3): Pretraining at Scale"
 date: 2026-04-28 09:00:00
 tags:
-  - llm
+  - LLM
   - pretraining
   - fsdp
   - zero

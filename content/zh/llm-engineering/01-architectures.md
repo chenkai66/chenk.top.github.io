@@ -2,8 +2,8 @@
 title: "大模型工程（一）：从 Transformer 到 MoE 的架构演化"
 date: 2026-04-26 09:00:00
 tags:
-  - llm
-  - transformer
+  - LLM
+  - Transformer
   - moe
   - architecture
   - mamba

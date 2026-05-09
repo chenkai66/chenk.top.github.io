@@ -2,7 +2,7 @@
 title: "LLM Engineering (10): Evaluation"
 date: 2026-05-05 09:00:00
 tags:
-  - llm
+  - LLM
   - evaluation
   - benchmarks
   - llm-as-judge

@@ -2,12 +2,12 @@
 title: "LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF"
 date: 2026-04-29 09:00:00
 tags:
-  - llm
+  - LLM
   - post-training
   - sft
   - dpo
-  - rlhf
-  - lora
+  - RLHF
+  - LoRA
 categories: LLM Engineering
 series: llm-engineering
 series_order: 4

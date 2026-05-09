@@ -4,7 +4,7 @@ date: 2025-03-26 09:00:00
 tags:
   - Linear Algebra
   - tensor decomposition
-  - deep learning
+  - Deep Learning
   - recommender systems
 categories:
   - Linear Algebra

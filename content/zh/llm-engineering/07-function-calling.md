@@ -2,7 +2,7 @@
 title: "大模型工程（七）：Function Calling 与工具使用"
 date: 2026-05-02 09:00:00
 tags:
-  - llm
+  - LLM
   - function-calling
   - tools
   - agents

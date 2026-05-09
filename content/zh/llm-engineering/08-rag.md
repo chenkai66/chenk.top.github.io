@@ -2,8 +2,8 @@
 title: "大模型工程（八）：检索增强生成 RAG"
 date: 2026-05-03 09:00:00
 tags:
-  - llm
-  - rag
+  - LLM
+  - RAG
   - embeddings
   - reranking
   - hybrid-retrieval

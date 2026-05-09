@@ -6,7 +6,7 @@ tags:
   - Linear Regression
   - Least Squares
   - Gradient Descent
-  - Mathematical Derivation
+  - Mathematical Derivations
 categories: Machine Learning
 series: ml-math-derivations
 lang: en
