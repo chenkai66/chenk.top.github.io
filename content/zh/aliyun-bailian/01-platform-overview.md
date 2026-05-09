@@ -2,11 +2,11 @@
 title: "阿里云百炼实战（一）：平台总览与第一个请求"
 date: 2026-02-25 09:00:00
 tags:
-  - 阿里云百炼
+  - Aliyun Bailian
   - DashScope
   - LLM
 categories: 阿里云百炼
-lang: zh-CN
+lang: zh
 mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"

@@ -238,13 +238,7 @@ S3-style **storage classes** let you trade retrieval latency for cost. A typical
 
 ### Auto-scaling -- the elasticity engine
 
-```
-Metric breached (CPU > 70% for 3 minutes)
-    -> Auto-scaling group adds N instances (scale out)
-    -> Load balancer health-checks them, starts routing traffic
-Metric recovers (CPU < 30% for 10 minutes)
-    -> Group removes instances (scale in), draining connections first
-```
+![Auto-Scaling Lifecycle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/fundamentals/fig_autoscaling_en.png)
 
 Two axes:
 

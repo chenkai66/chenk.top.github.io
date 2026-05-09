@@ -3,10 +3,10 @@ title: "Claude Code 实战入门（二）：快捷键、四态切换、Thinking 
 date: 2026-04-17 09:00:00
 tags:
   - claude-code
-  - 快捷键
-  - thinking-mode
+  - shortcuts
+  - thinking-modes
 categories: Claude Code
-lang: zh-CN
+lang: zh
 mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"

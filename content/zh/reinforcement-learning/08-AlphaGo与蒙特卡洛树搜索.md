@@ -2,14 +2,14 @@
 title: "强化学习（八）：AlphaGo与蒙特卡洛树搜索"
 date: 2025-09-05 09:00:00
 tags:
-  - 强化学习
+  - Reinforcement Learning
   - AlphaGo
   - MCTS
   - AlphaZero
   - MuZero
 categories: 强化学习
 series: reinforcement-learning
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从 MCTS 到 AlphaGo、AlphaGo Zero、AlphaZero 与 MuZero：UCT 探索-利用、自我对弈训练、在学到的世界模型里规划。附五子棋上的 AlphaZero 完整实现。"
 disableNunjucks: true

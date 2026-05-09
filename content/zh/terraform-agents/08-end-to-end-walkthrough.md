@@ -3,11 +3,11 @@ title: "用 Terraform 给 AI Agent 上云（八）：端到端——一次 apply
 date: 2026-03-26 09:00:00
 tags:
   - Terraform
-  - 阿里云
-  - 端到端
-  - AI Agent
+  - Alibaba Cloud
+  - End-to-End
+  - AI Agents
 categories: Terraform
-lang: zh-CN
+lang: zh
 mathjax: false
 series: terraform-agents
 series_title: "用 Terraform 在阿里云上部署 AI Agent"

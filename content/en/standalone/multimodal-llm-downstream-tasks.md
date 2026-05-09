@@ -125,12 +125,7 @@ CLIP's importance is not the model -- it's the proof that **400M noisy web image
 
 **The clever bit.** Q-Former is a small Transformer (~188M params). K learnable query tokens cross-attend to ViT outputs and emit K compressed representations to the LLM.
 
-```
-ViT (frozen) -> [N visual tokens] -> Q-Former -> [K query tokens] -> LLM (frozen)
-                                       ^                                  ^
-                                       |                                  |
-                              trainable bridge              receives compact visual context
-```
+![Vision-Language Model Pipeline (BLIP-2)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/multimodal-llm-downstream-tasks/fig_multimodal_pipeline_en.png)
 
 **Why it works.**
 - Both expensive ends are frozen; **only the 188M-param bridge trains** -- single-GPU territory.
@@ -542,12 +537,7 @@ The least intuitive lesson from shipping multimodal LLMs in production: **pickin
 
 The shipping loop:
 
-```
-choose base model -> baseline -> build private eval -> identify top-3 failure modes
-        ^                                                       |
-        |                                                       v
-   pick winning recipe <-- A/B in prod <-- distill/quantize <-- fine-tune (LoRA/SFT)
-```
+![Multimodal LLM Improvement Cycle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/multimodal-llm-downstream-tasks/fig_mllm_iteration_en.png)
 
 Next time someone says "we'll just use a multimodal LLM for this," ask three things:
 1. What does your eval set look like? How many items?

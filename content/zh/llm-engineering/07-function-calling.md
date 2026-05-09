@@ -11,7 +11,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 7
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: false
 disableNunjucks: true
 description: "JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。"

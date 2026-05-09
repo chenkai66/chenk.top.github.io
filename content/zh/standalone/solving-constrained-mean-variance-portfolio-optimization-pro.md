@@ -3,11 +3,10 @@ date: 2026-01-18 09:00:00
 title: "Solving Constrained Mean-Variance Portfolio Optimization Problems Using Spiral Optimization Algorithm"
 description: "加入基数与买入门槛后均值-方差变成 MINLP，论文用螺旋优化算法加二次罚函数求解，并对比等权与无约束马科维茨组合。"
 tags:
-  - 约束优化
-  - 优化算法
-  - 投资组合
+  - Portfolio Optimization
+  - Metaheuristics
 categories: 论文笔记
-lang: zh-CN
+lang: zh
 mathjax: true
 disableNunjucks: true
 translationKey: "solving-constrained-mean-variance-portfolio-optimization-pro"

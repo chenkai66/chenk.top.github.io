@@ -11,7 +11,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 2
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: true
 disableNunjucks: true
 description: "BPE、SentencePiece、WordPiece 的差别，byte-level fallback，CJK token 膨胀问题，扩词表的真实代价，以及悄悄塑造每个模型行为的 chat template 特殊 token。"

@@ -2,11 +2,11 @@
 title: "计算机基础（五）：网络、电源与故障排查"
 date: 2022-12-24 09:00:00
 tags:
-  - 计算机硬件
-  - 系统架构
+  - Computer Hardware
+  - System Architecture
 categories: 计算机基础
 series: computer-fundamentals
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "深入剖析网卡的 PHY/MAC/DMA 流水线、TCP 三次握手、网络拓扑、电源 80 PLUS 效率曲线、数据中心 PUE、组件功耗层次以及 UPS 体系结构。"
 disableNunjucks: true

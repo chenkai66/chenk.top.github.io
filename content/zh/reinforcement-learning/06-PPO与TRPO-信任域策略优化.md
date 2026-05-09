@@ -2,13 +2,15 @@
 title: "强化学习（六）：PPO与TRPO：信任域策略优化"
 date: 2025-08-26 09:00:00
 tags:
-  - 强化学习
+  - Reinforcement Learning
   - PPO
   - TRPO
-  - 信任域
+  - Policy Optimization
+  - Trust Region
+  - RLHF
 categories: 强化学习
 series: reinforcement-learning
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "PPO和TRPO的完整推导：从策略优化的不稳定性到信任域约束，PPO的裁剪技巧，以及PPO在RLHF中的关键角色。"
 disableNunjucks: true

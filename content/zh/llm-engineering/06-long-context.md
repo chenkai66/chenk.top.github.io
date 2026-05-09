@@ -12,7 +12,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 6
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: true
 disableNunjucks: true
 description: "RoPE 怎么编码位置、为什么朴素扩展会崩、NTK-aware 和 YaRN 缩放、ALiBi vs RoPE、流式生成的 attention sinks，以及 1M 上下文承诺为什么常在检索测试上崩盘。"

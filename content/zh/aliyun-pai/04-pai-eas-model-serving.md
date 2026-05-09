@@ -2,13 +2,13 @@
 title: "阿里云 PAI 实战（四）：PAI-EAS——模型部署、冷启动、以及 TPS 谎言"
 date: 2026-03-08 09:00:00
 tags:
-  - 阿里云 PAI
+  - Aliyun PAI
   - PAI-EAS
-  - 模型部署
-  - 推理
-  - 自动扩缩容
+  - Model Serving
+  - Inference
+  - Auto Scaling
 categories: 阿里云 PAI
-lang: zh-CN
+lang: zh
 mathjax: false
 series: aliyun-pai
 series_title: "阿里云 PAI 实战手册"

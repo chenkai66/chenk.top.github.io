@@ -245,23 +245,7 @@ Self-training is powerful and underestimated, but it has one infamous failure mo
 
 ## 9. Decision Tree — Which Method, When?
 
-```
-1. Do you have any target-domain labels?
-   ├─ yes → semi-supervised DA: fine-tune + importance weighting
-   └─ no  → step 2
-
-2. Where is the shift?
-   ├─ P(X) differs only          → step 3
-   ├─ P(Y) differs only          → label-shift correction (BBSE / EM)
-   └─ P(Y|X) differs (concept)   → you need some target labels
-
-3. How big is the visual / feature gap?
-   ├─ tiny   → AdaBN (always try first)
-   ├─ small  → AdaBN + Deep CORAL
-   ├─ medium → MMD (DAN) or DANN
-   ├─ large  → DANN / CDAN, or pixel-level (CycleGAN, ADDA)
-   └─ enormous (sim → real) → CycleGAN + ADDA + self-training
-```
+![Domain Adaptation Decision Guide](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/03-domain-adaptation/fig_domain_adapt_en.png)
 
 In practice a strong pipeline often *combines* methods: AdaBN for the easy gains, MMD or DANN for feature alignment, then a self-training round for the last few points.
 

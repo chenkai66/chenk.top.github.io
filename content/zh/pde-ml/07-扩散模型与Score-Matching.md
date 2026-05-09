@@ -2,15 +2,18 @@
 title: "偏微分方程与机器学习（七）：扩散模型与Score Matching"
 date: 2024-07-30 09:00:00
 tags:
-  - 扩散模型
-  - Score Matching
   - PDE
-  - 生成模型
+  - Machine Learning
+  - Diffusion Models
+  - Score Matching
+  - DDPM
+  - DDIM
   - SDE
+  - Generative Models
 categories:
   - PDE与机器学习
 series: pde-ml
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从 PDE 视角统一理解扩散模型：热方程、Fokker-Planck、score matching、DDPM/DDIM、Latent Diffusion，配可视化。"
 disableNunjucks: true

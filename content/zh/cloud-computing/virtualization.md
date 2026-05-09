@@ -2,14 +2,14 @@
 title: "云计算（二）：虚拟化技术深度解析"
 date: 2023-02-20 09:00:00
 tags:
-  - 云计算
-  - 虚拟化
+  - Cloud Computing
+  - Virtualization
   - KVM
   - VMware
   - Docker
 categories: 云计算
 series: cloud-computing
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "虚拟化实战指南 -- Hypervisor（VMware、KVM、Xen、Hyper-V）、存储与网络虚拟化、性能调优以及容器对比。"
 disableNunjucks: true

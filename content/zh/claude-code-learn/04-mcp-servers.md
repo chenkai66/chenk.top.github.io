@@ -5,9 +5,9 @@ tags:
   - claude-code
   - mcp
   - playwright
-  - 集成
+  - integration
 categories: Claude Code
-lang: zh-CN
+lang: zh
 mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"
@@ -36,41 +36,7 @@ MCP 服务器大多由社区开发。`mcp.so` 提供了一个目录，Anthropic 
 
 Playwright 是最典型的“第一个 MCP”，因为它直接展示了价值。在终端里运行以下命令——*不要*在 Claude Code 内部执行：
 
-```bash
-claude mcp add playwright npx @playwright/mcp@latest
-```
-
-这条命令完成了三件事：
-
-1. 注册了一个名为 `playwright` 的 MCP 服务器。
-2. 运行这个服务器的命令是 `npx @playwright/mcp@latest`，npx 会按需下载并执行。
-3. 服务器配置已经写入了你的全局配置文件（`~/.claude/settings.json`）。
-
-验证一下：
-
-```bash
-claude mcp list
-# playwright    npx @playwright/mcp@latest    enabled
-```
-
-打开 Claude Code：
-
-```bash
-claude
-> 能帮我打开 https://news.ycombinator.com 并告诉我前 3 条新闻标题吗？
-```
-
-第一次运行时，你会看到一个权限提示：“Claude 想使用 playwright 工具。” 点击批准。Agent 会启动一个无头浏览器，加载页面，提取标题，并返回结果。整个过程只需要几秒钟。
-## 刚才发生了什么（技术上）
-
-```
-Claude Code  --(stdio)--> @playwright/mcp 进程
-       |                        |
-       |                        v
-       |                   真实浏览器
-       |                        |
-       <----- text -------------+
-```
+![MCP 服务器通信流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/fig_mcp_arch_zh.png)
 
 MCP 服务器是一个独立的进程。Claude Code 通过 stdio 和它通信，远程服务器则用 HTTP。握手时会发现工具——Claude 问“你能做什么？”，服务器返回一个工具 schema 列表。之后，模型就能像调用内置工具一样使用这些工具。
 

@@ -11,7 +11,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 9
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: false
 disableNunjucks: true
 description: "什么时候 chain-of-thought 真有用、self-consistency、prompt caching 经济学、jailbreak 分类、prompt injection 防御，以及生产里活下来的 prompt。"

@@ -7,7 +7,7 @@ tags:
   - Transformer
 categories: 自然语言处理
 series: nlp
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从 Seq2Seq 的瓶颈到 Attention Is All You Need，建立缩放点积注意力、多头注意力、位置编码和因果掩码的直觉，并用 PyTorch 从零搭一个完整 Transformer。"
 disableNunjucks: true
@@ -211,13 +211,7 @@ $$\text{output} = \text{LayerNorm}(x + \text{Sublayer}(x))$$
 
 ### 整体流程
 
-```
-源 token -> 嵌入 + 位置编码 -> [编码器层 x N] -> 编码器输出
-                                                       |
-                                                 K, V  |
-                                                       v
-目标 token -> 嵌入 + 位置编码 -> [解码器层 x N] -> 线性变换 -> softmax -> 概率分布
-```
+![Transformer 编码器-解码器架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/attention-transformer/fig_transformer_arch_zh.png)
 
 以基础版 Transformer 为例（$N = 6$、$d_{\text{model}} = 512$、$h = 8$、$d_{\text{ff}} = 2048$），整个模型大约有 6500 万个参数。而 GPT-3 的改进思路非常直接：把 $N$、$d_{\text{model}}$ 和 $h$ 这些超参数大幅放大，去掉编码器部分，然后用互联网上的海量数据进行训练。
 ## 8. 用 PyTorch 从零实现

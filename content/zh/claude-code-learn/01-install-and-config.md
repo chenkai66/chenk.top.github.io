@@ -3,10 +3,10 @@ title: "Claude Code 实战入门（一）：安装、三层配置、以及 # @ /
 date: 2026-04-16 09:00:00
 tags:
   - claude-code
-  - 配置
+  - configuration
   - settings-json
 categories: Claude Code
-lang: zh-CN
+lang: zh
 mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"

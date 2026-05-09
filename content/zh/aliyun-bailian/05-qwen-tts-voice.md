@@ -2,13 +2,13 @@
 title: "阿里云百炼实战（五）：Qwen-TTS 多语言语音合成"
 date: 2026-03-01 09:00:00
 tags:
-  - 阿里云百炼
+  - Aliyun Bailian
   - Qwen-TTS
   - TTS
-  - 语音
+  - Voice
   - Audio
 categories: 阿里云百炼
-lang: zh-CN
+lang: zh
 mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"

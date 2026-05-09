@@ -12,7 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 7
-description: "MEMORY.md as a 40-line index, memoryFlush before compaction, semantic search through bge-m3, and the v2026.3.7 ContextEngine that finally moves memory out of the agent's hands. What it actually saves you, and where it still leaks."
+description: "MEMORY.md as index, memoryFlush, bge-m3 search, and the v2026.3.7 ContextEngine."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-7"
 ---

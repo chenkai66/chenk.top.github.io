@@ -4,11 +4,11 @@ date: 2026-04-07 09:00:00
 tags:
   - openclaw
   - telegram
-  - 钉钉
-  - 微信
-  - 渠道
+  - dingtalk
+  - wechat
+  - channels
 categories: OpenClaw
-lang: zh-CN
+lang: zh
 mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"

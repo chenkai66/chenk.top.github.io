@@ -12,7 +12,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 4
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: true
 disableNunjucks: true
 description: "SFT、DPO、RLHF、RLAIF 各自具体在优化什么，奖励模型在哪里失败，KL 约束的作用，LoRA vs 全量微调那场争论，以及 2026 年生产里实际跑的 post-training 配方。"

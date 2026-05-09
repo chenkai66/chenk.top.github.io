@@ -2,13 +2,13 @@
 title: "阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法"
 date: 2026-02-26 09:00:00
 tags:
-  - 阿里云百炼
+  - Aliyun Bailian
   - Qwen
   - LLM
   - Function Calling
   - Streaming
 categories: 阿里云百炼
-lang: zh-CN
+lang: zh
 mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"

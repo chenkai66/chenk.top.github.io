@@ -3,11 +3,11 @@ title: "OpenClaw 快速上手（二）：安装到第一次对话，十分钟搞
 date: 2026-04-04 09:00:00
 tags:
   - openclaw
-  - 安装
+  - installation
   - tui
   - dashscope
 categories: OpenClaw
-lang: zh-CN
+lang: zh
 mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"

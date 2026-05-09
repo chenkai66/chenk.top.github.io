@@ -2,14 +2,14 @@
 title: "云计算（八）：多云管理与混合云架构"
 date: 2023-06-14 09:00:00
 tags:
-  - 混合云
-  - 云计算
-  - 多云
-  - 边缘计算
-  - 云迁移
+  - Cloud Computing
+  - Multi-Cloud
+  - Hybrid Cloud
+  - Cloud Migration
+  - Edge Computing
 categories: 云计算
 series: cloud-computing
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "系列收官。多云 vs 混合云战略、 6R 迁移框架、混合云网络、跨云数据同步与冲突解决、厂商锁定规避、 RPO/RTO 灾备规划、 FinOps 成本优化，以及决定未来十年的趋势。"
 disableNunjucks: true

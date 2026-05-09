@@ -4,9 +4,9 @@ date: 2026-04-18 09:00:00
 tags:
   - claude-code
   - slash-commands
-  - 工作流
+  - workflow
 categories: Claude Code
-lang: zh-CN
+lang: zh
 mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"

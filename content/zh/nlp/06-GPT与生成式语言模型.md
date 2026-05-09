@@ -8,7 +8,7 @@ tags:
   - 语言模型
 categories: 自然语言处理
 series: nlp
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从GPT-1到GPT-4：理解自回归语言建模、解码策略（贪心、束搜索、top-k、top-p）、上下文学习，并用HuggingFace构建聊天机器人。"
 disableNunjucks: true

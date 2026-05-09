@@ -2,12 +2,12 @@
 title: "推荐系统（五）—— Embedding表示学习"
 date: 2025-12-13 09:00:00
 tags:
-  - 推荐系统
+  - Recommendation Systems
   - Embedding
-  - 表示学习
+  - Representation Learning
 categories: 推荐系统
 series: recommendation-systems
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "推荐系统 Embedding 技术全解：从 Word2Vec、Item2Vec、Node2Vec 到双塔 DSSM 与 YouTube DNN，再到负采样策略与 FAISS/HNSW 近邻检索的工程实践。每节配有可运行的 PyTorch 代码、关键设计权衡与生产经验。"
 disableNunjucks: true

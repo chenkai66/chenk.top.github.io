@@ -7,7 +7,7 @@ tags:
   - Deep Learning
   - LLM
 categories: Algorithm
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "一篇文章串起 GD → SGD → Momentum → NAG → AdaGrad → RMSProp → Adam → AdamW，再到 Lion / Sophia / Schedule-Free 的完整脉络：每一步解决了前一步的什么痛点？为什么大模型几乎都在用 AdamW？以及 2023 年之后我们究竟走到了哪里。"
 disableNunjucks: true

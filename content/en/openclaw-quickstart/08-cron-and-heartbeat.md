@@ -12,7 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 8
-description: "The two scheduling primitives in OpenClaw — Heartbeat is a patrol with a pulse, Cron is a kitchen timer. Concrete configs for a daily briefing, a weekly report, a competitor watcher, and the one anti-pattern that wakes you up at 3am."
+description: "Heartbeat patrols and Cron timers — configs for daily briefings and weekly reports."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-8"
 ---

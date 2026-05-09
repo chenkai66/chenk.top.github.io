@@ -4,14 +4,14 @@ date: 2026-04-03 09:00:00
 tags:
   - openclaw
   - ai-agent
-  - 自托管
+  - self-hosted
 categories: OpenClaw
-lang: zh-CN
+lang: zh
 mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 1
-description: "OpenClaw 是一个把 20 多个聊天平台桥接到统一 Agent 运行时的自托管 AI Agent 网关。这一篇先把它讲清楚——它是什么、跟 ChatGPT/Claude 的差别在哪、它真正解决了哪些值得占用你硬盘的问题。"
+description: "OpenClaw 是什么、跟 ChatGPT/Claude 有什么区别、解决哪些问题。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-1"
 ---

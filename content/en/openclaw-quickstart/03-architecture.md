@@ -12,7 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 3
-description: "The Gateway, Pi Agent, Tools, Skills, Memory, and Channels — what each does, how they fit, and why the separation matters when you start writing your own skills."
+description: "Gateway, Pi Agent, Tools, Skills, Memory, Channels — what each layer does."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-3"
 ---

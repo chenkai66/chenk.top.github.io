@@ -93,31 +93,7 @@ We needed to test whether Qwen3-Coder was good enough to replace an internal `qw
 
 The matrix above is a heuristic; this is the actual decision tree I run when a teammate asks "should I use Designer / Gallery / DLC / EAS for this?"
 
-```
-Start: what are you building?
-│
-├─ Tabular ML (regression / classification / clustering / RecSys)
-│   ├─ Source data is in MaxCompute? ──── YES ──→ DESIGNER
-│   ├─ Source data is in OSS / external? ── DLC + your code
-│   └─ Real-time scoring (>10 QPS, <100 ms p99)? ── DLC train + EAS serve
-│
-├─ Open-source LLM (Qwen / DeepSeek / Llama / etc.)
-│   ├─ Quick eval ("is this model good for X?") ───── MODEL GALLERY
-│   ├─ Default LoRA fine-tune on a JSON dataset ──── MODEL GALLERY
-│   ├─ Custom training loop / novel loss / RL ────── DLC + your code
-│   ├─ Custom inference batching / quantization ──── EAS + your container
-│   └─ Need <100 ms p99 latency ───────────────────── EAS + your container (Gallery defaults too loose)
-│
-├─ Custom model (your own architecture)
-│   ├─ Anything ───────────────────────────────────── DSW (dev) → DLC (train) → EAS (serve)
-│
-├─ Generative (image / video / audio)
-│   ├─ Use a hosted Wanxiang / Qwen-TTS API ───────── BAILIAN (other series)
-│   ├─ Self-host an open-source diffuser / TTS ───── MODEL GALLERY (eval) → EAS (production)
-│
-└─ Data labeling / human-in-the-loop
-    └─ iTAG (not covered in this series)
-```
+![PAI Product Decision Tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/fig_pai_decision_en.png)
 
 A few non-obvious branches:
 

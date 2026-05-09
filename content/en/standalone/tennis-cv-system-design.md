@@ -161,20 +161,7 @@ Eight cameras around a singles court (23.77 m × 8.23 m):
 
 ### 3.2 Software layering
 
-```
-┌────────────────────────────────────────────────────────┐
-│ Application   Visualisation │ Analytics │ Reports │ HUD │
-├────────────────────────────────────────────────────────┤
-│ Business      Event detect │ Tactics │ History │ Push  │
-├────────────────────────────────────────────────────────┤
-│ Algorithm     Detect → 3D recon → Predict → Line call  │
-│               Person → Pose → Action class             │
-├────────────────────────────────────────────────────────┤
-│ Data          Frame sync │ Undistort │ BG model │ CLAHE│
-├────────────────────────────────────────────────────────┤
-│ Capture       8x cameras │ Timestamps │ Metadata       │
-└────────────────────────────────────────────────────────┘
-```
+![Tennis CV System — 4-Layer Architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/tennis-cv-system-design/fig_tennis_cv_arch_en.png)
 
 **Concurrency**: producer-consumer with a message queue (RabbitMQ or Redis Streams):
 

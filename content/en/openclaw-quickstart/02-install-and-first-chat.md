@@ -12,7 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 2
-description: "Install OpenClaw on macOS or Ubuntu, plug in a model provider, run the TUI, and have a working agent in ten minutes. Plus the small Node-version landmine that wastes the most time."
+description: "Install OpenClaw, plug in a model provider, and have a working agent in ten minutes."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-2"
 ---

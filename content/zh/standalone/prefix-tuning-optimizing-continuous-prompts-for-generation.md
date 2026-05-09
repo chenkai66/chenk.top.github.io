@@ -6,7 +6,7 @@ tags:
   - 参数高效微调
   - Prefix-Tuning
 categories: 论文笔记
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "Prefix-Tuning 冻结整个语言模型，只学习一组注入到注意力层的连续向量来引导生成。本文从注意力公式、重参数化、KV cache 机制到 GPT-2 上的实验，把这套方法和 Adapter、Prompt Tuning、LoRA 的边界讲清楚。"
 disableNunjucks: true

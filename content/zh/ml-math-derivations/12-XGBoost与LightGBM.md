@@ -2,16 +2,16 @@
 title: "机器学习数学推导（十二）：XGBoost 与 LightGBM"
 date: 2026-01-31 09:00:00
 tags:
-  - 机器学习
-  - 梯度提升
-  - 正则化
+  - Gradient Boosting
   - XGBoost
   - LightGBM
-  - 直方图算法
-  - 数学推导
+  - Regularization
+  - Histogram Algorithm
+  - Mathematical Derivation
+  - Machine Learning
 categories: 机器学习
 series: ml-math-derivations
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从 XGBoost 的二阶泰勒展开到 LightGBM 的直方图加速，本文系统推导两大工业级梯度提升框架——正则化目标函数、分裂增益闭式解、GOSS 单边采样与 EFB 互斥特征绑定的数学原理。"
 disableNunjucks: true

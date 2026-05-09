@@ -8,7 +8,7 @@ tags:
   - 向量数据库
 categories: 自然语言处理
 series: nlp
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。"
 disableNunjucks: true

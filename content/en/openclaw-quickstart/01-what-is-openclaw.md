@@ -11,7 +11,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 1
-description: "OpenClaw is a self-hosted AI agent gateway that bridges 20+ chat platforms into one runtime. This first piece explains what the project actually is, where it sits relative to ChatGPT and Claude, and which problems it earns its disk space by solving."
+description: "What OpenClaw is, where it sits vs ChatGPT/Claude, and which problems it solves."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-1"
 ---

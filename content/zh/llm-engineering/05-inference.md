@@ -12,7 +12,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 5
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: true
 disableNunjucks: true
 description: "KV cache 力学、paged attention、continuous batching、speculative decoding、INT8/INT4/AWQ/GPTQ 量化，以及 vLLM、SGLang、TensorRT-LLM 的取舍。"

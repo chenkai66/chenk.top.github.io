@@ -39,42 +39,7 @@ MCP servers are mostly community-built. There's a catalog at `mcp.so` and a grow
 
 Playwright is the canonical "first MCP" because it makes the value obvious. From your shell — *not* inside Claude Code:
 
-```bash
-claude mcp add playwright npx @playwright/mcp@latest
-```
-
-Three things happened:
-
-1. The command registered an MCP server named `playwright`.
-2. The "command to run it" is `npx @playwright/mcp@latest` — npx will fetch and run it on demand.
-3. The server is now in your machine-level config (`~/.claude/settings.json`).
-
-Verify:
-
-```bash
-claude mcp list
-# playwright    npx @playwright/mcp@latest    enabled
-```
-
-Open Claude Code:
-
-```bash
-claude
-> can you open https://news.ycombinator.com and tell me the top 3 story titles?
-```
-
-The first time it runs you'll get a permission prompt — "Claude wants to use the playwright tool." Approve. The agent will fire up a headless browser, load the page, extract the titles, and return them. Total round-trip: a few seconds.
-
-## What just happened, technically
-
-```
-Claude Code  --(stdio)--> @playwright/mcp process
-       |                        |
-       |                        v
-       |                   real browser
-       |                        |
-       <----- text -------------+
-```
+![MCP Server Communication Flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/fig_mcp_arch_en.png)
 
 The MCP server is its own process. Claude Code talks to it over stdio (or HTTP, for remote servers). Tools are discovered at handshake — Claude asks "what can you do?" and the server replies with a list of tool schemas. From then on, the model can call those tools as if they were built-in.
 

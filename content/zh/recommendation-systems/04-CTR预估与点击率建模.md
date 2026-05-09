@@ -2,13 +2,13 @@
 title: "推荐系统（四）—— CTR预估与点击率建模"
 date: 2025-12-10 09:00:00
 tags:
-  - 推荐系统
-  - CTR预估
-  - 深度学习
-  - 特征交叉
+  - Recommendation Systems
+  - CTR Prediction
+  - Deep Learning
+  - Feature Interactions
 categories: 推荐系统
 series: recommendation-systems
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "CTR预估模型全面解析：从Logistic Regression到FM/FFM，再到DeepFM、xDeepFM、DCN、AutoInt、FiBiNet等深度学习模型，附PyTorch实现与训练策略。"
 disableNunjucks: true

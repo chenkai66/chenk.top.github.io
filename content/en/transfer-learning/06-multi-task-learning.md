@@ -154,11 +154,7 @@ You should not pick the tasks for an MTL model based on intuition alone. Three q
 
 Figure 7 (left) shows a typical affinity matrix for seven vision tasks. Notice the tight cluster around `Detect / Segment / Edges` (all 0.78+) and the much looser ties to `Caption`. The dendrogram on the right turns those numbers into a concrete grouping recommendation: rather than one giant shared encoder, train
 
-```
-Group 1: Detect + Segment + Edges       -> shared encoder A
-Group 2: Depth + Normals                -> shared encoder B
-Group 3: Pose + Caption                 -> shared encoder C
-```
+![Multi-Task Learning — Task Grouping](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/06-multi-task-learning/fig_mtl_groups_en.png)
 
 Standley et al. (2020) showed that automated task grouping found this way (RL or hierarchical clustering) consistently beats both hand-grouping and a single global encoder.
 

@@ -6,7 +6,7 @@ tags:
   - 云计算
   - 系统管理
 categories: Linux
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "用『学语法』而不是『背快捷键』的方式入门 Vim：模式、操作符 + 动作、文本对象、宏、寄存器、最小 .vimrc 与一周练习计划。"
 disableNunjucks: true

@@ -8,7 +8,7 @@ tags:
   - 迁移学习
 categories: 自然语言处理
 series: nlp
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。"
 disableNunjucks: true

@@ -13,7 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 6
-description: "Write your first Skill, attach an MCP server for browser automation, schedule it as a cron, and ship a real morning-briefing agent. The point where the install becomes a tool you'd miss if it disappeared."
+description: "Write a Skill, attach a Playwright MCP server, and ship a morning-briefing agent."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-6"
 ---

@@ -226,13 +226,7 @@ The figure above pictures both blocks side-by-side, with the cross-attention con
 
 ### Putting it all together
 
-```
-src tokens -> embed + PE -> [encoder layer x N] -> encoder output
-                                                        |
-                                                  K, V  |
-                                                        v
-tgt tokens -> embed + PE -> [decoder layer x N] -> linear -> softmax -> probs
-```
+![Transformer Encoder-Decoder Architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/fig_transformer_arch_en.png)
 
 For a base Transformer ($N = 6$, $d_{\text{model}} = 512$, $h = 8$, $d_{\text{ff}} = 2048$) this is about 65M parameters. GPT-3 simply makes $N$, $d_{\text{model}}$, and $h$ much larger, drops the encoder, and trains on the internet.
 

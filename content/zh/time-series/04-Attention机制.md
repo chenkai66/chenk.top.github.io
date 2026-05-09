@@ -7,7 +7,7 @@ tags:
   - Attention
 categories: 时间序列
 series: time-series
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "自注意力、多头注意力和位置编码在时间序列中的应用。逐步推导数学公式，附 PyTorch 实现和注意力可视化。"
 disableNunjucks: true

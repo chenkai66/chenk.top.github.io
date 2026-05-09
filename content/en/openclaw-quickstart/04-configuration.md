@@ -12,7 +12,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 4
-description: "openclaw.json walkthrough, when to use which model provider, and why the Aliyun Bailian Coding Plan is the cheapest sane way to run heavy agent workloads from China — 200元/month gets you 8 models including Claude."
+description: "openclaw.json walkthrough, model providers, and the Bailian Coding Plan trick."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-4"
 ---

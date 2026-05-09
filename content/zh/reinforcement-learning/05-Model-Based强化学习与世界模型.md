@@ -2,9 +2,9 @@
 title: "强化学习（五）：Model-Based强化学习与世界模型"
 date: 2025-08-21 09:00:00
 tags:
-  - 强化学习
+  - Reinforcement Learning
   - Model-Based RL
-  - 世界模型
+  - World Models
   - Dyna
   - MBPO
   - Dreamer
@@ -13,7 +13,7 @@ tags:
 categories:
   - 强化学习
 series: reinforcement-learning
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从 Dyna、MBPO 到 World Models、Dreamer 和 MuZero——学一个环境模型，让智能体在想象中规划，把样本效率提高 10-100 倍。"
 disableNunjucks: true

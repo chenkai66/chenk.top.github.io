@@ -2,16 +2,17 @@
 title: "迁移学习（四）：小样本学习"
 date: 2025-05-19 09:00:00
 tags:
-  - 度量学习
-  - 元学习
-  - 小样本学习
+  - Deep Learning
+  - Transfer Learning
+  - Few-Shot Learning
+  - Meta-Learning
   - MAML
-  - 原型网络
-  - 迁移学习
+  - Prototypical Networks
+  - Metric Learning
 categories:
   - 迁移学习
 series: transfer-learning
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从极少样本中学会新概念：N-way K-shot 评测协议、度量学习（Siamese、Prototypical、Matching、Relation 网络）、元学习（MAML、Reptile）、Episode 训练范式，以及一份可直接运行的 Prototypical 网络实现。"
 disableNunjucks: true

@@ -2,11 +2,10 @@
 title: "SR-GNN —— Session-based Recommendation with Graph Neural Networks"
 date: 2023-06-25 09:00:00
 tags:
-  - 序列推荐
   - GNN
-  - 会话推荐
+  - Recommender Systems
 categories: 论文笔记
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "SR-GNN 把一段点击会话拆成有向加权图，再用门控 GNN 做下一跳预测。本文系统讲清会话图构建、GGNN 更新、局部+全局池化、训练细节、基准对比，以及决定要不要在生产里用它的几类失败模式。"
 disableNunjucks: true

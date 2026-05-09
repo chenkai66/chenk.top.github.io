@@ -3,11 +3,11 @@ title: "OpenClaw 快速上手（四）：配置文件、模型选择与百炼 Co
 date: 2026-04-06 09:00:00
 tags:
   - openclaw
-  - 配置
-  - 百炼
+  - configuration
+  - bailian
   - coding-plan
 categories: OpenClaw
-lang: zh-CN
+lang: zh
 mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"

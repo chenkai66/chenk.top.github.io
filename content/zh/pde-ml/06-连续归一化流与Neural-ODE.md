@@ -2,15 +2,17 @@
 title: "偏微分方程与机器学习（六）：连续归一化流与Neural ODE"
 date: 2024-07-15 09:00:00
 tags:
-  - Neural ODE
-  - 归一化流
   - PDE
-  - 连续动力系统
-  - 生成模型
+  - Machine Learning
+  - Neural ODE
+  - Normalizing Flows
+  - CNF
+  - Optimal Transport
+  - Flow Matching
 categories:
   - PDE与机器学习
 series: pde-ml
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "如何把高斯变成数据分布？本文从 ODE/PDE 理论出发，系统推导 Neural ODE、伴随方法、连续归一化流（FFJORD）与 Flow Matching，并用 7 张图把核心机制画清楚。"
 disableNunjucks: true

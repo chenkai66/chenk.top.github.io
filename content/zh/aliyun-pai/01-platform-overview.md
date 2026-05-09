@@ -2,13 +2,13 @@
 title: "阿里云 PAI 实战（一）：平台总览与产品家族地图"
 date: 2026-03-05 09:00:00
 tags:
-  - 阿里云 PAI
-  - 机器学习
+  - Aliyun PAI
+  - Machine Learning
   - DSW
   - DLC
   - EAS
 categories: 阿里云 PAI
-lang: zh-CN
+lang: zh
 mathjax: false
 series: aliyun-pai
 series_title: "阿里云 PAI 实战手册"

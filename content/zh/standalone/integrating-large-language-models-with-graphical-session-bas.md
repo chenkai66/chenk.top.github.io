@@ -7,7 +7,7 @@ tags:
   - GNN
   - 会话推荐
 categories: 论文笔记
-lang: zh-CN
+lang: zh
 mathjax: true
 disableNunjucks: true
 translationKey: "llmgr"

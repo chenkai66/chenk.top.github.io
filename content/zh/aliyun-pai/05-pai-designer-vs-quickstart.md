@@ -2,12 +2,12 @@
 title: "阿里云 PAI 实战（五）：Designer vs Model Gallery——GUI 什么时候真值钱"
 date: 2026-03-09 09:00:00
 tags:
-  - 阿里云 PAI
+  - Aliyun PAI
   - PAI-Designer
   - Model Gallery
-  - 低代码
+  - Low-Code
 categories: 阿里云 PAI
-lang: zh-CN
+lang: zh
 mathjax: false
 series: aliyun-pai
 series_title: "阿里云 PAI 实战手册"
@@ -98,31 +98,7 @@ Model Gallery 的局限性：
 
 上面的矩阵只是一个启发式参考，而下面是我实际在团队成员问我“这个任务该用 Designer、Model Gallery、DLC 还是 EAS？”时使用的决策流程：
 
-```
-起点：你在构建什么？
-│
-├─ 表格类机器学习（回归 / 分类 / 聚类 / 推荐系统）
-│   ├─ 数据存储在 MaxCompute？ ──── 是 ──→ 使用 DESIGNER
-│   ├─ 数据存储在 OSS 或外部？ ── 使用 DLC + 自定义代码
-│   └─ 需要实时推理（>10 QPS，<100 ms p99）？ ── 使用 DLC 训练 + EAS 部署
-│
-├─ 开源大语言模型（Qwen / DeepSeek / Llama 等）
-│   ├─ 快速评估（“这个模型适合我的任务 X 吗？”） ───── 使用 MODEL GALLERY
-│   ├─ 默认 LoRA 微调（基于 JSON 数据集） ──── 使用 MODEL GALLERY
-│   ├─ 自定义训练逻辑 / 新型损失函数 / 强化学习 ────── 使用 DLC + 自定义代码
-│   ├─ 自定义推理批处理 / 模型量化 ──── 使用 EAS + 自定义容器
-│   └─ 需要 <100 ms p99 延迟 ───────────────── 使用 EAS + 自定义容器（Gallery 默认配置不够严格）
-│
-├─ 自定义模型（自研架构）
-│   ├─ 任何场景 ──────────────────────── 使用 DSW（开发）→ DLC（训练）→ EAS（推理）
-│
-├─ 生成式任务（图像 / 视频 / 音频）
-│   ├─ 使用托管服务（万相 / Qwen-TTS API） ───── 使用 百炼（其他系列）
-│   ├─ 自托管开源扩散模型 / TTS ───── 使用 MODEL GALLERY（评估）→ EAS（生产环境）
-│
-└─ 数据标注 / 人工参与流程
-    └─ 使用 iTAG（本系列未涉及）
-```
+![PAI 产品决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/fig_pai_decision_zh.png)
 
 一些不太直观的分支说明：
 

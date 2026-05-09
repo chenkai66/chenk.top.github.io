@@ -11,7 +11,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 8
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: true
 disableNunjucks: true
 description: "切分策略、dense vs sparse vs 混合检索、reranker 选型、2026 年长上下文 vs RAG 的取舍，以及 10 万文档以上才会冒头的失败模式。"

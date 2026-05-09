@@ -2,11 +2,11 @@
 title: "计算机基础（一）：CPU 与计算核心"
 date: 2022-10-01 09:00:00
 tags:
-  - 计算机硬件
-  - 系统架构
+  - Computer Hardware
+  - System Architecture
 categories: 计算机基础
 series: computer-fundamentals
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "理解数据单位（位与字节）、CPU 架构、五级流水线、缓存层级、分支预测、乱序执行、多核与 SMT、Intel vs AMD 差异，以及如何选购合适的处理器。"
 disableNunjucks: true

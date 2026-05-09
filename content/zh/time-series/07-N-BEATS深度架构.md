@@ -7,7 +7,7 @@ tags:
   - N-BEATS
 categories: 时间序列
 series: time-series
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "N-BEATS 把深度学习的表达力和经典分解的可解释性合二为一：基函数展开、双重残差堆叠、M4 竞赛分析，以及完整的 PyTorch 代码。"
 disableNunjucks: true

@@ -2,14 +2,14 @@
 title: "强化学习（十二）：RLHF与大语言模型应用"
 date: 2025-09-25 09:00:00
 tags:
-  - 强化学习
+  - Reinforcement Learning
   - RLHF
-  - LLM
   - DPO
-  - 对齐
+  - ChatGPT
+  - LLM Alignment
 categories: 强化学习
 series: reinforcement-learning
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "RLHF 把基础语言模型变成 ChatGPT 与 Claude 的完整路径：SFT→奖励模型→PPO 三阶段流程、Bradley-Terry 偏好模型、DPO 闭式解推导、RLAIF 与 Constitutional AI、Goodhart 定律下的奖励黑客，以及强化学习在具身智能与推理时搜索中的下一步。"
 disableNunjucks: true

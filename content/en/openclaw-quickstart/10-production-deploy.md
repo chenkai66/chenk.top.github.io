@@ -13,7 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 10
-description: "Putting OpenClaw on a real server: an ECS box, pm2 as the supervisor, nginx in front, certs renewed by acme.sh. Then the long tail — the seven failures I have seen at least twice in production, and what each one actually was."
+description: "ECS, pm2, nginx, acme.sh — plus seven production failure modes and their fixes."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-10"
 ---

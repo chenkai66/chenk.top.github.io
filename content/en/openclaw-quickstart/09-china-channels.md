@@ -13,7 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 9
-description: "DingTalk, Feishu (deprecated), WeCom in three flavors, WeChat customer service, public accounts, and the WorkBuddy desktop bridge. A picker matrix and the actual config blocks for the two paths that work in 2026."
+description: "DingTalk, WeCom, WeChat WorkBuddy — a picker matrix with actual config blocks."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-9"
 ---

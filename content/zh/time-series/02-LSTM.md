@@ -7,7 +7,7 @@ tags:
   - LSTM
 categories: 时间序列
 series: time-series
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "LSTM 的遗忘门、输入门和输出门如何解决梯度消失问题。完整的 PyTorch 时间序列预测代码和实用调参技巧。"
 disableNunjucks: true

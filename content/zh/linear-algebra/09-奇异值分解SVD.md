@@ -2,16 +2,16 @@
 title: "线性代数（九）：奇异值分解 SVD"
 date: 2025-02-26 09:00:00
 tags:
-  - 线性代数
+  - Linear Algebra
   - SVD
-  - 奇异值分解
+  - Singular Value Decomposition
   - PCA
-  - 降维
-  - 图像压缩
+  - Image Compression
+  - Dimensionality Reduction
 description: "SVD 被誉为线性代数的皇冠明珠：它能分解任意矩阵，不限于方阵或对称矩阵。从图像压缩到推荐系统，从人脸识别到基因分析，SVD 无处不在。"
 categories: 线性代数
 series: linear-algebra
-lang: zh-CN
+lang: zh
 mathjax: true
 disableNunjucks: true
 series_order: 9

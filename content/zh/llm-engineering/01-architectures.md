@@ -11,7 +11,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 1
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: true
 disableNunjucks: true
 description: "MHA、GQA、MQA 的取舍，Mixtral 与 Qwen3-MoE 的稀疏路由，滑动窗口注意力，以及 Mamba、RWKV 这条非注意力路径——每条路的代价和适用场景。"

@@ -7,7 +7,7 @@ tags:
   - permissions
   - configuration
 categories: Claude Code
-lang: zh-CN
+lang: zh
 mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"

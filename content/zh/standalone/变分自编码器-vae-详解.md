@@ -6,7 +6,7 @@ tags:
   - Deep Learning
   - Generative Models
 categories: Algorithm
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从零用 PyTorch 构建 VAE。涵盖 ELBO 目标函数、重参数化技巧、后验坍塌修复、beta-VAE，以及完整的训练流水线。"
 disableNunjucks: true

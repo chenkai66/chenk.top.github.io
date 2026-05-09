@@ -6,7 +6,7 @@ tags:
   - AI Agents
   - Applications
 categories: Large Language Models
-lang: zh-CN
+lang: zh
 description: "面向工程师的 AI Agent 实战指南：规划（CoT/ReAct/ToT）、记忆体系、工具调用、自我反思、多 Agent 协作、主流框架（LangChain、LangGraph、AutoGen、CrewAI）、评估方法与生产部署的全部坑。"
 disableNunjucks: true
 translationKey: "ai-agents-complete-guide"

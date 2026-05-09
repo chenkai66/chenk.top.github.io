@@ -2,13 +2,13 @@
 title: "阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解"
 date: 2026-02-27 09:00:00
 tags:
-  - 阿里云百炼
+  - Aliyun Bailian
   - Qwen-Omni
-  - 多模态
-  - 视频理解
+  - Multimodal
+  - Video Understanding
   - Streaming
 categories: 阿里云百炼
-lang: zh-CN
+lang: zh
 mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"

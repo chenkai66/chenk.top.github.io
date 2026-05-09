@@ -7,7 +7,7 @@ tags:
   - Web 部署
   - LAMP
 categories: 云计算
-lang: zh-CN
+lang: zh
 disableNunjucks: true
 translationKey: "lamp-on-ecs"
 ---

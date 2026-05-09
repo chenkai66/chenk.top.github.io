@@ -8,7 +8,7 @@ tags:
   - Symplectic Geometry
   - Structure-Preserving Learning
 categories: PDE and Machine Learning
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "理解能保持能量与辛结构的物理感知神经网络。涵盖 HNN、LNN、SympNet、辛积分器，以及四个经典物理系统实验。"
 disableNunjucks: true

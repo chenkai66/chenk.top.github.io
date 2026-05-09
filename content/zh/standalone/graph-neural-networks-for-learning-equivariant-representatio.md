@@ -6,7 +6,7 @@ tags:
   - GNN
   - 等变性
 categories: 论文笔记
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "把神经网络本身画成一张图（神经元做节点、权重做边），再让 GNN 来读它，就能得到一个对隐藏单元置换天然等变的表示。换对了对称性，预测泛化、检索相似模型、跨架构合并权重这类任务才真正变得可学。"
 disableNunjucks: true

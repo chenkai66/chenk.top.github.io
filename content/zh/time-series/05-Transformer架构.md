@@ -7,7 +7,7 @@ tags:
   - Transformer
 categories: 时间序列
 series: time-series
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "时间序列的 Transformer 全景：编码器-解码器结构、时序位置编码、O(n^2) 注意力瓶颈、Decoder-only 自回归预测与 Patching 策略。含 Autoformer / FEDformer / Informer / PatchTST 选型与可直接运行的实现。"
 disableNunjucks: true

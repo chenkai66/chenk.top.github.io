@@ -2,11 +2,11 @@
 title: "计算机基础（四）：主板、显卡与扩展"
 date: 2022-12-03 09:00:00
 tags:
-  - 计算机硬件
-  - 系统架构
+  - Computer Hardware
+  - System Architecture
 categories: 计算机基础
 series: computer-fundamentals
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "看懂主板布局、理清 CPU 直连与芯片组域的 PCIe 通道分配、理解 GPU 的 SIMT 执行模型、对比 DDR/GDDR/HBM 显存，以及挑对显示接口。"
 disableNunjucks: true

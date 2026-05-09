@@ -8,7 +8,7 @@ tags:
   - LSTM
 categories: 自然语言处理
 series: nlp
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "RNN、LSTM、GRU 如何通过记忆处理序列。从第一性原理推导梯度消失，用 PyTorch 实现字符级文本生成器和 Seq2Seq 翻译器。"
 disableNunjucks: true

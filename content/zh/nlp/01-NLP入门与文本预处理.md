@@ -7,7 +7,7 @@ tags:
   - 文本预处理
 categories: 自然语言处理
 series: nlp
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从第一性原理出发的 NLP 入门：梳理四个时代的脉络，亲手搭建从清洗到向量化的完整流水线，把分词、TF-IDF、n-gram 与分布式表示背后的数学讲清楚。"
 disableNunjucks: true

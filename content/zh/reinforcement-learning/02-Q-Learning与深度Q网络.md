@@ -2,16 +2,17 @@
 title: "强化学习（二）：Q-Learning 与深度 Q 网络（DQN）"
 date: 2025-08-06 09:00:00
 tags:
-  - 强化学习
+  - Reinforcement Learning
   - Q-Learning
   - DQN
-  - 经验回放
-  - 目标网络
+  - Deep Q-Network
+  - Experience Replay
+  - Target Network
   - Rainbow
-  - 价值方法
+  - Value-Based Methods
 categories: 强化学习
 series: reinforcement-learning
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "DQN 如何结合神经网络与 Q-Learning 玩转 Atari——经验回放、目标网络、Double DQN、Dueling DQN、优先经验回放与 Rainbow。"
 disableNunjucks: true

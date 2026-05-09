@@ -3,11 +3,11 @@ title: "OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层"
 date: 2026-04-05 09:00:00
 tags:
   - openclaw
-  - 架构
+  - architecture
   - agent-loop
   - gateway
 categories: OpenClaw
-lang: zh-CN
+lang: zh
 mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"

@@ -2,15 +2,15 @@
 title: "偏微分方程与机器学习（四）：变分推断与Fokker-Planck方程"
 date: 2024-06-15 09:00:00
 tags:
-  - 变分推断
-  - Fokker-Planck
   - PDE
-  - 概率
-  - 扩散过程
+  - Variational Inference
+  - Fokker-Planck
+  - ELBO
+  - Langevin Dynamics
 categories:
   - PDE与机器学习
 series: pde-ml
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "变分推断与 Langevin MCMC 在连续时间下是同一个 Fokker-Planck PDE：从 SDE 推导密度演化、KL 散度作为 Wasserstein 梯度流、SVGD 粒子方法、对数 Sobolev 不等式给出指数收敛、贝叶斯神经网络应用。"
 disableNunjucks: true

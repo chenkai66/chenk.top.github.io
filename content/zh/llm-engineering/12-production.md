@@ -12,7 +12,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 12
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: false
 disableNunjucks: true
 description: "服务栈选型细化、给 LLM 做 autoscaling、延迟预算、prompt+completion 成本跟踪、多模型路由、FrugalGPT 级联、第一天就要的可观测性，以及能用的 on-call 模式。"

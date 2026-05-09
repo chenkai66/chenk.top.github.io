@@ -3,17 +3,17 @@ title: "OpenClaw 快速上手（十）：生产部署与没人提前告诉你的
 date: 2026-04-12 09:00:00
 tags:
   - openclaw
-  - 生产环境
+  - production
   - ecs
   - nginx
-  - 故障排查
+  - troubleshooting
 categories: OpenClaw
-lang: zh-CN
+lang: zh
 mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"
 series_order: 10
-description: "把 OpenClaw 放到真正的服务器上：一台 ECS、pm2 做进程守护、nginx 反代、acme.sh 续证书。然后是长尾——我在生产环境中至少见过两次的八种故障，以及每一种的真正原因。"
+description: "ECS + pm2 + nginx + acme.sh 上线部署，加七个生产环境常见故障及其排查方法。"
 disableNunjucks: true
 translationKey: "openclaw-quickstart-10"
 ---

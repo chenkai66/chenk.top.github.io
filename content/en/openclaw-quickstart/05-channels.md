@@ -13,7 +13,7 @@ mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw QuickStart"
 series_order: 5
-description: "Telegram in five minutes, DingTalk in fifteen, WeChat in 'it depends'. Concrete config blocks for each channel and an honest take on which to start with depending on where you actually live."
+description: "Telegram in five minutes, DingTalk in fifteen, WeChat via WorkBuddy."
 disableNunjucks: true
 translationKey: "openclaw-quickstart-5"
 ---

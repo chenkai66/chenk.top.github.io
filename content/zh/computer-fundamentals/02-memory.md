@@ -2,11 +2,11 @@
 title: "计算机基础（二）：内存与高速缓存系统"
 date: 2022-10-22 09:00:00
 tags:
-  - 计算机硬件
-  - 系统架构
+  - Computer Hardware
+  - System Architecture
 categories: 计算机基础
 series: computer-fundamentals
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "从存储金字塔到 DRAM 单元、从虚拟内存到 TLB、从 ECC 到 NUMA 与多通道——一条指令背后的内存系统全景。"
 disableNunjucks: true

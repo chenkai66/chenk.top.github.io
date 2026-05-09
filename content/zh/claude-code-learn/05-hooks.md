@@ -4,10 +4,10 @@ date: 2026-04-20 09:00:00
 tags:
   - claude-code
   - hooks
-  - 安全
-  - 自动化
+  - safety
+  - automation
 categories: Claude Code
-lang: zh-CN
+lang: zh
 mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"

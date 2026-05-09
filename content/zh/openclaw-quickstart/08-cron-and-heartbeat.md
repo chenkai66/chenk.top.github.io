@@ -5,9 +5,9 @@ tags:
   - openclaw
   - cron
   - heartbeat
-  - 自动化
+  - automation
 categories: OpenClaw
-lang: zh-CN
+lang: zh
 mathjax: false
 series: openclaw-quickstart
 series_title: "OpenClaw 快速上手"

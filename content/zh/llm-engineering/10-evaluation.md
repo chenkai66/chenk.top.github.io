@@ -11,7 +11,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 10
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: false
 disableNunjucks: true
 description: "为什么 MMLU 坏了、污染问题、LLM-as-judge 偏置、位置偏置缓解、校准、生产里真正能在客户之前抓到回归的 A/B 测试模式。"

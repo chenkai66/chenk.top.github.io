@@ -2,15 +2,15 @@
 title: "云计算（六）：云安全与隐私保护"
 date: 2023-05-07 09:00:00
 tags:
-  - 云计算
-  - 云安全
+  - Cloud Computing
+  - Cloud Security
   - IAM
-  - 数据加密
-  - 零信任
-  - 合规
+  - Encryption
+  - Zero Trust
+  - Compliance
 categories: 云计算
 series: cloud-computing
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "工程师视角的云安全实战：共担责任、可扩展的 IAM、静态/传输/使用中加密、零信任、合规框架，以及一份可以反复演练的事件响应流程。"
 disableNunjucks: true

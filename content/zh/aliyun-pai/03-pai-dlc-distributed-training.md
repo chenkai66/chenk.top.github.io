@@ -2,13 +2,13 @@
 title: "阿里云 PAI 实战（三）：PAI-DLC——不用通宵刨坑的分布式训练"
 date: 2026-03-07 09:00:00
 tags:
-  - 阿里云 PAI
+  - Aliyun PAI
   - PAI-DLC
-  - 分布式训练
+  - Distributed Training
   - LLM
   - SFT
 categories: 阿里云 PAI
-lang: zh-CN
+lang: zh
 mathjax: false
 series: aliyun-pai
 series_title: "阿里云 PAI 实战手册"

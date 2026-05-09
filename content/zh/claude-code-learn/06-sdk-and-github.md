@@ -5,9 +5,9 @@ tags:
   - claude-code
   - sdk
   - github-actions
-  - 自动化
+  - automation
 categories: Claude Code
-lang: zh-CN
+lang: zh
 mathjax: false
 series: claude-code-learn
 series_title: "Claude Code 实战入门"

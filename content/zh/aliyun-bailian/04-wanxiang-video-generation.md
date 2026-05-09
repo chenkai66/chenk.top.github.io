@@ -2,12 +2,12 @@
 title: "阿里云百炼实战（四）：万相视频生成端到端"
 date: 2026-02-28 09:00:00
 tags:
-  - 阿里云百炼
-  - 万相
-  - 视频生成
+  - Aliyun Bailian
+  - Wanxiang
+  - Video Generation
   - Async
 categories: 阿里云百炼
-lang: zh-CN
+lang: zh
 mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"

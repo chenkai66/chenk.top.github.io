@@ -2,14 +2,14 @@
 title: "云计算（四）：云存储系统与分布式架构"
 date: 2023-03-30 09:00:00
 tags:
-  - 云计算
-  - 分布式存储
-  - 对象存储
+  - Cloud Computing
+  - Distributed Storage
+  - Object Storage
   - HDFS
   - Ceph
 categories: 云计算
 series: cloud-computing
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "从 CAP 定理到 S3、HDFS、Ceph —— 深入剖析分布式存储原语、一致性、副本、纠删码与成本优化。"
 disableNunjucks: true

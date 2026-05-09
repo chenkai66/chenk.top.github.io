@@ -7,7 +7,7 @@ tags:
   - RAG
   - LLM
 categories: Large Language Models
-lang: zh-CN
+lang: zh
 description: "从一次 API 调用到一个生产级 LLM 平台：工作流模式、RAG、模型路由、部署拓扑、成本杠杆、可观测性、企业集成——以及那些真正决定成败的取舍。"
 disableNunjucks: true
 translationKey: "llm-workflows-architecture"

@@ -2,11 +2,11 @@
 title: "计算机基础（六）：深度解析与系统协作"
 date: 2023-01-14 09:00:00
 tags:
-  - 计算机硬件
-  - 系统架构
+  - Computer Hardware
+  - System Architecture
 categories: 计算机基础
 series: computer-fundamentals
-lang: zh-CN
+lang: zh
 mathjax: false
 description: "系列收官篇。我们从单个组件抽身出来，看整台机器：CPU、缓存、内存、存储、IO、加速器是怎么连在一起的；为什么硬件感知的代码能快 100 倍；怎么读 perf 计数器；以及计算的下一站——chiplet、硅光、量子。"
 disableNunjucks: true

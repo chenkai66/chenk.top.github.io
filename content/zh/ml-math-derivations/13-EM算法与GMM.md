@@ -2,16 +2,16 @@
 title: "机器学习数学推导（十三）：EM算法与GMM"
 date: 2026-02-01 09:00:00
 tags:
-  - 机器学习
-  - 期望最大化
-  - 高斯混合模型
-  - 隐变量
-  - EM算法
+  - EM Algorithm
+  - Expectation Maximization
+  - Gaussian Mixture Model
   - GMM
-  - 数学推导
+  - Latent Variables
+  - Mathematical Derivation
+  - Machine Learning
 categories: 机器学习
 series: ml-math-derivations
-lang: zh-CN
+lang: zh
 mathjax: true
 description: "从 Jensen 不等式与 ELBO 出发推导 EM 算法，证明其单调上升性，并完整给出高斯混合模型（GMM）的 E 步、M 步更新公式、模型选择以及与 K-means 的关系。"
 disableNunjucks: true

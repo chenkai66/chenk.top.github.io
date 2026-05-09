@@ -12,7 +12,7 @@ categories: 大模型工程
 series: llm-engineering
 series_order: 11
 series_title: "大模型工程"
-lang: zh-CN
+lang: zh
 mathjax: false
 disableNunjucks: true
 description: "对齐在工程上意味什么、拒绝校准、红队分类、幻觉指标、Sleeper Agents、refusal 作为特征向量、constitutional AI，以及 2026 年安全上线实际需要什么。"
