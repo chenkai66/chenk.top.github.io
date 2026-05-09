@@ -19,7 +19,7 @@ translationKey: "openclaw-quickstart-7"
 
 The first six pieces got you to a working OpenClaw with a channel and a skill. This one is about the part everyone gets wrong on the first install: memory.
 
-![OpenClaw QuickStart (7): The Memory System, Without the Magic — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_1.jpg)
+![OpenClaw QuickStart (7): The Memory System, Without the Magic — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/illustration_1.png)
 
 ## The shape of the workspace
 

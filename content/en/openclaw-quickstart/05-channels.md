@@ -20,7 +20,7 @@ translationKey: "openclaw-quickstart-5"
 
 The point of OpenClaw is that the agent comes to you. So far ours hasn't — it's only on the TUI. Time to wire a channel.
 
-![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_1.jpg)
+![OpenClaw QuickStart (5): Wiring Telegram, DingTalk, and the WeChat Reality — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/illustration_1.png)
 
 ## Telegram — five minutes
 

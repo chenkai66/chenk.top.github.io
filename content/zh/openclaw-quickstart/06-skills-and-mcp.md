@@ -24,7 +24,7 @@ translationKey: "openclaw-quickstart-6"
 
 OpenClaw 的技能系统填补这个缺口。一个 Skill 定义了做什么、什么时候做、用什么工具做、按什么步骤做。再配合 MCP 把外部能力统一接入，Agent 就从问答机器人变成了能干活的助手。
 
-![技能系统架构示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.jpg)
+![技能系统架构示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
 ## Skill 的组成
 

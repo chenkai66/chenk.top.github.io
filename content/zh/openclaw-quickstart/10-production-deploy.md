@@ -22,7 +22,7 @@ translationKey: "openclaw-quickstart-10"
 
 这篇讲的是把 OpenClaw 放到一台真正的服务器上，让它 7x24 跑着。然后——更重要的——是我在生产环境里踩过的八个坑，每一个都至少见过两次。
 
-![生产部署架构概览](/posts/zh/openclaw-quickstart/10-production-deploy/illustration_1.jpg)
+![生产部署架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/10-production-deploy/illustration_1.png)
 
 ## 选服务器
 
@@ -314,7 +314,7 @@ agent:
 
 成本大概 5000 token，一周跑一次完全可以接受。
 
-![故障排查流程图](/posts/zh/openclaw-quickstart/10-production-deploy/illustration_2.png)
+![故障排查流程图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/10-production-deploy/illustration_2.png)
 
 ## 升级路径
 

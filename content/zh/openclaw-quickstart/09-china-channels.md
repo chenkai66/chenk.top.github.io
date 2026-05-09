@@ -22,7 +22,7 @@ translationKey: "openclaw-quickstart-9"
 
 这篇文章不讲空话。我会给你一张选型矩阵，三个筛选问题，两条实测跑通的路径，以及每个渠道的详细配置。所有配置都在 OpenClaw v0.9+ 上验证过。
 
-![国内 IM 渠道选型矩阵总览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_1.jpg)
+![国内 IM 渠道选型矩阵总览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/illustration_1.png)
 
 ## 七渠道选型矩阵
 

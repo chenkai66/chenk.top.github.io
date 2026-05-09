@@ -21,7 +21,7 @@ The first time I deployed OpenClaw I sat there sending it messages. After two da
 
 This piece is about the two ways to make that happen.
 
-![OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.jpg)
+![OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
 
 ## Heartbeat vs Cron — pick one in your head
 

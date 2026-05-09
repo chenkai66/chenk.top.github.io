@@ -22,7 +22,7 @@ The local install gets you to "it works on my machine." The server install is wh
 
 This chapter walks through the deploy I actually use on a 2-core 4G ECS box, then the failures I have seen often enough to put in writing.
 
-![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_1.jpg)
+![OpenClaw QuickStart (10): Production Deploy and the Failure Modes Nobody Warns You About — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/illustration_1.png)
 
 ## Choosing your server
 

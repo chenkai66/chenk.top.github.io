@@ -32,7 +32,7 @@ OpenClaw 目前支持三条渠道路径：
 | 钉钉 | 国内企业、团队协作 | 否（Stream） | 中 |
 | 微信（WorkBuddy） | 个人微信触达 | 否（本地桥接） | 中高 |
 
-![渠道架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_1.jpg)
+![渠道架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/illustration_1.png)
 
 ---
 

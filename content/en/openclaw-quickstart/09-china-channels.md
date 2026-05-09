@@ -22,7 +22,7 @@ Chapter 5 covered Telegram, DingTalk, and WeChat at a glance. This chapter is th
 
 What follows is the matrix I check before recommending anything to anyone.
 
-![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_1.jpg)
+![OpenClaw QuickStart (9): The China IM Picker, with Honest Tradeoffs — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/illustration_1.png)
 
 ## The seven channels worth knowing
 

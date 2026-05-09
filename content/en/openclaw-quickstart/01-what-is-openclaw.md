@@ -20,7 +20,7 @@ I keep getting asked "is OpenClaw just another wrapper around an LLM?" The short
 
 This is the first piece in a six-part series. By the end you should have a working OpenClaw on your own machine, talking to a model, listening on at least one chat channel, and doing something useful that survives a reboot.
 
-![OpenClaw QuickStart (1): What This Thing Actually Is — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_1.jpg)
+![OpenClaw QuickStart (1): What This Thing Actually Is — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
 
 ## Prerequisites and assumptions
 

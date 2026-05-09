@@ -26,7 +26,7 @@ OpenClaw 不是这个东西。它解决的问题是：**你在哪跟 AI 对话**
 
 这篇文章的目标很简单：把 OpenClaw 是什么讲清楚，让你能判断它值不值得占用你硬盘上那几百 MB 空间。后续文章负责安装和配置，这篇只负责"认知对齐"。
 
-![OpenClaw 架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/01-what-is-openclaw/illustration_1.jpg)
+![OpenClaw 架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/01-what-is-openclaw/illustration_1.png)
 
 ---
 

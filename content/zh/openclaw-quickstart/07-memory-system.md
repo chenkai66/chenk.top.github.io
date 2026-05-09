@@ -25,7 +25,7 @@ translationKey: "openclaw-quickstart-7"
 
 这不是 bug，这是设计。Agent 的上下文窗口是有限的，记忆系统的本质是一套**决定什么该出现在上下文里**的工程。本篇把这套工程拆开讲。
 
-![记忆系统架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/illustration_1.jpg)
+![记忆系统架构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/illustration_1.png)
 
 ## Workspace 目录结构
 

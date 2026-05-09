@@ -29,7 +29,7 @@ translationKey: "openclaw-quickstart-8"
 
 让 OpenClaw 从"被动回答"变成"主动行动"，只需要两个调度原语：**Heartbeat** 和 **Cron**。
 
-![Heartbeat 和 Cron 的调度模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.jpg)
+![Heartbeat 和 Cron 的调度模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/illustration_1.png)
 
 ## Heartbeat vs Cron：巡逻员与厨房计时器
 

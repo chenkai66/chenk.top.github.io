@@ -20,7 +20,7 @@ translationKey: "openclaw-quickstart-6"
 
 Five pieces in, you have a working OpenClaw with a chat channel. This is where it stops being a demo.
 
-![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_1.jpg)
+![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
 ## What we'll build
 
