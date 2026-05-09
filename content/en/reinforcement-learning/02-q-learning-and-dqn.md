@@ -24,7 +24,7 @@ In December 2013, a small DeepMind team uploaded a paper to arXiv with a strikin
 
 DQN was not invented from scratch. It is **Q-Learning** -- a 1989 tabular algorithm by Chris Watkins -- with a neural network in place of the lookup table, plus two engineering tricks that keep training from blowing up. This article explains exactly which problems those tricks solve, walks through a complete PyTorch implementation, and surveys the variants that turned DQN from an Atari demo into a workhorse of modern RL.
 
-![Reinforcement Learning (2): Q-Learning and Deep Q-Networks (DQN) — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/illustration_1.jpg)
+![Reinforcement Learning (2): Q-Learning and Deep Q-Networks (DQN) — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/illustration_1.png)
 
 ## What you will learn
 
@@ -159,7 +159,7 @@ DQN's two innovations target the off-policy and bootstrapping legs of the Triad 
 
 ## DQN's Core Innovations
 
-![Reinforcement Learning (2): Q-Learning and Deep Q-Networks (DQN) — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/illustration_2.jpg)
+![Reinforcement Learning (2): Q-Learning and Deep Q-Networks (DQN) — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/02-q-learning-and-dqn/illustration_2.png)
 
 ### Experience replay: breaking temporal correlation
 

@@ -20,7 +20,7 @@ translationKey: "aliyun-bailian-2"
 
 This is the article in the series where most of the production wins live. The other models are interesting; the LLMs are what every product I have shipped on Bailian has called every minute of every day. The official Qwen API reference is dense and complete; this article is the readable companion that picks one path through it.
 
-![Aliyun Bailian (2): The Qwen LLM API in Production — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/illustration_1.jpg)
+![Aliyun Bailian (2): The Qwen LLM API in Production — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/illustration_1.png)
 
 ## Pick the right Qwen variant for the workload
 
@@ -260,7 +260,7 @@ This unlocks "the form is filling in front of the user" UX without waiting for t
 
 ## Function calling deep dive: multi-round, parallel, the tool_choice="auto" trap
 
-![Aliyun Bailian (2): The Qwen LLM API in Production — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/illustration_2.jpg)
+![Aliyun Bailian (2): The Qwen LLM API in Production — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/02-qwen-llm-api/illustration_2.png)
 
 The basic round-trip from the original article handles the simple case. Real agents loop. The pattern is a `while` loop until the model stops emitting `tool_calls`:
 

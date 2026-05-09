@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-6"
 ---
 CLI 是最直观的界面，SDK 才是真正有趣的部分，而 GitHub 集成则是价值体现的关键所在。
-![Claude Code 实战入门（六）：SDK、GitHub 集成、把 Claude 放进 CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_1.jpg)
+![Claude Code 实战入门（六）：SDK、GitHub 集成、把 Claude 放进 CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
 ## 用一段话介绍 SDK
 
@@ -112,7 +112,7 @@ for await (const event of result) {
 每次发版前运行一次。CHANGELOG 自动生成，提交记录被整理成清晰的文字，我只需要检查一遍然后提交。每次发版能省 5 分钟，半年下来已经省了不少时间。
 ## GitHub Action
 
-![Claude Code 实战入门（六）：SDK、GitHub 集成、把 Claude 放进 CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_2.jpg)
+![Claude Code 实战入门（六）：SDK、GitHub 集成、把 Claude 放进 CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_2.png)
 
 Anthropic 提供了一个官方的 Action：`anthropic/claude-code-action@v1`。把它加到你的 workflow 里：
 

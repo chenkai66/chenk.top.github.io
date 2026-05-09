@@ -22,9 +22,9 @@ polished_by_qwen_max: true
 
 
 <!-- wanx-hero -->
-![自然语言处理（六）：GPT与生成式语言模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/gpt-generative-models/illustration_1.jpg)
+![自然语言处理（六）：GPT与生成式语言模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/gpt-generative-models/illustration_1.png)
 ## 你将学到什么
-![自然语言处理（六）：GPT与生成式语言模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/gpt-generative-models/illustration_2.jpg)
+![自然语言处理（六）：GPT与生成式语言模型 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/gpt-generative-models/illustration_2.png)
 
 - 仅使用解码器的 Transformer 是如何通过“预测下一个 token”实现通用人工智能的
 - 因果（掩码）自注意力机制——这一设计点是 GPT 区别于 BERT 的关键所在
@@ -36,7 +36,7 @@ polished_by_qwen_max: true
 
 **前置知识**：第 4 篇（Transformer 架构）、第 5 篇（预训练与 BERT）。
 ## 1. 仅解码器 Transformer
-![NLP (6): GPT 和生成式语言模型 —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_2.jpg)
+![NLP (6): GPT 和生成式语言模型 —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_2.png)
 
 ![Decoder-only 架构与因果掩码](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig1_decoder_only_arch.png)
 

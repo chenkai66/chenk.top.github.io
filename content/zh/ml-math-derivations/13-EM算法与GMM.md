@@ -20,7 +20,7 @@ translationKey: "ml-math-derivations-13"
 ---
 数据里经常藏着看不见的结构——样本属于哪个簇不知道，某个特征的真实值缺失了，一段文本背后的主题也摸不着。这些隐变量让最大似然估计变得很难处理：似然函数变成“对数里面套求和”的形式，既没有闭式解，梯度方法也容易卡在隐变量上。**EM 算法**用一个看似简单的思路绕开了这个问题：先根据隐变量的后验分布“猜”一次（E 步），再把参数当成已知数据来“拟合”一次（M 步），交替进行。每次迭代都能保证似然值不会下降。我从第一性原理推导 EM 算法，用 Jensen 不等式证明它的单调上升性质，最后把它应用到最经典的场景——**高斯混合模型（GMM）**，也就是 K-means 的软化、椭球化版本。
 
-![机器学习数学推导（十三）：EM算法与GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_1.jpg)
+![机器学习数学推导（十三）：EM算法与GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_1.png)
 ## 你将学到
 
 - 隐变量为什么让 MLE 变得困难（"log 套 sum"问题）
@@ -103,7 +103,7 @@ $$\log p(\mathbf{x}\mid \boldsymbol{\theta})
 ---
 ## 3. EM 是 ELBO 上的坐标上升
 
-![机器学习数学推导（十三）：EM算法与GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_2.jpg)
+![机器学习数学推导（十三）：EM算法与GMM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/13-EM算法与GMM/illustration_2.png)
 
 EM 算法通过交替优化两个参数，不断抬高 $\mathcal{L}$。
 

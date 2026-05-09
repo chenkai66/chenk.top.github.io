@@ -22,7 +22,7 @@ translationKey: "llm-engineering-4"
 
 这篇聊聊每个 post-training 算法到底在优化什么。为什么大多数奖励模型都有问题，只是问题很隐蔽。最后说说 2026 年真正在生产里跑得通的配方。
 
-![大模型工程（四）：Post-training —— SFT、DPO、RLHF、RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/illustration_1.jpg)
+![大模型工程（四）：Post-training —— SFT、DPO、RLHF、RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/illustration_1.png)
 ## 四阶段栈
 
 ![fig1: RLHF 流水线总览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/fig1_rlhf_pipeline.png)
@@ -79,7 +79,7 @@ Tulu-3 来自 AllenAI，包含 939K 条样本。OpenHermes-2.5 提供了 1M 条 
 Magpie 技术 [Xu et al., 2024] 我觉得值得了解。它的核心思路很简单：用 `<|im_start|>
 ## DPO：无需奖励模型的偏好优化
 
-![大模型工程（四）：Post-training —— SFT、DPO、RLHF、RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/illustration_2.jpg)
+![大模型工程（四）：Post-training —— SFT、DPO、RLHF、RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/illustration_2.png)
 
 
 ![fig2: DPO vs PPO 对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/04-post-training/fig2_dpo_vs_ppo.png)

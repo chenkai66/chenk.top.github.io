@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 2
 translationKey: "cloud-computing-2"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/virtualization/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/virtualization/illustration_1.png)
 
 没有虚拟化就没有云计算。每一个 EC2 实例、每一次 Lambda 调用、每一个 Kubernetes Pod，本质上都依赖同一个把戏：**让操作系统对底层硬件深信不疑地撒谎**。本文从 CPU 指令层（让这个把戏变便宜的硬件支持），一直走到主流四大 Hypervisor，再到生产级调优——决定你的虚拟机到底跑在裸机性能的 70% 还是 99%。
 

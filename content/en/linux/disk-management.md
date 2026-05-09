@@ -15,7 +15,7 @@ description: "End-to-end disk workflow on Linux: identify block devices with lsb
 disableNunjucks: true
 translationKey: "linux-3"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/disk-management/illustration_1.png)
 
 Disk problems in production almost never have a one-line fix. You are
 usually navigating a layered stack: the **block device** (a physical

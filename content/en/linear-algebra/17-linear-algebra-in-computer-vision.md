@@ -31,7 +31,7 @@ Computer vision is the science of teaching machines to see. What is striking is 
 
 ---
 
-![Essence of Linear Algebra (17): Linear Algebra in Computer Vision — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/17-linear-algebra-in-computer-vision/illustration_1.jpg)
+![Essence of Linear Algebra (17): Linear Algebra in Computer Vision — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/17-linear-algebra-in-computer-vision/illustration_1.png)
 
 ## 1 Images as Matrices, Tensors, and Vectors
 
@@ -256,7 +256,7 @@ Estimating $\mathbf{K}$ and the lens distortion coefficients from images of a kn
 
 ## 6 Two Views: Epipolar Geometry
 
-![Essence of Linear Algebra (17): Linear Algebra in Computer Vision — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/17-linear-algebra-in-computer-vision/illustration_2.jpg)
+![Essence of Linear Algebra (17): Linear Algebra in Computer Vision — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/17-linear-algebra-in-computer-vision/illustration_2.png)
 
 ### The epipolar constraint
 

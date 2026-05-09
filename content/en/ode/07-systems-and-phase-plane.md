@@ -19,7 +19,7 @@ translationKey: "ode-7"
 ---
 **A small push hits a system. Does it return to rest, drift away, or break entirely?** That single question decides whether bridges survive storms, ecosystems recover from droughts, and economies bounce back from crises. Stability theory answers it -- and it does so *without ever solving the differential equation*. We will learn to read the destiny of a system off the geometry of its phase plane.
 
-![Ordinary Differential Equations (7): Stability Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/07-systems-and-phase-plane/illustration_1.jpg)
+![Ordinary Differential Equations (7): Stability Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/07-systems-and-phase-plane/illustration_1.png)
 
 ## What You Will Learn
 
@@ -114,7 +114,7 @@ ax.grid(True, alpha=0.3); plt.tight_layout(); plt.show()
 
 ## Lyapunov's Direct Method
 
-![Ordinary Differential Equations (7): Stability Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/07-systems-and-phase-plane/illustration_2.jpg)
+![Ordinary Differential Equations (7): Stability Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/07-systems-and-phase-plane/illustration_2.png)
 
 ### The big idea
 

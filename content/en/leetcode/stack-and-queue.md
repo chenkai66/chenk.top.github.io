@@ -15,7 +15,7 @@ description: "Master stack and queue applications: valid parentheses, monotonic 
 disableNunjucks: true
 translationKey: "leetcode-9"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/10-stack-queue/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/10-stack-queue/illustration_1.png)
 
 Stacks and queues look unassuming next to graphs or DP, but they sit underneath an astonishing fraction of interview problems. The reason is simple: most algorithmic questions are really questions about *order of access*. Stacks give you LIFO (last in, first out); queues give you FIFO (first in, first out); and once you add the variants — monotonic stack, deque, priority queue — you have efficient answers for bracket matching, next-greater-element, sliding-window extrema, top-K, BFS, and a long tail of "implement X using Y" puzzles.
 

@@ -23,7 +23,7 @@ The road from "RNN with attention" to the full Transformer is not long, but ever
 
 
 <!-- wanx-hero -->
-![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_1.jpg)
+![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_1.png)
 
 ## What you will learn
 
@@ -43,7 +43,7 @@ The road from "RNN with attention" to the full Transformer is not long, but ever
 ## 1. The bottleneck that motivated attention
 
 <!-- wanx-mid -->
-![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.jpg)
+![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.png)
 
 
 Recall the vanilla encoder-decoder from Part 3. An RNN reads the source sentence one token at a time and squashes everything into a single fixed-size vector $c = h_T^{\text{enc}}$. The decoder then generates the target sequence using only that vector.

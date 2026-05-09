@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 2
 translationKey: "linear-algebra-2"
 ---
-![Essence of Linear Algebra (2): Linear Combinations and Vector Spaces — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/02-linear-combinations-and-vector-spaces/illustration_1.jpg)
+![Essence of Linear Algebra (2): Linear Combinations and Vector Spaces — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/02-linear-combinations-and-vector-spaces/illustration_1.png)
 
 ## Why This Chapter Matters
 
@@ -167,7 +167,7 @@ If $\{\vec{v}_1,\ldots,\vec{v}_k\}$ is independent, then *every* vector in their
 
 ## 4. Basis — The Smallest Complete Toolbox
 
-![Essence of Linear Algebra (2): Linear Combinations and Vector Spaces — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/02-linear-combinations-and-vector-spaces/illustration_2.jpg)
+![Essence of Linear Algebra (2): Linear Combinations and Vector Spaces — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/02-linear-combinations-and-vector-spaces/illustration_2.png)
 
 ### Definition
 

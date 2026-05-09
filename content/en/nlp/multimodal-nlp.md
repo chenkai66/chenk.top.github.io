@@ -29,13 +29,13 @@ This article walks through that arc end-to-end: the math behind contrastive alig
 
 
 <!-- wanx-hero -->
-![NLP (11): Multimodal Large Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/illustration_1.jpg)
+![NLP (11): Multimodal Large Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/illustration_1.png)
 
 ## What You Will Learn
 
 
 <!-- wanx-mid -->
-![NLP (11): Multimodal Large Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/illustration_2.jpg)
+![NLP (11): Multimodal Large Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/multimodal-nlp/illustration_2.png)
 
 - **CLIP** — InfoNCE contrastive loss, dual encoders, zero-shot classification, and how the temperature $\tau$ shapes training
 - **BLIP-2** — why Q-Former works, its 32 learnable queries, and the two-stage pre-training recipe

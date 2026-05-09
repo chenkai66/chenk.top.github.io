@@ -27,7 +27,7 @@ translationKey: "reinforcement-learning-5"
 **Model-Based RL（基于模型的强化学习，MBRL）** 就是把这个思路系统化：先学习一个近似的动态模型 $\hat{P}(s'\mid s,a)$ 和奖励模型 $\hat{R}(s,a)$，然后用它们作为廉价的模拟器，进行规划、策略改进或价值估计。在适用的任务上，这种方法能带来巨大的回报——**真实环境样本需求量减少 10 到 100 倍**。这就像让一个机器人从需要三个月物理交互，缩短到只需要一下午。
 
 这篇文章梳理了 MBRL 的现代发展脉络：Dyna（1990）-> MBPO（2019）-> World Models（2018）-> Dreamer（2020-23）-> MuZero（2020）。每种方法背后都有一个核心思想，而本文的 7 张图逐一展示了这些思想。
-![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.jpg)
+![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.png)
 
 ## 你将学到什么
 
@@ -142,7 +142,7 @@ class DynaQ:
 Dyna 提炼出了一个核心洞见：**学到一个模型，可以用算力替代样本**。它同时也揭示了一个所有现代方法都绕不开的问题：在错误的模型上规划，会直接将偏差注入价值函数。在表格化的确定性世界中，这个问题并不明显；但换成神经网络模型和长 horizon，误差会指数级累积。本文后续内容本质上就是针对这个问题的一系列巧妙解答。
 ## 三、MBPO：让想象短一些
 
-![MBPO 短分支 rollout 与模型误差随长度增长](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based弱化学习与世界模型/fig4_mbpo_short_rollouts.png)
+![MBPO 短分支 rollout 与模型误差随长度增长](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig4_mbpo_short_rollouts.png)
 
 Janner 等人在 NeurIPS 2019 提出的 **Model-Based Policy Optimization（MBPO）**，是 Dyna 思想在连续控制领域最简洁的现代实现。它的核心洞见就两个字：**短 rollout**。
 
@@ -214,7 +214,7 @@ class EnsembleDynamics(nn.Module):
 ---
 ## 五、World Models：在潜空间里做梦
 
-![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-model-based-rl-and-world-models/illustration_2.jpg)
+![强化学习（五）：Model-Based强化学习与世界模型 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-model-based-rl-and-world-models/illustration_2.png)
 
 
 ![World Model V/M/C 架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/05-Model-Based强化学习与世界模型/fig2_world_model_vmc.png)

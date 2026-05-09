@@ -15,7 +15,7 @@ description: "Master dynamic programming through a single recipe: define the sta
 disableNunjucks: true
 translationKey: "leetcode-7"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/07-dp-grid/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/07-dp-grid/illustration_1.png)
 
 Dynamic programming has a reputation for being the algorithm topic that
 separates "competent coder" from "interview wizard". A lot of that

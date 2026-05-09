@@ -23,7 +23,7 @@ translationKey: "ode-16"
 
 This chapter shows how the entire ODE toolkit -- Laplace transforms (Ch 4), linear systems (Ch 6), eigenvalue stability (Ch 7), nonlinear stability (Ch 8) -- collapses into a single unified discipline whose job is no longer to *describe* dynamics, but to *design* them.
 
-![Ordinary Differential Equations (16): Fundamentals of Control Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/illustration_1.jpg)
+![Ordinary Differential Equations (16): Fundamentals of Control Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/illustration_1.png)
 
 ## What You Will Learn
 
@@ -174,7 +174,7 @@ Two facts to memorize:
 
 ## 5. Bode Plots and Stability Margins
 
-![Ordinary Differential Equations (16): Fundamentals of Control Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/illustration_2.jpg)
+![Ordinary Differential Equations (16): Fundamentals of Control Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/16-control-theory/illustration_2.png)
 
 The frequency response $L(j\omega)$ -- the same transfer function evaluated on the imaginary axis -- has two natural readouts: magnitude (in dB) and phase (in degrees) versus $\omega$ on a log scale.
 

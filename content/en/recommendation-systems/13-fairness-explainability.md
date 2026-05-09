@@ -16,7 +16,7 @@ translationKey: "recommendation-systems-13"
 ---
 > A user opens Spotify and the same fifty songs keep appearing. They open Amazon and the top results are always the items they have already considered. They open YouTube and every recommendation is one click away from a rabbit hole they cannot remember asking for. Each of these symptoms has a name, a cause, and a fix. This article is about all three.
 
-![Recommendation Systems (13): Fairness, Debiasing, and Explainability — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/illustration_1.jpg)
+![Recommendation Systems (13): Fairness, Debiasing, and Explainability — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/illustration_1.png)
 
 ## What You Will Learn
 
@@ -179,7 +179,7 @@ The Gini coefficient is borrowed from economics, where it measures income inequa
 
 ## Part 2 — Causal Inference for Recommenders
 
-![Recommendation Systems (13): Fairness, Debiasing, and Explainability — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/illustration_2.jpg)
+![Recommendation Systems (13): Fairness, Debiasing, and Explainability — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/13-fairness-explainability/illustration_2.png)
 
 ### Why correlation is not enough
 

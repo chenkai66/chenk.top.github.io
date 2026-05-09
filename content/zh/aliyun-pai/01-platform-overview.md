@@ -21,7 +21,7 @@ translationKey: "aliyun-pai-1"
 
 这篇是开篇，主要讲整体布局，代码内容很少，深度技术细节会放在第 2 到第 5 篇中展开。这篇文章的目标是让你对整个体系有一个清晰的认识，这样当后面提到“DLC 任务”或者“EAS 端点”时，你能立刻明白它们在整个架构中的位置。
 
-![阿里云 PAI 实战（一）：平台总览与产品家族地图 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/01-platform-overview/illustration_1.jpg)
+![阿里云 PAI 实战（一）：平台总览与产品家族地图 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/01-platform-overview/illustration_1.png)
 ## PAI 是什么，又不是什么
 
 根据官方文档的描述，**人工智能平台 PAI** 是“阿里云面向 AI 全生命周期的一站式开发平台，覆盖数据标注、模型开发、训练到部署的全流程”。虽然可以通过 `pai.console.aliyun.com` 进入控制台，但 PAI 并不仅仅是一个单一的产品，而是一个由多个相关服务组成的**家族**，它们共享统一的账号体系、基于 OSS 的存储层，以及一个通用的 Python SDK。
@@ -112,7 +112,7 @@ for ws in sess.workspace_api.list().items:
 文档中列出了五种计费方式：**按量付费**、**包年包月**（预付费）、**资源包**（DSW 预付费额度）、**节省计划**（承诺使用以获取折扣）以及**按推理时长计费**（EAS Serverless，无需为空闲副本买单）。DSW 按实例运行时间秒级计费；DLC 同样按秒计费，并且支持 Spot/抢占式 GPU 实例，价格大约便宜 30%-50%，但前提是你的任务能够支持断点续训；EAS 则按照副本运行时间秒级计费，外加极低的每百万次请求费用——不过由于自动扩缩容机制的存在，“最小副本数”的配置往往是成本的主要来源。Designer 和 Model Gallery 本身不收费，但它们调用的 DLC 或 EAS 资源会正常计费。新用户账号享有数百元的免费额度，足够完整跑完本系列教程。
 ## Designer 工作流背后的真正模样
 
-![阿里云 PAI 实战（一）：平台总览与产品家族地图 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/01-platform-overview/illustration_2.jpg)
+![阿里云 PAI 实战（一）：平台总览与产品家族地图 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/01-platform-overview/illustration_2.png)
 
 在 Designer 的画布上搭建工作流，感觉就像拼乐高积木一样直观。然而，当你导出工作流时，会发现它实际上是一个扁平的 JSON 文件，平台通过这个文件来回放整个任务流程。记得第一次排查一个卡住的流水线时，我从画布的“…”菜单中选择 *导出工作流*，拿到了对应的 JSON 文件。那一刻，Designer 的“魔法”面纱被揭开，露出了它的本质。以下是 JSON 文件的大致结构：
 

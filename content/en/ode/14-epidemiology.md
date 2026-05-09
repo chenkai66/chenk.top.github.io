@@ -23,7 +23,7 @@ translationKey: "ode-14"
 
 This chapter builds that machinery from scratch. We start with the basic SIR model, derive every threshold and final-size relation analytically, and then layer on the realism: incubation periods (SEIR), asymptomatic transmission, vaccinations, and time-varying interventions (a stylised COVID-style scenario). Throughout, the goal is not to *believe* a forecast but to **understand which mechanism a given parameter controls**.
 
-![Ordinary Differential Equations (14): Epidemic Models and Epidemiology — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/illustration_1.jpg)
+![Ordinary Differential Equations (14): Epidemic Models and Epidemiology — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/illustration_1.png)
 
 ## What You Will Learn
 
@@ -108,7 +108,7 @@ $R_0$ is *the* lever that determines outcomes. A factor-of-two change in $R_0$ c
 
 ## Vaccination and Herd Immunity
 
-![Ordinary Differential Equations (14): Epidemic Models and Epidemiology — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/illustration_2.jpg)
+![Ordinary Differential Equations (14): Epidemic Models and Epidemiology — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/14-epidemiology/illustration_2.png)
 
 Move a fraction $v$ of the population from $S$ to $R$ at $t = 0$. The effective reproduction number becomes$$R_e = R_0 \cdot \frac{S(0)}{N} = R_0\,(1 - v).$$For $R_e \leq 1$ we need $v \geq 1 - 1/R_0$. This is the **herd-immunity threshold** (HIT): the minimum fraction that must be immune for an introduced case to die out, on average.
 

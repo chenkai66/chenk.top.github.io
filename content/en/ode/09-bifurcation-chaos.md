@@ -19,7 +19,7 @@ translationKey: "ode-9"
 ---
 **In 1961, Edward Lorenz restarted a weather simulation from a rounded-off number -- 0.506 instead of 0.506127.** Within simulated weeks the forecast was unrecognisable. That single accident gave us **the butterfly effect** and turned chaos from a metaphor into a science. The lesson is profound and sober: equations that are *exactly* deterministic can still be *practically* unpredictable.
 
-![Ordinary Differential Equations (9): Chaos Theory and the Lorenz System — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/illustration_1.jpg)
+![Ordinary Differential Equations (9): Chaos Theory and the Lorenz System — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/illustration_1.png)
 
 ## What You Will Learn
 
@@ -104,7 +104,7 @@ plt.tight_layout(); plt.show()
 
 ## The Butterfly Effect, Visualised
 
-![Ordinary Differential Equations (9): Chaos Theory and the Lorenz System — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/illustration_2.jpg)
+![Ordinary Differential Equations (9): Chaos Theory and the Lorenz System — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/09-bifurcation-chaos/illustration_2.png)
 
 Two trajectories that start a *ten-billionth* apart -- $[1, 1, 1]$ and $[1 + 10^{-10}, 1, 1]$ -- diverge exponentially until the difference is system-scale.
 

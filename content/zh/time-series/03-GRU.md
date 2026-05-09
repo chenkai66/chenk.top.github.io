@@ -14,7 +14,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "time-series-3"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/03-GRU/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/03-GRU/illustration_1.png)
 ## 本章要点
 
 - GRU 的**更新门** $z_t$ 和**重置门** $r_t$ 凭借一个门和一个状态的优势，如何实现与 LSTM 相当的记忆能力。

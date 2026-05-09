@@ -13,7 +13,7 @@ disableNunjucks: true
 series_order: 5
 translationKey: "computer-fundamentals-5"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/computer-fundamentals/05-network-power/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/computer-fundamentals/05-network-power/illustration_1.png)
 
 主板上明明是千兆网卡，为什么有时只跑出 100 Mbps 的速度？崭新的 650 W 金牌电源，为什么显卡一吃满就重启？机房旁边的房间为什么常年比别处暖几度？这些日常现象的背后，是两套大多数人从不深究的系统：**承载数据的网络 I/O 流水线**，以及**让芯片活下去的电源与冷却链路**。
 

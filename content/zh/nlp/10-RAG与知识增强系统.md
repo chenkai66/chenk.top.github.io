@@ -22,9 +22,9 @@ polished_by_qwen_max: true
 
 
 <!-- wanx-hero -->
-![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rag-knowledge-enhancement/illustration_1.jpg)
+![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rag-knowledge-enhancement/illustration_1.png)
 ## 你将学到什么
-![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rag-knowledge-enhancement/illustration_2.jpg)
+![自然语言处理（十）：RAG与知识增强系统 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rag-knowledge-enhancement/illustration_2.png)
 
 - 概率分解公式 $P(y\mid q)=\sum_d P(d\mid q)P(y\mid q,d)$ 的含义，以及每一项对性能的具体影响
 - ANN 索引（如 HNSW、IVF-PQ、ScaNN）为何要在召回率和延迟之间做权衡，以及在什么场景下值得牺牲召回换取速度
@@ -36,7 +36,7 @@ polished_by_qwen_max: true
 - 如何根据数据规模、延迟要求和运维预算选择合适的向量数据库
 ## 前置知识
 
-![NLP (10): RAG 与知识增强系统 —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_2.jpg)
+![NLP (10): RAG 与知识增强系统 —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rag-knowledge-enhancement/illustration_2.png)
 
 - 熟悉 Embedding 的概念以及余弦相似度在语义表示中的应用（[第 2 篇：词向量与语言模型](/en/nlp/word-embeddings-lm/)）
 - 了解 Decoder-only 架构的语言模型及其提示词设计方法（[第 6 篇：GPT](/en/nlp/gpt-generative-models/)）

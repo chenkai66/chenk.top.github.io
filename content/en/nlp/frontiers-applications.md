@@ -24,7 +24,7 @@ Capability brings new failure modes. Models hallucinate confidently, generate ha
 
 
 <!-- wanx-hero -->
-![NLP (12): Frontiers and Practical Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/illustration_1.jpg)
+![NLP (12): Frontiers and Practical Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/illustration_1.png)
 
 ## What you will learn
 
@@ -39,7 +39,7 @@ Capability brings new failure modes. Models hallucinate confidently, generate ha
 ## Prerequisites
 
 <!-- wanx-mid -->
-![NLP (12): Frontiers and Practical Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/illustration_2.jpg)
+![NLP (12): Frontiers and Practical Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/frontiers-applications/illustration_2.png)
 
 
 - The previous eleven chapters of this series; we lean especially on Parts 4 (Transformer), 6 (GPT), 8 (PEFT), 9 (LLM internals) and 10 (RAG).

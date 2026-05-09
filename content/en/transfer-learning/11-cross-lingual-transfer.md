@@ -22,7 +22,7 @@ English has the labels. The world has 7,000+ languages. Cross-lingual transfer i
 
 This post derives why that is even possible. We start from the bilingual-embedding alignment that motivated the field, walk through the multilingual pretraining recipe (mBERT, XLM-R) that made parallel data optional, and end with the practical playbook -- zero-shot vs translate-train vs translate-test, when to pick which, and where the wheels come off.
 
-![Transfer Learning (11): Cross-Lingual Transfer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/illustration_1.jpg)
+![Transfer Learning (11): Cross-Lingual Transfer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/illustration_1.png)
 
 ## What You Will Learn
 
@@ -87,7 +87,7 @@ The Procrustes story matters because **multilingual Transformers can be read as 
 
 ## Multilingual Pretraining
 
-![Transfer Learning (11): Cross-Lingual Transfer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/illustration_2.jpg)
+![Transfer Learning (11): Cross-Lingual Transfer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/illustration_2.png)
 
 
 ![mBERT vs XLM-R](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/11-cross-lingual-transfer/fig2_xlmr_architecture.png)

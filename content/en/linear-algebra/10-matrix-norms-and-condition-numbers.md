@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 10
 translationKey: "linear-algebra-10"
 ---
-![Essence of Linear Algebra (10): Matrix Norms and Condition Numbers -- Is Your Linear System Healthy? — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/10-matrix-norms-and-condition-numbers/illustration_1.jpg)
+![Essence of Linear Algebra (10): Matrix Norms and Condition Numbers -- Is Your Linear System Healthy? — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/10-matrix-norms-and-condition-numbers/illustration_1.png)
 
 ## The Question That Haunts Engineers
 
@@ -166,7 +166,7 @@ The condition number is the **eccentricity** of the output ellipse:$$\kappa = \f
 
 ## Ill-Conditioned Matrices: The Nightmare
 
-![Essence of Linear Algebra (10): Matrix Norms and Condition Numbers -- Is Your Linear System Healthy? — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/10-matrix-norms-and-condition-numbers/illustration_2.jpg)
+![Essence of Linear Algebra (10): Matrix Norms and Condition Numbers -- Is Your Linear System Healthy? — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/10-matrix-norms-and-condition-numbers/illustration_2.png)
 
 ### The Hilbert matrix
 

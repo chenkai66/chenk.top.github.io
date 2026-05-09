@@ -21,7 +21,7 @@ If hooks are how you reach into Claude Code, settings.json is where you tell it 
 
 This chapter is the missing reference.
 
-![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_1.jpg)
+![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_1.png)
 
 ## The three layers
 
@@ -70,7 +70,7 @@ A bare `Read` or `Bash` allows everything in that tool. That is almost always to
 
 ## Why deny wins
 
-![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_2.jpg)
+![Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
 Once anything in the merged config denies an action, nothing else can re-allow it. This is the lever you want.
 

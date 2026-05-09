@@ -17,7 +17,7 @@ disableNunjucks: true
 series_order: 11
 translationKey: "linear-algebra-11"
 ---
-![Essence of Linear Algebra (11): Matrix Calculus and Optimization -- The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_1.jpg)
+![Essence of Linear Algebra (11): Matrix Calculus and Optimization -- The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_1.png)
 
 ## From Shower Knobs to Neural Networks
 
@@ -216,7 +216,7 @@ The trace appears constantly because *any* scalar function of a matrix can be wr
 
 ## The Chain Rule and Backpropagation
 
-![Essence of Linear Algebra (11): Matrix Calculus and Optimization -- The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_2.jpg)
+![Essence of Linear Algebra (11): Matrix Calculus and Optimization -- The Engine Behind Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/11-matrix-calculus-and-optimization/illustration_2.png)
 
 ### The Chain Rule, in Matrix Form
 

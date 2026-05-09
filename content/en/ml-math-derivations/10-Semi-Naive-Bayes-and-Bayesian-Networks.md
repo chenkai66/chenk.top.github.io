@@ -20,7 +20,7 @@ translationKey: "ml-math-derivations-10"
 ---
 > **Hook.** Naive Bayes assumes every feature is conditionally independent given the class. It is a convenient lie -- one that lets us train in a single pass over the data, but one that classifiers based on tree structures and small graphs can systematically beat by a few accuracy points on virtually every UCI benchmark. This part walks the spectrum from "no dependencies" (Naive Bayes) to "all dependencies" (full joint), showing the three sweet spots that practitioners actually use: SPODE, TAN and AODE. The same factorisation idea, taken to its general form, is the Bayesian network.
 
-![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_1.jpg)
+![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_1.png)
 
 ## What you will learn
 
@@ -134,7 +134,7 @@ print("Naive Bayes 5-fold CV:",
 
 ## 3. TAN: tree-augmented Naive Bayes
 
-![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_2.jpg)
+![ML Math Derivations (10): Semi-Naive Bayes and Bayesian Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/illustration_2.png)
 
 ### 3.1 Each feature picks its own parent
 

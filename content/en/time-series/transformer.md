@@ -14,7 +14,7 @@ disableNunjucks: true
 series_order: 5
 translationKey: "time-series-5"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
 
 ## What You Will Learn
 

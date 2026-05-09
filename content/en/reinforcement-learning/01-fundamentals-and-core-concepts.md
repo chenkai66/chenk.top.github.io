@@ -24,7 +24,7 @@ That trial-feedback-improvement loop is not just how we learn to ride bikes. It 
 
 This article builds RL from the ground up. We will use the bicycle as our running analogy and translate every piece of intuition into the math that powers modern algorithms.
 
-![Reinforcement Learning (1): Fundamentals and Core Concepts — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/01-fundamentals-and-core-concepts/illustration_1.jpg)
+![Reinforcement Learning (1): Fundamentals and Core Concepts — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/01-fundamentals-and-core-concepts/illustration_1.png)
 
 ## What You Will Learn
 
@@ -57,7 +57,7 @@ Reinforcement learning is the mathematical formalism of this loop. The "you" in 
 
 ## Markov Decision Process: The Mathematical Foundation
 
-![Reinforcement Learning (1): Fundamentals and Core Concepts — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/01-fundamentals-and-core-concepts/illustration_2.jpg)
+![Reinforcement Learning (1): Fundamentals and Core Concepts — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/01-fundamentals-and-core-concepts/illustration_2.png)
 
 
 ![A small MDP with three states for the bicycle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/01-fundamentals-and-core-concepts/fig2_mdp_framework.png)

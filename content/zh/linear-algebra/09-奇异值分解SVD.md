@@ -18,7 +18,7 @@ series_order: 9
 translationKey: "linear-algebra-9"
 polished_by_qwen_max: true
 ---
-![线性代数（九）：奇异值分解 SVD — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_1.jpg)
+![线性代数（九）：奇异值分解 SVD — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_1.png)
 
 ## 一、为什么 SVD 配得上“皇冠”二字
 
@@ -169,7 +169,7 @@ SVD 能最清晰地揭示矩阵的结构。假设 $A \in \mathbb{R}^{m \times n}
 ---
 ## 五、低秩逼近：压缩背后的定理
 
-![线性代数（九）：奇异值分解 SVD — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_2.jpg)
+![线性代数（九）：奇异值分解 SVD — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/09-奇异值分解SVD/illustration_2.png)
 
 ### Eckart–Young 定理
 

@@ -14,7 +14,7 @@ disableNunjucks: true
 series_order: 4
 translationKey: "time-series-4"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/illustration_1.png)
 
 ## What you will learn
 

@@ -30,7 +30,7 @@ That single idea — let the crowd's behaviour speak — powers Amazon, YouTube,
 
 ---
 
-![Recommendation Systems (2): Collaborative Filtering and Matrix Factorization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/02-collaborative-filtering/illustration_1.jpg)
+![Recommendation Systems (2): Collaborative Filtering and Matrix Factorization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/02-collaborative-filtering/illustration_1.png)
 
 ## 1 · The core idea of collaborative filtering
 
@@ -289,7 +289,7 @@ Item-CF is the workhorse, but on million-item catalogues even the precomputed si
 
 ## 4 · Matrix factorization
 
-![Recommendation Systems (2): Collaborative Filtering and Matrix Factorization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/02-collaborative-filtering/illustration_2.jpg)
+![Recommendation Systems (2): Collaborative Filtering and Matrix Factorization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/02-collaborative-filtering/illustration_2.png)
 
 ### From neighbourhoods to latent factors
 

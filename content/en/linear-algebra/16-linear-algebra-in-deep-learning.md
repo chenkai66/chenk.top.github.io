@@ -32,7 +32,7 @@ This chapter rebuilds the modern stack from that single language. We follow one 
 
 ---
 
-![Essence of Linear Algebra (16): Linear Algebra in Deep Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/illustration_1.jpg)
+![Essence of Linear Algebra (16): Linear Algebra in Deep Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/illustration_1.png)
 
 ## 1. The Network Is the Matmul Chain
 
@@ -214,7 +214,7 @@ print(sum(p.numel() for p in DepthwiseSeparableConv(64, 128).parameters()))
 
 ## 4. Attention Is a Soft Lookup -- Done with Three Matmuls
 
-![Essence of Linear Algebra (16): Linear Algebra in Deep Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/illustration_2.jpg)
+![Essence of Linear Algebra (16): Linear Algebra in Deep Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/16-linear-algebra-in-deep-learning/illustration_2.png)
 
 ### 4.1 The library metaphor
 

@@ -16,7 +16,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-2"
 ---
 这些快捷键没出现在帮助界面是有原因的——要用的时候自然会发现，而不是靠文档说明。不过我还是写一下吧。
-![Claude Code 实战入门（二）：快捷键、四态切换、Thinking Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_1.jpg)
+![Claude Code 实战入门（二）：快捷键、四态切换、Thinking Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
 
 ## `Shift+Tab`——四态循环
 
@@ -38,7 +38,7 @@ Normal → Accept edits → Plan mode → Bypass permissions → Normal
 状态栏会显示当前处于哪个状态。按 `Shift+Tab` 就能切换。我不会固定使用某个状态，因为每个状态对应不同的场景。开始一个陌生改动时，我会用 Plan mode；进行长时间重构时，我会用 Accept edits，毕竟我本来就在盯着输出看；运行已知且范围明确的脚本时，我会选择 Bypass permissions，但绝不会盲目使用。
 ## 思考模式——五个级别
 
-![Claude Code 实战入门（二）：快捷键、四态切换、Thinking Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_2.jpg)
+![Claude Code 实战入门（二）：快捷键、四态切换、Thinking Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
 
 在 Prompt 的任意位置输入以下短语之一，Claude 会调整回答前的推理深度：
 

@@ -520,7 +520,7 @@ $$\mathbf{x}_{l+1} = \mathbf{x}_0 \cdot (\mathbf{w}_l^\top \mathbf{x}_l) + \math
 
 下图展示了两个关键点：每一层 Cross 如何提升阶数，以及它相比朴素多项式展开有多高效。
 
-![左：每一层 Cross 都把 x0 注入一次，使多项式阶数 +1。右：参数代价随阶数变化——DCN 线性增长，朴素多项式爆炸](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/04-CTR预估�%与点击率建模/fig4_dcn_cross.png)
+![左：每一层 Cross 都把 x0 注入一次，使多项式阶数 +1。右：参数代价随阶数变化——DCN 线性增长，朴素多项式爆炸](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/04-CTR预估与点击率建模/fig4_dcn_cross.png)
 
 右图是重点。在 100 维输入下做 6 阶交叉，朴素多项式展开需要 $10^{12}$ 个参数，而 Cross Network 只需 600 个。
 

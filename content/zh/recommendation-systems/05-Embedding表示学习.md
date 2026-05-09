@@ -18,7 +18,6 @@ translationKey: "recommendation-systems-5"
 
 这篇文章拆解了这些向量是如何被学习出来并以生产规模提供服务的。我会从底层直觉出发，依次讲解五大类技术（序列、图、双塔、注意力池化、对比学习），深入负采样的工程细节，并剖析毫秒级延迟下近似最近邻检索的真实性能边界。每一节都配有可以直接运行的代码。
 
-![相关架构图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/05-Embedding表示学习/url)
 ## 你将学到什么
 
 - **Embedding 到底是什么**——为什么“低维”是它的核心价值

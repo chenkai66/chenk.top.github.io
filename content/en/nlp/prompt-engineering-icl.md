@@ -25,7 +25,7 @@ This part is the seventh in the NLP series. It assumes you know roughly how a Tr
 
 
 <!-- wanx-hero -->
-![NLP (7): Prompt Engineering and In-Context Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_1.jpg)
+![NLP (7): Prompt Engineering and In-Context Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_1.png)
 
 ## What you will learn
 
@@ -40,7 +40,7 @@ This part is the seventh in the NLP series. It assumes you know roughly how a Tr
 ## Prerequisites
 
 <!-- wanx-mid -->
-![NLP (7): Prompt Engineering and In-Context Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_2.jpg)
+![NLP (7): Prompt Engineering and In-Context Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_2.png)
 
 
 - Familiarity with large language models -- see [Part 6: GPT and Generative Models](/en/nlp/gpt-generative-models/).

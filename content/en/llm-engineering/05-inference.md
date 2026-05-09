@@ -23,7 +23,7 @@ Inference is where the money goes. A single 70B-class model serving 1000 concurr
 
 Training is a one-time capital expense — you compress the cost over millions of inference calls. Inference is the recurring operating expense, and unlike training it does not amortize. A 0.5x improvement in tokens-per-GPU-second compounds every day for the life of the product. This is why every serious LLM team has at least one full-time engineer on inference, and why the open-source community has shipped four distinct waves of inference engines (FasterTransformer → DeepSpeed-Inference → vLLM → SGLang/TensorRT-LLM/llama.cpp) in five years.
 
-![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/illustration_1.jpg)
+![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/illustration_1.png)
 
 ## The two phases that don't share characteristics
 
@@ -125,7 +125,7 @@ The scheduler decision matters: when do you admit a new request mid-batch? Naive
 
 ## Speculative decoding
 
-![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/illustration_2.jpg)
+![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/illustration_2.png)
 
 
 ![fig5: speculative decoding tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/05-inference/fig5_speculative_tree.png)

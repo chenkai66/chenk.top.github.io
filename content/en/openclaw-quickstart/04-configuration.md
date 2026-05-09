@@ -21,7 +21,7 @@ If you only edit one file in OpenClaw, this is it.
 
 `~/.openclaw/openclaw.json` controls models, tools, channels, memory, cron, and skill loading. The onboarding wizard wrote a default; this piece walks the parts you will actually touch.
 
-![OpenClaw QuickStart (4): Configuration, Model Providers, and the Coding Plan Trick — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_1.jpg)
+![OpenClaw QuickStart (4): Configuration, Model Providers, and the Coding Plan Trick — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/illustration_1.png)
 
 ## The minimal viable config
 

@@ -31,7 +31,7 @@ All examples assume Node 18+, save scripts to `./hooks/`, mark them `chmod +x`, 
 }
 ```
 
-![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_1.jpg)
+![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
 ## 1. block-env-read — protect secrets
 
@@ -55,7 +55,7 @@ Wire on `Read|Grep|MultiEdit|Edit|Write`. Exit code 2 in PreToolUse blocks the c
 
 ## 2. bash-blacklist — stop `rm -rf /`
 
-![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_2.jpg)
+![Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/07-hooks-deep-dive/illustration_2.png)
 
 The most common foot-gun. PreToolUse on `Bash`:
 

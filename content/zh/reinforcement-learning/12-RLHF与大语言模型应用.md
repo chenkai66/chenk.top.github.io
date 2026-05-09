@@ -19,7 +19,7 @@ translationKey: "reinforcement-learning-12"
 GPT-3（2020 年 6 月）和 ChatGPT（2022 年 11 月）共享了大部分权重。基础模型能写流畅的散文、补全代码、续写任何给定模式——但如果你直接问它一个问题，它可能会东拉西扯、拒绝得莫名其妙、编造不存在的引用，甚至生成一段有毒的内容。两年半的时间没有用来做大模型 Transformer，而是用来研究**如何让模型变得有用**。最终发现，这其实是一个强化学习问题。
 
 本系列最后一篇要收拢整个系列的核心主线：前面提到的所有概念——值函数、策略梯度、PPO 的信任域、离策略修正、偏好学习、内在动机，以及从模仿到 IRL 的进阶路径——都被整合成了对齐技术栈。这个技术栈催生了 ChatGPT、Claude、Llama-3-Instruct，以及所有值得关注的助手类模型。我会推导出**RLHF 的三阶段流程**、地球上每个偏好数据集背后的 **Bradley-Terry 似然**、让 DPO 完全跳过 RL 的**闭式最优解**，以及导致对齐成为动态目标的 **Goodhart 失败模式**。接着，我会把目光从语言转向强化学习的未来方向：具身智能体、宪法式自监督，以及推理时搜索。
-![强化学习（十二）：RLHF与大语言模型应用 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/12-rlhf-and-llm-applications/illustration_1.jpg)
+![强化学习（十二）：RLHF与大语言模型应用 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/12-rlhf-and-llm-applications/illustration_1.png)
 
 ## 你将学到什么
 

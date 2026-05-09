@@ -20,7 +20,7 @@ disableNunjucks: true
 series_order: 20
 translationKey: "ml-math-derivations-20"
 ---
-![ML Math Derivations (20): Regularization and Model Selection — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/illustration_1.jpg)
+![ML Math Derivations (20): Regularization and Model Selection — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/illustration_1.png)
 
 ## What This Article Covers
 
@@ -111,7 +111,7 @@ The gradient step is $\mathbf{w} \leftarrow (1 - \eta\lambda)\mathbf{w} - \eta\n
 
 ## 3. L1 Regularisation (Lasso) and Sparsity
 
-![ML Math Derivations (20): Regularization and Model Selection — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/illustration_2.jpg)
+![ML Math Derivations (20): Regularization and Model Selection — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/20-Regularization-and-Model-Selection/illustration_2.png)
 
 ### 3.1 The Geometry of Sparsity
 

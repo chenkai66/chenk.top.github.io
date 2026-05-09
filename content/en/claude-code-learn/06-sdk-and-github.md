@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-6"
 
 The CLI is the obvious surface. The SDK is the interesting one. The GitHub integration is where it pays off.
 
-![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.jpg)
+![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
 ## The SDK in one paragraph
 
@@ -117,7 +117,7 @@ Run before every release. The CHANGELOG writes itself, the commit log gets curat
 
 ## The GitHub Action
 
-![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.jpg)
+![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/06-sdk-and-github/illustration_2.png)
 
 Anthropic ships an official Action: `anthropic/claude-code-action@v1`. Add it to a workflow:
 

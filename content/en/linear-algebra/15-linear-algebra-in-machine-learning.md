@@ -33,7 +33,7 @@ This chapter walks through the algorithms that production ML systems actually ru
 
 ---
 
-![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_1.jpg)
+![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_1.png)
 
 ## 1. Vector Representations: How Data Enters the Pipeline
 
@@ -229,7 +229,7 @@ The hard cap $C-1$ is often surprising: for binary problems LDA outputs just **o
 
 ## 4. Support Vector Machines and the Kernel Trick
 
-![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_2.jpg)
+![Essence of Linear Algebra (15): Linear Algebra in Machine Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/15-linear-algebra-in-machine-learning/illustration_2.png)
 
 ### 4.1 Why "maximum margin"?
 

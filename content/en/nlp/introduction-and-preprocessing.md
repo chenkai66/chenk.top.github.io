@@ -22,13 +22,13 @@ This first article in the series does two things. First, it draws the map: where
 
 
 <!-- wanx-hero -->
-![NLP (1): Introduction and Text Preprocessing — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_1.jpg)
+![NLP (1): Introduction and Text Preprocessing — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_1.png)
 
 ## What You Will Learn
 
 
 <!-- wanx-mid -->
-![NLP (1): Introduction and Text Preprocessing — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_2.jpg)
+![NLP (1): Introduction and Text Preprocessing — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/illustration_2.png)
 
 - The four paradigms of NLP and the technical reason each one displaced the previous
 - A precise vocabulary for tokenization: characters, words, subwords, and why BPE won

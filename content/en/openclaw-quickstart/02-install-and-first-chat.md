@@ -19,7 +19,7 @@ translationKey: "openclaw-quickstart-2"
 
 The README claims five minutes. I will say ten — the extra five is for the Node version mistake almost everyone makes the first time.
 
-![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_1.jpg)
+![OpenClaw QuickStart (2): Install and First Chat in 10 Minutes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
 ## Prerequisites
 

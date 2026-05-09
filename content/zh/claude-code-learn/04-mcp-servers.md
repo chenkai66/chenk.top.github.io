@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-4"
 ---
 如果只掌握一个 Claude Code 的扩展机制，那就学 MCP。它让“自动补全”和“平台”有了本质区别。
-![Claude Code 实战入门（四）：MCP 服务器，让 Claude 跟任何东西对话 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/illustration_1.jpg)
+![Claude Code 实战入门（四）：MCP 服务器，让 Claude 跟任何东西对话 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/illustration_1.png)
 
 ## 一分钟简介
 
@@ -43,7 +43,7 @@ MCP 服务器是一个独立的进程。Claude Code 通过 stdio 和它通信，
 协议很简单，30 分钟就能读完规范。如果专注于某个具体场景，自己实现一个半天就够了。
 ## 权限——这一部分绝不能跳过
 
-![Claude Code 实战入门（四）：MCP 服务器，让 Claude 跟任何东西对话 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/illustration_2.jpg)
+![Claude Code 实战入门（四）：MCP 服务器，让 Claude 跟任何东西对话 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/04-mcp-servers/illustration_2.png)
 
 每个 MCP 工具都有对应的权限级别。第一次调用某个工具时，模型会弹出确认对话框，这时你有三个选择：
 

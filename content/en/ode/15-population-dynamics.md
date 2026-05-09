@@ -23,7 +23,7 @@ translationKey: "ode-15"
 ---
 **Why do lynx and snowshoe hare populations cycle with eerie regularity over a 10-year period?** Why does introducing a single new species sometimes collapse an entire ecosystem? Why do similar competitors sometimes coexist and sometimes drive each other extinct? The answers are not in the species; they are in the *equations* relating the species. This chapter walks through the canonical models of mathematical ecology: from the single-population logistic and Allee models to multi-species competition, predator-prey oscillations, age structure, and spatial spread.
 
-![Ordinary Differential Equations (15): Population Dynamics — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/illustration_1.jpg)
+![Ordinary Differential Equations (15): Population Dynamics — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/illustration_1.png)
 
 ## What You Will Learn
 
@@ -189,7 +189,7 @@ The lesson for conservation: even if every individual habitat patch is healthy, 
 
 ## Spatial Spread: Fisher-KPP
 
-![Ordinary Differential Equations (15): Population Dynamics — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/illustration_2.jpg)
+![Ordinary Differential Equations (15): Population Dynamics — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/15-population-dynamics/illustration_2.png)
 
 The **Fisher equation** (Fisher 1937; Kolmogorov-Petrovskii-Piskunov 1937) marries logistic growth to diffusion:$$\boxed{\;\partial_t N = D\,\partial_x^2 N + r N\!\left(1 - \frac{N}{K}\right).\;}$$With initial condition compactly supported, the front of the population spreads at a deterministic asymptotic speed:$$c_{\min} = 2\sqrt{D r}.$$
 The proof, in two lines: linearise the leading edge ($N \ll K$); a travelling-wave ansatz $N = e^{-\lambda(x - ct)}$ requires $c = D\lambda + r/\lambda$, minimised over $\lambda$ at $c_{\min} = 2\sqrt{Dr}$. (The actual selected speed *is* the linear minimum -- this is the celebrated *KPP selection principle*.)

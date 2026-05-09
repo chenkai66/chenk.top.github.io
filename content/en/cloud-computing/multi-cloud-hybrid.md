@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 8
 translationKey: "cloud-computing-8"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/multi-cloud-hybrid/illustration_1.png)
 
 The first article in this series asked "what is the cloud, and why does it matter?" Eight articles later, the question has matured into something more practical: **which clouds, in what combination, and how do you operate the result without losing your mind?** Multi-cloud and hybrid architectures are how serious organizations answer that question. They distribute workloads across providers and on-premises infrastructure for resilience, cost optimization, and strategic flexibility -- but they introduce a new class of problems that single-cloud architectures never face.
 

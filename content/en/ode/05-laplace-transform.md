@@ -19,7 +19,7 @@ translationKey: "ode-5"
 ---
 **Some ODEs have no solutions in terms of familiar functions.** The Bessel equation, the Legendre equation, the Airy equation -- all arise naturally in physics (heat conduction in cylinders, gravitational fields of planets, quantum tunneling). Their solutions *define* entirely new functions. This chapter shows you how to find them using power series, why the Frobenius extension is forced upon us at singular points, and why the same handful of "special functions" keeps appearing across physics and engineering.
 
-![Ordinary Differential Equations (5): Power Series and Special Functions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/illustration_1.jpg)
+![Ordinary Differential Equations (5): Power Series and Special Functions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/illustration_1.png)
 
 ## What You Will Learn
 
@@ -130,7 +130,7 @@ The recurrence on $a_k$, obtained from the higher-order coefficient matches, is 
 
 ## 4. Bessel Functions
 
-![Ordinary Differential Equations (5): Power Series and Special Functions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/illustration_2.jpg)
+![Ordinary Differential Equations (5): Power Series and Special Functions — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/05-laplace-transform/illustration_2.png)
 
 ### 4.1 The Bessel equation
 $$x^2 y'' + x y' + (x^2 - n^2) y = 0.$$The three places this equation appears in physics:

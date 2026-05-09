@@ -19,7 +19,7 @@ disableNunjucks: true
 series_order: 6
 translationKey: "pde-ml-6"
 ---
-![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.jpg)
+![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
 
 ## 这一篇要讲什么
 
@@ -112,7 +112,7 @@ CNF 把整个堆叠换成 ODE，使用瞬时公式 (1)：$$\frac{d\mathbf{z}}{dt
 **权衡。** CNF 提供精确似然，但每次前向/反向需解 ODE——典型几十到几百次网络评估。训练较脆：求解容差、$f_\theta$ 正则化、Hutchinson 方差互相影响。
 ## 4. 最优传输与 Flow Matching
 
-![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.jpg)
+![偏微分方程与机器学习（六）：连续归一化流与Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png)
 
 ### 4.1 Benamou-Brenier 联系
 

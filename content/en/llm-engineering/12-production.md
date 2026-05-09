@@ -23,7 +23,7 @@ This is the last chapter. Everything previous was about building the model, the 
 
 I'm going to lean harder on numbers here than in earlier chapters. The reason is simple: in production, the difference between a profitable feature and a money pit is usually a 2-5x cost factor that nobody is tracking. The most useful skill to develop is back-of-envelope cost arithmetic for LLM workloads. The numbers below are accurate as of late 2025 / early 2026; verify against current pricing before committing.
 
-![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_1.jpg)
+![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_1.png)
 
 ## The serving stack, end to end
 
@@ -92,7 +92,7 @@ A practical hybrid pattern that's become more popular in 2025-2026: **self-host 
 
 ## Multi-model routing and FrugalGPT
 
-![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_2.jpg)
+![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_2.png)
 
 The routing-then-cascading pattern was formalized by Chen et al. (2023, *FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance*). The core observation: most LLM queries are easy and a small/cheap model handles them correctly; only a small fraction genuinely require the frontier model. If you can decide which is which cheaply, you can cut spend by 5-10x at minimal quality loss.
 

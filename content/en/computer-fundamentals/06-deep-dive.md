@@ -14,7 +14,7 @@ description: "Series finale. We zoom out from individual components to the whole
 disableNunjucks: true
 translationKey: "computer-fundamentals-6"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/06-deep-dive/illustration_1.png)
 
 We've spent five chapters opening one box at a time — the CPU, the cache hierarchy, storage, the motherboard and GPU, the network and power supply. Each part is interesting on its own, but a computer is not its components. A computer is what happens when those components have to agree, every nanosecond, on what to do next.
 

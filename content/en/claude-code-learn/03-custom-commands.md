@@ -18,7 +18,7 @@ translationKey: "claude-code-learn-3"
 
 Built-in slash commands like `/clear` and `/init` are the visible part of the iceberg. The whole point of the system is that you write your own, and they live in your repo.
 
-![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_1.jpg)
+![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_1.png)
 
 ## What a slash command is
 
@@ -48,7 +48,7 @@ Two things to notice:
 
 ## `$ARGUMENTS` — parameterization
 
-![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_2.jpg)
+![Claude Code Hands-On (3): Custom Slash Commands and Conversation Control — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/03-custom-commands/illustration_2.png)
 
 Slash commands get a magic `$ARGUMENTS` token that's replaced with whatever you typed after the command name. Example — `.claude/commands/explain.md`:
 

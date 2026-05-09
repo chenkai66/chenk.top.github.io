@@ -17,7 +17,7 @@ disableNunjucks: true
 series_order: 9
 translationKey: "linear-algebra-9"
 ---
-![Essence of Linear Algebra (9): Singular Value Decomposition -- The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_1.jpg)
+![Essence of Linear Algebra (9): Singular Value Decomposition -- The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_1.png)
 
 ## Why SVD Earns the Crown
 
@@ -176,7 +176,7 @@ The orthonormal basis $\{v_1, \ldots, v_r\}$ of the row space is mapped onto the
 
 ## Low-Rank Approximation: the Theorem Behind Compression
 
-![Essence of Linear Algebra (9): Singular Value Decomposition -- The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_2.jpg)
+![Essence of Linear Algebra (9): Singular Value Decomposition -- The Crown Jewel of Linear Algebra — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/09-singular-value-decomposition/illustration_2.png)
 
 ### The Eckart--Young theorem
 

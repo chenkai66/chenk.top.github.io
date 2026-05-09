@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 1
 translationKey: "ml-math-derivations-1"
 ---
-![ML Math Derivations (1): Introduction and Mathematical Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/01-Introduction-and-Mathematical-Foundations/illustration_1.jpg)
+![ML Math Derivations (1): Introduction and Mathematical Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/01-Introduction-and-Mathematical-Foundations/illustration_1.png)
 
 ## What this chapter does
 
@@ -201,7 +201,7 @@ The left panel shows that $\ln|\mathcal{H}|$ enters only as a *logarithmic* addi
 
 ## 3. VC dimension: complexity for infinite classes
 
-![ML Math Derivations (1): Introduction and Mathematical Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/01-Introduction-and-Mathematical-Foundations/illustration_2.jpg)
+![ML Math Derivations (1): Introduction and Mathematical Foundations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/01-Introduction-and-Mathematical-Foundations/illustration_2.png)
 
 ### 3.1 Why a new measure is needed
 

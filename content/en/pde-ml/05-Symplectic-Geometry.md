@@ -17,7 +17,7 @@ disableNunjucks: true
 series_order: 5
 translationKey: "pde-ml-5"
 ---
-![PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/illustration_1.jpg)
+![PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/illustration_1.png)
 
 ## What this article covers
 
@@ -170,7 +170,7 @@ That is the entire symplectic story for separable Hamiltonians. Six lines, no de
 
 ## 4. Hamiltonian Neural Networks (HNN)
 
-![PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/illustration_2.jpg)
+![PDE and ML (5): Symplectic Geometry and Structure-Preserving Networks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/05-Symplectic-Geometry/illustration_2.png)
 
 ### 4.1 The problem with naive neural ODEs
 

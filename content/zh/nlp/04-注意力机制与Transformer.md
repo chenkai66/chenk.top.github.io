@@ -22,9 +22,9 @@ polished_by_qwen_max: true
 从“带注意力机制的 RNN”到完整的 Transformer，这条路并不算长，但每一步都至关重要。接下来，我们会一步步仔细拆解。
 
 <!-- wanx-hero -->
-![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/attention-transformer/illustration_1.jpg)
+![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/attention-transformer/illustration_1.png)
 ## 你将学到什么
-![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/attention-transformer/illustration_2.jpg)
+![自然语言处理（四）：注意力机制与Transformer — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/attention-transformer/illustration_2.png)
 
 - 为什么固定长度的上下文向量会让传统的 Seq2Seq 模型在处理长句子时力不从心，而注意力机制又是如何扭转这一局面的
 - Bahdanau 和 Luong 注意力：从经典注意力到自注意力的思想桥梁
@@ -38,7 +38,7 @@ polished_by_qwen_max: true
 **前置知识**：第三篇（RNN 和 Seq2Seq），基本线性代数知识（矩阵乘法、softmax），以及对 PyTorch 的基本使用能力。
 ## 1. 驱动注意力机制的瓶颈问题
 
-![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.jpg)
+![NLP (4): Attention Mechanism and Transformer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/attention-transformer/illustration_2.png)
 
 回顾一下第三部分提到的基础编解码模型。编码器 RNN 按顺序逐个读取源句子的 token，最终把所有信息压缩成一个固定长度的向量 $c = h_T^{\text{enc}}$。解码器则完全依赖这个向量来生成目标语言序列。
 

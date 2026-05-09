@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "openclaw-quickstart-2"
 ---
 
-![OpenClaw 安装与首次对话流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.jpg)
+![OpenClaw 安装与首次对话流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/02-install-and-first-chat/illustration_1.png)
 
 ## README 说五分钟，实际要十分钟
 

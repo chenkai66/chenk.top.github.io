@@ -15,7 +15,7 @@ description: "A working model of systemd: PID 1, units and targets, the service 
 disableNunjucks: true
 translationKey: "linux-6"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/service-management/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/service-management/illustration_1.png)
 
 A "service" on Linux is a long-running background process whose
 job is to be there when something needs it: synchronise the clock,

@@ -20,7 +20,7 @@ disableNunjucks: true
 series_order: 7
 translationKey: "pde-ml-7"
 ---
-![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_1.jpg)
+![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_1.png)
 
 ## 本文你会学到
 
@@ -107,7 +107,7 @@ $$\partial_s u + f\!\cdot\!\nabla u + \tfrac{1}{2}g^2 \nabla^2 u = 0,$$
 终端条件 $u(T, \mathbf{x}) = g(\mathbf{x})$。前向方程推密度向前，后向方程拉期望向后。两者构成 Feynman–Kac 对偶——前向 SDE 的时间反演正是我用来生成样本的工具。
 ## 3. 基于 Score 的生成模型
 
-![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_2.jpg)
+![偏微分方程与机器学习（七）：扩散模型与Score Matching — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/07-Diffusion-Models/illustration_2.png)
 
 ### 3.1 Score 函数
 

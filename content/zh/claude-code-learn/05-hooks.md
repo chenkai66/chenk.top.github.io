@@ -17,7 +17,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-5"
 ---
 如果 MCP 是 Claude 主动伸出的手，那么 Hooks 就是我用来介入的工具。它让我能够强制执行那些我关心的规则，而不是仅仅寄希望于它们被遵守。
-![Claude Code 实战入门（五）：Hooks，让你不再担心 Yolo 模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_1.jpg)
+![Claude Code 实战入门（五）：Hooks，让你不再担心 Yolo 模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_1.png)
 
 ## 模型
 
@@ -131,7 +131,7 @@ sed -E '
 这是在处理真实代码库时最重要的一个安全 Hook。
 ## 反模式：相对路径
 
-![Claude Code 实战入门（五）：Hooks，让你不再担心 Yolo 模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_2.jpg)
+![Claude Code 实战入门（五）：Hooks，让你不再担心 Yolo 模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/05-hooks/illustration_2.png)
 
 最常见的 Hook 问题就是用了相对路径来指定命令：
 

@@ -19,7 +19,7 @@ translationKey: "ode-8"
 ---
 **The real world is nonlinear.** Predator-prey cycles, heartbeat rhythms, neuron firing -- none of these can be captured by linear equations. When superposition fails, the world acquires *new* behaviors: limit cycles, multiple equilibria, bistability, hysteresis. This chapter gives you the geometric and analytic tools to read those behaviors directly off a 2D phase portrait.
 
-![Ordinary Differential Equations (8): Nonlinear Systems and Phase Portraits — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/illustration_1.jpg)
+![Ordinary Differential Equations (8): Nonlinear Systems and Phase Portraits — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/illustration_1.png)
 
 ## What You Will Learn
 
@@ -126,7 +126,7 @@ plt.tight_layout(); plt.show()
 
 ## Lotka-Volterra Predator-Prey
 
-![Ordinary Differential Equations (8): Nonlinear Systems and Phase Portraits — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/illustration_2.jpg)
+![Ordinary Differential Equations (8): Nonlinear Systems and Phase Portraits — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/08-nonlinear-stability/illustration_2.png)
 
 ### The model
 

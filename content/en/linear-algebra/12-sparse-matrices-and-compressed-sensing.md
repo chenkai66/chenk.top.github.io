@@ -17,7 +17,7 @@ disableNunjucks: true
 series_order: 12
 translationKey: "linear-algebra-12"
 ---
-![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing -- Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_1.jpg)
+![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing -- Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_1.png)
 
 ## The "Less Is More" Miracle
 
@@ -169,7 +169,7 @@ The truly active features (bold) enter early and grow large. Spurious features e
 
 ## Compressed Sensing
 
-![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing -- Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_2.jpg)
+![Essence of Linear Algebra (12): Sparse Matrices and Compressed Sensing -- Less Is More — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/illustration_2.png)
 
 ### The revolutionary idea
 

@@ -14,7 +14,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "time-series-3"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/illustration_1.png)
 
 ## What You Will Learn
 

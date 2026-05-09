@@ -23,7 +23,7 @@ translationKey: "ode-17"
 
 This chapter is a deliberate tour through five canonical applications. Each one will pay back the entire ODE toolkit we built in chapters 1-16: phase planes, eigenvalues, Laplace transforms, modal analysis, conservation laws, numerical integration, control. None of the examples is a "toy" -- they are all genuine working physics, written tightly so that the structure remains visible.
 
-![Ordinary Differential Equations (17): Physics and Engineering Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/illustration_1.jpg)
+![Ordinary Differential Equations (17): Physics and Engineering Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/illustration_1.png)
 
 ## What You Will Learn
 
@@ -81,7 +81,7 @@ for v0 in [1.5, 4.0, 6.5, 7.5]:    # last two go over the top
 
 ## 2. RLC Circuits -- the same equation, in copper
 
-![Ordinary Differential Equations (17): Physics and Engineering Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/illustration_2.jpg)
+![Ordinary Differential Equations (17): Physics and Engineering Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/17-physics-engineering-applications/illustration_2.png)
 
 A series resistor-inductor-capacitor loop driven by voltage $V(t)$ obeys, for charge $q$ on the capacitor:
 

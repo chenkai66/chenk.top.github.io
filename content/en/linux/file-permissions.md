@@ -15,7 +15,7 @@ description: "Master the Linux permission model: rwx semantics on files vs direc
 disableNunjucks: true
 translationKey: "linux-2"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/file-permissions/illustration_1.png)
 
 File permissions look elementary — `chmod 755`, done — but they remain one of the top causes of production incidents I see: a service won't start, a deploy script silently does nothing, Nginx returns `403`, a shared directory leaks, or `rm` refuses on a file that "should" be removable. Memorising magic numbers does not get you out of any of these. What does is understanding three things at the same time:
 

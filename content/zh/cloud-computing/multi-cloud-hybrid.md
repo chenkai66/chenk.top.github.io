@@ -17,7 +17,7 @@ series_order: 8
 translationKey: "cloud-computing-8"
 polished_by_qwen_max: true
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/multi-cloud-hybrid/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/multi-cloud-hybrid/illustration_1.png)
 
 本系列第一篇问的是："**云**到底是什么，为什么重要？" 八篇之后，问题成熟为更实际的版本：**用哪些云？怎么组合？怎么把这套组合运营得不抓狂？** 多云与混合云就是严肃组织对这个问题的回答。它们把工作负载分布在多个云服务商和自建基础设施上，换取韧性、成本优化、战略弹性——但也引入了一类单云架构永远不会遇到的问题。
 

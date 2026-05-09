@@ -21,13 +21,13 @@ and the entire trajectory of NLP turned toward representation learning. This art
 
 
 <!-- wanx-hero -->
-![NLP (2): Word Embeddings and Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_1.jpg)
+![NLP (2): Word Embeddings and Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_1.png)
 
 ## What You Will Learn
 
 
 <!-- wanx-mid -->
-![NLP (2): Word Embeddings and Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_2.jpg)
+![NLP (2): Word Embeddings and Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/word-embeddings-lm/illustration_2.png)
 
 - Why one-hot encoding fails and how dense embeddings fix it
 - Skip-gram and CBOW: two ways to learn from local context

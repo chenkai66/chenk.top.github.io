@@ -18,7 +18,7 @@ translationKey: "aliyun-bailian-4"
 ---
 万相是我们营销流水线中贡献最大的 API，同时也是引发生产事故最多的“罪魁祸首”。这个模型确实很出色——`wan2.5-t2v-plus` 生成的 720p 视频片段，大多数时候都能以假乱真，让人误以为是专业视频团队的作品。但它的周边设计却让人头疼：异步调用、原生协议、URL 还会过期，限流规则更是隐晦难懂。这篇文章可以说是经过了半年“凌晨两点紧急救火”工单洗礼后，提炼出的真正实用的文档版本。
 
-![阿里云百炼实战（四）：万相视频生成端到端 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_1.jpg)
+![阿里云百炼实战（四）：万相视频生成端到端 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
 ## 模型阵容
 
 目前有三款模型，全部采用原生模式（不兼容 OpenAI），并且都支持异步操作：
@@ -222,7 +222,7 @@ async def submit(prompt: str) -> str:
 KF2V 是三个模型中最复杂的一个。它会在两帧之间进行插值，但插值的约束条件并不完全可控。如果起始帧和结束帧差别过大（比如背景不同、主体不同），生成的结果可能会很奇怪。最佳实践是：将 KF2V 用于起始帧和结束帧在构图上高度相似的场景，比如同一主体、轻微位移、相同光照条件下的过渡，而不是用来处理完全不同的场景切换。
 ## 多片段拼接：末帧接力与连续性优化技巧
 
-![阿里云百炼实战（四）：万相视频生成端到端 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_2.jpg)
+![阿里云百炼实战（四）：万相视频生成端到端 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/illustration_2.png)
 
 用万相生成长内容时，最大的难点在于每个片段都是独立的。即使使用相同的 prompt 生成两条 5 秒的 T2V 视频，第二条的构图、光照和主体角度可能都会有所不同。如果直接拼接，画面会显得突兀，出现明显的跳切。
 

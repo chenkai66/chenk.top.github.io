@@ -22,7 +22,7 @@ translationKey: "ode-13"
 
 This chapter is a working tour, not an encyclopaedia: we focus on the three classical equations -- **heat, wave, Laplace** -- because every linear second-order PDE in two variables is *similar*, in a precise sense, to one of them.
 
-![Ordinary Differential Equations (13): Introduction to Partial Differential Equations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/13-pde-introduction/illustration_1.jpg)
+![Ordinary Differential Equations (13): Introduction to Partial Differential Equations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/13-pde-introduction/illustration_1.png)
 
 ## What You Will Learn
 
@@ -151,7 +151,7 @@ def crank_nicolson_heat(f, alpha, L, T_end, Nx=101, Nt=400):
 
 ## The Wave Equation
 
-![Ordinary Differential Equations (13): Introduction to Partial Differential Equations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/13-pde-introduction/illustration_2.jpg)
+![Ordinary Differential Equations (13): Introduction to Partial Differential Equations — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/13-pde-introduction/illustration_2.png)
 
 ### d'Alembert and the light cone
 

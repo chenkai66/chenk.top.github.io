@@ -22,7 +22,7 @@ You can teach yourself to play guitar this year and you will still remember how 
 
 This post derives why forgetting happens (it is not a bug, it is the structure of SGD on overparameterised networks), then walks through the four families of solutions -- regularisation, replay, dynamic architectures, meta-learning -- with the math, the intuition, and a from-scratch EWC implementation.
 
-![Transfer Learning (10): Continual Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/illustration_1.jpg)
+![Transfer Learning (10): Continual Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/illustration_1.png)
 
 ## What You Will Learn
 
@@ -74,7 +74,7 @@ where $b_j$ is a random/untrained baseline on task $j$. **BWT < 0** is forgettin
 
 ## Why Forgetting Happens
 
-![Transfer Learning (10): Continual Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/illustration_2.jpg)
+![Transfer Learning (10): Continual Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/illustration_2.png)
 
 ### Gradient interference
 

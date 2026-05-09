@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 2
 translationKey: "cloud-computing-2"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/illustration_1.png)
 
 Without virtualization, there is no cloud. Every EC2 instance, every Lambda invocation, every Kubernetes pod ultimately stands on the same trick: lying convincingly to an operating system about the hardware underneath it. This article walks the full stack -- from the CPU instructions that make the trick cheap, through the four hypervisors that dominate the market, to the production-grade tuning knobs that decide whether your VMs run at 70 % or 99 % of bare metal.
 

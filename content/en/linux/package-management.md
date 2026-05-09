@@ -15,7 +15,7 @@ description: "Master package management across distributions: dpkg/apt for Debia
 disableNunjucks: true
 translationKey: "linux-4"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/package-management/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linux/package-management/illustration_1.png)
 
 Most people learn package management as three commands: `install`, `remove`, `upgrade`. That works until something goes wrong - a dependency conflict, an upgrade that won't apply, a kernel that doesn't boot, a mirror that times out from inside China. At that point you need a model of what is actually happening: what a *package* contains, what the *manager* is solving for, where it stores state, and how the difference between Debian's `apt/dpkg` and Red Hat's `dnf/rpm` shows up at 2 a.m. on a production box.
 

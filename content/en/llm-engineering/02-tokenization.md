@@ -20,7 +20,7 @@ translationKey: "llm-engineering-2"
 
 Tokenization is the layer everyone skips. It's also the layer where I've debugged the most production bugs — silent quality regressions, mysterious cost spikes, models refusing to follow instructions because someone formatted the chat template wrong. This chapter is everything I wish I'd internalized before shipping a multilingual product.
 
-![LLM Engineering (2): Tokenization Deep Dive — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/02-tokenization/illustration_1.jpg)
+![LLM Engineering (2): Tokenization Deep Dive — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/02-tokenization/illustration_1.png)
 
 ## What a tokenizer actually does
 
@@ -136,7 +136,7 @@ LLaMA-3 also added 28 reserved special tokens (`<|reserved_special_token_0|>` th
 
 ## The CJK token-bloat problem
 
-![LLM Engineering (2): Tokenization Deep Dive — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/02-tokenization/illustration_2.jpg)
+![LLM Engineering (2): Tokenization Deep Dive — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/02-tokenization/illustration_2.png)
 
 
 ![fig2: CJK token bloat by language](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/02-tokenization/fig2_cjk_bloat.png)

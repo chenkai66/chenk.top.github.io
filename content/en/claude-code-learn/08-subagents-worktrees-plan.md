@@ -21,7 +21,7 @@ After hooks, the next thing that changes how Claude Code feels is *concurrency c
 
 Three features, in escalating order of trust required.
 
-![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/illustration_1.jpg)
+![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
 
 ## Plan mode — the airlock
 
@@ -71,7 +71,7 @@ When sub-agents are the wrong answer: any task where the parent already has the 
 
 ## Worktrees — for parallel branches without losing your mind
 
-![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/illustration_2.jpg)
+![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/08-subagents-worktrees-plan/illustration_2.png)
 
 A git worktree is a second working tree of the same repo, on a different branch, in a different directory. Claude Code knows about them: the `EnterWorktree` tool creates a new branch + worktree and switches the session into it.
 

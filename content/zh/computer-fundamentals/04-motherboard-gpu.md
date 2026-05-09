@@ -13,7 +13,7 @@ disableNunjucks: true
 series_order: 4
 translationKey: "computer-fundamentals-4"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/computer-fundamentals/04-motherboard-gpu/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/computer-fundamentals/04-motherboard-gpu/illustration_1.png)
 
 桌面主板是一种相当"诚实"的产品。设计上的每一个重要决定——CPU 给出几条 PCIe 通道、哪些插槽直连 CPU 哪些走芯片组、为了喂饱 250 W 的处理器配了几相 VRM、为什么第二根 PCIe 长槽其实只有 ×4——都明明白白印在那块 PCB 上。能读懂板子，你几乎就能预测用户会撞上的每一个性能悬崖。本系列第四篇要教的就是这套读板手艺，然后把同样的视角转向显卡——一颗 GPU 的全部架构都是为了让成千上万条算术通路始终有数据可吃，剩下的一切（缓存、调度器、Tensor Core、HBM 堆栈）都是为这个目标服务的。
 

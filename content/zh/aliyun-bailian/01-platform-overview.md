@@ -19,7 +19,7 @@ translationKey: "aliyun-bailian-1"
 
 作为开篇，本文将带你快速了解百炼平台的整体情况：它究竟是什么？有哪些核心模型家族值得关注？两种 endpoint 的区别是什么？最后，我们会通过一个简单的“Hello World”请求示例，为后续内容打下基础，避免重复解释。
 
-![阿里云百炼实战（一）：平台总览与第一个请求 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_1.jpg)
+![阿里云百炼实战（一）：平台总览与第一个请求 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_1.png)
 ## 百炼和 DashScope 到底是什么？
 
 这两个名字确实让人有点摸不着头脑，主要是因为阿里云在产品发展过程中调整了命名策略。简单来说，官方的 "DashScope" 文档是从 API 的角度来描述的，而 "百炼" 文档则是从控制台的角度切入的。其实它们是同一个产品，只是分别对应不同的使用场景。
@@ -141,7 +141,7 @@ print(resp.output.choices[0].message.content)
 无论是 LLM 还是 Qwen-Omni，都支持 SSE（Server-Sent Events）流式传输。对于 Qwen3，当启用 `enable_thinking=True` 时，流式传输是**强制要求**——非流式调用会被直接拒绝。而对于 Qwen-Omni，流式传输则是**无条件强制**的（更多细节请参考第三篇文章）。建议尽早熟悉 `stream=True` 参数，因为它的使用频率可能会超出你的预期。
 ## 第一个请求的完整流程
 
-![阿里云百炼实战（一）：平台概览与第一个请求 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_2.jpg)
+![阿里云百炼实战（一）：平台概览与第一个请求 —— 可视化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/01-platform-overview/illustration_2.png)
 
 将以下代码保存为 `hello_bailian.py`，运行后如果能成功打印出一句话，说明你的账号、API Key 和网络都没有问题，可以继续阅读下一篇内容。
 

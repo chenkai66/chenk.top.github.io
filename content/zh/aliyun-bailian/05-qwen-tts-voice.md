@@ -19,7 +19,7 @@ translationKey: "aliyun-bailian-5"
 ---
 我参与开发的每个中文产品，最终都会选择调用 Qwen-TTS-Flash。这并不是因为它的价格有多便宜——市面上比它便宜的 TTS 服务并不少。真正的原因是，Qwen-TTS 是唯一一个能在同一个 SDK 中流畅支持**中国大陆方言**（如粤语、四川话、吴语）和英语的工具，而且音质听起来不像 2019 年那种生硬的海关广播。在将其用于某营销视频配音流水线大约半年后，我总结了一些经验，这些是我希望一开始就有人能告诉我的。
 
-![阿里云百炼实战（五）：Qwen-TTS 多语言语音合成 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/05-qwen-tts-voice/illustration_1.jpg)
+![阿里云百炼实战（五）：Qwen-TTS 多语言语音合成 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/05-qwen-tts-voice/illustration_1.png)
 ## 音色列表
 
 根据模型卡片的说明，Qwen-TTS-Flash 提供了 40 多种不同的音色。以下是我在实际工作中最常用的几个：
@@ -203,7 +203,7 @@ resp = SpeechSynthesizer.call(model="qwen3-tts-flash", text=text, voice="Cherry"
 通过合理选择工具，你可以在成本、效率和效果之间找到最佳平衡点。
 ## 延迟预算：流式分块与口型同步的时间窗口
 
-![阿里云百炼实战（五）：Qwen-TTS 多语言语音合成 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/05-qwen-tts-voice/illustration_2.jpg)
+![阿里云百炼实战（五）：Qwen-TTS 多语言语音合成 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/05-qwen-tts-voice/illustration_2.png)
 
 在交互式语音产品（如语音机器人、实时数字人）中，延迟的重要性往往超过质量。尤其是在用户体验的边际上，哪怕几百毫秒的差异都会显著影响感知。以下是流式 TTS 的延迟分解：
 

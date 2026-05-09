@@ -21,7 +21,7 @@ RAG 是 LLM 应用中最容易部署、但工程化最弱的模式。2024 年的
 
 原始 RAG 论文（[Lewis 等，2020][lewis-rag]）提出了一种混合模型。Dense Retriever（DPR）和 Generator（BART）联合训练，优化端到端任务的准确率。到了 2026 年，生产环境中的 RAG 已经大变样。现代系统用冻结的预训练 embedder，搭配独立 reranker 和 decoder-only 生成器。生成器不再针对 retriever 进行训练。不过核心思想没变：把知识和推理分开参数化。这一思路成了主流范式。[Gao 等（2023）RAG 综述][gao-survey] 详细梳理了 2020 年后从 "Naive RAG → Advanced RAG → Modular RAG" 的演变过程。
 
-![大模型工程（八）：检索增强生成 RAG — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/illustration_1.jpg)
+![大模型工程（八）：检索增强生成 RAG — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/illustration_1.png)
 ## RAG 实际是什么
 
 检索增强生成（RAG）的核心很简单。查询时，从外部语料库提取相关文本，塞进 LLM 的上下文，生成答案。"增强" 部分就是这个 prompt 模板：
@@ -138,7 +138,7 @@ RRF 不依赖分数，常数 $k=60$ 非常稳健。先分别运行 Dense 和 Spa
 RRF 的优势在于基于排名而非分数操作。BM25 分数无界，cosine 分数在 [-1, 1]，RRF 不关心这些差异。任何检索器的排名第一贡献相同，与底层置信度无关。这是组合不同分数分布检索器的最佳不变量。
 ## Reranking 是被忽略的英雄
 
-![大模型工程（八）：检索增强生成 RAG — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/illustration_2.jpg)
+![大模型工程（八）：检索增强生成 RAG — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/08-rag/illustration_2.png)
 
 
 ![fig4: reranker pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/08-rag/fig4_reranker_pipeline.png)

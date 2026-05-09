@@ -17,7 +17,7 @@ disableNunjucks: true
 series_order: 7
 translationKey: "linear-algebra-7"
 ---
-![Essence of Linear Algebra (7): Orthogonality and Projections -- When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_1.jpg)
+![Essence of Linear Algebra (7): Orthogonality and Projections -- When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_1.png)
 
 ## Why Orthogonality Matters
 
@@ -176,7 +176,7 @@ The four fundamental subspaces of any matrix$A$obey:
 
 ## Gram-Schmidt: Manufacturing Orthogonal Bases
 
-![Essence of Linear Algebra (7): Orthogonality and Projections -- When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_2.jpg)
+![Essence of Linear Algebra (7): Orthogonality and Projections -- When Vectors Mind Their Own Business — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/illustration_2.png)
 
 ### The Problem
 

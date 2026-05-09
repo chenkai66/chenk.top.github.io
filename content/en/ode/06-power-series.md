@@ -21,7 +21,7 @@ translationKey: "ode-6"
 
 The miracle of the linear case is this: the scalar formula $y(t)=e^{at}y_0$ generalizes verbatim once you learn what $e^{At}$ means for a *matrix* $A$. Linear algebra and ODEs fuse into one object — the matrix exponential — and its eigenstructure tells you everything about the long-term behavior, the geometry of the flow, and the physics of normal modes and beats.
 
-![Ordinary Differential Equations (6): Linear Systems and the Matrix Exponential — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/06-power-series/illustration_1.jpg)
+![Ordinary Differential Equations (6): Linear Systems and the Matrix Exponential — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/06-power-series/illustration_1.png)
 
 ## What You Will Learn
 
@@ -133,7 +133,7 @@ Read this geometrically: $\beta$ is the angular frequency of rotation in the $(\
 
 ## 4. Phase Portraits in 2D
 
-![Ordinary Differential Equations (6): Linear Systems and the Matrix Exponential — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/06-power-series/illustration_2.jpg)
+![Ordinary Differential Equations (6): Linear Systems and the Matrix Exponential — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/06-power-series/illustration_2.png)
 
 For $\mathbf{x}'=A\mathbf{x}$ on the plane, the eigenvalues $\lambda_1,\lambda_2$ determine *everything* about the local geometry near the origin. The taxonomy is short and worth memorizing.
 

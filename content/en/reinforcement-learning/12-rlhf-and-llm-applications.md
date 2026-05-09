@@ -22,7 +22,7 @@ GPT-3 (June 2020) and ChatGPT (November 2022) share most of their weights. The b
 
 This final installment closes the series where it has been heading the whole time: every concept we built — value functions, policy gradients, PPO's trust region, off-policy corrections, preference learning, intrinsic motivation, and even the imitation→IRL ladder — gets composed into the alignment stack that produced ChatGPT, Claude, Llama-3-Instruct, and every assistant-class model worth talking about. We will derive the **three-stage RLHF pipeline**, the **Bradley-Terry** likelihood underneath every preference dataset on the planet, the **closed-form optimum** that lets DPO skip RL entirely, and the **Goodhart-law failure modes** that make alignment a moving target. Then we will look past language at where RL is going next: embodied agents, constitutional self-supervision, and inference-time search.
 
-![Reinforcement Learning (12): RLHF and LLM Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/illustration_1.jpg)
+![Reinforcement Learning (12): RLHF and LLM Applications — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/12-rlhf-and-llm-applications/illustration_1.png)
 
 ## What You Will Learn
 

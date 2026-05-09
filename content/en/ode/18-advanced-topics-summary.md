@@ -26,7 +26,7 @@ This chapter does three things. First, it surveys four active research frontiers
 
 I'll keep this chapter readable rather than encyclopaedic. Each frontier gets the *intuition* and *why-it-matters*; the references give you the way in.
 
-![Ordinary Differential Equations (18): Frontiers and Series Finale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/illustration_1.jpg)
+![Ordinary Differential Equations (18): Frontiers and Series Finale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/illustration_1.png)
 
 ## What You Will Learn
 
@@ -157,7 +157,7 @@ The **Mackey-Glass equation** with $\tau = 17$ produces low-dimensional chaos --
 
 ## 4. Stochastic Differential Equations -- when noise has agency
 
-![Ordinary Differential Equations (18): Frontiers and Series Finale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/illustration_2.jpg)
+![Ordinary Differential Equations (18): Frontiers and Series Finale — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/18-advanced-topics-summary/illustration_2.png)
 
 Real systems experience *random* forcing -- thermal molecular kicks, market microstructure noise, mutation. The natural object is the **Ito stochastic differential equation**
 

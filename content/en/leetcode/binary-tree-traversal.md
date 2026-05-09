@@ -15,7 +15,7 @@ description: "A unified mental model for binary trees: how the four traversal or
 disableNunjucks: true
 translationKey: "leetcode-6"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/06-binary-tree/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/06-binary-tree/illustration_1.png)
 
 A binary tree problem is rarely about the tree. It is about *the order in which you touch nodes* and *what you remember from the children before deciding what to do at the parent*. Once those two ideas click, the four traversal orders, the iterative rewrites, the construction problems, and even classics like Validate BST and Maximum Depth all collapse into a handful of variations on the same recipe. This article builds that recipe end to end.
 

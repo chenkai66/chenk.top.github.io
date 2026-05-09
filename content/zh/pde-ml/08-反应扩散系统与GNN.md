@@ -19,7 +19,7 @@ disableNunjucks: true
 series_order: 8
 translationKey: "pde-ml-8"
 ---
-![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.jpg)
+![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-Reaction-Diffusion-Systems/illustration_1.png)
 
 ## 本文你会学到
 
@@ -143,7 +143,7 @@ $$\hat x_k(t) = e^{-\lambda_k t}\,\hat x_k(0),\qquad \hat x_k = \mathbf{u}_k^{\!
 这是**最纯粹的过度平滑**，我还没提神经网络。
 ## 4. GCN 就是热方程
 
-![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-Reaction-Diffusion-Systems/illustration_2.jpg)
+![偏微分方程与机器学习（八）：反应扩散系统与GNN — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-Reaction-Diffusion-Systems/illustration_2.png)
 
 ### 4.1 等价关系
 

@@ -14,7 +14,7 @@ disableNunjucks: true
 series_order: 5
 translationKey: "time-series-5"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/transformer/illustration_1.png)
 ## 本章要点
 
 - 详细解析完整的 encoder-decoder Transformer，重新设计用于时间序列
@@ -39,7 +39,7 @@ LSTM 和 GRU 处理序列时是一步步来的，这带来了三个问题：
 
 自注意力机制一次性解决了这三个问题：每个位置通过 **一次矩阵乘法** 就能看到其他所有位置，任意两步之间的路径长度缩短为 $O(1)$，整个序列可以并行处理。代价是显存占用：存储 $n \times n$ 的注意力权重需要 $O(n^2)$ 的空间，这个问题我会在第 5 节和第 7 节详细讨论。
 
-![时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig1_architecture.png)
+![时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig1_architecture.png)
 *图 1. 时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。*
 ## 2. 架构逐块拆解
 
@@ -85,7 +85,7 @@ $$\text{PE}_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right), \qquad
 
 每个位置 $p$ 都会生成一个由几何级数频率构成的**唯一标识**。低维分量震荡快，用来编码短程位置；高维分量震荡慢，用来编码长程位置。
 
-![正弦位置编码。左：完整编码矩阵，每一行都是唯一标识。右：四个代表性维度，频率各不相同。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig2_positional_encoding.png)
+![正弦位置编码。左：完整编码矩阵，每一行都是唯一标识。右：四个代表性维度，频率各不相同。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig2_positional_encoding.png)
 *图 2. 正弦位置编码。左：完整编码矩阵，每一行都是唯一标识。右：四个代表性维度，频率各不相同。*
 
 时间序列通常需要比“步索引”更丰富的**位置信息**：
@@ -131,7 +131,7 @@ class TemporalPositionalEncoding(nn.Module):
 
 单个注意力头只能建模一种关系。多头注意力将模型分成 $h$ 路并行计算，每路在 $d_k = d_{\text{model}} / h$ 维的投影上独立运行，最后拼接结果。在时间序列任务中，不同的头会专注于不同的模式：
 
-![训练好的 Transformer 在 48 步窗口上的四个头，每个学到不同的时间模式。注意因果 mask：对角线之上没有任何权重。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig3_multihead_patterns.png)
+![训练好的 Transformer 在 48 步窗口上的四个头，每个学到不同的时间模式。注意因果 mask：对角线之上没有任何权重。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig3_multihead_patterns.png)
 *图 3. 训练好的 Transformer 在 48 步窗口上的四个头，每个学到不同的时间模式。注意因果 mask：对角线之上没有任何权重。*
 
 | 头的模式            | 模型在做什么                                |
@@ -150,7 +150,7 @@ $$M_{\text{attn}} = h \cdot n^2 \cdot 2 \;\text{bytes}.$$
 
 $n=512$ 时占 4 MB，完全没问题；$n=4096$ 时占 256 MB，开始吃力；$n=16384$ 时单层光注意力矩阵就要 4 GB 以上。计算量也一样，每层是 $O(n^2 d_{\text{model}})$ FLOPs。
 
-![注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步后就跑不动了；稀疏、线性、Patching 三类方案能把开销压回可控范围。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig5_quadratic_bottleneck.png)
+![注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步后就跑不动了；稀疏、线性、Patching 三类方案能把开销压回可控范围。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig5_quadratic_bottleneck.png)
 *图 5. 注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步后就跑不动了；稀疏、线性、Patching 三类方案能把开销压回可控范围。*
 
 解决这个问题有四类方法，按对模型改动的大小排序：
@@ -165,7 +165,7 @@ $n=512$ 时占 4 MB，完全没问题；$n=4096$ 时占 256 MB，开始吃力；
 
 GPT 风格的 decoder-only 架构在 NLP 领域已经大获成功。这个思路同样适用于时间序列预测：去掉编码器，只用一个带因果 mask 的解码器堆栈，逐步生成预测结果。
 
-![Decoder-only 自回归预测与因果 mask。每一步将模型已生成的内容全部输入，要求预测下一步的值。右图展示了可见位置的 mask。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig6_decoder_only_forecast.png)
+![Decoder-only 自回归预测与因果 mask。每一步将模型已生成的内容全部输入，要求预测下一步的值。右图展示了可见位置的 mask。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig6_decoder_only_forecast.png)
 *图 6. Decoder-only 自回归预测与因果 mask。每一步将模型已生成的内容全部输入，要求预测下一步的值。右图展示了可见位置的 mask。*
 
 ```python
@@ -195,7 +195,7 @@ def autoregressive_forecast(model, history: torch.Tensor, horizon: int):
 
 PatchTST（Nie 等，ICLR 2023）提出了一个颠覆性的观点：**时间步并不是合适的 token**。一段长度为 512 的小时级序列，token 数量远超普通 NLP 句子，但每个“token”几乎没什么信息量。如果按 $P$ 步一组分成 patch，token 数量会减少到 $\lceil L / P \rceil$，每个 token 都能概括一小段波形。
 
-![Patching 策略。上：将长度 96 的序列分成 8 个大小为 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：随着 patch size 增大，attention 开销快速下降（O(n²) 的优势）。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig7_patching.png)
+![Patching 策略。上：将长度 96 的序列分成 8 个大小为 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：随着 patch size 增大，attention 开销快速下降（O(n²) 的优势）。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig7_patching.png)
 *图 7. Patching 策略。上：将长度 96 的序列分成 8 个大小为 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：随着 patch size 增大，attention 开销快速下降（O(n²) 的优势）。*
 
 为什么 patching 这么有效？
@@ -279,7 +279,7 @@ class TimeSeriesTransformer(nn.Module):
 
 我用一个带日周期和周周期的合成信号，加上随机尖峰，做了 96 步预测。Transformer 干净利落地捕捉到了两个周期，LSTM 能跟上主要的日周期，但在周周期上开始漂移。
 
-![日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig4_lstm_vs_transformer.png)
+![日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer架构/fig4_lstm_vs_transformer.png)
 *图 4. 日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。*
 
 ### 10.2 训练技巧（那些决定成败的小细节）

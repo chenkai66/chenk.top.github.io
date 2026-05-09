@@ -13,7 +13,7 @@ disableNunjucks: true
 series_order: 6
 translationKey: "computer-fundamentals-6"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/computer-fundamentals/06-deep-dive/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/computer-fundamentals/06-deep-dive/illustration_1.png)
 
 前面五章，我们一个一个把盒子打开看：CPU、缓存层级、存储、主板和显卡、网络和电源。每一部分单看都很有意思，但一台计算机不是它的零件之和。一台计算机，是这些零件每一纳秒都要协商一次"接下来做什么"的那个过程。
 

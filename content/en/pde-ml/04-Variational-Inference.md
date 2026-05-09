@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 4
 translationKey: "pde-ml-4"
 ---
-![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_1.jpg)
+![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_1.png)
 
 ## Seven Dimensions of This Article
 
@@ -80,7 +80,7 @@ whose unique stationary solution (under mild regularity) is the **Gibbs distribu
 
 ## 3. Langevin Dynamics: Sampling as a PDE
 
-![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_2.jpg)
+![PDE and ML (4): Variational Inference and the Fokker-Planck Equation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/04-Variational-Inference/illustration_2.png)
 
 The **overdamped Langevin equation** for sampling from $p^\star \propto e^{-V}$ is
 $$dX_t = -\nabla V(X_t)\, dt + \sqrt{2\tau}\, dW_t.$$

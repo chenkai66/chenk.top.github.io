@@ -197,7 +197,7 @@ Combined with off-policy methods (DDPG, SAC), HER turns sparse-reward goal reach
 
 ## 4. Meta-RL: learning to learn
 
-![Reinforcement Learning (11): Hierarchical RL and Meta-Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/illustration_2.jpg)
+![Reinforcement Learning (11): Hierarchical RL and Meta-Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/illustration_2.png)
 
 Meta-RL assumes a *task distribution* $p(\mathcal{T})$ rather than a single MDP. At meta-train time the agent sees many tasks $\mathcal{T}_i \sim p(\mathcal{T})$; at meta-test time it sees a fresh task and must adapt with as few interactions as possible.
 

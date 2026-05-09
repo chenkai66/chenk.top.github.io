@@ -19,7 +19,7 @@ translationKey: "aliyun-bailian-3"
 ---
 在所有百炼模型中，Qwen-Omni 是那个让我从最多产品路线图“坑”里爬出来的救星。以前如果有人问我：“这条 2 分钟的广告片到底在讲什么？”这通常是一个需要三周才能完成的项目——包括抽帧、逐帧生成字幕，再把内容拼接起来。而现在，用 Qwen-Omni，只需要发一个 HTTP 请求就能搞定。不过，文档对一些容易踩坑的地方描述得很少，尤其是那个“必须使用流式传输”的要求，已经让不止一个团队白白浪费了大半天时间。咱们可别重蹈覆辙。
 
-![阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.jpg)
+![阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_1.png)
 ## Qwen-Omni 支持的输入类型
 
 根据 Qwen API 文档中关于多模态模型的说明，单条用户消息可以通过 `content` 数组混合多种类型的内容，包括文本、图片、音频和视频。这种能力的核心亮点并不在于“支持图片”，而是能够灵活处理各种类型的组合输入：
@@ -195,7 +195,7 @@ def normalize_audio(src: str, dst: str) -> None:
 在每次上传音频之前运行这个脚本。虽然转码过程会增加约 200 毫秒的开销，但相比 API 的整体延迟，这点时间完全可以忽略不计。更重要的是，它彻底避免了因格式问题导致的“400 不支持的音频格式”错误。
 ## 视频帧采样：1 fps 适合对话场景，8 fps 适合动作场景
 
-![阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_2.jpg)
+![阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/illustration_2.png)
 
 在 Qwen-Omni 的内部处理逻辑中，视频会被按一定的帧率抽帧，每一帧会被编码为一个视觉 token 块。由于 token 的消耗与帧数成正比，因此帧率是控制视频处理成本的最关键参数。
 

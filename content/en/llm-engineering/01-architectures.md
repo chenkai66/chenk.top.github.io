@@ -22,7 +22,7 @@ The 2017 Transformer block is still the silhouette of every production LLM in 20
 
 I'll assume you know the original Transformer block. If you don't, the [NLP series part 4](/en/nlp/attention-transformer/) covers it. This chapter is what's *different* now.
 
-![LLM Engineering (1): Architectures from Transformer to MoE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/01-architectures/illustration_1.jpg)
+![LLM Engineering (1): Architectures from Transformer to MoE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/01-architectures/illustration_1.png)
 
 ## What changed and why
 
@@ -134,7 +134,7 @@ The attention sink phenomenon is one of the strangest empirical observations in 
 
 ## Mixture of experts: more parameters, same FLOPs
 
-![LLM Engineering (1): Architectures from Transformer to MoE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/01-architectures/illustration_2.jpg)
+![LLM Engineering (1): Architectures from Transformer to MoE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/01-architectures/illustration_2.png)
 
 
 ![fig3: sparse MoE vs dense compute](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/01-architectures/fig3_sparse_vs_dense.png)

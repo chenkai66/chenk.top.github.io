@@ -20,7 +20,7 @@ translationKey: "openclaw-quickstart-4"
 上一篇我们把 OpenClaw 跑起来了。但真正让 Agent 好用的关键不在代码，而在配置。今天把 `openclaw.json` 从头到尾拆一遍——模型怎么选、钱怎么省、安全边界怎么画。
 
 
-![OpenClaw 配置文件结构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_1.jpg)
+![OpenClaw 配置文件结构概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_1.png)
 
 ## 最小可用配置
 

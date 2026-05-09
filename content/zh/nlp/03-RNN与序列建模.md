@@ -22,9 +22,9 @@ polished_by_qwen_max: true
 
 
 <!-- wanx-hero -->
-![自然语言处理（三）：RNN与序列建模 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rnn-sequence-modeling/illustration_1.jpg)
+![自然语言处理（三）：RNN与序列建模 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rnn-sequence-modeling/illustration_1.png)
 ## 你将学到什么
-![自然语言处理（三）：RNN与序列建模 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rnn-sequence-modeling/illustration_2.jpg)
+![自然语言处理（三）：RNN与序列建模 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/rnn-sequence-modeling/illustration_2.png)
 
 - RNN 是如何通过循环连接和参数共享来维持记忆的
 - 从第一性原理推导梯度消失和梯度爆炸的原因
@@ -37,7 +37,7 @@ polished_by_qwen_max: true
 **前置知识**：本系列第 1-2 部分（分词与词嵌入），以及基础 PyTorch 知识（张量操作、`nn.Module` 模块、训练循环）。
 ## 一、核心思想：循环与参数共享
 
-![NLP (3): RNN 和序列建模 —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_2.jpg)
+![NLP (3): RNN 和序列建模 —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/illustration_2.png)
 
 ![基础 RNN 在五个时间步展开，展示循环权重共享](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig1_unrolled_rnn.png)
 
@@ -116,7 +116,7 @@ $$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t.$$
 
 可以把细胞状态想象成一条贯穿整个序列的传送带。遗忘门像是一个工人，负责从传送带上移除不再需要的物品；输入门则是另一个工人，负责将新物品放到传送带上；输出门则像是一扇窗口，决定了外部世界（网络的其他部分）当前能看到哪些内容。第 3 步放上去的物品，可以一路平稳地传送到第 300 步，而不会受到干扰。
 ## 四、门控循环单元（GRU）
-![GRU 单元：重置门 + 更新门，结构比 LSTM 更简洁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/03-RNN与建模/fig4_gru_cell.png)
+![GRU 单元：重置门 + 更新门，结构比 LSTM 更简洁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/03-RNN与序列建模/fig4_gru_cell.png)
 
 GRU（Cho 等人，2014）继承了门控机制的核心思想，但对其设计进行了简化。它将遗忘门和输入门合并为一个**更新门**，取消了独立的细胞状态，直接在隐藏状态 $h_t$ 上进行操作：
 $$

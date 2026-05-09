@@ -13,7 +13,7 @@ disableNunjucks: true
 series_order: 2
 translationKey: "computer-fundamentals-2"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/computer-fundamentals/02-memory/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/computer-fundamentals/02-memory/illustration_1.png)
 
 CPU 一次乘法大约需要 **0.3 ns**，机械硬盘一次寻道要 **10 ms**。两者之间是 **3 千万倍** 的速度差。整套内存工程——多级缓存、DRAM 单元、页表、TLB、ECC、NUMA、多通道——都是为了回答这一个问题：**这条鸿沟，怎么填？**
 

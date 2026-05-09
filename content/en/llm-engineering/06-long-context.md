@@ -23,7 +23,7 @@ translationKey: "llm-engineering-6"
 
 The history of long-context LLMs in three acts. Act one (2017-2021): models were trained at 512-2048 tokens because attention is $O(n^2)$ and that's what fit. Act two (2022-2023): efficient attention kernels (FlashAttention, [Dao 2022][dao-flashattention]) made longer training feasible, and post-hoc context extension techniques (Position Interpolation, NTK-aware scaling, YaRN) let practitioners push pre-trained checkpoints from 4K to 32K and beyond. Act three (2024-2026): native long-context training (Llama 3.1's 128K, Gemini's 1-2M, Claude's 200K) became standard, but the gap between *attendable* context and *useful* context remained — and that's what this chapter is mostly about.
 
-![LLM Engineering (6): Long Context — RoPE, YaRN, Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/06-long-context/illustration_1.jpg)
+![LLM Engineering (6): Long Context — RoPE, YaRN, Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/06-long-context/illustration_1.png)
 
 ## Position is not free
 
@@ -180,7 +180,7 @@ In practice, SWA combined with attention sinks gives most production long-contex
 
 ## Needle in a haystack: the only honest benchmark
 
-![LLM Engineering (6): Long Context — RoPE, YaRN, Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/06-long-context/illustration_2.jpg)
+![LLM Engineering (6): Long Context — RoPE, YaRN, Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/06-long-context/illustration_2.png)
 
 
 ![fig5: RULER scores by context length](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/06-long-context/fig5_ruler_scores.png)

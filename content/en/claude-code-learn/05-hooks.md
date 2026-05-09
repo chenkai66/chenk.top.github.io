@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-5"
 
 If MCP is how Claude reaches out, Hooks are how you reach in. They are the way to enforce — not just hope for — the rules you care about.
 
-![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_1.jpg)
+![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_1.png)
 
 ## The model
 
@@ -140,7 +140,7 @@ This is the single most important security hook for working with real codebases.
 
 ## The anti-pattern: relative paths
 
-![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_2.jpg)
+![Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/05-hooks/illustration_2.png)
 
 The most common hook bug is using a relative command path:
 

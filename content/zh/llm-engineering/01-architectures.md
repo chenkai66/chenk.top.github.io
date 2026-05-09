@@ -23,7 +23,7 @@ translationKey: "llm-engineering-1"
 
 默认你已经熟悉原始 Transformer。不熟的话先看 [NLP 系列第 4 篇](/zh/nlp/04-注意力机制与transformer/)。这一篇只讲*改了什么*。
 
-![大模型工程（一）：从 Transformer 到 MoE 的架构演化 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/01-architectures/illustration_1.jpg)
+![大模型工程（一）：从 Transformer 到 MoE 的架构演化 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/01-architectures/illustration_1.png)
 ## 改了哪些、为什么改
 
 ![fig5: architecture timeline 2017-2026](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/01-architectures/fig5_timeline.png)
@@ -152,7 +152,7 @@ SWA 把 KV 缓存限制在 $w$ 个 token 内，和上下文长度无关。但模
 Attention sink 是现代 LLM 中最奇怪的现象之一。Xiao 等人发现，流式推理时（固定窗口滑动并丢弃超出的 token），几千个 token 后会出现灾难性发散，困惑度飙升到几千。解决方法很简单：永远别丢前 4 个 token。保留这些 sink，即使推理几百万个 token，困惑度也能保持平稳。原因在于 softmax 输出必须归一化到 1。训练时，“多余”的注意力如果没有明确目标，就会集中在前几个 token 上。丢掉这些 token，就等于移除了注意力的“垃圾场”，分布会失控。现在的模型预训练时会显式保留这些 sink，避免这种问题。
 ## Mixture of Experts：参数更多，FLOPs 不变
 
-![大模型工程（一）：从 Transformer 到 MoE 的架构演化 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/01-architectures/illustration_2.jpg)
+![大模型工程（一）：从 Transformer 到 MoE 的架构演化 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/01-architectures/illustration_2.png)
 
 
 ![fig3: sparse MoE vs dense compute](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/01-architectures/fig3_sparse_vs_dense.png)

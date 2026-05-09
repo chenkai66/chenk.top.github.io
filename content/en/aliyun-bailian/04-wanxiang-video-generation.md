@@ -19,7 +19,7 @@ translationKey: "aliyun-bailian-4"
 
 Wanxiang is the API that has done the most for our marketing pipeline and caused the most production surprises. The model is genuinely good — `wan2.5-t2v-plus` produces 720p clips that pass for an actual video team's output most of the time — but the surface around it is async, native-protocol, has expiring URLs, and rate-limits in non-obvious ways. This article is the version of the docs that has been through six months of "why is this happening at 2am" tickets.
 
-![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/illustration_1.jpg)
+![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/illustration_1.png)
 
 ## The model lineup
 
@@ -235,7 +235,7 @@ KF2V is the trickiest of the three. The model interpolates between your two fram
 
 ## Multi-clip stitching: last-frame relay and continuity hacks
 
-![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/illustration_2.jpg)
+![Aliyun Bailian (4): Wanxiang Video Generation End-to-End — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/illustration_2.png)
 
 The hard part of long-form Wanxiang content is that each clip is independent. Generate two 5-second T2V clips with the "same" prompt and the second one will have different framing, different lighting, different subject angle. Stitching them as-is produces a jarring jump cut.
 

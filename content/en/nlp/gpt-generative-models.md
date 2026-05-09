@@ -21,7 +21,7 @@ If BERT (Part 5) is the king of *understanding*, GPT is the king of *generation*
 
 
 <!-- wanx-hero -->
-![NLP (6): GPT and Generative Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_1.jpg)
+![NLP (6): GPT and Generative Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_1.png)
 
 ## What you will learn
 
@@ -40,7 +40,7 @@ If BERT (Part 5) is the king of *understanding*, GPT is the king of *generation*
 ## 1. The decoder-only Transformer
 
 <!-- wanx-mid -->
-![NLP (6): GPT and Generative Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_2.jpg)
+![NLP (6): GPT and Generative Language Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/illustration_2.png)
 
 
 ![Decoder-only architecture and the causal mask](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig1_decoder_only_arch.png)

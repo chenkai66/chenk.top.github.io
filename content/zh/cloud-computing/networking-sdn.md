@@ -17,7 +17,7 @@ series_order: 5
 translationKey: "cloud-computing-5"
 polished_by_qwen_max: true
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/networking-sdn/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/networking-sdn/illustration_1.png)
 
 云平台说到底，就是「一张网络 + 接在网络上的若干计算」。计算靠加节点扩，存储靠加盘扩，*网络* 才是让这些节点和盘表现得像一个统一系统的那一层。网络做对了，整个栈让人觉得轻盈；网络做错了 —— 一条少加的路由、安全组的 5 元组对不上、负载均衡规格不够 —— 整个平台直接黑屏。
 

@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-9"
 Hooks 是你接入 Claude Code 的入口，而 settings.json 则是你提前告诉它能访问哪些内容的地方。这个文件还有一个特点，就是它的优先级规则总能让人大吃一惊。
 
 这一章补上了缺失的参考指南。
-![Claude Code 实战入门（九）：settings.json、三层权限模型、env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_1.jpg)
+![Claude Code 实战入门（九）：settings.json、三层权限模型、env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_1.png)
 
 ## 三层设置
 
@@ -66,7 +66,7 @@ Claude Code 按顺序读取三个 `settings.json` 文件：
 直接写 `Read` 或 `Bash` 表示允许该工具的所有操作。这种权限范围通常太宽泛，除非是在个人完全信任的 `~/.claude/settings.json` 文件里，否则我不建议这样用。
 ## 为什么 deny 总是优先
 
-![Claude Code 实战入门（九）：settings.json、三层权限模型、env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.jpg)
+![Claude Code 实战入门（九）：settings.json、三层权限模型、env — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/09-settings-and-permissions/illustration_2.png)
 
 只要合并后的配置中有任何地方拒绝了某个操作，其他地方就无法再允许它。这就是你想要的控制方式。
 

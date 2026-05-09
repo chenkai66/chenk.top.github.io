@@ -28,7 +28,7 @@ Humans clearly do not learn this way. A chess player imagines positions a few mo
 
 This article traces the modern lineage:  Dyna (1990) -> MBPO (2019) -> World Models (2018) -> Dreamer (2020-23) -> MuZero (2020). Each method rests on a single sharp idea, and the seven figures in this post visualise those ideas one at a time.
 
-![Reinforcement Learning (5): Model-Based RL and World Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.jpg)
+![Reinforcement Learning (5): Model-Based RL and World Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_1.png)
 
 ## What You Will Learn
 
@@ -224,7 +224,7 @@ MPC is the dominant choice when **the cost of a mistake is high** (real robots, 
 
 ## 5. World Models: Dreaming in a Latent Space
 
-![Reinforcement Learning (5): Model-Based RL and World Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_2.jpg)
+![Reinforcement Learning (5): Model-Based RL and World Models — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/illustration_2.png)
 
 
 ![World Model V/M/C architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig2_world_model_vmc.png)

@@ -16,7 +16,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-3"
 ---
 内置的斜杠命令，比如 `/clear` 和 `/init`，只是冰山一角。这套系统的核心思想是让你自己编写命令，并且这些命令会存放在你的代码仓库中。
-![Claude Code 实战入门（三）：自定义斜杠命令与对话控制 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/illustration_1.jpg)
+![Claude Code 实战入门（三）：自定义斜杠命令与对话控制 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/illustration_1.png)
 
 ## 什么是斜杠命令
 
@@ -45,7 +45,7 @@ translationKey: "claude-code-learn-3"
 2. 不用重复劳动。下次团队里任何人需要做审计时，只需输入 `/audit` 就能完成任务。
 ## `$ARGUMENTS`——参数化
 
-![Claude Code 实战入门（三）：自定义斜杠命令与对话控制 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/illustration_2.jpg)
+![Claude Code 实战入门（三）：自定义斜杠命令与对话控制 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/03-custom-commands/illustration_2.png)
 
 斜杠命令自带一个特殊的 `$ARGUMENTS`，它会自动替换为你在命令后面输入的内容。举个例子——`.claude/commands/explain.md`：
 

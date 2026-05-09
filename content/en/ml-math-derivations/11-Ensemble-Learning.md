@@ -24,7 +24,7 @@ Why does a committee of mediocre classifiers outperform a single brilliant one? 
 
 By the end you should be able to look at any ensemble method and say *what it is reducing, why it works, and when it will fail.*
 
-![ML Math Derivations (11): Ensemble Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/illustration_1.jpg)
+![ML Math Derivations (11): Ensemble Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/illustration_1.png)
 
 ## What you will learn
 
@@ -155,7 +155,7 @@ When two features carry similar signal, mean-decrease-in-impurity *splits* the i
 
 ## 3. Bagging vs Boosting --- the bias--variance picture
 
-![ML Math Derivations (11): Ensemble Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/illustration_2.jpg)
+![ML Math Derivations (11): Ensemble Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/illustration_2.png)
 
 ![Bagging shrinks the variance band while preserving the mean (bias)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/11-Ensemble-Learning/fig4_bias_variance.png)
 

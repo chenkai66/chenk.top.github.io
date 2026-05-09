@@ -20,7 +20,7 @@ A Large Language Model has the opposite problem: it has *too much* world knowled
 
 The interesting question for 2023–2026 is not "LLM or traditional?" — it's **how to compose them**. This article walks through the three composition patterns that have actually shipped at scale, with code and the hard tradeoffs.
 
-![Recommendation Systems (12): Large Language Models and Recommendation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/illustration_1.jpg)
+![Recommendation Systems (12): Large Language Models and Recommendation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/illustration_1.png)
 
 ## What You Will Learn
 
@@ -197,7 +197,7 @@ For those you need a live LLM call — or, more realistically, a hybrid pipeline
 
 ## The Hybrid Pipeline (the architecture you actually ship)
 
-![Recommendation Systems (12): Large Language Models and Recommendation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/illustration_2.jpg)
+![Recommendation Systems (12): Large Language Models and Recommendation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/illustration_2.png)
 
 ![Hybrid pipeline: ANN retrieval, DNN ranker, LLM reranker](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/12-llm-recommendation/fig4_hybrid_pipeline.png)
 

@@ -16,7 +16,7 @@ disableNunjucks: true
 translationKey: "claude-code-learn-1"
 ---
 这是六篇实战指南的第一篇。顺序是精心安排的：每一篇都为下一篇铺路。等你读完，就能掌握 90% 用户从未用过的六个功能。
-![Claude Code 实战入门（一）：安装、三层配置、以及 # @ /init 这一组 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/illustration_1.jpg)
+![Claude Code 实战入门（一）：安装、三层配置、以及 # @ /init 这一组 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/illustration_1.png)
 
 ## 安装
 
@@ -52,7 +52,7 @@ claude
 Claude 会调用自己的工具执行 `ls`，然后总结并回复内容。如果这一步没问题，说明安装已经完成。
 ## 三层配置
 
-![Claude Code 实战入门（一）：安装、三层配置、以及 # @ /init 这一组 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/illustration_2.jpg)
+![Claude Code 实战入门（一）：安装、三层配置、以及 # @ /init 这一组 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/01-install-and-config/illustration_2.png)
 
 很多用户可能从来没看过这部分内容。Claude Code 的配置来自三个地方，优先级从低到高依次是：
 

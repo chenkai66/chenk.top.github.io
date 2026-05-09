@@ -25,7 +25,7 @@ DQN proved that deep RL can master Atari, but it has a hard ceiling: it only wor
 
 **Policy gradient methods** take a fundamentally different route. Instead of learning a value function and *deriving* a policy from it, they **directly optimise the policy**. That single change opens the door to continuous actions, stochastic strategies, and problems where the optimal play is itself random (think rock-paper-scissors).
 
-![Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/illustration_1.jpg)
+![Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/illustration_1.png)
 
 ## What You Will Learn
 
@@ -219,7 +219,7 @@ This typically solves CartPole in 100--200 episodes. On harder tasks, though, RE
 
 ## 3. Actor-Critic: Replacing Returns with TD Estimates
 
-![Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/illustration_2.jpg)
+![Reinforcement Learning (3): Policy Gradient and Actor-Critic Methods — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/03-policy-gradient-and-actor-critic/illustration_2.png)
 
 REINFORCE waits until the end of the episode to compute $G_t$. That return contains noise from *every* future state, action, and reward. Can we do better?
 

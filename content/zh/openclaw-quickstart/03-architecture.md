@@ -19,7 +19,7 @@ translationKey: "openclaw-quickstart-3"
 
 你可以用 OpenClaw 好几个月都不需要读这篇文章。但是当你第一次要写一个技能、排查一条消息为什么被路由到了错误的 agent、或者搞清楚 agent 为什么突然"失忆"了——你就需要知道每个盒子里装的是什么。
 
-![OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_1.jpg)
+![OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层 — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/03-architecture/illustration_1.png)
 
 ## 六层架构总览
 

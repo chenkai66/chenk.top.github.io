@@ -26,7 +26,7 @@ translationKey: "llm-engineering-12"
 
 下面的数据截至 2025 年底到 2026 年初。用之前记得核对最新价格。
 
-![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_1.jpg)
+![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_1.png)
 ## 端到端服务栈
 
 ![fig1: 端到端服务栈架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig1_stack_architecture.png)
@@ -92,7 +92,7 @@ translationKey: "llm-engineering-12"
 2025 到 2026 年，一种流行的做法是：**用小规模开源模型自托管大部分低成本流量，把最难的 5%-10% 流量交给托管的前沿 API。** 这样既能享受自托管的成本优势，又能在关键场景保留前沿模型的质量。路由决策由一个小分类器完成（详见后面的多模型路由章节）。
 ## 多模型路由和 FrugalGPT
 
-![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_2.jpg)
+![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_2.png)
 
 Chen 等人在 2023 年的论文《FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance》中提出了路由再级联模式。核心观察很简单：大多数 LLM 请求都很简单，小模型或低成本模型就能搞定；只有少数请求需要大模型出马。如果能快速判断请求类型，成本可以降 5 到 10 倍，质量几乎不受影响。
 

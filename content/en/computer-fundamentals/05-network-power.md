@@ -14,7 +14,7 @@ description: "Deep dive into the NIC pipeline (PHY/MAC/DMA), TCP handshake, netw
 disableNunjucks: true
 translationKey: "computer-fundamentals-5"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/05-network-power/illustration_1.png)
 
 Why does the gigabit NIC on your motherboard sometimes negotiate down to 100 Mbps? Why does a brand-new build with a 650 W "Gold" PSU randomly reboot under heavy GPU load? Why does the room next to the server rack always feel warm? These are the everyday consequences of two systems that most people never look at: **the network I/O pipeline** and **the power-and-cooling chain** that keeps the silicon alive.
 

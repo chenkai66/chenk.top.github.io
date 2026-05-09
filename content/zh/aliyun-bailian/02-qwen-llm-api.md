@@ -19,7 +19,7 @@ translationKey: "aliyun-bailian-2"
 ---
 在这个系列文章中，本篇聚焦于实际生产中最能带来价值的内容。其他模型固然各有亮点，但真正让我在百炼平台上发布的每个产品都离不开的，是那些每天每分钟都在调用的大语言模型（LLM）。官方的 Qwen API 文档内容详实且全面，但稍显复杂；本文则从中提炼出一条清晰易懂的路径，帮助读者更好地理解和使用。
 
-![阿里云百炼实战（二）：Qwen 大模型 API 在生产环境中的应用 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/illustration_1.jpg)
+![阿里云百炼实战（二）：Qwen 大模型 API 在生产环境中的应用 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/illustration_1.png)
 ## 根据任务选择合适的 Qwen 变体
 
 Qwen 系列模型种类繁多，但很多团队在使用时容易陷入两个极端：要么一股脑全用 `qwen-max`，导致成本居高不下；要么为了省钱全都选 `qwen-turbo`，结果质量跟不上。其实，正确的做法是“根据具体任务匹配合适的变体”。
@@ -257,7 +257,7 @@ for chunk in stream:
 这种方式能够实现“表单在用户眼前逐步填充”的交互体验，而无需等待模型完成所有输出。我们在营销工具的结构化抽取接口中采用了这种方法，用户的感知延迟从 4 秒降低到了 500 毫秒以内，尽管实际的总耗时并没有变化。
 ## 深入解析 Function Calling：多轮对话、并行调用与 `tool_choice="auto"` 的陷阱
 
-![阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/illustration_2.jpg)
+![阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/illustration_2.png)
 
 上一节提到的简单 round-trip 只能应对最基础的场景。然而，实际应用中的智能体（agent）往往需要通过循环来完成任务。这种模式通常表现为一个 `while` 循环，直到模型不再生成 `tool_calls` 为止。
 

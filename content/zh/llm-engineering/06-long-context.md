@@ -22,7 +22,7 @@ translationKey: "llm-engineering-6"
 
 长上下文 LLM 的发展分三个阶段。第一阶段（2017-2021 年）：模型训练长度通常在 512 到 2048 token。原因是注意力机制复杂度 $O(n^2)$，超出这个范围算力扛不住。第二阶段（2022-2023 年）：FlashAttention 等高效注意力内核出现，让更长训练成为可能。Position Interpolation、NTK-aware scaling 和 YaRN 等技术，把预训练模型从 4K 推到 32K 甚至更高。第三阶段（2024-2026 年）：原生长上下文训练成为标配，比如 Llama 3.1 的 128K、Gemini 的 1-2M 和 Claude 的 200K。但能注意的上下文和真正有用的上下文之间，差距依然明显。这也是本章的核心内容。
 
-![大模型工程（六）：长上下文 —— RoPE、YaRN、Attention Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/06-long-context/illustration_1.jpg)
+![大模型工程（六）：长上下文 —— RoPE、YaRN、Attention Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/06-long-context/illustration_1.png)
 ## 位置不是免费的
 
 自注意力机制对顺序不敏感。没有位置信号，模型分不清“猫坐在垫子上”和“垫子坐在猫上”。怎么注入位置信息？主要有三种方法。
@@ -172,7 +172,7 @@ Mistral 7B（2023 年发布）是第一个带 **滑动窗口注意力（SWA）**
 实际用起来，SWA 加上 attention sink 就能搞定大部分长上下文需求。纯密集注意力超过 32K 的情况很少见。从成本和质量的平衡来看，SWA + sinks + 扩展技术（比如 YaRN/LongRoPE）更适合长尾场景。
 ## Needle in a haystack：唯一诚实的基准测试
 
-![大模型工程（六）：长上下文 —— RoPE、YaRN、Attention Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/06-long-context/illustration_2.jpg)
+![大模型工程（六）：长上下文 —— RoPE、YaRN、Attention Sinks — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/06-long-context/illustration_2.png)
 
 
 ![fig5: RULER scores by context length](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/06-long-context/fig5_ruler_scores.png)

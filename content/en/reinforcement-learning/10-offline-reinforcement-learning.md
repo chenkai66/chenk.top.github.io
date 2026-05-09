@@ -76,7 +76,7 @@ The three families of algorithms below all attack this problem; they differ in *
 
 ## 2. Conservative Q-Learning (CQL)
 
-![Reinforcement Learning (10): Offline Reinforcement Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/illustration_2.jpg)
+![Reinforcement Learning (10): Offline Reinforcement Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/10-offline-reinforcement-learning/illustration_2.png)
 
 CQL ([Kumar et al., 2020](https://arxiv.org/abs/2006.04779)) is the most widely used baseline. It does not change the network, the actor, or the data pipeline. It changes one term in the loss.
 

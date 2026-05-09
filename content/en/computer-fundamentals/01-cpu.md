@@ -14,7 +14,7 @@ description: "Understand data units (bits and bytes), CPU architecture, the 5-st
 disableNunjucks: true
 translationKey: "computer-fundamentals-1"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/01-cpu/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/01-cpu/illustration_1.png)
 
 Why does your 100 Mbps internet only download at about 12 MB/s? Why does a "1 TB" hard drive show only 931 GB in Windows? Why does a 32-bit system top out around 3.2 GB of usable RAM? And what *actually* happens, cycle by cycle, when the CPU runs your code?
 

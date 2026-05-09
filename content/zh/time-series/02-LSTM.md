@@ -14,7 +14,7 @@ disableNunjucks: true
 series_order: 2
 translationKey: "time-series-2"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/02-LSTM/illustration_1.png)
 ## 本章要点
 
 - 普通 RNN 为什么搞不定长序列，LSTM 又是如何解决梯度问题的

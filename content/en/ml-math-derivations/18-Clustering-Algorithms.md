@@ -19,7 +19,7 @@ disableNunjucks: true
 series_order: 18
 translationKey: "ml-math-derivations-18"
 ---
-![ML Math Derivations (18): Clustering Algorithms — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/illustration_1.jpg)
+![ML Math Derivations (18): Clustering Algorithms — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/illustration_1.png)
 
 ## What This Article Covers
 
@@ -181,7 +181,7 @@ The merge rule depends on **linkage**, which is just a choice of how to define d
 
 ## 4. DBSCAN: Density-Based Clustering
 
-![ML Math Derivations (18): Clustering Algorithms — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/illustration_2.jpg)
+![ML Math Derivations (18): Clustering Algorithms — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/18-Clustering-Algorithms/illustration_2.png)
 
 ### 4.1 Core Concepts
 

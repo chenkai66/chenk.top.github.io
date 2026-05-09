@@ -73,7 +73,7 @@ That's it. No gradient descent on the target task, no labeled examples — just 
 
 ## 2. Contrastive learning: the math behind alignment
 
-![Transfer Learning (8): Multimodal Transfer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/illustration_2.jpg)
+![Transfer Learning (8): Multimodal Transfer — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/08-multimodal-transfer/illustration_2.png)
 
 For a batch of $B$ image-text pairs $\{(\mathbf{v}_i, \mathbf{t}_i)\}$, all $B \times B$ pairwise similarities form a matrix. The diagonal entries are positives (true pairs); the off-diagonal entries are negatives (mismatched pairs).
 

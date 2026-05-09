@@ -33,7 +33,7 @@ translationKey: "terraform-agents-6"
 
 两天搭，永久收益。
 
-![用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/illustration_1.jpg)
+![用 Terraform 给 AI Agent 上云（六）：LLM 网关与密钥管理 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/illustration_1.png)
 
 ## 架构设计
 
@@ -331,7 +331,7 @@ resource "null_resource" "agent_keys" {
 
 ## 第五步：密钥轮转流程
 
-![用 Terraform 部署 AI Agent（六）：LLM 网关与密钥管理 — 视觉化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/illustration_2.jpg)
+![用 Terraform 部署 AI Agent（六）：LLM 网关与密钥管理 — 视觉化](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/06-llm-gateway-and-secrets/illustration_2.png)
 
 把 key 放进 KMS Secrets Manager 的全部意义就在轮转：
 

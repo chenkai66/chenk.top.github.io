@@ -26,7 +26,7 @@ XGBoost and LightGBM are the two libraries that quietly win most tabular-data ba
 
 The result is two tools that look interchangeable from the API but behave very differently when $N$ or $d$ becomes large. This post derives every formula behind those choices so you can read a tuning guide and know *why* each knob exists.
 
-![ML Math Derivations (12): XGBoost and LightGBM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/illustration_1.jpg)
+![ML Math Derivations (12): XGBoost and LightGBM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/illustration_1.png)
 
 ## What you will learn
 
@@ -139,7 +139,7 @@ The left panel scans every distinct value ($N-1$ candidates). The right panel bu
 
 ## LightGBM: efficient gradient boosting
 
-![ML Math Derivations (12): XGBoost and LightGBM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/illustration_2.jpg)
+![ML Math Derivations (12): XGBoost and LightGBM — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/12-XGBoost-and-LightGBM/illustration_2.png)
 
 ### Histogram algorithm
 

@@ -22,7 +22,7 @@ translationKey: "reinforcement-learning-2"
 2013 年 12 月，DeepMind 的一个小团队在 arXiv 上发布了一篇论文，提出了一个令人震撼的成果：一个神经网络，直接从原始像素和得分学习，掌握了七款 Atari 游戏，并在其中六款中超越了之前的最佳表现。没有针对游戏设计的特定特征，也没有手工编写的启发式规则，Pong、Breakout 和 Space Invaders 都用的是同一套架构。这个算法叫 **Deep Q-Network (DQN)**，它开启了深度强化学习的新时代。
 
 DQN 并不是凭空创造的。它是 Watkins 在 1989 年提出的 **Q-Learning** 算法的升级版，把查表替换成了神经网络，同时引入了两个工程技巧，避免了训练过程失控。我会详细解释这两个技巧解决了什么问题，手把手带你用 PyTorch 实现一个完整的 DQN，并梳理那些让 DQN 从 Atari 演示变成现代强化学习主力的各种改进版本。
-![强化学习（二）：Q-Learning 与深度 Q 网络（DQN） — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-q-learning-and-dqn/illustration_1.jpg)
+![强化学习（二）：Q-Learning 与深度 Q 网络（DQN） — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-q-learning-and-dqn/illustration_1.png)
 
 ## 你将学到什么
 
@@ -154,7 +154,7 @@ DQN 的两项创新分别针对致命三角中的"离策略"和"自举"两条边
 ---
 ## DQN 的两大创新
 
-![强化学习（二）：Q-Learning 与深度 Q 网络（DQN） — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-q-learning-and-dqn/illustration_2.jpg)
+![强化学习（二）：Q-Learning 与深度 Q 网络（DQN） — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/02-q-learning-and-dqn/illustration_2.png)
 
 ### 经验回放：打破时间相关性
 

@@ -20,7 +20,7 @@ translationKey: "aliyun-pai-3"
 
 A DSW notebook is for one engineer on one GPU. The moment you need eight GPUs across two nodes, or the moment training runs longer than the eight hours you'll keep the tab open, you switch to **DLC**. DLC is PAI's job-submission front-end for a managed Kubernetes cluster: you describe what you want (image, command, resources, data mounts), DLC schedules pods, runs them to completion, persists logs, and tells you what happened. The docs call this *Deep Learning Containers*; we just say "DLC job".
 
-![Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/illustration_1.jpg)
+![Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/illustration_1.png)
 
 ## What the docs actually claim
 
@@ -135,7 +135,7 @@ Practical recommendation: set `max_retries=3` per worker and a job-level `max_ru
 
 ## Multi-node NCCL: RDMA vs TCP, ring vs tree
 
-![Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/illustration_2.jpg)
+![Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/03-pai-dlc-distributed-training/illustration_2.png)
 
 The single biggest performance lever in multi-node training, and one that's barely documented in PAI's own pages. The defaults work; tuning them halves your per-step time on jobs with heavy gradient communication.
 

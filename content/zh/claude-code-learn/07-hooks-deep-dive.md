@@ -29,7 +29,7 @@ translationKey: "claude-code-learn-7"
   }
 }
 ```
-![Claude Code 实战入门（七）：我每天真用的十个 Hooks，附完整代码 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.jpg)
+![Claude Code 实战入门（七）：我每天真用的十个 Hooks，附完整代码 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_1.png)
 
 ## 1. block-env-read——保护敏感信息
 
@@ -52,7 +52,7 @@ process.exit(0);
 将这个脚本绑定到 `Read|Grep|MultiEdit|Edit|Write` 上。在 PreToolUse 阶段，返回退出码 2 会直接拦截调用；stderr 输出的内容会反馈给模型，让它明白拦截的原因。
 ## 2. bash-blacklist——拦截 `rm -rf /`
 
-![Claude Code 实战入门（七）：我每天真用的十个 Hooks，附完整代码 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_2.jpg)
+![Claude Code 实战入门（七）：我每天真用的十个 Hooks，附完整代码 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/07-hooks-deep-dive/illustration_2.png)
 
 这是最容易踩坑的地方。PreToolUse 对接 `Bash`：
 

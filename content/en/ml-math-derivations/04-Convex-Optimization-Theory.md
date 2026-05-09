@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 4
 translationKey: "ml-math-derivations-4"
 ---
-![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_1.jpg)
+![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_1.png)
 
 ## What This Article Covers
 
@@ -274,7 +274,7 @@ For large $n$, even storing $H$ is impractical, so **L-BFGS** keeps only the las
 
 ## 5. Constrained Optimization and Duality
 
-![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_2.jpg)
+![ML Math Derivations (4): Convex Optimization Theory — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/04-Convex-Optimization-Theory/illustration_2.png)
 
 ### 5.1 Problem Setup
 

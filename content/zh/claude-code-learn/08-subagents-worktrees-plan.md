@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-8"
 学完 hooks 之后，接下来影响 Claude Code 使用体验的就是**并发控制**。这里说的不是线程层面的并发，而是指“模型同时在帮我做几件事、隔离程度如何、我能掌控多少”这种意义上的并发。
 
 三个功能特性，按信任需求从低到高排列。
-![Claude Code 实战入门（八）：子 Agent、worktree、计划模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_1.jpg)
+![Claude Code 实战入门（八）：子 Agent、worktree、计划模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
 
 ## 计划模式——气闸
 
@@ -67,7 +67,7 @@ tools: Read, Grep, Glob, WebFetch
 什么时候不该用子 Agent：如果父 Agent 已经掌握了所需的上下文，就没必要再创建子 Agent。比如让子 Agent "去读一个文件然后汇报"，这就是一种昂贵的递归操作。
 ## Worktrees — 并行分支不混乱
 
-![Claude Code 实战入门（八）：子 Agent、worktree、计划模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_2.jpg)
+![Claude Code 实战入门（八）：子 Agent、worktree、计划模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_2.png)
 
 git worktree 是同一个仓库的第二个工作树，位于不同的分支和目录。Claude Code 支持这个功能：`EnterWorktree` 工具可以创建一个新分支和对应的工作树，并将当前会话切换过去。
 

@@ -23,7 +23,7 @@ translationKey: "llm-engineering-7"
 
 2024 年，所有前沿模型的后训练数据都围绕工具使用格式构建。工具调用从“研究演示”变成了“API 特性”。
 
-![大模型工程（七）：Function Calling 与工具使用 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_1.jpg)
+![大模型工程（七）：Function Calling 与工具使用 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_1.png)
 ## "Function calling" 实际指的是什么
 
 API 提供 "function calling" 时，背后可能有几种机制。
@@ -248,7 +248,7 @@ def execute_tool(name, args):
 下一节会讲如何设计工具接口。
 ## Agent 循环
 
-![大模型工程（七）：Function calling、结构化输出与 Agent loop 的工程实操 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_2.jpg)
+![大模型工程（七）：Function calling、结构化输出与 Agent loop 的工程实操 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_2.png)
 
 生产环境里最简的 agent 循环代码如下：
 

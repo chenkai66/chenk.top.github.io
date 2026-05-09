@@ -20,7 +20,7 @@ translationKey: "aliyun-pai-4"
 
 EAS is where the money goes. DSW costs you a few hundred RMB a month for dev. DLC costs you in spikes. EAS bills 24/7 because someone might call your endpoint, and that "minimum replica count" line in the autoscaler config is the single highest-leverage knob in the whole platform. This article is what I wish I'd known the day before we shipped our first production endpoint.
 
-![Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/illustration_1.jpg)
+![Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/illustration_1.png)
 
 ## What EAS is, per the docs
 
@@ -117,7 +117,7 @@ Buried in the docs: "If an EAS service remains in a non-Running state for 180 co
 
 ## Cold start mitigation, in order of effectiveness
 
-![Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/illustration_2.jpg)
+![Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/illustration_2.png)
 
 Cold start is EAS's biggest practical problem. A vLLM Qwen3-7B container takes 60-120 s from scheduler-pick to first-token-served — model load alone is 30-60 s. If your autoscaler ever needs to add a replica under load, the first user requests in that window time out.
 

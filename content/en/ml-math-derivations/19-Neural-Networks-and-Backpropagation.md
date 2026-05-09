@@ -18,7 +18,7 @@ disableNunjucks: true
 series_order: 19
 translationKey: "ml-math-derivations-19"
 ---
-![ML Math Derivations (19): Neural Networks and Backpropagation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/illustration_1.jpg)
+![ML Math Derivations (19): Neural Networks and Backpropagation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/illustration_1.png)
 
 ## What This Article Covers
 
@@ -123,7 +123,7 @@ with $\|f - g\|_\infty < \varepsilon$. The figure above shows the theorem in act
 
 ## 3. Backpropagation: The Chain Rule at Scale
 
-![ML Math Derivations (19): Neural Networks and Backpropagation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/illustration_2.jpg)
+![ML Math Derivations (19): Neural Networks and Backpropagation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/illustration_2.png)
 
 ### 3.1 Loss Functions
 

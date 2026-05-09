@@ -19,7 +19,7 @@ translationKey: "claude-code-learn-4"
 
 If you only learn one extension mechanism in Claude Code, learn MCP. It is the difference between an autocomplete and a platform.
 
-![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_1.jpg)
+![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_1.png)
 
 ## The 60-second pitch
 
@@ -47,7 +47,7 @@ The protocol is small enough that you can read the spec in 30 minutes. Building 
 
 ## Permissions — the part you must not skip
 
-![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_2.jpg)
+![Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/claude-code-learn/04-mcp-servers/illustration_2.png)
 
 Every MCP tool has a permission level. The first time the model calls one, you get a confirmation dialog. You have three options:
 

@@ -15,7 +15,7 @@ disableNunjucks: true
 series_order: 8
 translationKey: "time-series-8"
 ---
-![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer%E9%95%BF%E5%BA%8F%E5%88%97%E9%A2%84%E6%B5%8B/illustration_1.jpg)
+![章节概念图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/illustration_1.png)
 
 Transformer 在序列建模上确实很强大，但只要序列一长，问题就来了。普通自注意力的计算和显存开销都是 $\mathcal{O}(L^2)$。比如，一周小时级窗口（168 步）还能轻松搞定，一个月窗口（720 步）就开始吃力，三个月窗口（2160 步）在单张 GPU 上基本跑不动。而实际应用中的长 horizon 预测——像气象、能源、金融、IoT——偏偏就在这个范围。
 
@@ -100,7 +100,7 @@ $$\bar{M}(q_i, K) \;=\; \max_{j \in \mathcal{S}} \frac{q_i^\top k_j}{\sqrt{d}} \
 
 总复杂度：$\mathcal{O}(L \log L)$。显存占用也是 $\mathcal{O}(L \log L)$。
 
-![ProbSparse 注意力 vs 完整注意力](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer%E9%95%BF%E5%BA%8F%E5%88%97%E9%A2%84%E6%B5%8B/fig1_probsparse_vs_full.png)
+![ProbSparse 注意力 vs 完整注意力](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig1_probsparse_vs_full.png)
 
 图中右侧只保留了高 $M$ 查询对应的行。其他行实际上不是零——它们填的是 $V$ 的均值，这对均匀注意力分布来说是一个合理近似。
 
@@ -192,7 +192,7 @@ $$X_{\ell+1} = \mathrm{MaxPool}_{k=3, s=2}\!\Big(\mathrm{ELU}\big(\mathrm{Conv1d
 
 stride=2 的 Conv1d 是一个可学习的下采样器；MaxPool 在每对相邻位置保留主导值；中间的 ELU 非线性激活让这个操作比纯池化更有表达能力。
 
-![编码器蒸馏金字塔](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer%E9%95%BF%E5%BA%8F%E5%88%97%E9%A2%84%E6%B5%8B/fig3_encoder_distilling.png)
+![编码器蒸馏金字塔](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig3_encoder_distilling.png)
 
 效果是累积的：一个 3 层编码器把 720 步输入逐步压缩成 $720 \to 360 \to 180 \to 90$。显存随深度几何级减少，而不是线性增长。底层能看到更长的历史信息，顶层的感受野轻松覆盖几千个原始时间步。
 
@@ -227,7 +227,7 @@ $$X_\text{dec} = \big[\, X_\text{token} \;;\; X_0 \,\big],$$
 
 其中 $X_\text{token}$ 是编码器输入的最后 `label_len` 个时间步，相当于“提示”；$X_0$ 是 `out_len` 个占位 token，通常是对应维度的零向量。解码器只需要跑一次，处理整个 $\text{label\_len} + \text{out\_len}$ 序列，最后 `out_len` 个输出就是预测结果。
 
-![自回归解码器 vs 生成式解码器](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer%E9%95%BF%E5%BA%8F%E5%88%97%E9%A2%84%E6%B5%8B/fig2_generative_decoder.png)
+![自回归解码器 vs 生成式解码器](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig2_generative_decoder.png)
 
 它有三个优势：
 
@@ -358,13 +358,13 @@ def build_decoder_input(x_enc, label_len, out_len):
 
 主图展示了真实值、原始 Transformer 和 Informer 在 480 步长的预测对比。
 
-![长 horizon 预测：原始 Transformer 漂移，Informer 贴合真实值](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer%E9%95%BF%E5%BA%8F%E5%88%97%E9%A2%84%E6%B5%8B/fig4_long_sequence_forecast.png)
+![长 horizon 预测：原始 Transformer 漂移，Informer 贴合真实值](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig4_long_sequence_forecast.png)
 
 原始 Transformer 的自回归误差从第 100 步开始累积，逐渐偏离真实值。而 Informer 使用一次性生成解码器，所有输出 token 联合优化，因此在整个窗口内都能给出连贯的预测。
 
 经典 ETT（Electricity Transformer Temperature）基准测试中的数据如下：
 
-![ETTh1 单变量 MSE 与 L = 720 时的资源消耗](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer%E9%95%BF%E5%BA%8F%E5%88%97%E9%A2%84%E6%B5%8B/fig5_ett_benchmark.png)
+![ETTh1 单变量 MSE 与 L = 720 时的资源消耗](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/08-Informer长序列预测/fig5_ett_benchmark.png)
 
 两个关键点：
 

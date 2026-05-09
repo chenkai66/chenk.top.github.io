@@ -21,7 +21,7 @@ translationKey: "llm-engineering-4"
 
 A base model out of pretraining can complete text. It cannot follow instructions, refuse harmful requests, or maintain a persona — those are post-training behaviors. Post-training is also where the gap between a research paper's claims and a production-grade model lives. This chapter is about what each post-training algorithm actually optimizes, why most reward models are broken in subtle ways, and the recipes that work in 2026.
 
-![LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/illustration_1.jpg)
+![LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/illustration_1.png)
 
 ## The four-stage stack
 
@@ -79,7 +79,7 @@ The split between "instruction following SFT" and "chat SFT" is also worth under
 
 ## DPO: preference optimization without a reward model
 
-![LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/illustration_2.jpg)
+![LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/illustration_2.png)
 
 
 ![fig2: DPO vs PPO comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/04-post-training/fig2_dpo_vs_ppo.png)

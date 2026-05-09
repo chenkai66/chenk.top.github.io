@@ -18,7 +18,7 @@ translationKey: "aliyun-pai-5"
 ---
 前四篇文章介绍了底层的核心组件——DSW、DLC、EAS，这些是需要用 Python 进行编排的工具。而本文要聊的是两款基于这些核心组件封装的图形化界面产品，专为那些不想写代码的用户设计：**PAI-Designer** 用于通过拖拽方式构建表格数据流水线，而 **Model Gallery** 则支持零代码部署和微调开源模型。虽然资深工程师通常不会优先选择这些工具，但在某些特定场景下，它们无疑是最佳选择。
 
-![阿里云 PAI 实战（五）：Designer vs Model Gallery——GUI 真正发挥作用的时候 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.jpg)
+![阿里云 PAI 实战（五）：Designer vs Model Gallery——GUI 真正发挥作用的时候 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.png)
 ## Designer——拖拽式流水线编辑器
 
 根据官方文档的描述，Designer 通过工作流的方式实现了建模与模型调试。用户可以根据需求，在工作流中像搭积木一样拖拽不同的组件，快速构建 AI 开发流程。它的亮点包括：140 多个内置算法组件、支持导出为 JSON 格式、可与 DataWorks 集成实现调度功能，同时节点支持自定义 SQL、Python 或 PyAlink 脚本。
@@ -94,7 +94,7 @@ Model Gallery 的局限性：
 我们需要验证 Qwen3-Coder 是否足够优秀，能够替代一个基于内部 `qwen-plus` 的代码评审机器人。在 Model Gallery 推出之前，这个过程相当繁琐：先要仔细阅读 vLLM 的文档，接着搭建 EAS 部署环境，然后编写兼容 OpenAI 的桥接模块，最后交付给团队使用。而现在，有了 Model Gallery，整个流程变得异常简单：搜索模型 → 一键部署 → 将端点集成到现有客户端 → 午饭前就搞定了。这样一来，我们可以把更多精力集中在真正重要的问题上——比如，这个模型是否真的比之前的更好，而不是被各种基础架构的琐事牵绊住。
 ## 一个实用的决策树
 
-![阿里云 PAI 实战（五）：Designer 与 Model Gallery——GUI 真正发挥作用的场景](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/illustration_2.jpg)
+![阿里云 PAI 实战（五）：Designer 与 Model Gallery——GUI 真正发挥作用的场景](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/05-pai-designer-vs-quickstart/illustration_2.png)
 
 上面的矩阵只是一个启发式参考，而下面是我实际在团队成员问我“这个任务该用 Designer、Model Gallery、DLC 还是 EAS？”时使用的决策流程：
 

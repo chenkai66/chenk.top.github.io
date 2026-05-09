@@ -16,7 +16,7 @@ disableNunjucks: true
 series_order: 3
 translationKey: "cloud-computing-3"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/cloud-native-containers/illustration_1.png)
 
 The shift from monolithic applications to cloud-native architectures is one of the most consequential changes in software engineering this decade. The headline -- containers and Kubernetes -- is well known. The interesting story is *why* this stack won, what each layer actually does, and where the seams are that determine whether your platform feels effortless or feels like a maze.
 

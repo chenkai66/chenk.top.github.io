@@ -32,7 +32,7 @@ This article is a tour through the decade-long evolution of CTR models, from a s
 
 By the end you should be able to read any modern CTR paper, sketch its architecture from memory, and pick the right baseline for your own system.
 
-![Recommendation Systems (4): CTR Prediction and Click-Through Rate Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_1.jpg)
+![Recommendation Systems (4): CTR Prediction and Click-Through Rate Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_1.png)
 
 ## What You Will Learn
 
@@ -179,7 +179,7 @@ These three failures motivate every subsequent architecture in this article.
 
 ## Factorization Machines (FM): Automatic Pairwise Interactions
 
-![Recommendation Systems (4): CTR Prediction and Click-Through Rate Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_2.jpg)
+![Recommendation Systems (4): CTR Prediction and Click-Through Rate Modeling — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/04-ctr-prediction/illustration_2.png)
 
 Steffen Rendle's 2010 Factorization Machines were the first model that made automatic pairwise interactions both practical and statistically efficient on sparse data.
 

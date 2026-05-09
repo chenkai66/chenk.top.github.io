@@ -24,10 +24,10 @@ polished_by_qwen_max: true
 
 
 <!-- wanx-hero -->
-![自然语言处理（七）：提示工程与In-Context Learning — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/prompt-engineering-icl/illustration_1.jpg)
+![自然语言处理（七）：提示工程与In-Context Learning — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/prompt-engineering-icl/illustration_1.png)
 ## 你将学到什么
 
-![自然语言处理（七）：提示工程与In-Context Learning — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/prompt-engineering-icl/illustration_2.jpg)
+![自然语言处理（七）：提示工程与In-Context Learning — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/prompt-engineering-icl/illustration_2.png)
 
 - **提示的组成结构**：五个可以灵活组合的部分（system、指令、示例、查询、格式说明），每个部分分别能为你带来什么价值。
 - **三种核心范式**：零样本（zero-shot）、少样本（few-shot）和思维链（chain-of-thought），它们各自适用的场景是什么，以及在 token 消耗上的代价如何。
@@ -38,7 +38,7 @@ polished_by_qwen_max: true
 - **小型提示管理系统**：包括提示注册表、A/B 测试工具、版本控制机制等，确保团队中的一组提示能够长期有效且易于维护。
 ## 前置知识
 
-![NLP (7): Prompt Engineering and In-Context Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_2.jpg)
+![NLP (7): Prompt Engineering and In-Context Learning — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/prompt-engineering-icl/illustration_2.png)
 
 - 需要对大语言模型有一定的认识，建议先阅读[第 6 部分：GPT 与生成式模型](/zh/nlp/06-gpt与生成式语言模型)。
 - 掌握基础的 Python 知识，能够轻松读懂简短的代码片段。

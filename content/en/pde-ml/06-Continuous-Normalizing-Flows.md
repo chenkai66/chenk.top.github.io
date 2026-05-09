@@ -18,7 +18,7 @@ disableNunjucks: true
 series_order: 6
 translationKey: "pde-ml-6"
 ---
-![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.jpg)
+![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_1.png)
 
 ## What This Article Covers
 
@@ -121,7 +121,7 @@ Given data $\mathbf{x}$:$$\log p_1(\mathbf{x})=\log p_0(\mathbf{z}_0)+\int_0^1 \
 
 ## 4. Optimal Transport and Flow Matching
 
-![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.jpg)
+![PDE and ML (6): Continuous Normalizing Flows and Neural ODE — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/06-Continuous-Normalizing-Flows/illustration_2.png)
 
 ### 4.1 The Benamou-Brenier connection
 

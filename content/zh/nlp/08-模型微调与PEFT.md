@@ -24,7 +24,7 @@ polished_by_qwen_max: true
 本文将从第一性原理出发重新梳理 PEFT。我们会先探讨全量微调能解决哪些问题、又有哪些局限，然后推导 LoRA 的低秩假设，拆解 QLoRA 是如何通过内存优化把 7B 参数模型塞进 6GB 显存的，并最终落到实际工程中的选择：该用哪种方法？秩设为多少？改哪些模块？
 
 <!-- wanx-hero -->
-![自然语言处理（八）：模型微调与PEFT — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/fine-tuning-peft/illustration_1.jpg)
+![自然语言处理（八）：模型微调与PEFT — 配图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/fine-tuning-peft/illustration_1.png)
 ## 你将学到
 的内容
 
@@ -36,7 +36,7 @@ polished_by_qwen_max: true
 ## 前置知识
 
 <!-- wanx-mid -->
-![自然语言处理（八）：模型微调与 PEFT —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_2.jpg)
+![自然语言处理（八）：模型微调与 PEFT —— 图示](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/illustration_2.png)
 
 - 熟悉 Transformer 架构（详见 [第 4 部分](/en/nlp/attention-transformer/)）
 - 了解 GPT 风格的解码器原理（参考 [第 6 部分](/en/nlp/gpt-generative-models/)）
@@ -58,7 +58,7 @@ polished_by_qwen_max: true
 
 换句话说，还没写一行训练代码，至少需要两张 A100-80GB 显卡才能跑起来。这清楚地说明了为什么 PEFT 不仅仅是一个“锦上添花”的优化手段——对大多数从业者来说，它是能够实际操作 7B 以上大模型的唯一选择。
 
-![PEFT 各方法在 7B 基座上的可训练参数量，以及服务 N 个任务时的磁盘占用对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E4%B8%与PEFT/fig1_full_vs_peft.png)
+![PEFT 各方法在 7B 基座上的可训练参数量，以及服务 N 个任务时的磁盘占用对比。](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/08-模型微调与PEFT/fig1_full_vs_peft.png)
 
 ### 内在秩假设的启示
 

@@ -19,7 +19,7 @@ translationKey: "aliyun-pai-4"
 ---
 EAS 才是真正烧钱的地方。DSW 每个月花个几百块跑开发，DLC 则是按峰值计费。而 EAS 是 24 小时不间断扣费的——毕竟你的服务端点随时可能被调用，而扩缩容配置里那个“最小副本数”就是整个平台中最具杠杆效应的参数，没有之一。这篇文章写的就是我在第一次将服务部署到 EAS 的前一天，特别希望有人能提前告诉我的那些事。
 
-![阿里云 PAI 实战（四）：PAI-EAS——模型部署、冷启动、以及 TPS 谎言 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/illustration_1.jpg)
+![阿里云 PAI 实战（四）：PAI-EAS——模型部署、冷启动、以及 TPS 谎言 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/illustration_1.png)
 ## EAS 是什么——根据文档的描述
 
 官方文档中的“EAS 概述”是这样描述的：将训练好的模型快速部署为在线推理服务或 AI Web 应用，支持异构资源、自动扩缩容、一键压测、灰度发布以及实时监控。其中有两点需要特别注意：
@@ -108,7 +108,7 @@ print(resp.choices[0].message.content)
 文档中有一句不起眼的说明：“如果某个 EAS 服务连续 180 天处于非运行状态，系统会自动将其删除。” 这事儿千万别忘了，建议在日历上设个提醒。我就曾经因为团队解散、没人续费，导致一个服务配置被删了。后来为了恢复，花了整整一个下午的时间，反复排查到底是哪个版本的 `vllm` 对应哪些权重文件。
 ## 冷启动问题的缓解方法，按效果排序
 
-![阿里云 PAI 实战（四）：PAI-EAS——模型部署、冷启动与 TPS 的迷思 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/illustration_2.jpg)
+![阿里云 PAI 实战（四）：PAI-EAS——模型部署、冷启动与 TPS 的迷思 —— 图解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/04-pai-eas-model-serving/illustration_2.png)
 
 在实际使用中，EAS 最让人头疼的问题就是冷启动。以 vLLM 部署 Qwen3-7B 为例，从调度器分配容器到返回第一个 token，整个过程需要 60 到 120 秒，其中仅模型加载就占了 30 到 60 秒。如果系统在高负载下触发自动扩缩容，新增副本的这段时间内，用户的请求很可能会超时。
 

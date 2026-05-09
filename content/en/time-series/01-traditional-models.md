@@ -16,7 +16,7 @@ translationKey: "time-series-1"
 ---
 > [Next: LSTM Deep Dive -->](/en/time-series/lstm/)
 
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/01-traditional-models/illustration_1.png)
 
 ## What You Will Learn
 

@@ -14,7 +14,7 @@ description: "Compare HDD and SSD working principles, SATA vs NVMe interface spe
 disableNunjucks: true
 translationKey: "computer-fundamentals-3"
 ---
-![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/03-storage/illustration_1.jpg)
+![Chapter concept illustration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/computer-fundamentals/03-storage/illustration_1.png)
 
 Why can a single SSD swap "resurrect" a five-year-old laptop? Why does a TLC drive rated for only 1 000 P/E cycles still last more than a decade for normal users? Why does a brand-new SSD that benchmarks at 3 500 MB/s sometimes collapse to 50 MB/s after a few weeks? This third instalment of the **Computer Fundamentals Deep Dive Series** answers those questions from first principles. We will look at how rotating magnetic platters compare with charge-trap NAND cells, how the bandwidth of an interface (SATA, PCIe Gen 3/4/5) interacts with the parallelism of a protocol (AHCI vs NVMe), how RAID levels trade capacity for fault tolerance, how a file system organises bytes on a raw block device, and how to keep all of this fast and safe in production.
 

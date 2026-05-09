@@ -25,7 +25,7 @@ translationKey: "terraform-agents-1"
 
 一共八篇。最后会落在一个真正能跑的完整 stack 上。第一篇先讲 why。
 
-![用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/illustration_1.jpg)
+![用 Terraform 给 AI Agent 上云（一）：为什么 IaC 是唯一靠谱的部署方式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/illustration_1.png)
 
 ## 一个 Agent 系统到底需要哪些东西
 

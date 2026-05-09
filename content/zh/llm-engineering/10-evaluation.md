@@ -25,7 +25,7 @@ translationKey: "llm-engineering-10"
 
 我引用的文献不是排行榜，而是一些失败模式的论文。这些内容应该让每个从业者都更谨慎。
 
-![大模型工程（十）：评估 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_1.jpg)
+![大模型工程（十）：评估 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_1.png)
 ## 为什么公开 benchmark 撒谎
 
 ![fig1: benchmark contamination over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig1_benchmark_contamination.png)
@@ -92,7 +92,7 @@ MMLU 可以当粗筛工具，判断“这模型是不是在对的范围”。别
 还有一个关键点：**怎么划分 eval set 和内容本身一样重要**。常见错误是从生产流量均匀采样 200 道题。但生产流量往往是 80% 简单，20% 困难。简单问题太多，每个模型都能拿 95% 的分，eval 就没意义了。正确做法是分层设计：简单、中等、困难各占 30%-40%。困难部分直接从错误日志里挑。困难问题才是区分模型能力的关键。
 ## LLM-as-judge：主流方法和它的坑
 
-![大模型工程（十）：评估 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_2.jpg)
+![大模型工程（十）：评估 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_2.png)
 
 ![fig5: human vs auto-eval correlation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig5_human_vs_auto.png)
 

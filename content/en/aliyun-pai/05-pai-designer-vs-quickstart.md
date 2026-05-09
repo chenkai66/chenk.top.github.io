@@ -19,7 +19,7 @@ translationKey: "aliyun-pai-5"
 
 The first four articles were about the underlying primitives — DSW, DLC, EAS — that you orchestrate with Python. This one is about the two GUI products that wrap those primitives and ship a runnable thing for users who do not want to write Python: **PAI-Designer** for drag-and-drop tabular pipelines, and **Model Gallery** for zero-code open-source model deployment and fine-tuning. They are not what serious engineers reach for first, but in two specific situations they are obviously the right answer.
 
-![Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.jpg)
+![Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_1.png)
 
 ## Designer — the drag-and-drop pipeline composer
 
@@ -89,7 +89,7 @@ We needed to test whether Qwen3-Coder was good enough to replace an internal `qw
 
 ## A concrete decision tree
 
-![Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_2.jpg)
+![Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/05-pai-designer-vs-quickstart/illustration_2.png)
 
 The matrix above is a heuristic; this is the actual decision tree I run when a teammate asks "should I use Designer / Gallery / DLC / EAS for this?"
 

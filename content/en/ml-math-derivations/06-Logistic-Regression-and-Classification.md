@@ -19,7 +19,7 @@ translationKey: "ml-math-derivations-6"
 ---
 > **Hook.** Linear regression maps inputs to any real number — but what if the output has to be a probability between 0 and 1? Logistic regression solves this with one elegant trick: a sigmoid squashing function. Despite its name, logistic regression is a *classification* algorithm, and its math underpins every neuron in every modern neural network.
 
-![ML Math Derivations (6): Logistic Regression and Classification — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/illustration_1.jpg)
+![ML Math Derivations (6): Logistic Regression and Classification — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/illustration_1.png)
 
 ## What You Will Learn
 
@@ -242,7 +242,7 @@ print(f"max diff: {np.max(np.abs(grad_ana - grad_num)):.2e}")
 
 ## 4. Multi-Class Extension: Softmax Regression
 
-![ML Math Derivations (6): Logistic Regression and Classification — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/illustration_2.jpg)
+![ML Math Derivations (6): Logistic Regression and Classification — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/06-Logistic-Regression-and-Classification/illustration_2.png)
 
 ### 4.1 From Binary to $K$ Classes
 

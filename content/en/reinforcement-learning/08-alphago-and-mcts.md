@@ -22,7 +22,7 @@ In March 2016, AlphaGo defeated world Go champion Lee Sedol 4–1 in Seoul. The 
 
 Eighteen months later, AlphaGo Zero learned the game from nothing but the rules and three days of self-play, and crushed the Lee-Sedol version 100–0. AlphaZero generalised the same recipe to chess and shogi. MuZero went further and learned the rules themselves. This chapter traces the full evolution — the algorithm, the mathematics, and a working implementation you can actually train.
 
-![Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_1.jpg)
+![Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_1.png)
 
 ## What You Will Learn
 
@@ -73,7 +73,7 @@ The prior tells the search *where to look first*; the visit count tells it *wher
 
 ## 2. AlphaGo (2016): Networks Meet Search
 
-![Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_2.jpg)
+![Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/illustration_2.png)
 
 ![AlphaGo Architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig3_alphago_architecture.png)
 
