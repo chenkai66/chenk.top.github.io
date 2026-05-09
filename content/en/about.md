@@ -15,6 +15,8 @@ The main thread is **AI4Marketing**. A cross-border e-commerce operator only eve
 
 The side thread is **AI4Science** and a fully autonomous research system: take a question, read the papers, run the experiments, return a finished report. Pipelines run for hours, sometimes days. They only work because of two things — a shared memory architecture and harness-based skill evolution. Failed attempts are compressed into lessons, so the next run starts higher than the last.
 
+Running through both is **llm-elevator** — the performance layer I keep refining: prompt templates, agent harnesses, and adversarial evals that turn a frontier model into a system that actually holds up on real tasks. Every other project upstream of it inherits the lift.
+
 In the cracks I keep writing chenk.top — ~400 bilingual long-form pieces, written twice from scratch in each language rather than translated.
 
 ## Questions I keep returning to
