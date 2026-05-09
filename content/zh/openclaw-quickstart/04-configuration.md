@@ -322,4 +322,4 @@ $ openclaw start
 
 ---
 
-**本系列：** [1. 什么是 OpenClaw](/posts/zh/openclaw-quickstart-1) | [2. 安装](/posts/zh/openclaw-quickstart-2) | [3. 第一个 Skill](/posts/zh/openclaw-quickstart-3) | **4. 配置（本文）** | [5. 渠道接入](/posts/zh/openclaw-quickstart-5)
+**本系列：** [1. 什么是 OpenClaw](/zh/openclaw-quickstart/01-what-is-openclaw/) | [2. 安装](/zh/openclaw-quickstart/02-install-and-first-chat/) | [3. 架构](/zh/openclaw-quickstart/03-architecture/) | **4. 配置（本文）** | [5. 渠道接入](/zh/openclaw-quickstart/05-channels/)

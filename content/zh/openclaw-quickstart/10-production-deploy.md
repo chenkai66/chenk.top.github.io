@@ -449,4 +449,4 @@ df -h /
 
 ---
 
-*本文是 OpenClaw 快速上手系列的第十篇。完整系列目录见[第一篇](/posts/zh/openclaw-quickstart-01)。*
+*本文是 OpenClaw 快速上手系列的第十篇。完整系列目录见[第一篇](/zh/openclaw-quickstart/01-what-is-openclaw/)。*

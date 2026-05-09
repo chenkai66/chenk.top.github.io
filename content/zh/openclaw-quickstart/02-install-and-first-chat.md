@@ -436,4 +436,4 @@ http://localhost:18790
 
 ---
 
-*本系列下一篇：[OpenClaw 快速上手（三）：Gateway 内部机制](/posts/zh/openclaw-quickstart/03-gateway-internals/)*
+*本系列下一篇：[OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层](/zh/openclaw-quickstart/03-architecture/)*
