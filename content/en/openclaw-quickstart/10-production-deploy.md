@@ -26,6 +26,8 @@ This chapter walks through the deploy I actually use on a 2-core 4G ECS box, the
 
 ## Choosing your server
 
+![Production deployment stack — from OS to monitoring](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/10-production-deploy/fig_deploy.png)
+
 Before you deploy, pick the right box. Four options worth considering:
 
 **Alibaba Cloud ECS**: The path I use. A 2-core 4GB instance in the cn-beijing region costs around $15/month. The advantage is proximity to DashScope — your API round-trips drop from 200ms to 20ms when both the gateway and the model sit in the same region. The disadvantage is the Great Firewall makes outbound package installs occasionally flaky unless you set up a mirror.

@@ -24,6 +24,8 @@ Five pieces in, you have a working OpenClaw with a chat channel. This is where i
 
 ## What we'll build
 
+![Skill composition pipeline — from trigger to tool execution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/06-skills-and-mcp/fig_skills.png)
+
 A morning-briefing agent that:
 
 1. Runs at 7am every weekday

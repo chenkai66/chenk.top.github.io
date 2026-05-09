@@ -25,6 +25,8 @@ If you only edit one file in OpenClaw, this is it.
 
 ## The minimal viable config
 
+![Configuration hierarchy and provider resolution order](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/04-configuration/fig_config.png)
+
 Strip away the comments and the default sets, and a working config is about 25 lines:
 
 ```json

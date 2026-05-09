@@ -29,6 +29,8 @@ translationKey: "openclaw-quickstart-7"
 
 ## Workspace 目录结构
 
+![记忆系统四层架构——热、温、冷、归档层](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/fig_memory.png)
+
 OpenClaw 的记忆全部落盘在 `~/.openclaw/workspace/` 下，没有数据库，纯文件：
 
 ![记忆类型分类决策](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/fig_memory_decision_zh.png)

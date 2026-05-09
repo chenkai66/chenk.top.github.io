@@ -26,6 +26,8 @@ translationKey: "openclaw-quickstart-9"
 
 ## 七渠道选型矩阵
 
+![国内 IM 渠道选型决策树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/09-china-channels/fig_picker.png)
+
 先上结论。下面这张表是我在实际项目中反复验证后的总结：
 
 | 渠道 | 适用场景 | 需要公网 IP | 触达微信用户 | 群聊支持 | 流式输出 | 延迟 | 消息格式 | 成本 |

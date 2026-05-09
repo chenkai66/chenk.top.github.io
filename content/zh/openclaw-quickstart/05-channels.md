@@ -38,6 +38,8 @@ OpenClaw 目前支持三条渠道路径：
 
 ## Telegram：最简单的起步方式
 
+![渠道路由架构——消息从 IM 平台经网关到 Agent 的完整链路](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/05-channels/fig_channels.png)
+
 如果你只想最快看到效果——十分钟内让 Agent 在手机上回复你——Telegram 是首选。
 
 ### 创建 Bot

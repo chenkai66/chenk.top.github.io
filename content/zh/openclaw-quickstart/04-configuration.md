@@ -21,6 +21,8 @@ translationKey: "openclaw-quickstart-4"
 
 ## 最小可用配置
 
+![配置层级与 Provider 解析顺序](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/fig_config.png)
+
 只是试试效果的话，这 25 行就够了：
 
 ```json

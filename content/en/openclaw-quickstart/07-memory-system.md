@@ -23,6 +23,8 @@ The first six pieces got you to a working OpenClaw with a channel and a skill. T
 
 ## The shape of the workspace
 
+![Memory system four-tier architecture — hot, warm, cold, and archive layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/07-memory-system/fig_memory.png)
+
 Open `~/.openclaw/workspace/`. You should see:
 
 ```

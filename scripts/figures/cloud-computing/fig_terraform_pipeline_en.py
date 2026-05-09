@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""Terraform Workflow — vertical steps flow (EN)."""
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patheffects import withSimplePatchShadow
+
+# --- tokens ---
+BG = "#fdfcf9"
+RED, AMBER, PURPLE, BLUE, GREEN = "#e85d4a", "#f5a834", "#8b5cf6", "#3b82f6", "#10b981"
+ARROW_C = "#9ca3af"
+SHADOW = dict(offset=(1.2, -1.2), shadow_rgbFace="#000000", alpha=0.18)
+BOX_KW = dict(boxstyle="round,pad=0.5,rounding_size=1.5", ec="none")
+
+fig, ax = plt.subplots(figsize=(11, 8))
+fig.patch.set_facecolor(BG)
+ax.set_facecolor(BG)
+ax.set_xlim(0, 11)
+ax.set_ylim(0, 8)
+ax.axis("off")
+ax.set_title("Terraform Workflow", fontsize=14, fontweight="bold", pad=12, color="#1e293b")
+
+# steps: (y, color, label, description)
+steps = [
+    (6.8, PURPLE, "HCL Files",          "Infrastructure defined as code (.tf)"),
+    (5.4, BLUE,   "terraform init",     "Download providers & modules"),
+    (4.0, AMBER,  "terraform plan",     "Diff desired state vs actual state"),
+    (2.6, RED,    "terraform apply",    "Call cloud APIs to converge"),
+    (1.2, GREEN,  "terraform.tfstate",  "The world as Terraform knows it"),
+]
+
+bx, bw, bh = 2.2, 3.6, 0.7
+for y, color, label, desc in steps:
+    box = FancyBboxPatch((bx, y - bh / 2), bw, bh, facecolor=color, **BOX_KW)
+    box.set_path_effects([withSimplePatchShadow(**SHADOW)])
+    ax.add_patch(box)
+    ax.text(bx + bw / 2, y, label, ha="center", va="center",
+            fontsize=12, fontweight="bold", color="white")
+    ax.text(bx + bw + 0.5, y, desc, ha="left", va="center",
+            fontsize=10.5, color="#475569")
+
+# arrows between steps
+for i in range(len(steps) - 1):
+    y_start = steps[i][0] - bh / 2 - 0.05
+    y_end = steps[i + 1][0] + bh / 2 + 0.05
+    ax.annotate("", xy=(bx + bw / 2, y_end), xytext=(bx + bw / 2, y_start),
+                arrowprops=dict(arrowstyle="-|>", color=ARROW_C, lw=2,
+                                mutation_scale=18))
+
+fig.savefig("fig_terraform_pipeline_en.png", dpi=160, bbox_inches="tight",
+            facecolor=BG, pad_inches=0.1)
+plt.close()
+print("saved fig_terraform_pipeline_en.png")

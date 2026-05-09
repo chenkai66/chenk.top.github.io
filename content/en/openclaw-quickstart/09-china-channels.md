@@ -26,6 +26,8 @@ What follows is the matrix I check before recommending anything to anyone.
 
 ## The seven channels worth knowing
 
+![China IM channel selection decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/09-china-channels/fig_picker.png)
+
 Everything below assumes you're using the `openclaw-china` plugin:
 
 ```bash

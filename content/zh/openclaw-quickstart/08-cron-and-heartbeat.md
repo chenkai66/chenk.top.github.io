@@ -33,6 +33,8 @@ translationKey: "openclaw-quickstart-8"
 
 ## Heartbeat vs Cron：巡逻员与厨房计时器
 
+![Heartbeat 与 Cron 调度模型对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/08-cron-and-heartbeat/fig_hb_vs_cron.png)
+
 先搞清楚这两个东西的本质区别：
 
 | 维度 | Heartbeat（心跳） | Cron（定时任务） |

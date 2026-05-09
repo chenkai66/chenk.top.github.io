@@ -24,6 +24,8 @@ The point of OpenClaw is that the agent comes to you. So far ours hasn't — it'
 
 ## Telegram — five minutes
 
+![Channel routing architecture — message flow from IM platforms through the gateway](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/openclaw-quickstart/05-channels/fig_channels.png)
+
 I always tell people to start here even if they don't plan to use Telegram in production. The setup is the cleanest of any channel and you can verify the agent end-to-end without other moving parts.
 
 **Step 1.** Talk to `@BotFather` in Telegram. Send `/newbot`, give it a name, get a token that looks like `7891234567:AAH...`.

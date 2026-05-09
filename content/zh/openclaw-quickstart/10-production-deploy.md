@@ -26,6 +26,8 @@ translationKey: "openclaw-quickstart-10"
 
 ## 选服务器
 
+![生产部署架构——从操作系统到监控的完整栈](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/10-production-deploy/fig_deploy.png)
+
 四个选项，按我的推荐排序：
 
 ### 阿里云 ECS（推荐）
