@@ -1,6 +1,6 @@
 ---
 title: "OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real"
-date: 2026-04-08 09:00:00
+date: 2026-04-13 09:00:00
 tags:
   - openclaw
   - skills

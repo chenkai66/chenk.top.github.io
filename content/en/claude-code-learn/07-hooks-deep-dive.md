@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (7): Ten Hooks I Actually Use, with the Code"
-date: 2026-04-22 09:00:00
+date: 2026-04-24 09:00:00
 tags:
   - claude-code
   - hooks

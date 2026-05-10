@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（七）：SLS 打造可观测性体系"
-date: 2026-04-30 09:00:00
+date: 2026-05-04 09:00:00
 tags:
   - Alibaba Cloud
   - SLS
@@ -30,6 +30,8 @@ translationKey: "aliyun-fullstack-7"
 
 行业已经共识了三个信号，组合起来就能看清系统到底在发生什么：
 
+![The three pillars of observability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_three_pillars.png)
+
 **Logs** 告诉你发生了什么。日志行会说"14:32:07，用户 abc123 请求了 /api/orders，因为数据库连接 30 秒超时而返回 500"。日志是离散事件，带时间戳且结构化。它是出事后的 forensic evidence。
 
 **Metrics** 告诉你正在发生什么。指标会说"/api/orders 的 P99 延迟现在是 2.3 秒，应用层 CPU 利用率 78%，RDS 连接池耗尽 90%"。指标是数值时间序列。它是你在大盘上盯着的生命体征，用来在用户报障前发现问题。
@@ -51,6 +53,8 @@ translationKey: "aliyun-fullstack-7"
 ## SLS: Simple Log Service
 
 SLS 是阿里云可观测性的 backbone。别看名字叫 Simple，它一点都不简单——这是一个功能完备的日志分析平台，集采集、存储、索引、查询、可视化、告警于一身。你可以把它理解为 AWS CloudWatch Logs 和 Elasticsearch 合体，上面还套了个 SQL 查询引擎。
+
+![SLS log collection pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_sls_pipeline.png)
 
 ### Core Concepts
 
@@ -710,6 +714,8 @@ aliyun cms PutEventRule \
 ## 告警配置
 
 告警是连接可观测性和行动的桥梁。对的告警能在错误率飙升时凌晨 3 点把你叫醒。错的告警也会凌晨 3 点把你叫醒，只不过是因为定时备份时 CPU 短暂冲到了 81%，30 秒后又回去了。把告警阈值设准了是一门艺术，不过下面这几条经验法则我一直用着挺顺手。
+
+![告警配置与通知流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_alert_flow.png)
 
 ### 告警设计原则
 

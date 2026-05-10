@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security"
-date: 2026-04-28 09:00:00
+date: 2026-05-03 09:00:00
 tags:
   - Alibaba Cloud
   - RAM
@@ -31,6 +31,8 @@ Security groups -- the network-layer firewall -- are covered in [Part 3](/en/ali
 
 Cloud security is not a single feature you turn on. It is a stack of independent layers, each covering a different failure mode. Miss one layer and the others still protect you -- that is the principle of defense in depth.
 
+![Alibaba Cloud security model overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_security_model.png)
+
 I think about it as four pillars:
 
 | Pillar | Question it answers | Alibaba Cloud service | AWS equivalent |
@@ -49,6 +51,8 @@ One critical difference: Alibaba Cloud's root account is called the "Alibaba Clo
 ## RAM: Resource Access Management
 
 RAM is the identity and access management system for Alibaba Cloud. Every API call, every console click, every CLI command is authenticated and authorized through RAM. Understanding RAM is not optional -- it is the foundation that everything else in this article builds on.
+
+![RAM user, group, and role hierarchy](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_ram_hierarchy.png)
 
 ### The Alibaba Cloud Account (Root)
 
@@ -537,6 +541,8 @@ The Condition block requires MFA, adding a second verification layer for cross-a
 ## STS: Temporary Credentials
 
 Security Token Service generates temporary AccessKey pairs with an attached security token. They work exactly like regular AccessKeys but expire automatically. This is the mechanism behind RAM roles, and you can also use it directly for scenarios like mobile uploads and frontend access.
+
+![STS temporary credential flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_sts_flow.png)
 
 ### Why Temporary Beats Permanent
 

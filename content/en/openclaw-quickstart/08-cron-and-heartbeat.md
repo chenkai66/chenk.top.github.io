@@ -1,6 +1,6 @@
 ---
 title: "OpenClaw QuickStart (8): Heartbeat, Cron, and Getting Pinged at 7am"
-date: 2026-04-10 09:00:00
+date: 2026-04-15 09:00:00
 tags:
   - openclaw
   - cron

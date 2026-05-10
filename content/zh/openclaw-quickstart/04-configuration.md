@@ -1,6 +1,6 @@
 ---
 title: "OpenClaw 指南（四）：配置与模型选型"
-date: 2026-04-06 09:00:00
+date: 2026-04-11 09:00:00
 tags:
   - openclaw
   - configuration

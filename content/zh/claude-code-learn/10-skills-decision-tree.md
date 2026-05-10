@@ -1,6 +1,6 @@
 ---
 title: "Claude Code 实战（十）：Skills 与四种扩展机制"
-date: 2026-04-25 09:00:00
+date: 2026-04-27 09:00:00
 tags:
   - claude-code
   - skills

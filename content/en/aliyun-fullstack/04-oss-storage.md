@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (4): OSS — Object Storage Done Right"
-date: 2026-04-24 09:00:00
+date: 2026-05-01 09:00:00
 tags:
   - Alibaba Cloud
   - OSS
@@ -82,6 +82,8 @@ Four things you need to understand before writing any code:
 ## Storage Classes
 
 OSS has five storage classes, and choosing the right one can cut your bill by 80% or inflate it by 10x. The mental model: the cheaper the storage, the more expensive and slower the retrieval.
+
+![OSS storage class comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/04_storage_classes.png)
 
 | Storage class | $/GB/month | Minimum duration | Retrieval cost | Restore time | Best for |
 |---|---|---|---|---|---|
@@ -205,6 +207,8 @@ Versioning is essential for any bucket containing user data. The storage cost do
 ## Access Control Deep Dive
 
 OSS access control has four layers, and understanding how they interact is the difference between a secure system and a public data breach. They are evaluated from most specific to least specific: STS/RAM policies override bucket policies, which override bucket ACLs.
+
+![OSS access control model](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/04_access_control.png)
 
 ### Layer 1: Bucket ACL
 
@@ -679,6 +683,8 @@ A warning: CRR is eventual consistency with no SLA on replication time. Do not u
 ## CDN Integration
 
 Alibaba Cloud CDN + OSS is one of the most common production patterns. CDN edge nodes cache your OSS objects close to users, reducing latency from hundreds of milliseconds to single digits. The origin (your OSS bucket) only gets hit on cache misses.
+
+![OSS CDN integration data flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/04_cdn_flow.png)
 
 ### Why CDN + OSS instead of just OSS?
 

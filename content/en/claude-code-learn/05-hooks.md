@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (5): Hooks, or How to Stop Worrying About Yolo Mode"
-date: 2026-04-20 09:00:00
+date: 2026-04-22 09:00:00
 tags:
   - claude-code
   - hooks

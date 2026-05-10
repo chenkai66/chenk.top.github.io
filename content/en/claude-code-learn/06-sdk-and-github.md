@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI"
-date: 2026-04-21 09:00:00
+date: 2026-04-23 09:00:00
 tags:
   - claude-code
   - sdk

@@ -1,6 +1,6 @@
 ---
 title: "LLM Engineering (8): Retrieval-Augmented Generation"
-date: 2026-05-03 09:00:00
+date: 2026-04-03 09:00:00
 tags:
   - LLM
   - RAG

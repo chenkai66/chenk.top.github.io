@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (7): SLS, CloudMonitor, and Observability"
-date: 2026-04-30 09:00:00
+date: 2026-05-04 09:00:00
 tags:
   - Alibaba Cloud
   - SLS
@@ -31,6 +31,8 @@ This article covers the full observability stack on Alibaba Cloud: SLS for logs,
 
 The industry has converged on three signals that together give you a complete picture of what your system is doing:
 
+![The three pillars of observability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_three_pillars.png)
+
 **Logs** tell you what happened. A log line says "at 14:32:07, user abc123 requested /api/orders, which returned a 500 because the database connection timed out after 30 seconds." Logs are discrete events, timestamped and structured. They are the forensic evidence you examine after something goes wrong.
 
 **Metrics** tell you what is happening right now. A metric says "the P99 latency of /api/orders is currently 2.3 seconds, CPU utilization across the app tier is 78%, and the RDS connection pool is 90% exhausted." Metrics are numerical time series. They are the vital signs you watch on a dashboard to spot problems before users report them.
@@ -52,6 +54,8 @@ These three services integrate with each other. CloudMonitor can trigger alerts 
 ## SLS: Simple Log Service
 
 SLS is the backbone of observability on Alibaba Cloud. Despite the name, it is not simple -- it is a fully-featured log analytics platform that combines collection, storage, indexing, querying, visualization, and alerting in one service. Think of it as AWS CloudWatch Logs and Elasticsearch merged together with a SQL query engine on top.
+
+![SLS log collection pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_sls_pipeline.png)
 
 ### Core Concepts
 
@@ -714,6 +718,8 @@ aliyun cms PutEventRule \
 ## Alert Configuration
 
 Alerts are the bridge between observability and action. The right alert wakes you up at 3 AM when the error rate spikes. The wrong alert wakes you up at 3 AM because CPU briefly hit 81% during a scheduled backup and went back down 30 seconds later. Getting alert thresholds right is an art, but the following rules of thumb have served me well.
+
+![Alert configuration and notification flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_alert_flow.png)
 
 ### Alert Design Principles
 

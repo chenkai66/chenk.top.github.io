@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (1): The Ecosystem Map — What Alibaba Cloud Actually Is"
-date: 2026-04-18 09:00:00
+date: 2026-04-28 09:00:00
 tags:
   - Alibaba Cloud
   - Cloud Computing
@@ -45,6 +45,8 @@ If none of these apply to you — if your users are in the US, you don't need Ch
 ## The Service Map: Alibaba Cloud vs AWS vs Azure vs GCP
 
 The single most useful thing I can do in this article is give you the Rosetta Stone. Every Alibaba Cloud product mapped to the service you already know. I am keeping the descriptions tight — one sentence each — because you don't need a paragraph to understand that "OSS is S3."
+
+![Alibaba Cloud service map compared with AWS, Azure, and GCP](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_service_map.png)
 
 ### Compute
 
@@ -252,6 +254,8 @@ The exact offerings change quarterly. Check [the free trial page](https://free.a
 
 Alibaba Cloud has more China regions than any other provider. This matters because Chinese internet topology means that a user in Shenzhen hitting a server in Beijing will experience noticeably higher latency than a user in Shenzhen hitting a server in Shenzhen — the Great Firewall and the physical distance both contribute.
 
+![Alibaba Cloud global regions and availability zones](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_region_map.png)
+
 ### China Regions
 
 | Region ID | Location | Good for |
@@ -300,6 +304,8 @@ My decision tree, distilled from real production experience:
 ## Understanding the Billing Model
 
 Alibaba Cloud billing is more flexible than AWS but also more confusing if you are not used to it. There are four purchasing modes and you need to understand all of them.
+
+![Alibaba Cloud billing model comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_billing_comparison.png)
 
 ### Pay-As-You-Go (PAYG, 按量付费)
 

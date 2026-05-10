@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (10): Bailian and DashScope — The LLM Layer"
-date: 2026-05-06 09:00:00
+date: 2026-05-07 09:00:00
 tags:
   - Alibaba Cloud
   - Bailian
@@ -54,6 +54,8 @@ For a deep dive into the Bailian platform itself, see our dedicated [Bailian ser
 
 Qwen is not one model. It is a family of models spanning text, vision, audio, code, math, and multimodal understanding. Here is what matters for production:
 
+![Qwen model family overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_model_family.png)
+
 ### Text generation models
 
 | model_id | Context | Best for | Input / Output (CNY per 1M tokens) |
@@ -84,6 +86,8 @@ Each of these modalities has its own API pattern and its own set of gotchas. The
 ## DashScope API: OpenAI-compatible
 
 This is the single most important thing to understand about DashScope: it provides an OpenAI-compatible endpoint. You can use the official OpenAI Python SDK with a two-line configuration change:
+
+![DashScope API comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_api_comparison.png)
 
 ```python
 import os
@@ -392,6 +396,8 @@ In production, do not compute cosine similarity in Python loops. Use OpenSearch'
 ## Wanxiang: image and video generation
 
 Wanxiang is DashScope's generative media family. It covers text-to-image, image-to-video, and text-to-video. All media generation uses the DashScope native API (not the OpenAI-compatible endpoint) and follows an async task pattern.
+
+![Async task pattern for media generation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_async_pattern.png)
 
 ### The async task pattern
 

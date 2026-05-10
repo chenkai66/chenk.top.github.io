@@ -1,6 +1,6 @@
 ---
 title: "LLM Engineering (4): Post-training — SFT, DPO, RLHF, RLAIF"
-date: 2026-04-29 09:00:00
+date: 2026-03-30 09:00:00
 tags:
   - LLM
   - post-training

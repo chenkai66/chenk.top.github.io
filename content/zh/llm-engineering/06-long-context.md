@@ -1,6 +1,6 @@
 ---
 title: "大模型工程（六）：长上下文与 RoPE、YaRN"
-date: 2026-05-01 09:00:00
+date: 2026-04-01 09:00:00
 tags:
   - LLM
   - long-context

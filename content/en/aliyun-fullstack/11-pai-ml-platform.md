@@ -29,6 +29,8 @@ This article is the breadth-first tour. If you want the depth-first treatment --
 
 ## PAI platform overview
 
+![PAI platform component overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_pai_components.png)
+
 PAI stands for Platform for AI. The name is generic because the product is broad -- it covers the entire ML lifecycle from interactive experimentation to production serving. The closest equivalents on other clouds are AWS SageMaker, Azure Machine Learning, and GCP Vertex AI. But the comparison is only approximate. SageMaker bundles notebooks, training, and endpoints into a relatively monolithic experience. PAI is more modular: each sub-product has its own resource model, pricing, and SDK surface, and you can use any one of them independently.
 
 The five components you will actually touch:
@@ -175,6 +177,8 @@ For the full DSW deep dive -- image selection, SSH tunneling, GPU memory profili
 ## PAI-DLC: distributed training
 
 DLC (Deep Learning Container) is where you go when a single GPU is not enough. It is a managed batch-job system: you hand it a container image, a command, a resource spec, and data mounts. DLC schedules the job onto a GPU cluster, sets up inter-node networking (RDMA where available), runs your code, streams logs, and tears down when done.
+
+![PAI distributed training pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_training_pipeline.png)
 
 ### When to move from DSW to DLC
 
@@ -508,6 +512,8 @@ For the complete EAS deep dive -- cold-start mitigation, warm pool sizing, the T
 ## Model Gallery
 
 Model Gallery is PAI's model hub. It is a curated catalog of pre-trained models that you can deploy to EAS with one click or use as a starting point for fine-tuning. Think of it as Hugging Face Hub, but integrated with PAI's compute and serving infrastructure.
+
+![GPU instance comparison for ML workloads](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_gpu_comparison.png)
 
 ### Available models
 

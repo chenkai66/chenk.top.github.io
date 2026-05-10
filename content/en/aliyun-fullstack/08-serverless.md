@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (8): Serverless — Function Compute and EventBridge"
-date: 2026-05-02 09:00:00
+date: 2026-05-05 09:00:00
 tags:
   - Alibaba Cloud
   - Function Compute
@@ -75,6 +75,8 @@ The crossover happens around 200-300 million requests per month for this configu
 ## Function Compute (FC) fundamentals
 
 Function Compute is Alibaba Cloud's serverless execution service. The AWS equivalent is Lambda. The core concepts map directly:
+
+![Function Compute architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_fc_architecture.png)
 
 | FC concept | What it is | AWS equivalent |
 |---|---|---|
@@ -429,6 +431,8 @@ aliyun fc CreateTrigger \
 
 The most flexible option. We cover EventBridge in depth later in this article, but here is the trigger setup:
 
+![EventBridge event routing pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_event_pipeline.png)
+
 ```bash
 aliyun fc CreateTrigger \
   --functionName event-handler \
@@ -455,6 +459,8 @@ aliyun fc CreateTrigger \
 ## Cold starts and performance
 
 Cold starts are the most discussed drawback of serverless. Understanding what causes them and how to mitigate them is essential for production use.
+
+![Function Compute cold start analysis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_cold_start.png)
 
 ### What causes a cold start
 
@@ -1520,6 +1526,8 @@ aliyun fc PutAsyncInvokeConfig \
 ## Function Compute pricing
 
 FC pricing has three dimensions. Understanding them avoids bill shock.
+
+![Serverless vs server cost crossover](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_cost_crossover.png)
 
 | Dimension | Rate (cn-beijing) | Free tier (monthly) |
 |---|---|---|

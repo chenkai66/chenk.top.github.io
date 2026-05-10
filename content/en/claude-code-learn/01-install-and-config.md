@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (1): Install, the Three-Layer Config, and the # @ /init Trio"
-date: 2026-04-16 09:00:00
+date: 2026-04-18 09:00:00
 tags:
   - claude-code
   - configuration

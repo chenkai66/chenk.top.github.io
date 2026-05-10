@@ -1,6 +1,6 @@
 ---
 title: "大模型工程（九）：生产级 Prompt 工程"
-date: 2026-05-04 09:00:00
+date: 2026-04-04 09:00:00
 tags:
   - LLM
   - prompting

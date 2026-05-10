@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（十二）：Terraform 全栈统一交付"
-date: 2026-05-10 09:00:00
+date: 2026-05-09 09:00:00
 tags:
   - Alibaba Cloud
   - Terraform
@@ -76,6 +76,8 @@ translationKey: "aliyun-fullstack-12"
 
 这是我们要编码的完整栈。每个组件都对应我们在之前文章中手动构建的内容：
 
+![阿里云全栈架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_full_architecture.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Alibaba Cloud                        │
@@ -128,6 +130,8 @@ translationKey: "aliyun-fullstack-12"
 ## 项目结构
 
 一个组织良好的 Terraform 项目，决定了你的代码库是能被团队维护数年，还是在几个月内变成“别碰它，它能跑”的负债。结构如下：
+
+![Terraform 模块布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_module_layout.png)
 
 ```
 aliyun-fullstack-terraform/
@@ -1744,6 +1748,8 @@ Changes to Outputs:
 ## 基于 GitHub Actions 的 CI/CD
 
 在自己电脑上手动跑 `terraform apply` 玩个人项目没问题。但如果是团队协作，你就得自动化了：每次提 PR 都跑 `terraform plan` 让 Reviewer 看到基础设施的变更差异，PR 合并到 main 分支后自动执行 `terraform apply`。
+
+![基于 GitHub Actions 的 CI/CD 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_cicd_flow.png)
 
 ### .github/workflows/terraform.yml
 

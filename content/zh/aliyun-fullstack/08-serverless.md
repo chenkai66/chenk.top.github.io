@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（八）：Serverless 与事件驱动"
-date: 2026-05-02 09:00:00
+date: 2026-05-05 09:00:00
 tags:
   - Alibaba Cloud
   - Function Compute
@@ -74,6 +74,8 @@ Serverless 不是万能药。它有特定的舒适区，提前搞清楚这点，
 ## 函数计算 FC 基础
 
 函数计算是阿里云的 Serverless 执行服务。对标 AWS Lambda。核心概念直接映射：
+
+![函数计算架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_fc_architecture.png)
 
 | FC 概念 | 是什么 | AWS 等价物 |
 |---|---|---|
@@ -427,6 +429,8 @@ aliyun fc CreateTrigger \
 
 最灵活的选项。后面我会深入讲 EventBridge，先看触发器配置：
 
+![EventBridge event routing pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_event_pipeline.png)
+
 ```bash
 aliyun fc CreateTrigger \
   --functionName event-handler \
@@ -453,6 +457,8 @@ aliyun fc CreateTrigger \
 ## 冷启动与性能
 
 冷启动是 Serverless 被讨论最多的缺点。要想在生产环境用好，必须搞清楚成因以及怎么缓解。
+
+![函数计算冷启动分析](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_cold_start.png)
 
 ### 冷启动的成因
 
@@ -1526,6 +1532,8 @@ aliyun fc PutAsyncInvokeConfig \
 ## Function Compute 计费
 
 FC 的计费主要看三个维度。搞清楚这些，免得账单出来吓一跳。
+
+![Serverless 与传统服务器成本对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_cost_crossover.png)
 
 | 维度 | 单价 (cn-beijing) | 免费额度 (每月) |
 |---|---|---|

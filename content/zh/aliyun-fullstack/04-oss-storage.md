@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（四）：OSS——对象存储最佳实践"
-date: 2026-04-24 09:00:00
+date: 2026-05-01 09:00:00
 tags:
   - Alibaba Cloud
   - OSS
@@ -32,6 +32,8 @@ translationKey: "aliyun-fullstack-4"
 ### 三种云存储类型
 
 阿里云提供三种 fundamentally different 的存储产品，选错是我见中最常见的错误：
+
+![OSS 存储类型对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/04-oss-storage/04_storage_classes.png)
 
 | 存储类型 | 产品 | 访问模式 | 类比 |
 |---|---|---|---|
@@ -203,6 +205,8 @@ ossutil ls oss://myapp-prod-media/ --all-versions
 ## 访问控制深度解析
 
 OSS 的访问控制分四层，搞清楚它们怎么交互，是安全系统和数据裸奔的区别。优先级从高到低：STS/RAM 策略 > Bucket 策略 > Bucket ACL。
+
+![OSS 访问控制模型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/04-oss-storage/04_access_control.png)
 
 ### 第一层：Bucket ACL
 
@@ -678,6 +682,8 @@ bucket.put_bucket_replication(rule)
 ## CDN 集成
 
 阿里云 CDN + OSS 是最常见的生产模式。CDN 边缘节点把对象缓存到离用户最近的地方，延迟从几百毫秒降到个位数。只有缓存 miss 才会回源到你的 OSS bucket。
+
+![OSS CDN 集成数据流](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/04-oss-storage/04_cdn_flow.png)
 
 ### 为什么用 CDN + OSS 而不是直接用 OSS？
 

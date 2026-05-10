@@ -1,6 +1,6 @@
 ---
 title: "OpenClaw QuickStart (1): What This Thing Actually Is"
-date: 2026-04-03 09:00:00
+date: 2026-04-08 09:00:00
 tags:
   - openclaw
   - ai-agent

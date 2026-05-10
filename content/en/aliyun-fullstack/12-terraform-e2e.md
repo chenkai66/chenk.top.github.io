@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (12): End-to-End — One Terraform Apply for Everything"
-date: 2026-05-10 09:00:00
+date: 2026-05-09 09:00:00
 tags:
   - Alibaba Cloud
   - Terraform
@@ -77,6 +77,8 @@ For a much deeper treatment of Terraform itself, see our [Terraform series](/en/
 
 Here is the complete stack we are codifying. Every component corresponds to something we built by hand in a previous article:
 
+![Full-stack architecture on Alibaba Cloud](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_full_architecture.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Alibaba Cloud                        │
@@ -129,6 +131,8 @@ For LLM and ML deployment covered in [Part 10](/en/aliyun-fullstack/10-bailian-l
 ## Project Structure
 
 A well-organized Terraform project is the difference between a codebase your team maintains for years and one that becomes a "don't touch it, it works" liability within months. Here is the structure:
+
+![Terraform module layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_module_layout.png)
 
 ```
 aliyun-fullstack-terraform/
@@ -1749,6 +1753,8 @@ Forty-two resources from a single command. That is the power of infrastructure-a
 ## CI/CD with GitHub Actions
 
 Manual `terraform apply` from your laptop is fine for personal projects. For teams, you need automation: run `terraform plan` on every pull request so reviewers can see the infrastructure diff, and run `terraform apply` automatically when the PR merges to main.
+
+![CI/CD pipeline with GitHub Actions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_cicd_flow.png)
 
 ### .github/workflows/terraform.yml
 

@@ -1,6 +1,6 @@
 ---
 title: "OpenClaw QuickStart (2): Install and First Chat in 10 Minutes"
-date: 2026-04-04 09:00:00
+date: 2026-04-09 09:00:00
 tags:
   - openclaw
   - installation

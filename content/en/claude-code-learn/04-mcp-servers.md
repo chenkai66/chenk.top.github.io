@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (4): MCP Servers, or How Claude Talks to Anything"
-date: 2026-04-19 09:00:00
+date: 2026-04-21 09:00:00
 tags:
   - claude-code
   - mcp

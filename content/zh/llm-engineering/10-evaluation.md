@@ -1,6 +1,6 @@
 ---
 title: "大模型工程（十）：LLM-as-Judge 与评估"
-date: 2026-05-05 09:00:00
+date: 2026-04-05 09:00:00
 tags:
   - LLM
   - evaluation

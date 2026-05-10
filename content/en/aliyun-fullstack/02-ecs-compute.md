@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (2): ECS — Compute That Actually Makes Sense"
-date: 2026-04-20 09:00:00
+date: 2026-04-29 09:00:00
 tags:
   - Alibaba Cloud
   - ECS
@@ -91,6 +91,8 @@ If you're coming from AWS, these are the meaningful differences:
 
 Instance families are the core abstraction for hardware specialization. The naming convention is:
 
+![ECS instance family comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_instance_families.png)
+
 ```
 ecs.{family}{generation}.{size}
 
@@ -171,6 +173,8 @@ The golden rule: **start small, monitor for one week, then resize.** ECS support
 ## Pricing models explained
 
 ECS offers four ways to pay, and choosing the right one can cut your bill by 80%. Here they are, from most expensive to least:
+
+![ECS pricing model comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_pricing_models.png)
 
 ### Pay-as-you-go (PAYG)
 
@@ -680,6 +684,8 @@ aliyun ecs ApplyAutoSnapshotPolicy \
 ## Monitoring and maintenance
 
 ### CloudMonitor metrics
+
+![ECS instance lifecycle states](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_lifecycle.png)
 
 Every ECS instance automatically reports metrics to CloudMonitor. The ones you should watch:
 

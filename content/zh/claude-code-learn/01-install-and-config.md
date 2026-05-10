@@ -1,6 +1,6 @@
 ---
 title: "Claude Code 实战（一）：安装与三层配置"
-date: 2026-04-16 09:00:00
+date: 2026-04-18 09:00:00
 tags:
   - claude-code
   - configuration

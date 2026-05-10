@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (9): settings.json, the Three-Layer Permission Model, and Env"
-date: 2026-04-24 09:00:00
+date: 2026-04-26 09:00:00
 tags:
   - claude-code
   - settings-json

@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（十）：DashScope 与大模型层"
-date: 2026-05-06 09:00:00
+date: 2026-05-07 09:00:00
 tags:
   - Alibaba Cloud
   - Bailian
@@ -53,6 +53,8 @@ translationKey: "aliyun-fullstack-10"
 
 Qwen 不是一个模型，而是一个家族。覆盖文本、视觉、音频、代码、数学和多模态理解。生产环境里值得关注的有这些：
 
+![Qwen 模型家族概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_model_family.png)
+
 ### 文本生成模型
 
 | model_id | Context | 适用场景 | 输入 / 输出 (CNY per 1M tokens) |
@@ -83,6 +85,8 @@ Qwen 不是一个模型，而是一个家族。覆盖文本、视觉、音频、
 ## DashScope API：OpenAI 兼容
 
 这是关于 DashScope 最重要的一点：它提供了 OpenAI 兼容的 endpoint。你只需要改两行配置，就能直接用官方的 OpenAI Python SDK：
+
+![DashScope API comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_api_comparison.png)
 
 ```python
 import os
@@ -389,6 +393,8 @@ for text, score in similarities[:3]:
 ## Wanxiang: image and video generation
 
 万相（Wanxiang）是 DashScope 旗下的生成式媒体家族。它覆盖文生图、图生视频和文生视频。所有媒体生成都走 DashScope 原生 API（不是 OpenAI 兼容接口），并且遵循异步任务模式。
+
+![Async task pattern for media generation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_async_pattern.png)
 
 ### The async task pattern
 

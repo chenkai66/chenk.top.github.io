@@ -1,6 +1,6 @@
 ---
 title: "大模型工程（四）：SFT、DPO 与 RLHF"
-date: 2026-04-29 09:00:00
+date: 2026-03-30 09:00:00
 tags:
   - LLM
   - post-training

@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes"
-date: 2026-04-17 09:00:00
+date: 2026-04-19 09:00:00
 tags:
   - claude-code
   - shortcuts

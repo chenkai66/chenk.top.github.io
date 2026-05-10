@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（五）：RDS 与 PolarDB 数据基石"
-date: 2026-04-26 09:00:00
+date: 2026-05-02 09:00:00
 tags:
   - Alibaba Cloud
   - RDS
@@ -113,6 +113,8 @@ RDS MySQL 提供三种连接方式：
 
 PolarDB 是阿里云的云原生数据库。如果说 RDS 是“托管的 MySQL 实例”，那 PolarDB 就是骨子里完全不同的架构，只不过恰好兼容 MySQL 协议而已。
 
+![RDS vs PolarDB feature comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_rds_vs_polardb.png)
+
 ### How PolarDB differs from RDS
 
 核心架构差异在于 **存算分离**。RDS 里，每个实例（主、备、只读）都有自己的磁盘和数据副本。PolarDB 则是所有计算节点共享一个分布式存储层。
@@ -177,6 +179,8 @@ PolarDB 提供 Serverless 模式，计算资源随负载自动伸缩。你设定
 ## Instance Sizing Guide
 
 选对 RDS 实例规格是成本控制最关键的一步。选小了，负载一高查询就慢；选大了，闲置资源全是钱。
+
+![RDS instance sizing decision guide](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_sizing_guide.png)
 
 ### Key metrics for sizing
 
@@ -376,6 +380,8 @@ aliyun rds ModifyParameter \
 ## 只读副本与数据库代理
 
 ### 添加只读副本
+
+![RDS 高可用架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_ha_architecture.png)
 
 只读副本其实是主实例的一个异步拷贝。它专门处理 SELECT 查询，把读流量从主库卸下来。对于读多写少的场景（大多数 Web 应用），这是最主要的扩容手段。
 

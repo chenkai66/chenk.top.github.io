@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（二）：ECS——让计算回归本质"
-date: 2026-04-20 09:00:00
+date: 2026-04-29 09:00:00
 tags:
   - Alibaba Cloud
   - ECS
@@ -90,6 +90,8 @@ translationKey: "aliyun-fullstack-2"
 
 实例家族是硬件专业化的核心抽象。命名 convention 是：
 
+![ECS 实例家族对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_instance_families.png)
+
 ```
 ecs.{family}{generation}.{size}
 
@@ -169,6 +171,8 @@ Examples:
 ## 计费模式详解
 
 ECS 计费方式主要有四种，选对方案账单能省 80%。按价格从高到低排个序：
+
+![ECS 计费模式对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_pricing_models.png)
 
 ### 按量付费 (PAYG)
 
@@ -676,6 +680,8 @@ aliyun ecs ApplyAutoSnapshotPolicy \
 ## 监控与维护
 
 ### 云监控指标
+
+![ECS 实例生命周期](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_lifecycle.png)
 
 每个 ECS 实例自动上报指标给云监控。你要盯着这几个：
 

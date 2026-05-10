@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (5): RDS and PolarDB — The Database Layer"
-date: 2026-04-26 09:00:00
+date: 2026-05-02 09:00:00
 tags:
   - Alibaba Cloud
   - RDS
@@ -115,6 +115,8 @@ RDS MySQL provides three connection methods:
 
 PolarDB is Alibaba Cloud's cloud-native database. While RDS is "a managed MySQL instance," PolarDB is a fundamentally different architecture that happens to speak the MySQL protocol.
 
+![RDS vs PolarDB feature comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_rds_vs_polardb.png)
+
 ### How PolarDB differs from RDS
 
 The key architectural difference is **compute-storage separation**. In RDS, each instance (primary, standby, replica) has its own copy of the data on its own disk. In PolarDB, all compute nodes share a single distributed storage layer.
@@ -179,6 +181,8 @@ For most projects, start with RDS. Migrate to PolarDB when you hit a specific li
 ## Instance Sizing Guide
 
 Picking the right RDS instance type is the most impactful cost decision you will make. Too small and your queries slow down under load. Too large and you burn money on idle capacity.
+
+![RDS instance sizing decision guide](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_sizing_guide.png)
 
 ### Key metrics for sizing
 
@@ -379,6 +383,8 @@ The critical parameters for production:
 ## Read Replicas and Database Proxy
 
 ### Adding read replicas
+
+![RDS high-availability architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_ha_architecture.png)
 
 A read replica is an asynchronous copy of the primary instance. It handles SELECT queries, offloading read traffic from the primary. For read-heavy workloads (most web applications), this is the primary scaling mechanism.
 

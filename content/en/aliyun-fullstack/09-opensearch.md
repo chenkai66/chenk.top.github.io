@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (9): OpenSearch and AI Search"
-date: 2026-05-04 09:00:00
+date: 2026-05-06 09:00:00
 tags:
   - Alibaba Cloud
   - OpenSearch
@@ -30,6 +30,8 @@ For generating the embeddings we use throughout this article, see our [Bailian s
 ## The Search Landscape on Alibaba Cloud
 
 Before diving into OpenSearch, you need to know there are multiple search options on Alibaba Cloud. Choosing the wrong one will cost you either money or months of migration.
+
+![Search types on Alibaba Cloud](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_search_types.png)
 
 | Service | What it is | Best for | Managed? | Vector support |
 |---|---|---|---|---|
@@ -413,6 +415,8 @@ for r in results:
 
 Vector search is great for semantic understanding. Keyword search is great for exact matches. A user searching for "WH-1000XM5" wants the exact product -- vector search might return semantically similar headphones instead of the exact model. A user searching for "comfortable headphones for long flights" wants semantic understanding -- keyword search will fail because no product listing uses exactly those words.
 
+![Hybrid search combining vector and keyword](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_hybrid_search.png)
+
 Hybrid search combines both. The question is: how do you merge two different scoring systems into one ranked list?
 
 ### Reciprocal Rank Fusion (RRF)
@@ -526,6 +530,8 @@ def hybrid_search(
 ## AI Search (LLM-Powered)
 
 OpenSearch AI Search is the next layer up. It wraps the search pipeline with LLM capabilities at three stages: query understanding, re-ranking, and answer generation. This is the RAG (Retrieval-Augmented Generation) pattern built directly into the search platform.
+
+![RAG pipeline with OpenSearch](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_rag_pipeline.png)
 
 ### The AI Search Pipeline
 

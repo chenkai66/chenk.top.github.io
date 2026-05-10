@@ -1,6 +1,6 @@
 ---
 title: "OpenClaw 指南（六）：技能系统与 MCP 落地"
-date: 2026-04-08 09:00:00
+date: 2026-04-13 09:00:00
 tags:
   - openclaw
   - skills

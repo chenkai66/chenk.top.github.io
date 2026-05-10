@@ -1,6 +1,6 @@
 ---
 title: "Claude Code 实战（九）：权限模型与环境变量"
-date: 2026-04-24 09:00:00
+date: 2026-04-26 09:00:00
 tags:
   - claude-code
   - settings-json

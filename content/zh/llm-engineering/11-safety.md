@@ -1,6 +1,6 @@
 ---
 title: "大模型工程（十一）：安全与 Alignment"
-date: 2026-05-06 09:00:00
+date: 2026-04-06 09:00:00
 tags:
   - LLM
   - safety

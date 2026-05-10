@@ -1,6 +1,6 @@
 ---
 title: "LLM Engineering (3): Pretraining at Scale"
-date: 2026-04-28 09:00:00
+date: 2026-03-29 09:00:00
 tags:
   - LLM
   - pretraining

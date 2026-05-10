@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（三）：VPC、SLB 构建网络基石"
-date: 2026-04-22 09:00:00
+date: 2026-04-30 09:00:00
 tags:
   - Alibaba Cloud
   - VPC
@@ -26,6 +26,8 @@ translationKey: "aliyun-fullstack-3"
 ## What Is a VPC?
 
 虚拟私有云（VPC）就是你在阿里云上独占的网络段。把它想象成一个完全用软件定义的私有数据中心网络：IP 范围你选，划分子网你定，防火墙规则你写，谁能上网、谁只能内网通信，全由你说了算。除非你显式允许，否则任何流量都进不来也出不去。
+
+![VPC architecture overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
 
 如果你用过 AWS，心智模型几乎一样。阿里云的 VPC 功能上等同于 AWS VPC，只是叫法不同：
 
@@ -55,6 +57,8 @@ translationKey: "aliyun-fullstack-3"
 ## CIDR Planning: Get This Right from Day One
 
 CIDR（无类别域间路由）记法定义了你的 IP 地址空间。这一步错了，你就得准备度过一个非常痛苦的周末，把所有东西迁移到新 VPC。
+
+![CIDR planning guide for VPC subnets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_cidr_planning.png)
 
 记法逻辑是这样：`10.0.0.0/16` 意味着“从 `10.0.0.0` 到 `10.0.255.255` 的所有 IP"。斜杠后面的数字是前缀长度——有多少位是固定的。剩下的位归你分配。
 
@@ -480,6 +484,8 @@ aliyun vpc CreateSnatEntry \
 ## SLB: Server Load Balancer
 
 Server Load Balancer 就是把流量分摊到多台后端实例上。任何想要高可用的服务，它都是必经之门。有了它，你才算从“我有两台服务器”进化到了“我有生产环境部署”。
+
+![SLB Layer 4 vs Layer 7 comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_slb_comparison.png)
 
 阿里云有三个 SLB 产品，名字一开始容易让人晕：
 

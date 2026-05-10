@@ -1,6 +1,6 @@
 ---
 title: "LLM Engineering (10): Evaluation"
-date: 2026-05-05 09:00:00
+date: 2026-04-05 09:00:00
 tags:
   - LLM
   - evaluation

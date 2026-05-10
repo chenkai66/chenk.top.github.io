@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer"
-date: 2026-04-22 09:00:00
+date: 2026-04-30 09:00:00
 tags:
   - Alibaba Cloud
   - VPC
@@ -27,6 +27,8 @@ We set up the basic VPC in [Part 1](/en/aliyun-fullstack/01-ecosystem-map/) -- n
 ## What Is a VPC?
 
 A Virtual Private Cloud is your own isolated network segment on Alibaba Cloud. Think of it as a private data center network that you define entirely in software: you pick the IP range, you carve it into subnets, you write the firewall rules, you decide what can reach the internet and what stays internal. Nothing gets in or out unless you explicitly allow it.
+
+![VPC architecture overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_vpc_architecture.png)
 
 If you have used AWS, the mental model is almost identical. Alibaba Cloud's VPC is functionally equivalent to AWS VPC, with different naming:
 
@@ -56,6 +58,8 @@ One VPC cannot span regions. If you need cross-region connectivity, that is wher
 ## CIDR Planning: Get This Right from Day One
 
 CIDR (Classless Inter-Domain Routing) notation defines your IP address space. Get this wrong and you will spend a very unpleasant weekend migrating everything to a new VPC.
+
+![CIDR planning guide for VPC subnets](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_cidr_planning.png)
 
 The notation works like this: `10.0.0.0/16` means "all IPs from `10.0.0.0` to `10.0.255.255`." The number after the slash is the prefix length -- how many bits are fixed. The remaining bits are yours to allocate.
 
@@ -483,6 +487,8 @@ Always use the Enhanced NAT type. The "Normal" type is the legacy version with l
 ## SLB: Server Load Balancer
 
 Server Load Balancer distributes incoming traffic across multiple backend instances. It is the front door for any service that needs to be highly available, and it is what separates "I have two servers" from "I have a production deployment."
+
+![SLB Layer 4 vs Layer 7 comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_slb_comparison.png)
 
 Alibaba Cloud has three SLB products, and the naming is initially confusing:
 

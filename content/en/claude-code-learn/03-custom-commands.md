@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (3): Custom Slash Commands and Conversation Control"
-date: 2026-04-18 09:00:00
+date: 2026-04-20 09:00:00
 tags:
   - claude-code
   - slash-commands

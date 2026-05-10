@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（九）：OpenSearch 与 AI 搜索"
-date: 2026-05-04 09:00:00
+date: 2026-05-06 09:00:00
 tags:
   - Alibaba Cloud
   - OpenSearch
@@ -29,6 +29,8 @@ translationKey: "aliyun-fullstack-9"
 ## 阿里云上的搜索 landscape
 
 在深入 OpenSearch 之前，得先搞清楚阿里云上到底有哪些搜索选项。选错了要么浪费钱，要么浪费几个月迁移。
+
+![阿里云搜索类型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_search_types.png)
 
 | Service | 是什么 | 最适合 | 托管？ | 向量支持 |
 |---|---|---|---|---|
@@ -410,6 +412,8 @@ for r in results:
 
 向量搜索擅长语义理解，关键词搜索擅长精确匹配。用户搜"WH-1000XM5"是要 exact product——向量搜索可能会返回语义相似但不是同款的产品。用户搜"适合长途飞行的舒适耳机"是要语义理解——关键词搜索会挂掉，因为没哪个商品列表 exactly 用这些词。
 
+![混合搜索：向量+关键词](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_hybrid_search.png)
+
 混合搜索把两者结合起来。问题是怎么把两套打分系统合并成一个排序列表？
 
 ### 倒数排名融合 (RRF)
@@ -523,6 +527,8 @@ def hybrid_search(
 ## AI 搜索（LLM 驱动）
 
 OpenSearch AI Search 是上一层级的能力。它在三个阶段用 LLM 能力包裹搜索管道：查询理解、重排序、答案生成。这是直接 built-in 到搜索平台里的 RAG 模式。
+
+![基于 OpenSearch 的 RAG 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_rag_pipeline.png)
 
 ### AI 搜索管道
 

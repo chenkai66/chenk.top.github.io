@@ -1,6 +1,6 @@
 ---
 title: "OpenClaw 指南（七）：记忆系统去魔法化"
-date: 2026-04-09 09:00:00
+date: 2026-04-14 09:00:00
 tags:
   - openclaw
   - memory

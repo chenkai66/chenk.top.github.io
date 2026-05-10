@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（六）：RAM、KMS 筑牢云安全"
-date: 2026-04-28 09:00:00
+date: 2026-05-03 09:00:00
 tags:
   - Alibaba Cloud
   - RAM
@@ -30,6 +30,8 @@ translationKey: "aliyun-fullstack-6"
 
 云安全不是开个开关就完事的。它是一叠独立的层，每一层覆盖一种故障模式。漏了一层，其他层还能护着你——这就是防御纵深 (defense in depth) 原则。
 
+![阿里云安全模型概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_security_model.png)
+
 我把它看作四大支柱：
 
 | 支柱 | 回答的问题 | 阿里云服务 | AWS 对应服务 |
@@ -48,6 +50,8 @@ translationKey: "aliyun-fullstack-6"
 ## RAM：资源访问管理
 
 RAM 就是阿里云的身份和访问管理系统。每个 API 调用、每次控制台点击、每条 CLI 命令都通过 RAM 认证和授权。理解 RAM 不是选修课，是必修课——这篇文章后面所有内容都建在这个基础上。
+
+![RAM 用户、组与角色层次](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_ram_hierarchy.png)
 
 ### 阿里云主账号 (Root)
 
@@ -534,6 +538,8 @@ Condition 块要求 MFA，为跨账号访问加了一层二次验证。
 ## STS：临时凭证
 
 STS 生成的临时 AccessKey  pair 会附带一个安全令牌。用起来跟普通 AccessKey 没区别，但会自动过期。RAM 角色底层就是这套机制，你也可以直接拿来用，比如移动端上传或者前端直连场景。
+
+![STS 临时凭证流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_sts_flow.png)
 
 ### 为什么临时凭证优于永久凭证
 

@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism"
-date: 2026-04-25 09:00:00
+date: 2026-04-27 09:00:00
 tags:
   - claude-code
   - skills

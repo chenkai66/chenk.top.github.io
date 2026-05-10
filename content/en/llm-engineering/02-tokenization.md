@@ -1,6 +1,6 @@
 ---
 title: "LLM Engineering (2): Tokenization Deep Dive"
-date: 2026-04-27 09:00:00
+date: 2026-03-28 09:00:00
 tags:
   - LLM
   - tokenization

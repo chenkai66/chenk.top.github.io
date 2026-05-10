@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（一）：生态全景图——阿里云到底是什么"
-date: 2026-04-18 09:00:00
+date: 2026-04-28 09:00:00
 tags:
   - Alibaba Cloud
   - Cloud Computing
@@ -44,6 +44,8 @@ translationKey: "aliyun-fullstack-1"
 ## 服务地图：阿里云 vs AWS vs Azure vs GCP
 
 这篇文章最有价值的部分就是给你这份对照表。每个阿里云产品映射到你已经知道的服务。描述保持紧凑——每句一句话——因为你不需要一段话来理解"OSS 就是 S3"。
+
+![阿里云服务地图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_service_map.png)
 
 ### 计算
 
@@ -250,6 +252,8 @@ aliyun bssopenapi QueryAccountBalance
 
 阿里云在国内的区域数量比任何云厂商都多。这很关键，因为国内的网络拓扑决定了，深圳用户连北京服务器，延迟肯定比连深圳服务器高得多——防火墙加物理距离，双重影响。
 
+![阿里云全球区域与可用区](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_region_map.png)
+
 ### 中国区
 
 | Region ID | Location | Good for |
@@ -298,6 +302,8 @@ aliyun bssopenapi QueryAccountBalance
 ## 理解计费模式
 
 阿里云的计费模式比 AWS 灵活，但要是你不熟悉，也会觉得更晕。一共有四种购买模式，你都得搞清楚。
+
+![阿里云计费模式对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_billing_comparison.png)
 
 ### 按量付费（PAYG, 按量付费）
 

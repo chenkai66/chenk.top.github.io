@@ -1,6 +1,6 @@
 ---
 title: "Claude Code 实战（五）：Hooks 与 Yolo 安全网"
-date: 2026-04-20 09:00:00
+date: 2026-04-22 09:00:00
 tags:
   - claude-code
   - hooks

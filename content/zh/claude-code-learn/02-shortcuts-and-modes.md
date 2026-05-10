@@ -1,6 +1,6 @@
 ---
 title: "Claude Code 实战（二）：快捷键与 Thinking Mode"
-date: 2026-04-17 09:00:00
+date: 2026-04-19 09:00:00
 tags:
   - claude-code
   - shortcuts

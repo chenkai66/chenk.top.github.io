@@ -1,6 +1,6 @@
 ---
 title: "LLM Engineering (6): Long Context — RoPE, YaRN, Sinks"
-date: 2026-05-01 09:00:00
+date: 2026-04-01 09:00:00
 tags:
   - LLM
   - long-context

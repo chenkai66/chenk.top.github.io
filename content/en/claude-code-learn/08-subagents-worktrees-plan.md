@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode"
-date: 2026-04-23 09:00:00
+date: 2026-04-25 09:00:00
 tags:
   - claude-code
   - sub-agents
