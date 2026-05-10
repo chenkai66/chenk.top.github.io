@@ -136,7 +136,7 @@ $$\text{attn}_{ij} = \text{softmax}\left(\frac{q_i k_j^T}{\sqrt{d}} - m_h \cdot 
 
 ALiBi 用在 BLOOM, MPT 和一些研究模型中。RoPE 赢了生产环境之战。例外是混合 Mamba-attention 模型中 ALiBi 可能更便宜，以及一些"attention sink"实现中为了给流式稳定性给 RoPE 加 ALiBi 风格的 decay 项。
 
-一个细微的观察：ALiBi 有效是因为语言对大多数 token 确实存在大致对数的距离 - 相关性关系，log-attention 空间中的线性 bias 近似了这一点。它在检索上输给 RoPE 的原因是检索任务 specifically 需要*反*单调 attention——相关 token 可能是上下文中*最远*的那个，而不是最近的。RoPE 能学习任意 attention 模式；ALiBi 有个内置的距离先验。
+一个细微的观察：ALiBi 有效是因为语言对大多数 token 确实存在大致对数的距离 - 相关性关系，log-attention 空间中的线性 bias 近似了这一点。它在检索上输给 RoPE 的原因是检索任务恰恰需要*反*单调 attention——相关 token 可能是上下文中*最远*的那个，而不是最近的。RoPE 能学习任意 attention 模式；ALiBi 有个内置的距离先验。
 ## Attention sinks：流式处理的 hack
 
 ![fig3: sliding-window attention with sinks](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/06-long-context/fig3_sliding_window.png)

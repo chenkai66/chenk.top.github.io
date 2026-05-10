@@ -190,7 +190,7 @@ module "vpc" {
 
 ## Terraform vs Pulumi vs Crossplane vs ROS
 
-承认了 IaC 的价值，为什么 specifically 是 Terraform？快速扫一眼 alternatives。都没错；选适合团队的，别搞宗教斗争：
+承认了 IaC 的价值，为什么偏偏是 Terraform？快速扫一眼 alternatives。都没错；选适合团队的，别搞宗教斗争：
 
 ![IaC tools compared](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/01-why-terraform-for-agents/fig3_iac_tools_compare.png)
 
@@ -218,7 +218,7 @@ module "vpc" {
 
 不会做的：
 
-- 教你 HCL 语法 beyond 我们用到的部分。官方 HashiCorp 教程做得更好。
+- 教你 HCL 语法超出我们用到的部分。官方 HashiCorp 教程做得更好。
 - 教你怎么写 Agent 本身。LangGraph, AutoGen, MetaGPT, Claude Code 都有系列教程了；选一个就行。
 - 逐功能对比阿里云 against AWS 或 GCP。IaC 模式跨云通用；资源名字不一样而已。
 

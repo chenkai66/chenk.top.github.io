@@ -80,7 +80,7 @@ with open("/tmp/streamed.mp3", "wb") as f:
             f.write(resp.output.audio["data"])
 ```
 
-流式的首字节时间（Time-to-first-byte）在上海区域通常低于 400ms，快 enough 让用户感觉是即时的。非流式模式下一条 30 秒的 utterance 墙钟时间接近 4-6 秒——做批量 narration 没问题，做聊天就太慢了。
+流式的首字节时间（Time-to-first-byte）在上海区域通常低于 400ms，快到让用户感觉是即时的。非流式模式下一条 30 秒的 utterance 墙钟时间接近 4-6 秒——做批量 narration 没问题，做聊天就太慢了。
 
 ## 多语言和方言细节
 
@@ -125,7 +125,7 @@ def synthesize_long(script: str, voice: str = "Cherry") -> str:
 
 ## 成本
 
-按输出音频秒数计费。流式和非流式计费一样。60 秒广告 spot 也就几块钱——比真人 voice actor 的时薪便宜得多，而且快 enough 让营销团队一个下午迭代几十个版本。
+按输出音频秒数计费。流式和非流式计费一样。60 秒广告 spot 也就几块钱——比真人 voice actor 的时薪便宜得多，而且快到让营销团队一个下午迭代几十个版本。
 
 ## 声音克隆 vs 预设声音 vs SSML 控制：选对旋钮
 
