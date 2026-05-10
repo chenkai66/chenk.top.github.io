@@ -326,6 +326,8 @@ The key parameters worth tuning:
 
 Embeddings turn text into vectors, which is the foundation of RAG (retrieval-augmented generation), semantic search, clustering, and deduplication. DashScope offers `text-embedding-v3` and the newer `text-embedding-v4`.
 
+![Embedding and RAG pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_embedding_pipeline.png)
+
 ```python
 response = client.embeddings.create(
     model="text-embedding-v3",
@@ -396,6 +398,8 @@ In production, do not compute cosine similarity in Python loops. Use OpenSearch'
 ## Wanxiang: image and video generation
 
 Wanxiang is DashScope's generative media family. It covers text-to-image, image-to-video, and text-to-video. All media generation uses the DashScope native API (not the OpenAI-compatible endpoint) and follows an async task pattern.
+
+![Wanxiang async generation pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_wanxiang_pipeline.png)
 
 ![Async task pattern for media generation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_async_pattern.png)
 
@@ -615,6 +619,8 @@ For the full TTS deep dive including voice cloning and instruct mode, see [Baili
 
 Fine-tuning is the nuclear option. Before you reach for it, ask whether prompt engineering, few-shot examples, or RAG can solve your problem. In my experience, 80% of "we need to fine-tune" conversations end with "actually, a better system prompt fixed it."
 
+![Bailian platform overview](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_bailian_platform.png)
+
 ### When fine-tuning actually makes sense
 
 | Scenario | Why fine-tuning helps | Alternative to try first |
@@ -728,6 +734,8 @@ The fine-tuned turbo model costs roughly 6x less than prompt-engineered plus and
 ## Solution: multi-modal AI pipeline
 
 Let me put it all together. Here is a complete pipeline that takes a topic, generates an article draft, creates an illustration, and produces a voice narration -- all orchestrated in Python.
+
+![Multi-modal AI pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/10-bailian-llm/10_multimodal_flow.png)
 
 ```python
 """

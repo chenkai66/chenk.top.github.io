@@ -53,6 +53,8 @@ translationKey: "aliyun-fullstack-9"
 
 阿里云 OpenSearch 是全托管搜索平台。不用运维集群，不用管分片，也不用担心 GC 停顿。定义好数据 schema，推数据进去，查出来就行。索引、复制、扩容阿里云全包。
 
+![OpenSearch 集群架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_opensearch_architecture.png)
+
 核心概念：
 
 - **Application** -- 顶层容器。把它当成搜索“项目”。每个应用有自己的 schema、数据源和查询配置。
@@ -172,6 +174,8 @@ query_with_agg = {
 ## Vector Search for RAG
 
 搜索这事儿到了向量这里才真正变得有意思。传统关键词搜索靠的是倒排索引——它把词映射到文档。要是用户搜"wireless earbuds"，但商品列表里写的是"bluetooth headphones"，关键词搜索直接返回空结果。词对不上嘛。
+
+![向量嵌入与 ANN 搜索流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_vector_embedding.png)
 
 向量搜索通过把文本转成高维数值表示（embeddings）来解决这个问题，这些向量能捕捉语义含义。"Wireless earbuds"和"bluetooth headphones"在向量空间里会成为相邻的点，因为它们意思相近，哪怕它们没有一个字是重复的。
 
@@ -663,6 +667,8 @@ response = {
 
 哪怕混合搜索和 LLM 能力都配齐了，相关性调优这关还是得过。LLM 擅长处理硬骨头，但像同义词、停用词、字段加权这种基础活儿，传统配置反而更快、更便宜、结果也更可控。
 
+![查询改写流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_query_rewrite.png)
+
 ### 同义词与停用词
 
 ```json
@@ -799,6 +805,8 @@ def search_with_ab_test(query: str, user_id: str) -> dict:
 ## 实时数据同步
 
 搜索索引只有反映当前数据才有用。如果用户在 RDS 改了价格，搜索索引还显示旧价格，体验很差，甚至可能有合规风险。
+
+![MySQL 到 OpenSearch 的实时数据同步](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/09-opensearch/09_data_sync.png)
 
 ### 数据同步方案
 

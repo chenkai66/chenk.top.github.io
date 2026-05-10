@@ -236,6 +236,8 @@ aliyun sls CreateIndex \
 
 Logtail 算是 SLS 的官方日志采集 agent 了。它跑在你的 ECS 实例上，监控日志文件，按配置解析，然后投递到 SLS。这玩意儿很轻量（通常占用 50-100 MB 内存，CPU <1%），可靠（本地缓冲处理网络中断），并且和 SLS 深度集成。
 
+![Logtail 采集器部署架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_logtail_architecture.png)
+
 ### 安装
 
 只要 ECS 实例和 SLS 在同一个 region，一条命令就能搞定：
@@ -434,6 +436,8 @@ JSON 日志的 Logtail 配置简单多了，根本不需要正则：
 ## 构建仪表盘
 
 没人看的仪表盘比没有更糟糕，因为它给你一种虚假的安全感。关键是要围绕故障排查时真正会问的问题去建，而不是堆砌那些看起来厉害的指标。
+
+![SLS 仪表盘布局](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_dashboard_layout.png)
 
 ### 五个核心面板
 
@@ -895,6 +899,8 @@ aliyun cms PutContact \
 
 ARMS 补上了可观测性的第三块拼图：链路追踪（traces）。SLS 告诉你发生了什么，CloudMonitor 告诉你系统层面的影响，而 ARMS 告诉你问题究竟出在应用的哪个位置。
 
+![ARMS 分布式链路追踪](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_arms_traces.png)
+
 ### ARMS 能做什么
 
 ARMS 是一个 APM（应用性能监控）平台，提供以下功能：
@@ -1262,6 +1268,8 @@ aliyun cms PutResourceMetricRule \
 ## 成本
 
 可观测性是要花钱的，而且这钱容易不知不觉就超了。下面是一个小型生产环境（2 台 ECS，中等流量）的真实成本估算：
+
+![可观测性成本分解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/07_cost_model.png)
 
 | 组件 | 免费额度 | 典型月度成本 |
 |---|---|---|

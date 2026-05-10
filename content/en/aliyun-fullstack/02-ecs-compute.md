@@ -157,6 +157,8 @@ The rule: if your average CPU exceeds the baseline (check the product page for y
 
 Decision-making here is simpler than it looks. Start with the workload, not the instance:
 
+![ECS instance specification comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_instance_specs.png)
+
 | Workload | Recommended start | Why |
 |---|---|---|
 | Static site / reverse proxy | `ecs.c7.large` (2 vCPU, 4 GiB) | CPU-bound, barely needs memory |
@@ -334,6 +336,8 @@ ssh -i ~/.ssh/app-server-key.pem root@<public-ip>
 
 Nobody should SSH into a fresh instance and manually install packages. Cloud-init runs on first boot and configures the instance automatically. Every ECS image ships with cloud-init pre-installed.
 
+![Cloud-init boot sequence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_cloud_init.png)
+
 You pass your cloud-init configuration as `UserData` when creating the instance. It must be base64-encoded. Here is a comprehensive `cloud-init.yaml` that sets up a production-ready app server:
 
 ```yaml
@@ -487,6 +491,8 @@ curl http://localhost/health
 
 A security group is a stateful firewall at the ENI level. Every packet entering or leaving an ECS instance is evaluated against its security group rules. If no rule matches, the packet is **dropped** — default deny.
 
+![Security group inbound and outbound rules](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_security_groups.png)
+
 "Stateful" means that if you allow inbound TCP 80, the response packets are automatically allowed out. You do not need a matching outbound rule for return traffic.
 
 ### Common security group patterns
@@ -612,6 +618,8 @@ For fleets, manage SSH keys through cloud-init or an Ansible playbook — never 
 ## Disks and storage
 
 Every ECS instance has at least one disk: the system disk, which holds the OS. You can attach up to 16 additional data disks. All disks are network-attached block storage — they persist independently of the instance lifecycle (if configured correctly).
+
+![ESSD disk type IOPS and throughput comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/02-ecs-compute/02_disk_types.png)
 
 ### Disk types
 

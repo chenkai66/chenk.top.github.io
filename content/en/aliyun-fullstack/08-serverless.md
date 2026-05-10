@@ -288,6 +288,8 @@ s logs --request-id "1-6789abcd-..."
 
 Triggers are what make serverless event-driven rather than just "cheap hosting." Each trigger type connects your function to a different event source. Here is every trigger type with configuration examples.
 
+![Function Compute trigger types](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_trigger_types.png)
+
 ### HTTP trigger
 
 The simplest trigger. Your function gets an HTTP endpoint.
@@ -614,6 +616,8 @@ If cold start is your primary concern, the priority order is: Go > Node.js > Pyt
 
 ### Layers: shared dependencies
 
+![Function layers architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_layer_architecture.png)
+
 A layer is a zip archive containing libraries, a custom runtime, or other dependencies. Layers are versioned and can be shared across multiple functions. They solve two problems:
 
 1. **Package size reduction.** Move large dependencies (numpy, Pillow, etc.) into a layer. Your function code stays small = faster deploys and faster cold starts.
@@ -910,6 +914,8 @@ You might wonder: why use EventBridge when FC already has direct OSS triggers?
 ## API Gateway + Function Compute
 
 For building proper REST APIs, API Gateway sits in front of your functions and provides features that FC's built-in HTTP trigger does not offer: authentication, rate limiting, request validation, and API versioning.
+
+![API Gateway and Function Compute integration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/08-serverless/08_api_gateway.png)
 
 ### Creating an API backed by Function Compute
 

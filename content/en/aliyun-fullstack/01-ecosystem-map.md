@@ -27,6 +27,8 @@ This article is the lay of the land. We are going to map the entire Alibaba Clou
 
 The first question anyone coming from AWS asks is: why would I use Alibaba Cloud at all?
 
+![Alibaba Cloud product family tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_product_families.png)
+
 Three reasons, in descending order of how often they actually matter:
 
 **1. China.** If your users are in China, you need Chinese infrastructure. AWS China (operated by Sinnet/NWCD) exists but is a separate entity with a separate account, a subset of services, and a slower release cycle. Azure China (operated by 21Vianet) has the same limitations. GCP has no mainland China regions at all. Alibaba Cloud is the native cloud — it runs Taobao, Alipay, Tmall, and Ele.me. It has seven mainland regions, the largest data center footprint in Asia, and every service is available on day one without an ICP-licensed partner arrangement.
@@ -362,6 +364,8 @@ I check this weekly. The single biggest cost surprise in my production Alibaba C
 
 Enough background. Let us deploy something.
 
+![Alibaba Cloud free tier offerings](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_free_tier.png)
+
 We are going to launch a single ECS instance running Alibaba Cloud Linux 3, SSH into it, install nginx, and serve a test page. This takes about 15 minutes.
 
 ### Prerequisites
@@ -630,6 +634,8 @@ Three commands instead of twelve. The state is tracked. The config is version-co
 
 Your ECS instance is running. Now let us make it useful.
 
+![First deployment flow from signup to access](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_deployment_flow.png)
+
 ### Install essential packages
 
 ```bash
@@ -716,6 +722,8 @@ terraform destroy
 ## The Architecture We Are Building
 
 This article is the first of twelve in the Alibaba Cloud Full Stack series. Here is the full roadmap:
+
+![12-article series roadmap](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/01-ecosystem-map/01_architecture_roadmap.png)
 
 ```
 Article 01: The Ecosystem Map (you are here)

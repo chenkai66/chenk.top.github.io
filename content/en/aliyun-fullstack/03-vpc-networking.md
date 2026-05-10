@@ -91,6 +91,8 @@ The VPC itself gets `10.0.0.0/16`, giving us 65,534 usable IPs and room to add m
 
 A VSwitch is a subnet, and every VSwitch lives in exactly one availability zone. You cannot stretch a VSwitch across zones. This is by design -- it means a zone failure only takes out instances in VSwitches assigned to that zone, not your entire tier.
 
+![Multi-AZ VSwitch topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_vswitch_layout.png)
+
 The pattern is one VSwitch per AZ per tier. For a 3-tier setup across 2 AZs, that is 6 VSwitches. For 3 AZs, that is 9. I have never needed more than 3 AZs for a single application.
 
 First, create the VPC:
@@ -172,6 +174,8 @@ A few things worth knowing:
 ## Route Tables
 
 Every VPC comes with a system route table that you cannot delete. It contains one entry you care about: a local route that automatically enables all VSwitches within the VPC to communicate with each other. This is implicit -- you will not see it in the console, but traffic between `10.0.1.0/24` and `10.0.20.0/24` just works.
+
+![Route table decision flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_route_table.png)
 
 The system route table also handles the default route (`0.0.0.0/0`), which initially goes nowhere. To give instances internet access, you point this default route at a NAT Gateway or an internet-facing router.
 
@@ -406,6 +410,8 @@ A common gotcha: an ECS instance can only have one EIP bound at a time via the p
 ## NAT Gateway: Internet Access for Private Subnets
 
 Instances in private subnets (the app and data tiers from our plan) have no public IP. They cannot reach the internet by default. But they often need to -- pulling Docker images, calling external APIs, downloading security patches. NAT Gateway solves this.
+
+![NAT Gateway architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_nat_gateway.png)
 
 NAT Gateway sits in a public subnet and provides two functions:
 
@@ -650,6 +656,8 @@ CEN pricing is primarily based on inter-region bandwidth. Intra-region traffic t
 ## Solution: Multi-AZ Production Network
 
 Let us put everything together. Here is a complete, production-ready network setup for a 3-tier web application across 2 availability zones in cn-hangzhou.
+
+![Complete network topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/03_network_topology.png)
 
 The target architecture:
 

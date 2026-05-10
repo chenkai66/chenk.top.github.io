@@ -26,6 +26,8 @@ translationKey: "aliyun-fullstack-1"
 
 从 AWS 过来的人第一个问题通常是：凭什么选阿里云？
 
+![阿里云产品家族树](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_product_families.png)
+
 三个理由，按实际重要性降序排列：
 
 **1. 中国。** 如果你的用户在中国，你就需要中国的基础设施。AWS 中国（由光环新网/西云数据运营）确实存在，但它是独立实体，账号独立，服务子集，发布周期更慢。Azure 中国（由世纪互联运营）也有同样的限制。GCP 根本没有中国大陆区域。阿里云是原生云——它运行着淘宝、支付宝、天猫和饿了么。它有七个大陆地域，亚洲最大的数据中心足迹，每个服务第一天就能用，不需要 ICP 牌照合作伙伴安排。
@@ -359,6 +361,8 @@ aliyun ecs RunInstances \
 
 背景铺垫到此为止，咱们来部署点东西。
 
+![阿里云免费额度一览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_free_tier.png)
+
 我们要启动一台运行 Alibaba Cloud Linux 3 的 ECS 实例，SSH 连上去，装个 nginx，然后托管一个测试页面。大概 15 分钟搞定。
 
 ### 前置条件
@@ -627,6 +631,8 @@ terraform apply
 
 ECS 实例跑起来了。现在让它干点正事。
 
+![从注册到访问的首次部署流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_deployment_flow.png)
+
 ### 安装必备包
 
 ```bash
@@ -713,6 +719,8 @@ terraform destroy
 ## 我们要构建的架构
 
 这篇文章是阿里云全栈系列十二篇中的第一篇。完整路线图如下：
+
+![12 篇系列文章路线图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/01-ecosystem-map/01_architecture_roadmap.png)
 
 ```
 Article 01: The Ecosystem Map (you are here)

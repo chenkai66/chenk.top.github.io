@@ -286,6 +286,8 @@ s logs --request-id "1-6789abcd-..."
 
 触发器才是让 Serverless 变成事件驱动架构的核心，而不只是个“便宜托管”。每种触发器类型都把函数连到了不同的事件源上。下面我把每种触发器类型都列出来，配上配置示例。
 
+![函数计算触发器类型](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_trigger_types.png)
+
 ### HTTP 触发器
 
 最简单的触发器。你的函数直接拥有一个 HTTP 端点。
@@ -611,6 +613,8 @@ def handler(event, context):
 
 ### 层：共享依赖
 
+![函数层架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_layer_architecture.png)
+
 Layer 本质上就是个 zip 压缩包，里面装着依赖库、自定义运行时或者其他依赖项。Layer 是有版本控制的，而且可以在多个函数之间共享。它主要解决了两个问题：
 
 1. **减小包大小。** 把那些庞大的依赖库（比如 numpy、Pillow 等）挪到 Layer 里。你的函数代码包就能保持轻量 = 部署更快，冷启动也更快。
@@ -906,6 +910,8 @@ client.put_events(event_bus_name="my-app-bus", event_list=[event])
 ## API Gateway + Function Compute
 
 要想构建生产级的 REST API，光靠 FC 自带的 HTTP Trigger 还不够。得把 API Gateway 架在函数前面，因为它能提供鉴权、限流、请求校验以及 API 版本管理这些关键能力，而这些都是 FC 原生触发器欠缺的。
+
+![API Gateway 与函数计算集成](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/08-serverless/08_api_gateway.png)
 
 ### Creating an API backed by Function Compute
 

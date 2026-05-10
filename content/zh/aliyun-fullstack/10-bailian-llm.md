@@ -324,6 +324,8 @@ print(chat("What about cold starts?"))
 
 Embeddings 把文本变成向量，这是 RAG（检索增强生成）、语义搜索、聚类和去重的基础。DashScope 提供 `text-embedding-v3` 和更新的 `text-embedding-v4`。
 
+![嵌入向量与 RAG 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_embedding_pipeline.png)
+
 ```python
 response = client.embeddings.create(
     model="text-embedding-v3",
@@ -393,6 +395,8 @@ for text, score in similarities[:3]:
 ## Wanxiang: image and video generation
 
 万相（Wanxiang）是 DashScope 旗下的生成式媒体家族。它覆盖文生图、图生视频和文生视频。所有媒体生成都走 DashScope 原生 API（不是 OpenAI 兼容接口），并且遵循异步任务模式。
+
+![万象异步生成流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_wanxiang_pipeline.png)
 
 ![Async task pattern for media generation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_async_pattern.png)
 
@@ -611,6 +615,8 @@ Qwen TTS 的完整深度解析包括声音克隆和 instruct 模式，见 [Baili
 
 微调是最后的杀手锏。在决定用它之前，先问问自己：提示词工程、Few-shot 示例或者 RAG 能不能解决问题？根据我的经验，80% 喊着“我们需要微调”的讨论，最后都以“其实换个更好的 System Prompt 就搞定了”收场。
 
+![百炼平台概览](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_bailian_platform.png)
+
 ### 什么时候才真的需要微调
 
 | 场景 | 为什么微调有用 | 优先尝试的替代方案 |
@@ -724,6 +730,8 @@ print(f"Status: {status.output.status}")
 ## 解决方案：多模态 AI 流水线
 
 我把这些整合一下。下面是一个完整的流水线：输入一个主题，生成文章草稿，创建插图，再产出语音解说——全部用 Python 编排。
+
+![多模态 AI 流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/10-bailian-llm/10_multimodal_flow.png)
 
 ```python
 """

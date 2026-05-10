@@ -90,6 +90,8 @@ VPC 本身用 `10.0.0.0/16`，给我们 65,534 个可用 IP，以后加子网也
 
 VSwitch 就是子网，每个 VSwitch 只存在于一个可用区。你不能把一个 VSwitch 拉伸到多个可用区。这是设计使然——意味着某个可用区故障只会影响分配给该区的 VSwitch 里的实例，不会干掉整个层级。
 
+![多可用区 VSwitch 拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_vswitch_layout.png)
+
 模式是每层每个可用区一个 VSwitch。2 个可用区 3 层架构，就是 6 个 VSwitch。3 个可用区就是 9 个。单个应用我还没见过需要超过 3 个可用区的。
 
 首先，创建 VPC：
@@ -171,6 +173,8 @@ aliyun vpc DescribeVSwitches \
 ## Route Tables
 
 每个 VPC 自带一个系统路由表，删不掉。里面有一条你关心的条目：本地路由，自动启用 VPC 内所有 VSwitch 互相通信。这是隐式的——控制台里你看不到，但 `10.0.1.0/24` 和 `10.0.20.0/24` 之间的流量就是能通。
+
+![路由表决策流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_route_table.png)
 
 系统路由表也处理默认路由（`0.0.0.0/0`），起初它哪儿也不通。要给实例互联网访问权，你得把这条默认路由指向 NAT 网关或者面向互联网的路由器。
 
@@ -404,6 +408,8 @@ aliyun vpc UnassociateEipAddress \
 ## NAT 网关：私有子网的出口
 
 私有子网里的实例（比如我们规划里的 App 层和数据层）没有公网 IP，默认上不了网。但它们往往需要上网——拉 Docker 镜像、调用外部 API、下载安全补丁。NAT 网关就是解决这个问题的。
+
+![NAT 网关架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_nat_gateway.png)
 
 NAT 网关部署在公共子网，提供两个功能：
 
@@ -646,6 +652,8 @@ CEN 计费主要看跨地域带宽。同地域流量经过 Transit Router 免费
 ## 解决方案：多可用区生产网络
 
 咱们把前面的碎片拼起来。这是一套能直接上生产环境的网络架构，跑在 cn-hangzhou 的两个可用区上，典型的三层 Web 应用。
+
+![完整网络拓扑](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/03-vpc-networking/03_network_topology.png)
 
 目标架构长这样：
 

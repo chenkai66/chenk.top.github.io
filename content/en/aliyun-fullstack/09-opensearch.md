@@ -54,6 +54,8 @@ That last point trips people up constantly. I will say it again: **Alibaba Cloud
 
 OpenSearch on Alibaba Cloud is a fully managed search platform. You do not operate clusters, manage shards, or worry about garbage collection pauses. You define your data schema, push data in, and query it out. Alibaba handles indexing, replication, and scaling.
 
+![OpenSearch cluster architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_opensearch_architecture.png)
+
 The core concepts:
 
 - **Application** -- The top-level container. Think of it as a search "project." Each application has its own schema, data source, and query configuration.
@@ -174,6 +176,8 @@ The Alibaba product is more opinionated and less flexible, but operationally sim
 ## Vector Search for RAG
 
 This is where search gets interesting. Traditional keyword search uses inverted indexes -- it maps words to documents. If the user searches "wireless earbuds" but the product listing says "bluetooth headphones," keyword search returns nothing. The words do not match.
+
+![Vector embedding and ANN search flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_vector_embedding.png)
 
 Vector search solves this by converting text into high-dimensional numerical representations (embeddings) that capture semantic meaning. "Wireless earbuds" and "bluetooth headphones" end up as nearby points in vector space because they mean similar things, even though they share zero words.
 
@@ -667,6 +671,8 @@ My recommendation: start with OpenSearch's built-in answer generation. Move to a
 
 Even with hybrid search and LLM capabilities, you still need to tune relevance. The LLM handles the hard cases, but the easy cases -- synonyms, stop words, field boosting -- are better handled by traditional configuration. It is faster, cheaper, and more predictable.
 
+![Query rewrite pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_query_rewrite.png)
+
 ### Synonyms and Stop Words
 
 ```json
@@ -803,6 +809,8 @@ def search_with_ab_test(query: str, user_id: str) -> dict:
 ## Real-Time Data Sync
 
 A search index is only useful if it reflects current data. If a user updates a product price in RDS and the search index shows the old price for the next hour, that is a bad experience (and potentially a legal problem for pricing compliance).
+
+![Real-time data sync from MySQL to OpenSearch](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/09-opensearch/09_data_sync.png)
 
 ### Data Sync Options
 

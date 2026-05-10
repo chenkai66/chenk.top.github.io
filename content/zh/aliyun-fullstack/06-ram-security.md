@@ -183,6 +183,8 @@ aliyun ram AddUserToGroup --UserName alice --GroupName Administrators
 
 策略是授权的核心引擎。阿里云里的每次 API 调用都要过一遍策略，决定是放行还是拒绝。搞懂策略机制，是从“能跑通”到“跑得安全”的关键分水岭。
 
+![RAM 策略评估流程图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_policy_evaluation.png)
+
 ### 系统策略 vs 自定义策略
 
 阿里云预置了 800 多个系统策略，官方维护，没法改，但覆盖了绝大多数常见场景：
@@ -411,6 +413,8 @@ aliyun ram AttachPolicyToGroup \
 ## RAM 角色
 
 RAM 用户是给真人（和 CI/CD 流水线）用的永久身份。RAM 角色是临时身份，专为这三种场景设计：
+
+![ABAC vs RBAC 对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_abac_rbac.png)
 
 1. **服务角色**：阿里云服务（ECS、Function Compute 等）需要访问另一个服务（OSS、RDS 等）
 2. **跨账号访问**：账号 A 的用户需要访问账号 B 的资源
@@ -679,6 +683,8 @@ const result = await client.put(
 
 KMS 负责加密这块硬骨头。它管理 cryptographic keys，用来加密/解密数据。你根本接触不到原始密钥材料——KMS 把它存在硬件安全模块（HSMs）里，代表你执行加密操作。
 
+![KMS 信封加密流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_kms_encryption.png)
+
 ### 核心概念
 
 | Concept | What it is |
@@ -797,6 +803,8 @@ aliyun kms CreateKeyVersion --KeyId <your-cmk-id>
 ## ActionTrail：审计一切
 
 ActionTrail 是审计体系的基石。它会记录针对你阿里云账户发出的每一次 API 调用——谁操作的、什么时候、来自哪个 IP、带了什么参数，以及是否成功。你就把它当成云上的黑匣子飞行记录仪。
+
+![ActionTrail 审计流水线](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/06-ram-security/06_audit_trail.png)
 
 ### 记录的内容
 

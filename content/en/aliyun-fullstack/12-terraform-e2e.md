@@ -205,6 +205,8 @@ Key decisions in this layout:
 
 Before any module code, we need two things: the Alibaba Cloud provider configuration and a remote state backend.
 
+![Terraform state management flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_state_management.png)
+
 ### versions.tf
 
 ```hcl
@@ -345,6 +347,8 @@ Notice the `sensitive = true` on credentials. Terraform will mask these values i
 ## Module: Network
 
 The network module provisions the VPC architecture from [Part 3](/en/aliyun-fullstack/03-vpc-networking/) -- a 3-tier, 2-AZ layout with security groups, a NAT Gateway for outbound traffic, and an EIP for public access.
+
+![Network module resources](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_network_module.png)
 
 ### modules/network/variables.tf
 
@@ -1896,6 +1900,8 @@ This gives you the same code review workflow for infrastructure that you have fo
 
 Infrastructure-as-code makes cost optimization possible at the planning stage -- before you spend anything. The open-source tool `infracost` reads your Terraform files and estimates monthly costs.
 
+![Cost optimization strategies](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_cost_optimization.png)
+
 ### Installing and running infracost
 
 ```bash
@@ -2020,6 +2026,8 @@ That is nearly $2,200 saved per year just from right-sizing and switching to sub
 ## Teardown and Cleanup
 
 When you are done with an environment -- perhaps tearing down a staging stack after testing -- Terraform makes it a single command:
+
+![Safe teardown flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/12-terraform-e2e/12_destroy_flow.png)
 
 ```bash
 # Preview what will be destroyed

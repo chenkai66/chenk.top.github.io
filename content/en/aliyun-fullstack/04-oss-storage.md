@@ -111,6 +111,8 @@ The golden rule: start everything in Standard, measure your access patterns for 
 
 ### Console walkthrough
 
+![Bucket CRUD operations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/04_bucket_operations.png)
+
 The fastest way to create your first bucket:
 
 1. Open the [OSS Console](https://oss.console.aliyun.com/)
@@ -523,6 +525,8 @@ This saves you from proxying file uploads through your application server, which
 
 Lifecycle rules automate storage class transitions and object expiration. This is where the real cost savings happen. Set them up once and forget about them.
 
+![Storage lifecycle transition timeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/04_lifecycle_rules.png)
+
 ### Common patterns
 
 **Pattern 1: Progressive archival**
@@ -631,6 +635,8 @@ That is a 65% reduction by adding a single JSON file. Multiply by 20 buckets acr
 ## Cross-Region Replication (CRR)
 
 Cross-Region Replication asynchronously copies objects from a source bucket to a destination bucket in a different region. Two use cases:
+
+![Cross-region replication topology](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/04_crr_topology.png)
 
 1. **Disaster recovery** -- If cn-beijing has a regional outage, your data exists in cn-shanghai
 2. **Compliance** -- Regulatory requirements to store copies in specific geographic locations
@@ -805,6 +811,8 @@ aliyun cdn RefreshObjectCaches \
 ## Image Processing (IMM)
 
 OSS has built-in image processing that transforms images on the fly via URL parameters. No separate service, no pre-processing pipeline -- just append query parameters to the object URL.
+
+![Image processing pipeline via IMM](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/04-oss-storage/04_image_processing.png)
 
 ### Basic transformations
 

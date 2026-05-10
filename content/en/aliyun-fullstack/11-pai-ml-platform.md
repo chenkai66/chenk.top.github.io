@@ -77,6 +77,8 @@ The biggest practical difference: PAI exposes the underlying ECS instance types 
 
 DSW (Data Science Workshop) is where most ML work starts on PAI. It is JupyterLab and VSCode-in-browser running on a GPU ECS instance that PAI manages for you. The pitch: skip the CUDA/cuDNN/PyTorch install dance and get a working GPU box in about 90 seconds.
 
+![DSW notebook workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_dsw_workflow.png)
+
 ### When to use DSW
 
 - Interactive exploration, EDA, plotting
@@ -177,6 +179,8 @@ For the full DSW deep dive -- image selection, SSH tunneling, GPU memory profili
 ## PAI-DLC: distributed training
 
 DLC (Deep Learning Container) is where you go when a single GPU is not enough. It is a managed batch-job system: you hand it a container image, a command, a resource spec, and data mounts. DLC schedules the job onto a GPU cluster, sets up inter-node networking (RDMA where available), runs your code, streams logs, and tears down when done.
+
+![DLC distributed training patterns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_dlc_distributed.png)
 
 ![PAI distributed training pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_training_pipeline.png)
 
@@ -347,6 +351,8 @@ For the full DLC treatment -- RDMA configuration, DeepSpeed ZeRO configs, spot p
 ## PAI-EAS: model serving
 
 EAS (Elastic Algorithm Service) is where PAI earns its keep. A DSW notebook costs a few yuan per hour while you are at your desk. A DLC job is a one-time spend. An EAS endpoint sits there 24/7, and it needs to handle traffic spikes, scale down during quiet hours, support blue/green deployments, and not fall over when your marketing team sends a push notification to a million users at 10 AM.
+
+![EAS model serving architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_eas_serving.png)
 
 ### Deployment modes
 
@@ -616,6 +622,8 @@ For the Designer vs QuickStart comparison, see [PAI Part 5](/en/aliyun-pai/05-pa
 ## PAI + OSS + DashScope integration
 
 PAI does not exist in isolation. It connects to OSS for storage, to DashScope for model APIs, and to the broader Alibaba Cloud ecosystem for networking, security, and monitoring. Understanding the data flow saves a lot of debugging.
+
+![Full PAI integration flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/11-pai-ml-platform/11_integration_flow.png)
 
 ### The complete data flow
 

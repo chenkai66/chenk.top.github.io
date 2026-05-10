@@ -384,6 +384,10 @@ The critical parameters for production:
 
 ### Adding read replicas
 
+![Database proxy read/write split](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_proxy_architecture.png)
+
+![Read replica binlog replication architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_replica_flow.png)
+
 ![RDS high-availability architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_ha_architecture.png)
 
 A read replica is an asynchronous copy of the primary instance. It handles SELECT queries, offloading read traffic from the primary. For read-heavy workloads (most web applications), this is the primary scaling mechanism.
@@ -486,6 +490,8 @@ No application code changes needed. The proxy handles all routing transparently.
 
 Backups are the one thing you cannot skip. When everything else fails -- bad deploy, data corruption, accidental `DROP TABLE` -- backups are your last line of defense.
 
+![Backup timeline with point-in-time recovery](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_backup_timeline.png)
+
 ### Automatic backups
 
 RDS performs automatic backups on a configurable schedule. By default:
@@ -575,6 +581,8 @@ Cross-region backup adds cost (data transfer + storage in the secondary region),
 ## Monitoring and Performance
 
 ### CloudMonitor metrics
+
+![RDS monitoring dashboard metrics](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/05-rds-database/05_monitoring_metrics.png)
 
 RDS automatically reports metrics to CloudMonitor. The critical ones to watch:
 

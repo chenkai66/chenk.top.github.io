@@ -156,6 +156,8 @@ Examples:
 
 这里的决策比看起来简单。从工作负载出发，而不是从实例出发：
 
+![ECS 实例规格对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_instance_specs.png)
+
 | 工作负载 | 推荐起步 | 原因 |
 |---|---|---|
 | 静态站点 / 反向代理 | `ecs.c7.large` (2 vCPU, 4 GiB) | CPU 密集，几乎不需要内存 |
@@ -332,6 +334,8 @@ ssh -i ~/.ssh/app-server-key.pem root@<public-ip>
 
 千万别 SSH 进新实例手动装包。Cloud-init 在首次启动时运行，自动配置实例。每个 ECS 镜像都预装了 cloud-init。
 
+![Cloud-init 开机启动流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_cloud_init.png)
+
 创建实例时，你把 cloud-init 配置作为 `UserData` 传进去。必须 base64 编码。下面是一个全面的 `cloud-init.yaml`，能 setup 一个生产就绪的应用服务器：
 
 ```yaml
@@ -484,6 +488,8 @@ curl http://localhost/health
 
 安全组就是挂在 ENI 层面的状态防火墙。进出 ECS 实例的每个数据包都要过一遍安全组规则。要是没匹配上任何规则，包就直接**丢弃**——默认拒绝。
 
+![安全组入站和出站规则](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_security_groups.png)
+
 "状态化"是什么意思？比如你放行了入站 TCP 80，响应包会自动允许出站。你不需要为返回流量专门配一条出站规则。
 
 ### 常见安全组模式
@@ -608,6 +614,8 @@ scp -o ProxyJump=bastion localfile.tar.gz app-internal:/opt/app/
 ## 磁盘与存储
 
 每个 ECS 实例至少有一块磁盘：系统盘，装着 OS。你可以挂载最多 16 块额外数据盘。所有磁盘都是网络附加块存储——配置得当的话，它们独立于实例生命周期持久存在。
+
+![ESSD 磁盘类型 IOPS 与吞吐量对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/02_disk_types.png)
 
 ### 磁盘类型
 

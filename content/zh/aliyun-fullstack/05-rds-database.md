@@ -381,6 +381,10 @@ aliyun rds ModifyParameter \
 
 ### 添加只读副本
 
+![数据库代理读写分离](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_proxy_architecture.png)
+
+![只读副本 binlog 复制架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_replica_flow.png)
+
 ![RDS 高可用架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_ha_architecture.png)
 
 只读副本其实是主实例的一个异步拷贝。它专门处理 SELECT 查询，把读流量从主库卸下来。对于读多写少的场景（大多数 Web 应用），这是最主要的扩容手段。
@@ -483,6 +487,8 @@ engine = create_engine(
 
 备份是唯一不能省的东西。当其他都挂了——部署搞砸、数据损坏、手滑 `DROP TABLE`——备份是你最后的防线。
 
+![备份时间线与时间点恢复](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_backup_timeline.png)
+
 ### 自动备份
 
 RDS 会按可配置的计划自动备份。默认情况下：
@@ -572,6 +578,8 @@ aliyun rds ModifyInstanceCrossBackupPolicy \
 ## 监控与性能
 
 ### 云监控指标
+
+![RDS 监控仪表盘指标](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/05_monitoring_metrics.png)
 
 RDS 会自动把指标上报给云监控。这几个关键指标要盯紧：
 

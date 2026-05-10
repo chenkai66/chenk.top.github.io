@@ -185,6 +185,8 @@ The key discipline: never attach policies directly to users. Always go through g
 
 Policies are the authorization engine. Every API call in Alibaba Cloud is evaluated against the caller's attached policies to decide: allow or deny. Understanding how policies work is the difference between "it works" and "it works securely."
 
+![RAM policy evaluation flowchart](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_policy_evaluation.png)
+
 ### System Policies vs Custom Policies
 
 Alibaba Cloud provides over 800 system policies -- pre-built permission sets maintained by Alibaba Cloud. You cannot modify them, but they cover the most common scenarios:
@@ -413,6 +415,8 @@ aliyun ram AttachPolicyToGroup \
 ## RAM Roles
 
 RAM users are permanent identities for humans (and CI/CD pipelines). RAM roles are temporary identities designed for three scenarios:
+
+![ABAC vs RBAC comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_abac_rbac.png)
 
 1. **Service roles**: An Alibaba Cloud service (ECS, Function Compute, etc.) needs to access another service (OSS, RDS, etc.)
 2. **Cross-account access**: A user in Account A needs to access resources in Account B
@@ -682,6 +686,8 @@ The credentials expire after 15 minutes. If the user needs to upload more files,
 
 KMS handles the encryption pillar. It manages cryptographic keys and uses them to encrypt/decrypt data. You never see the raw key material -- KMS keeps it in hardware security modules (HSMs) and performs cryptographic operations on your behalf.
 
+![KMS envelope encryption flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_kms_encryption.png)
+
 ### Key Concepts
 
 | Concept | What it is |
@@ -801,6 +807,8 @@ aliyun kms CreateKeyVersion --KeyId <your-cmk-id>
 ## ActionTrail: Audit Everything
 
 ActionTrail is the auditing pillar. It records every API call made against your Alibaba Cloud account -- who did it, when, from what IP, with what parameters, and whether it succeeded. Think of it as the black box flight recorder for your cloud.
+
+![ActionTrail audit pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/06_audit_trail.png)
 
 ### What Gets Logged
 

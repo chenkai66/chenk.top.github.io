@@ -238,6 +238,8 @@ The `line` section enables full-text indexing with the specified token delimiter
 
 Logtail is SLS's log collection agent. It runs on your ECS instances, watches log files, parses them according to your configuration, and ships them to SLS. It is lightweight (typically 50-100 MB RAM, <1% CPU), reliable (handles network interruptions with local buffering), and tightly integrated with SLS.
 
+![Logtail agent deployment architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_logtail_architecture.png)
+
 ### Installation
 
 On an ECS instance in the same region, installation is one command:
@@ -436,6 +438,8 @@ For syslog, journald, and system-level events, Logtail has built-in support:
 ## Building Dashboards
 
 A dashboard that nobody looks at is worse than useless -- it gives false confidence. The key is building dashboards around the questions you actually ask during incidents, not the metrics that look impressive.
+
+![SLS dashboard layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_dashboard_layout.png)
 
 ### The Five Essential Panels
 
@@ -899,6 +903,8 @@ Supported notification channels:
 
 ARMS completes the observability picture by providing the third pillar: traces. While SLS tells you what happened and CloudMonitor tells you the system-level impact, ARMS tells you exactly where in your application the problem occurs.
 
+![Distributed tracing with ARMS](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_arms_traces.png)
+
 ### What ARMS Does
 
 ARMS is an APM (Application Performance Monitoring) platform that provides:
@@ -1265,6 +1271,8 @@ After completing all five steps, your observability stack looks like this:
 ## Costs
 
 Observability is not free, and costs can sneak up on you. Here is a realistic cost estimate for a small production setup (2 ECS instances, moderate traffic):
+
+![Observability cost breakdown](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/07-observability/07_cost_model.png)
 
 | Component | Free Tier | Typical Monthly Cost |
 |---|---|---|

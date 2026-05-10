@@ -203,6 +203,8 @@ aliyun-fullstack-terraform/
 
 动手写模块代码前，有两件事得先安排好：阿里云 Provider 配置和远程 State 后端。
 
+![Terraform 状态管理流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_state_management.png)
+
 ### versions.tf
 
 ```hcl
@@ -343,6 +345,8 @@ variable "db_password" {
 ## 网络模块
 
 网络模块负责部署 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 里设计的 VPC 架构——3 层结构、2 可用区布局，包含安全组、出向流量的 NAT Gateway 以及公网访问的 EIP。
+
+![网络模块资源](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_network_module.png)
 
 ### modules/network/variables.tf
 
@@ -1890,6 +1894,8 @@ jobs:
 
 基础设施即代码最大的好处之一，就是能在花钱之前先把账算清楚。开源工具 `infracost` 可以直接读取你的 Terraform 文件，估算出每月的花费。
 
+![成本优化策略](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_cost_optimization.png)
+
 ### 安装并运行 infracost
 
 ```bash
@@ -2014,6 +2020,8 @@ ecs_instance_type = "ecs.g7.small"  # 原来是：ecs.g7.large
 ## 销毁与清理
 
 环境用完即毁——比如测试完要把 staging 栈撤掉——Terraform 只需要一条命令：
+
+![安全销毁流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/12-terraform-e2e/12_destroy_flow.png)
 
 ```bash
 # 预览将要销毁的内容
