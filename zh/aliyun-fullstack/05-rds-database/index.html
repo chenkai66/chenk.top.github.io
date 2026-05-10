@@ -1,0 +1,1177 @@
+<!doctype html><html lang=zh data-translation=/en/aliyun-fullstack/05-rds-database/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石 · Chen Kai Blog</title>
+<meta name=description content="RDS MySQL vs PolarDB: when to use which. Instance sizing, read replicas, proxy endpoints, backup/restore, monitoring, slow query analysis. Build a production database with HA and read scaling."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-fullstack/05-rds-database/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><meta property="og:type" content="article"><meta property="og:title" content="阿里云全栈实战（五）：RDS 与 PolarDB 数据基石"><meta property="og:description" content="RDS MySQL vs PolarDB: when to use which. Instance sizing, read replicas, proxy endpoints, backup/restore, monitoring, slow query analysis. Build a production database with HA and read scaling."><meta property="og:url" content="https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><meta property="og:image:alt" content="阿里云全栈实战（五）：RDS 与 PolarDB 数据基石"><meta property="article:published_time" content="2026-04-26T09:00:00Z"><meta property="article:modified_time" content="2026-04-26T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Alibaba Cloud"><meta property="article:tag" content="RDS"><meta property="article:tag" content="PolarDB"><meta property="article:tag" content="MySQL"><meta property="article:tag" content="Database"><meta property="article:tag" content="Cloud Computing"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="阿里云全栈实战（五）：RDS 与 PolarDB 数据基石"><meta name=twitter:description content="RDS MySQL vs PolarDB: when to use which. Instance sizing, read replicas, proxy endpoints, backup/restore, monitoring, slow query analysis. Build a production database with HA and read scaling."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"阿里云全栈实战（五）：RDS 与 PolarDB 数据基石\"","description":"\"RDS MySQL vs PolarDB: when to use which. Instance sizing, read replicas, proxy endpoints, backup/restore, monitoring, slow query analysis. Build a production database with HA and read scaling.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2026-04-26T09:00:00Z\"","dateModified":"\"2026-04-26T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.ffe8d1412c95bc9c9e1b0778441a3fa076b6c785bfacb3710830bedcf4b0b3c4.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>阿里云全栈实战</a>
+· 第 5 篇</div><h1>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</h1><p class=deck>RDS MySQL vs PolarDB: when to use which. Instance sizing, read replicas, proxy endpoints, backup/restore, monitoring, slow query analysis. Build a production database with HA and read scaling.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-26>April 26, 2026</time> · 40 分钟 · 9948 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/zh/tags/rds/ class=tag>#RDS</a><a href=/zh/tags/polardb/ class=tag>#PolarDB</a><a href=/zh/tags/mysql/ class=tag>#MySQL</a><a href=/zh/tags/database/ class=tag>#Database</a><a href=/zh/tags/cloud-computing/ class=tag>#Cloud Computing</a></div><a class="pill pill-outline" href=/en/aliyun-fullstack/05-rds-database/>Read in English →</a></div></header><div class=prose><p>我在 ECS 上自建 MySQL 只撑了四个月。流量高峰期的磁盘 I/O 飙升直接把服务打挂。InnoDB buffer pool 跟 OS page cache 抢内存，binary log 填盘速度比 cron 任务清理得还快，单线程复制到“备份”实例已经 lag 了九个小时。凌晨三点，我只能靠扩容磁盘救火。两周后，同样的问题又来了。那天我才真正明白托管数据库存在的意义——不是因为我不会跑 MySQL，而是我不想成为那个半夜三点被叫醒的人，只因 MySQL 判定 relay log 损坏，唯一的修复方案是用可能一致也可能不一致的冷备份重建副本。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/cover.png alt="RDS Database Layer" loading=lazy decoding=async class=content-image></figure></p><p>这篇文章咱们聊聊阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 用于应对 RDS 的瓶颈，还有那些让数据保持存活的运维实践——规格 sizing、复制、备份、监控、安全。这个数据库所在的 VPC 是在 <a href=/zh/aliyun-fullstack/03-vpc-networking/>Part 3</a>
+搭建的。如果想看用 Terraform 部署 数据库的方法，参考 <a href=/zh/terraform-agents/05-storage-for-agent-memory/>Terraform Part 5</a>
+。</p><h2 id=为什么选托管数据库>为什么选托管数据库？</h2><p>在裸 ECS 实例上跑数据库，控制权确实全在你手里。MySQL 版本随便选，<code>my.cnf</code> 参数随便调，自定义插件随便装，root 权限在手，<code>perf</code> 和 <code>strace</code> 直接挂在 mysqld 进程上 debug。这种控制权是真实的，偶尔也确实有用。</p><p>但你也签下了这份“卖身契”：</p><ul><li><strong>OS 补丁。</strong> 内核安全更新需要重启——你配置好 failover 了吗？</li><li><strong>备份管理。</strong> 用 Percona XtraBackup 做物理备份，每月测试恢复，管理备份文件存储，靠归档 binary log 实现 point-in-time recovery。</li><li><strong>高可用。</strong> 半同步复制，GTID 配置，用 MHA 或 ProxySQL 这类 orchestrator 做自动 failover，VIP 管理，防止 split-brain。</li><li><strong>监控。</strong> 慢查询分析，InnoDB buffer pool 命中率，复制延迟，连接池耗尽，锁等待超时。</li><li><strong>扩容。</strong> 加 read replicas，配置 ProxySQL 做读写分离，管理连接路由。</li><li><strong>磁盘管理。</strong> 文件系统选型（XFS vs ext4），I/O scheduler 调优，IOPS provisioning，在线磁盘扩容。</li><li><strong>安全。</strong> SSL/TLS 配置，审计日志，静态加密，密钥轮转。</li></ul><p>托管数据库把这些活儿全包了。你失去了 root 权限，也没法随便装 MySQL 插件（别想自定义 UDF，也别想拿 Group Replication 拓扑做实验）。但作为交换，你拿到了自动备份、一键 HA failover、内置监控、一键创建 read replicas，而且再也不会因为磁盘满了半夜被叫醒。</p><p>对于 95% 的生产负载，选托管绝对划算。</p><h3 id=阿里云数据库家族>阿里云数据库家族</h3><p>在深入 RDS 之前，先看看阿里云数据库服务的全貌：</p><table><thead><tr><th>Service</th><th>Type</th><th>Engine</th><th>AWS Equivalent</th><th>When to use</th></tr></thead><tbody><tr><td><strong>RDS</strong></td><td>Managed relational</td><td>MySQL, PostgreSQL, SQL Server, MariaDB</td><td>Amazon RDS</td><td>Standard OLTP, most web applications</td></tr><tr><td><strong>PolarDB</strong></td><td>Cloud-native relational</td><td>MySQL-compatible, PostgreSQL-compatible</td><td>Amazon Aurora</td><td>High read throughput, elastic scaling, large databases</td></tr><tr><td><strong>Lindorm</strong></td><td>Multi-model</td><td>Wide-column, time-series, search</td><td>DynamoDB + Timestream</td><td>IoT data, time-series metrics, large-scale KV</td></tr><tr><td><strong>Tair</strong></td><td>Managed Redis</td><td>Redis-compatible</td><td>Amazon ElastiCache</td><td>Caching, session storage, rate limiting</td></tr><tr><td><strong>AnalyticDB (ADB)</strong></td><td>Analytical</td><td>MySQL-compatible, PostgreSQL-compatible</td><td>Amazon Redshift</td><td>OLAP, real-time analytics, data warehousing</td></tr><tr><td><strong>PolarDB-X</strong></td><td>Distributed relational</td><td>MySQL-compatible</td><td>Aurora Limitless / CockroachDB</td><td>Horizontal sharding, distributed transactions</td></tr><tr><td><strong>OceanBase</strong></td><td>Distributed relational</td><td>MySQL/Oracle-compatible</td><td>Spanner-like</td><td>Financial-grade, strong consistency across zones</td></tr><tr><td><strong>MongoDB</strong></td><td>Document store</td><td>MongoDB-compatible</td><td>Amazon DocumentDB</td><td>Document workloads, flexible schema</td></tr></tbody></table><p>这篇文章咱们重点聊 RDS（主力军）和 PolarDB（RDS 扛不住时的升级路径）。这两个覆盖了阿里云上 90% 的生产数据库需求。</p><h2 id=rds-mysql-深度解析>RDS MySQL 深度解析</h2><p>RDS MySQL 是阿里云上用得最多的数据库服务。它是 fully managed MySQL 实例，自带自动备份、补丁、监控和高可用。你拿到一个 MySQL-compatible endpoint，连接方式和普通 MySQL 服务器一样——<code>mysql -h &lt;endpoint> -u &lt;user> -p</code>。</p><h3 id=架构>架构</h3><p>RDS MySQL HA 实例在同一地域内以主备对（primary-standby pair）运行。Primary 处理所有读写。Standby 通过半同步复制接收变更，如果 primary 挂掉，它会自动 promoted。Failover 通常在 30 秒内完成，对应用透明（DNS endpoint 不变，连接只是瞬间断开）。</p><p>Standby 不可读——它只为 failover 存在。如果想做读扩容，得加 read replicas（后面会讲）。</p><h3 id=版本>版本</h3><p>RDS MySQL 有三个版本：</p><table><thead><tr><th>Edition</th><th>Nodes</th><th>HA Failover</th><th>Use Case</th><th>Cost</th></tr></thead><tbody><tr><td><strong>Basic</strong></td><td>1 (primary only)</td><td>No</td><td>Dev/test, non-critical workloads</td><td>Lowest</td></tr><tr><td><strong>High-Availability (HA)</strong></td><td>2 (primary + standby)</td><td>Yes (30s)</td><td>Production</td><td>Standard</td></tr><tr><td><strong>Enterprise (Cluster)</strong></td><td>3 (primary + 2 standby)</td><td>Yes (&lt; 30s, zero data loss)</td><td>Mission-critical, finance</td><td>Highest</td></tr></tbody></table><p>Basic 版没有 standby。如果 primary 挂了，阿里云会从最新备份恢复，这意味着几分钟到几小时的 downtime，取决于数据库大小。<strong>生产环境千万别用 Basic。</strong></p><p>HA 版是大多数生产负载的正确选择。同地域的 standby 提供接近零的 RPO（半同步复制）和约 30 秒的 RTO。</p><p>Enterprise 版加了第三个节点做基于 Paxos 的 consensus，保证即使 failover 也不丢数据。这对金融系统很重要，那里丢一个交易都是不可接受的。</p><h3 id=存储类型>存储类型</h3><table><thead><tr><th>Storage Type</th><th>IOPS Range</th><th>Latency</th><th>Max Size</th><th>Best For</th></tr></thead><tbody><tr><td><strong>Local SSD</strong></td><td>Up to 240,000</td><td>Lowest (&lt; 0.1ms)</td><td>3 TB</td><td>Maximum performance, small-to-medium databases</td></tr><tr><td><strong>ESSD PL1</strong></td><td>Up to 50,000</td><td>0.1-0.3ms</td><td>32 TB</td><td>General production</td></tr><tr><td><strong>ESSD PL2</strong></td><td>Up to 100,000</td><td>0.1-0.3ms</td><td>32 TB</td><td>High-IOPS workloads</td></tr><tr><td><strong>ESSD PL3</strong></td><td>Up to 1,000,000</td><td>0.1-0.3ms</td><td>32 TB</td><td>Extreme IOPS, large OLTP</td></tr></tbody></table><p>Local SSD 延迟最低，因为 SSD 物理附着在宿主机上，不走网络。代价是容量：Local SSD 上限 3 TB。数据库要是会超过这个大小，直接用 ESSD。</p><p>ESSD（Enhanced SSD）是网络附加块存储，容量弹性。你可以在线扩容 ESSD 不停机，32 TB 上限能容纳大多数数据库。ESSD PL1 是默认选项，也是大多数负载的正确选择。只有当 CloudMonitor 显示你的 IOPS 持续 hitting PL1 天花板时，再升级到 PL2 或 PL3。</p><blockquote><p><strong>Practical tip:</strong> 从 ESSD PL1 起步。在 CloudMonitor 里盯一周 <code>IOPSUsage</code> 指标。如果看到持续 usage 超过 PL1 限制的 70%，再升级。如果从来没超过 20%，那你就是在为不需要的余量付费——不过 PL0 和 PL1 的价差很小，这点保险钱值得花。</p></blockquote><h3 id=连接方式>连接方式</h3><p>RDS MySQL 提供三种连接方式：</p><ol><li><p><strong>内网 endpoint</strong> —— 只能从同一 VPC 内访问。这是你的应用服务器用的。长得像 <code>rm-bp1xxxxxxxxx.mysql.rds.aliyuncs.com:3306</code>。</p></li><li><p><strong>公网 endpoint</strong> —— 互联网可访问。默认禁用。只为了远程管理才开启（并且要用 IP whitelist 锁死）。千万别让生产应用通过公网 endpoint 连数据库。</p></li><li><p><strong>数据库代理 endpoint</strong> —— 代理层，提供读写分离、连接池和短连接优化。这是使用 read replicas 的应用推荐的 endpoint。</p></li></ol><h2 id=polardb-when-rds-isnt-enough>PolarDB: When RDS Isn&rsquo;t Enough</h2><p>PolarDB 是阿里云的云原生数据库。如果说 RDS 是“托管的 MySQL 实例”，那 PolarDB 就是骨子里完全不同的架构，只不过恰好兼容 MySQL 协议而已。</p><h3 id=how-polardb-differs-from-rds>How PolarDB differs from RDS</h3><p>核心架构差异在于 <strong>存算分离</strong>。RDS 里，每个实例（主、备、只读）都有自己的磁盘和数据副本。PolarDB 则是所有计算节点共享一个分布式存储层。</p><p>这个改动影响深远：</p><ul><li><p><strong>加只读实例只要几分钟，不是几小时。</strong> 新的 RDS 只读实例得把全量数据拷到自己的磁盘上。PolarDB 只读实例只是启动一个新的计算节点挂载到共享存储——根本不用拷数据。</p></li><li><p><strong>存储自动扩容。</strong> PolarDB 存储随数据增长，上限 128 TB。你不用手动预配存储容量。再也不用半夜 3 点因为磁盘满了被报警叫醒。</p></li><li><p><strong>最多 15 个只读实例。</strong> RDS 最多支持 5 个只读实例。PolarDB 支持 15 个，全都读同一份共享存储，复制延迟几乎为零（通常低于 10ms）。</p></li><li><p><strong>故障切换更快。</strong> 因为备节点本来就能访问同一份存储，切换不需要数据同步。PolarDB 故障切换能在 10 秒内完成。</p></li></ul><h3 id=rds-vs-polardb-comparison>RDS vs PolarDB comparison</h3><table><thead><tr><th>特性</th><th>RDS MySQL HA</th><th>PolarDB MySQL</th></tr></thead><tbody><tr><td>架构</td><td>主 + 备，独立存储</td><td>共享存储，存算分离</td></tr><tr><td>最大存储</td><td>32 TB (ESSD)</td><td>128 TB (自动扩容)</td></tr><tr><td>只读实例</td><td>最多 5 个</td><td>最多 15 个</td></tr><tr><td>实例创建时间</td><td>几小时 (数据拷贝)</td><td>几分钟 (共享存储)</td></tr><tr><td>复制延迟</td><td>秒级 (异步/半同步)</td><td>&lt; 10ms (共享存储)</td></tr><tr><td>故障切换时间</td><td>~30 秒</td><td>&lt; 10 秒</td></tr><tr><td>存储扩容</td><td>手动 (扩容磁盘)</td><td>自动</td></tr><tr><td>Serverless 模式</td><td>无</td><td>有</td></tr><tr><td>兼容性</td><td>MySQL 5.6/5.7/8.0</td><td>兼容 MySQL 5.6/5.7/8.0</td></tr><tr><td>价格 (同等配置)</td><td>1x</td><td>1.2-1.5x</td></tr><tr><td>适用场景</td><td>标准 OLTP</td><td>高读吞吐，大库，弹性负载</td></tr></tbody></table><h3 id=polardb-serverless>PolarDB Serverless</h3><p>PolarDB 提供 Serverless 模式，计算资源随负载自动伸缩。你设定 PCU（PolarDB Compute Units）的最小最大值，系统会在其间自动调整：</p><ul><li><strong>Minimum PCU: 1</strong> &ndash; 空闲时数据库缩容到 1 PCU，成本极低。</li><li><strong>Maximum PCU: 32</strong> &ndash; 流量高峰时，数据库自动扩容。</li><li><strong>Scale-to-zero</strong> &ndash; 长期无活动时，PolarDB Serverless 可以完全暂停计算，只收存储费。</li></ul><p>这对开发库、staging 环境，或者流量波动极大的生产负载（比如大促期间流量翻 100 倍的电商站点）简直完美。</p><h3 id=when-to-choose-polardb-over-rds>When to choose PolarDB over RDS</h3><p>满足以下情况选 PolarDB：</p><ul><li>数据库将超过 10 TB 且还在增长</li><li>需要超过 5 个只读实例</li><li>需要低于 10ms 的复制延迟以保证读一致性</li><li>负载波动大，适合 Serverless 自动伸缩</li><li>要求故障切换时间小于 10 秒</li><li>不想手动管理存储容量</li></ul><p>满足以下情况选 RDS：</p><ul><li>数据库小于 5 TB 且增长可预测</li><li>只需要 3 个或更少的只读实例</li><li>追求同等配置下的最低成本</li><li>需要 PolarDB 不支持的特定 MySQL 特性</li><li>偏好更简单的运维模型</li></ul><p>大部分项目，先上 RDS。碰到具体瓶颈再迁 PolarDB。MySQL 线协议兼容，迁移通常就是 dump 加 restore。</p><h2 id=instance-sizing-guide>Instance Sizing Guide</h2><p>选对 RDS 实例规格是成本控制最关键的一步。选小了，负载一高查询就慢；选大了，闲置资源全是钱。</p><h3 id=key-metrics-for-sizing>Key metrics for sizing</h3><ul><li><strong>vCPUs</strong> &ndash; 决定并发查询处理能力。CPU 密集型负载（复杂 JOIN、聚合）需要更多。</li><li><strong>Memory</strong> &ndash; 直接对应 InnoDB buffer pool 大小。理想情况是，你的整个热点数据集都能放进 buffer pool。</li><li><strong>Max IOPS</strong> &ndash; 每秒磁盘操作上限。事务密集型负载容易撞到这个天花板。</li><li><strong>Max connections</strong> &ndash; 每个实例类型都有硬限制。高并发负载必须在应用层做连接池。</li></ul><h3 id=sizing-table-for-common-workloads>Sizing table for common workloads</h3><table><thead><tr><th>负载类型</th><th>实例类型</th><th>vCPU</th><th>Memory</th><th>Max IOPS</th><th>Max Connections</th><th>月成本 (约)</th></tr></thead><tbody><tr><td>小型博客 / CMS</td><td>rds.mysql.s2.large</td><td>2</td><td>4 GiB</td><td>2,000</td><td>300</td><td>~200 CNY</td></tr><tr><td>中型 Web 应用</td><td>rds.mysql.s3.large</td><td>4</td><td>8 GiB</td><td>5,000</td><td>600</td><td>~400 CNY</td></tr><tr><td>API 后端</td><td>rds.mysql.m1.medium</td><td>4</td><td>16 GiB</td><td>7,000</td><td>4,000</td><td>~800 CNY</td></tr><tr><td>重度 OLTP</td><td>rds.mysql.c1.xlarge</td><td>8</td><td>32 GiB</td><td>12,000</td><td>8,000</td><td>~1,600 CNY</td></tr><tr><td>大型 SaaS</td><td>rds.mysql.c2.xlarge</td><td>16</td><td>64 GiB</td><td>14,000</td><td>16,000</td><td>~3,200 CNY</td></tr><tr><td>数据密集型</td><td>rds.mysql.st.h43</td><td>60</td><td>470 GiB</td><td>120,000</td><td>48,000</td><td>~20,000 CNY</td></tr></tbody></table><h3 id=the-buffer-pool-rule>The buffer pool rule</h3><p>InnoDB 性能就看一点：数据能不能放进 buffer pool。buffer pool 是内存里的数据和索引页缓存。走 buffer pool 的查询是微秒级。走磁盘的查询是毫秒级——慢 1000 倍。</p><p>公式如下：</p><pre tabindex=0><code>Buffer Pool Size ≈ 75% of instance memory
+Working Set = frequently accessed data + all indexes
+If Working Set ≤ Buffer Pool Size → fast
+If Working Set &gt; Buffer Pool Size → disk thrashing
+</code></pre><p>检查当前 buffer pool 使用情况：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Buffer pool hit ratio (should be &gt; 99%)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>STATUS</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;Innodb_buffer_pool_read_requests&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SHOW</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>STATUS</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;Innodb_buffer_pool_reads&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Calculate: hit_ratio = 1 - (reads / read_requests)
+</span></span></span><span class=line><span class=cl><span class=c1>-- If hit_ratio &lt; 0.99, your buffer pool is too small
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Actual buffer pool size
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;innodb_buffer_pool_size&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Data + index size for each database
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>table_schema</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>db</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>ROUND</span><span class=p>(</span><span class=k>SUM</span><span class=p>(</span><span class=n>data_length</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>index_length</span><span class=p>)</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>size_mb</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>tables</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>table_schema</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>size_mb</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>如果你的 working set 是 12 GiB，16 GiB 内存的实例给你分配的 buffer pool 大概 12 GiB（16 的 75%）。这就太紧了。直接上 32 GiB 留点增长余量。</p><h3 id=connection-limits>Connection limits</h3><p>每个实例类型都有最大连接数限制。超了就直接 <code>Too many connections</code> 拒绝。这是生产环境最常见的问题之一。</p><p>解决办法不是买大实例。解决办法是在应用层用连接池：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># SQLAlchemy connection pool example</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sqlalchemy</span> <span class=kn>import</span> <span class=n>create_engine</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>engine</span> <span class=o>=</span> <span class=n>create_engine</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;mysql+pymysql://appuser:password@rm-bp1xxx.mysql.rds.aliyuncs.com:3306/mydb&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>pool_size</span><span class=o>=</span><span class=mi>20</span><span class=p>,</span>          <span class=c1># Maintain 20 connections</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_overflow</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span>       <span class=c1># Allow 10 extra connections under load</span>
+</span></span><span class=line><span class=cl>    <span class=n>pool_timeout</span><span class=o>=</span><span class=mi>30</span><span class=p>,</span>       <span class=c1># Wait 30s for a connection before erroring</span>
+</span></span><span class=line><span class=cl>    <span class=n>pool_recycle</span><span class=o>=</span><span class=mi>3600</span><span class=p>,</span>     <span class=c1># Recycle connections every hour</span>
+</span></span><span class=line><span class=cl>    <span class=n>pool_pre_ping</span><span class=o>=</span><span class=kc>True</span>     <span class=c1># Verify connection is alive before using</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>配好连接池，20-30 个连接能扛几千并发应用请求。不用连接池的话，每个请求新建数据库连接，几百并发用户就把连接数耗光了。</p><h2 id=creating-an-rds-instance>Creating an RDS Instance</h2><h3 id=step-by-step-via-cli>Step-by-step via CLI</h3><p>下面是一套完整的 CLI 创建生产环境 RDS MySQL 实例的流程。我们用高可用版，ESSD 存储，跟应用服务器放在同一个 VPC。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create RDS MySQL 8.0 HA instance</span>
+</span></span><span class=line><span class=cl>aliyun rds CreateDBInstance <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Engine MySQL <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EngineVersion <span class=s2>&#34;8.0&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceClass rds.mysql.s3.large <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorage <span class=m>100</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorageType cloud_essd <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Category HighAvailability <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceNetType Intranet <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VPCId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchId vsw-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneIdSlave1 cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityIPList <span class=s2>&#34;10.0.10.0/24,10.0.11.0/24&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PayType Postpaid <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceDescription <span class=s2>&#34;Production MySQL&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ConnectionMode Standard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceNetworkType VPC
+</span></span></code></pre></td></tr></table></div></div><p>拆解一下关键参数：</p><ul><li><strong>Engine/EngineVersion</strong>: MySQL 8.0。新项目直接用 8.0 &ndash; 5.7 已经进入维护期了。</li><li><strong>DBInstanceClass</strong>: <code>rds.mysql.s3.large</code> 给的是 4 vCPU, 8 GiB 内存。适合中型 Web 应用。</li><li><strong>DBInstanceStorage</strong>: 100 GiB 起步。ESSD 后面可以在线扩容。</li><li><strong>Category</strong>: <code>HighAvailability</code> 给的是主 + 备。</li><li><strong>ZoneId/ZoneIdSlave1</strong>: 主节点在可用区 H，备节点在可用区 I。跨可用区高可用意味着单个可用区故障不会搞挂数据库。</li><li><strong>SecurityIPList</strong>: 只允许应用层子网连接（10.0.10.0/24 和 10.0.11.0/24）。这是 RDS IP 白名单，跟安全组是分开的。</li><li><strong>ConnectionMode</strong>: <code>Standard</code> 走直连。<code>Safe</code> 走代理（已废弃，改用 Database Proxy）。</li></ul><p>等待实例就绪：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Check instance status (wait for &#34;Running&#34;)</span>
+</span></span><span class=line><span class=cl>aliyun rds DescribeDBInstanceAttribute <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>DBInstanceStatus,DBInstanceClass,Engine,EngineVersion
+</span></span></code></pre></td></tr></table></div></div><h3 id=create-a-database-and-accounts>Create a database and accounts</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create the application database</span>
+</span></span><span class=line><span class=cl>aliyun rds CreateDatabase <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBName myapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CharacterSetName utf8mb4 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBDescription <span class=s2>&#34;Main application database&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create a normal account (not superuser) for the application</span>
+</span></span><span class=line><span class=cl>aliyun rds CreateAccount <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountName appuser <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountPassword <span class=s2>&#34;YourStr0ngP@ssw0rd&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountType Normal <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountDescription <span class=s2>&#34;Application service account&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Grant permissions</span>
+</span></span><span class=line><span class=cl>aliyun rds GrantAccountPrivilege <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountName appuser <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBName myapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountPrivilege ReadWrite
+</span></span></code></pre></td></tr></table></div></div><p>别给应用账号 <code>Super</code> 权限。<code>Normal</code> 账号配特定数据库的 <code>ReadWrite</code> 符合最小权限原则。单独建个带 <code>Super</code> 的管理员账号给 DBA 操作用。</p><h3 id=get-the-connection-endpoint>Get the connection endpoint</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Get the internal connection string</span>
+</span></span><span class=line><span class=cl>aliyun rds DescribeDBInstanceNetInfo <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>ConnectionString,IPAddress,Port,DBInstanceNetType
+</span></span></code></pre></td></tr></table></div></div><p>内网地址格式类似 <code>rm-bp1xxxxxxxxx.mysql.rds.aliyuncs.com:3306</code>。应用配置里用这个：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Test connection from an ECS instance in the same VPC</span>
+</span></span><span class=line><span class=cl>mysql -h rm-bp1xxxxxxxxx.mysql.rds.aliyuncs.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -u appuser -p <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -e <span class=s2>&#34;SELECT VERSION(); SHOW DATABASES;&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=configure-instance-parameters>Configure instance parameters</h3><p>RDS 用参数模板（parameter groups）管 MySQL 配置。可以改单个参数或者套用模板：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># View current parameters</span>
+</span></span><span class=line><span class=cl>aliyun rds DescribeParameters <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Modify key parameters for production</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyParameter <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Parameters <span class=s2>&#34;innodb_buffer_pool_size:6442450944;slow_query_log:ON;long_query_time:1;max_connections:500;innodb_flush_log_at_trx_commit:1;sync_binlog:1&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>生产环境关键参数：</p><table><thead><tr><th>参数</th><th>推荐值</th><th>原因</th></tr></thead><tbody><tr><td><code>innodb_buffer_pool_size</code></td><td>实例内存的 75%</td><td>最大化内存数据访问</td></tr><tr><td><code>slow_query_log</code></td><td>ON</td><td>必须开。性能调试全靠它。</td></tr><tr><td><code>long_query_time</code></td><td>1 (秒)</td><td>记录超过 1 秒的查询</td></tr><tr><td><code>innodb_flush_log_at_trx_commit</code></td><td>1</td><td>完整的 ACID 耐久性。只有能接受潜在数据丢失时才设 2。</td></tr><tr><td><code>sync_binlog</code></td><td>1</td><td>每次提交同步 binlog。崩溃安全复制必需。</td></tr><tr><td><code>max_connections</code></td><td>实际需求 + 20% 余量</td><td>除非必要，别设到实例上限</td></tr></tbody></table><h2 id=只读副本与数据库代理>只读副本与数据库代理</h2><h3 id=添加只读副本>添加只读副本</h3><p>只读副本其实是主实例的一个异步拷贝。它专门处理 SELECT 查询，把读流量从主库卸下来。对于读多写少的场景（大多数 Web 应用），这是最主要的扩容手段。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create a read replica</span>
+</span></span><span class=line><span class=cl>aliyun rds CreateReadOnlyDBInstance <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EngineVersion <span class=s2>&#34;8.0&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceClass rds.mysql.s2.large <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorage <span class=m>100</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorageType cloud_essd <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PayType Postpaid <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceDescription <span class=s2>&#34;Read replica 1&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>创建副本的流程大概是这样：</p><ol><li>RDS 给主库打个内部快照</li><li>用快照数据开通一个新实例</li><li>自动配置 Binlog 复制</li><li>副本就绪（小库几分钟，大库几小时）</li></ol><p>检查一下复制状态：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- On the read replica, check replication lag
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SHOW</span><span class=w> </span><span class=n>SLAVE</span><span class=w> </span><span class=n>STATUS</span><span class=err>\</span><span class=k>G</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Key fields to watch:
+</span></span></span><span class=line><span class=cl><span class=c1>-- Seconds_Behind_Master: should be 0 or very low
+</span></span></span><span class=line><span class=cl><span class=c1>-- Slave_IO_Running: Yes
+</span></span></span><span class=line><span class=cl><span class=c1>-- Slave_SQL_Running: Yes
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=数据库代理-database-proxy>数据库代理 (Database Proxy)</h3><p>手动管理只读副本挺痛苦的。应用得知道哪个端点是主库（写），哪个是副本（读），还得自己路由。数据库代理就是来解决这个问题的。</p><p>数据库代理是位于应用和 RDS 实例之间的内置代理层。它能提供：</p><ul><li><strong>自动读写分离</strong> &ndash; <code>INSERT/UPDATE/DELETE</code> 走主库，<code>SELECT</code> 走副本</li><li><strong>连接池</strong> &ndash; 减少数据库的连接开销</li><li><strong>单一端点</strong> &ndash; 应用只连一个地址，路由交给代理处理</li></ul><p>开启数据库代理：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Enable Database Proxy (dedicated proxy for HA edition)</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyDBProxy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ConfigDBProxyService <span class=nb>true</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBProxyInstanceType <span class=m>2</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBProxyInstanceNum <span class=m>2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Get the proxy endpoint</span>
+</span></span><span class=line><span class=cl>aliyun rds DescribeDBProxy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>DBProxyConnectString,DBProxyConnectStringPort
+</span></span></code></pre></td></tr></table></div></div><p>配置读写分离：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Enable read/write splitting with weight distribution</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyReadWriteSplittingConnection <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ConnectionStringPrefix <span class=s2>&#34;myapp-proxy&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DistributionType Standard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MaxDelayTime <span class=m>10</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Weight <span class=s1>&#39;{&#34;rm-bp1xxxxxxxxx&#34;:&#34;0&#34;,&#34;rr-bp1yyyyyyyyy&#34;:&#34;100&#34;}&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>权重配置的意思是：</p><ul><li>主库 (<code>rm-bp1xxxxxxxxx</code>)：权重 0 &ndash; 读请求不发往主库（写请求依然自动发到这里）</li><li>副本 (<code>rr-bp1yyyyyyyyy</code>)：权重 100 &ndash; 所有读请求都发往副本</li></ul><p>如果副本的复制延迟超过 <code>MaxDelayTime</code>（10 秒），代理会自动把读请求切回主库，直到副本追上进度。</p><p>应用的连接字符串改成代理端点：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Before: direct connection to primary</span>
+</span></span><span class=line><span class=cl><span class=n>engine</span> <span class=o>=</span> <span class=n>create_engine</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;mysql+pymysql://appuser:pass@rm-bp1xxx.mysql.rds.aliyuncs.com:3306/mydb&#34;</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># After: connection through Database Proxy</span>
+</span></span><span class=line><span class=cl><span class=n>engine</span> <span class=o>=</span> <span class=n>create_engine</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;mysql+pymysql://appuser:pass@myapp-proxy.rwlb.rds.aliyuncs.com:3306/mydb&#34;</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>应用代码不用改。代理会透明地处理所有路由。</p><h2 id=备份与恢复>备份与恢复</h2><p>备份是唯一不能省的东西。当其他都挂了——部署搞砸、数据损坏、手滑 <code>DROP TABLE</code>——备份是你最后的防线。</p><h3 id=自动备份>自动备份</h3><p>RDS 会按可配置的计划自动备份。默认情况下：</p><ul><li><strong>全量备份</strong> 每天在低峰期窗口执行</li><li><strong>Binlog 备份</strong> 持续进行（用于按时间点恢复）</li><li><strong>保留周期</strong>：7 天（可配置最长 730 天）</li></ul><p>配置备份计划：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Set backup to run between 02:00-03:00 UTC, retain 14 days</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyBackupPolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PreferredBackupTime <span class=s2>&#34;02:00Z-03:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PreferredBackupPeriod <span class=s2>&#34;Monday,Wednesday,Friday,Sunday&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --BackupRetentionPeriod <span class=m>14</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EnableBackupLog <span class=nb>true</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LogBackupRetentionPeriod <span class=m>14</span>
+</span></span></code></pre></td></tr></table></div></div><p>自动备份对实例性能影响不大。RDS 用的是基于快照的备份技术，哪怕库很大也能快速完成。</p><h3 id=手动备份>手动备份</h3><p>在任何 risky 操作之前（schema 变更、大批量导入、版本升级），先做个手动备份：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create a manual backup</span>
+</span></span><span class=line><span class=cl>aliyun rds CreateBackup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --BackupMethod Physical <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --BackupType FullBackup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBName myapp
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># List available backups</span>
+</span></span><span class=line><span class=cl>aliyun rds DescribeBackups <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --StartTime <span class=s2>&#34;2026-05-01T00:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EndTime <span class=s2>&#34;2026-05-16T23:59Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>BackupId,BackupStartTime,BackupSize,BackupStatus,BackupType
+</span></span></code></pre></td></tr></table></div></div><h3 id=按时间点恢复-pitr>按时间点恢复 (PITR)</h3><p>这是最重要的备份功能。PITR 让你能把数据库恢复到保留期内的任意一秒。如果有人手滑在 14:32:07 执行了 <code>DELETE FROM users WHERE 1=1</code>，你可以恢复到 14:32:06。</p><p>PITR 的原理是结合最近的全量备份和 Binlog，重放变更到指定时间点。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Restore to a specific point in time (creates a new instance)</span>
+</span></span><span class=line><span class=cl>aliyun rds CreateTempDBInstance <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RestoreTime <span class=s2>&#34;2026-05-15T14:32:06Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --BackupId <span class=m>12345</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Or clone to a new instance at a specific point in time</span>
+</span></span><span class=line><span class=cl>aliyun rds CloneDBInstance <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RestoreTime <span class=s2>&#34;2026-05-15T14:32:06Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PayType Postpaid <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceClass rds.mysql.s3.large <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorage <span class=m>100</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorageType cloud_essd <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VPCId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchId vsw-bp1xxxxxxxxx
+</span></span></code></pre></td></tr></table></div></div><p>PITR 恢复总是会创建一个新实例。它绝不会覆盖现有实例。这是设计使然——你先在新实例上验证恢复的数据，确认没问题再切换。</p><h3 id=跨地域备份>跨地域备份</h3><p>为了灾难恢复，开启跨地域备份。这会把备份复制到一个不同的地域，这样即使主地域整个挂了，数据也是安全的：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Enable cross-region backup</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyInstanceCrossBackupPolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CrossBackupType <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CrossBackupRegion cn-shanghai <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RetentType <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Retention <span class=m>30</span>
+</span></span></code></pre></td></tr></table></div></div><p>跨地域备份会增加成本（secondary 地域的数据传输 + 存储），但这是唯一能防止整个地域故障的手段。对于生产库，只要数据涉及业务核心，必须开。</p><h2 id=监控与性能>监控与性能</h2><h3 id=云监控指标>云监控指标</h3><p>RDS 会自动把指标上报给云监控。这几个关键指标要盯紧：</p><table><thead><tr><th>Metric</th><th>Warning Threshold</th><th>Critical Threshold</th><th>What to do</th></tr></thead><tbody><tr><td>CPU Utilization</td><td>> 70% sustained</td><td>> 90% sustained</td><td>Upgrade instance type or optimize queries</td></tr><tr><td>IOPS Usage</td><td>> 70% of limit</td><td>> 90% of limit</td><td>Upgrade storage PL or optimize I/O patterns</td></tr><tr><td>Connection Usage</td><td>> 70% of max</td><td>> 90% of max</td><td>Add connection pooling, increase max_connections</td></tr><tr><td>Disk Usage</td><td>> 70%</td><td>> 85%</td><td>Expand storage immediately</td></tr><tr><td>Replication Lag</td><td>> 5 seconds</td><td>> 30 seconds</td><td>Check replica performance, reduce write load</td></tr></tbody></table><p>设置报警：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Alert when CPU &gt; 80% for 5 minutes</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;rds-cpu-high&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;RDS CPU High&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_rds_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;CpuUsage&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;rm-bp1xxxxxxxxx&#34;}]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Average&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Alert when disk usage &gt; 80%</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;rds-disk-high&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;RDS Disk Usage High&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_rds_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;DiskUsage&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;rm-bp1xxxxxxxxx&#34;}]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Maximum&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>300</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Alert when active connections &gt; 80% of limit</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;rds-conn-high&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;RDS Connections High&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_rds_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;ConnectionUsage&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;rm-bp1xxxxxxxxx&#34;}]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Maximum&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>2</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=das数据库自治服务>DAS：数据库自治服务</h3><p>DAS 是阿里云为 RDS 提供的智能诊断工具。它不止看原始指标，还能提供：</p><ul><li><strong>自动 SQL 诊断</strong> &ndash; 识别慢查询并建议索引优化</li><li><strong>实时会话分析</strong> &ndash; 展示活跃会话、锁等待和阻塞查询</li><li><strong>性能趋势分析</strong> &ndash; 跟踪性能指标随时间的变化，检测退化</li><li><strong>自动优化</strong> &ndash; 可以自动应用推荐的索引变更（需确认开启）</li></ul><p>RDS 实例默认开启 DAS。在 RDS 控制台的“自治服务”下访问。</p><h3 id=慢查询分析>慢查询分析</h3><p>慢查询是数据库性能问题的头号杀手。RDS 会记录所有超过 <code>long_query_time</code> 的查询（我们之前设的是 1 秒）。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Find the slowest queries in the slow log
+</span></span></span><span class=line><span class=cl><span class=c1>-- (Use DAS console for a visual interface, or query directly)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Check current slow queries from process list
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>processlist</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>command</span><span class=w> </span><span class=o>!=</span><span class=w> </span><span class=s1>&#39;Sleep&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>time</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>5</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>time</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Find tables without indexes being used in queries
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>t</span><span class=p>.</span><span class=n>table_schema</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>t</span><span class=p>.</span><span class=k>table_name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>t</span><span class=p>.</span><span class=n>table_rows</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>ROUND</span><span class=p>(</span><span class=n>t</span><span class=p>.</span><span class=n>data_length</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>data_mb</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=n>tables</span><span class=w> </span><span class=n>t</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LEFT</span><span class=w> </span><span class=k>JOIN</span><span class=w> </span><span class=n>information_schema</span><span class=p>.</span><span class=k>statistics</span><span class=w> </span><span class=n>s</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>ON</span><span class=w> </span><span class=n>t</span><span class=p>.</span><span class=n>table_schema</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=n>table_schema</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>AND</span><span class=w> </span><span class=n>t</span><span class=p>.</span><span class=k>table_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=k>table_name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=k>table_name</span><span class=w> </span><span class=k>IS</span><span class=w> </span><span class=k>NULL</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>t</span><span class=p>.</span><span class=n>table_schema</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;mysql&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;sys&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;information_schema&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;performance_schema&#39;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>t</span><span class=p>.</span><span class=n>table_rows</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>1000</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>t</span><span class=p>.</span><span class=n>table_rows</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Check index usage statistics
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SELECT</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>object_schema</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>object_name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>index_name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>count_star</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>total_ops</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>count_read</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>count_write</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>count_fetch</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>performance_schema</span><span class=p>.</span><span class=n>table_io_waits_summary_by_index_usage</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>object_schema</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;myapp&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>count_star</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>下载慢查询日志供离线分析：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># List slow query log files</span>
+</span></span><span class=line><span class=cl>aliyun rds DescribeSlowLogRecords <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --StartTime <span class=s2>&#34;2026-05-15T00:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EndTime <span class=s2>&#34;2026-05-16T00:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBName myapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PageSize <span class=m>30</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PageNumber <span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=索引建议>索引建议</h3><p>最简单的性能优化就是加对的索引。用 <code>EXPLAIN</code> 看看 MySQL 怎么执行查询：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Analyze a slow query
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>EXPLAIN</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>u</span><span class=p>.</span><span class=n>name</span><span class=p>,</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>order_id</span><span class=p>,</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>total</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=n>u</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>JOIN</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=n>o</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=n>u</span><span class=p>.</span><span class=n>id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>user_id</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>u</span><span class=p>.</span><span class=n>email</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;user@example.com&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>o</span><span class=p>.</span><span class=n>created_at</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=s1>&#39;2026-01-01&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- If type shows &#34;ALL&#34; (full table scan), add an index:
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>users</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_email</span><span class=w> </span><span class=p>(</span><span class=n>email</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ALTER</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=k>ADD</span><span class=w> </span><span class=k>INDEX</span><span class=w> </span><span class=n>idx_user_created</span><span class=w> </span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span><span class=w> </span><span class=n>created_at</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- Re-run EXPLAIN to verify the index is used
+</span></span></span><span class=line><span class=cl><span class=c1>-- type should show &#34;ref&#34; or &#34;range&#34; instead of &#34;ALL&#34;
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=安全性>安全性</h2><h3 id=ip-白名单>IP 白名单</h3><p>RDS 的 IP 白名单是咱们的第一道防线。它在任何认证发生之前，就在网络层控制了哪些 IP 能连数据库。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># View current whitelist</span>
+</span></span><span class=line><span class=cl>aliyun rds DescribeDBInstanceIPArrayList <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Set whitelist to app tier subnets only</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifySecurityIps <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityIps <span class=s2>&#34;10.0.10.0/24,10.0.11.0/24&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceIPArrayName <span class=s2>&#34;app-tier&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Add a DBA jump host IP for administrative access</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifySecurityIps <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityIps <span class=s2>&#34;10.0.1.50/32&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceIPArrayName <span class=s2>&#34;dba-access&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ModifyMode Append
+</span></span></code></pre></td></tr></table></div></div><p>千万别往白名单里加 <code>0.0.0.0/0</code>。这等于把数据库对所有 IP 敞开——要是开了公网 endpoint，那就是向整个互联网敞开。密码再强，也扛不住暴力破解的轮番轰炸。</p><h3 id=ssl-加密>SSL 加密</h3><p>启用 SSL 能给应用和数据库之间的传输数据加密：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Enable SSL</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyDBInstanceSSL <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ConnectionString <span class=s2>&#34;rm-bp1xxxxxxxxx.mysql.rds.aliyuncs.com&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SSLEnabled <span class=m>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Download the CA certificate</span>
+</span></span><span class=line><span class=cl>aliyun rds DescribeDBInstanceSSL <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx
+</span></span></code></pre></td></tr></table></div></div><p>接着配置你的应用启用 SSL：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># SQLAlchemy with SSL</span>
+</span></span><span class=line><span class=cl><span class=n>engine</span> <span class=o>=</span> <span class=n>create_engine</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;mysql+pymysql://appuser:pass@rm-bp1xxx.mysql.rds.aliyuncs.com:3306/mydb&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>connect_args</span><span class=o>=</span><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ssl&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;ca&#34;</span><span class=p>:</span> <span class=s2>&#34;/path/to/ca-cert.pem&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=tde-transparent-data-encryption>TDE (Transparent Data Encryption)</h3><p>TDE 负责加密磁盘上的静态数据。就算有人拿到了底层存储权限，没有密钥也休想读懂数据。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Enable TDE</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyDBInstanceTDE <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --TDEStatus Enabled <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EncryptionKey <span class=s2>&#34;kms-key-id-from-kms&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>TDE 用的是 AES-256 加密，密钥管理直接对接 KMS (Key Management Service)。注意，TDE 一旦开启就关不掉。性能开销很小，大多数负载下不到 5%。</p><h3 id=sql-审计>SQL 审计</h3><p>SQL Audit 会记录数据库执行的每一条 SQL 语句。不管是合规检查、安全调查还是排查问题，这都是必需品。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Enable SQL audit</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifySQLCollectorPolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SQLCollectorStatus Enable
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Query audit logs</span>
+</span></span><span class=line><span class=cl>aliyun rds DescribeSQLLogRecords <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId rm-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --StartTime <span class=s2>&#34;2026-05-15T00:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EndTime <span class=s2>&#34;2026-05-16T00:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBName myapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --QueryKeywords <span class=s2>&#34;DROP,DELETE,TRUNCATE&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>审计日志默认存 30 天。要想长期保存，得导出到 SLS (Simple Log Service) 去做归档和分析。</p><h3 id=从-ecs-建立安全连接>从 ECS 建立安全连接</h3><p>下面是从应用侧 ECS 连到 RDS 的完整安全链条：</p><ol><li><strong>VPC 隔离</strong> &ndash; RDS 和 ECS 放在同一个 VPC 里，但要用不同的 VSwitch（数据层 vs 应用层）</li><li><strong>安全组</strong> &ndash; ECS 安全组放开 outbound 3306；RDS 白名单只允许应用层 CIDR 入站</li><li><strong>SSL 加密</strong> &ndash; 传输数据加密</li><li><strong>最小权限账号</strong> &ndash; 应用只用 Normal 账号，且只给特定库的 ReadWrite 权限</li><li><strong>不开公网 endpoint</strong> &ndash; 数据库不让互联网访问</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Verify: from app-tier ECS, connection works</span>
+</span></span><span class=line><span class=cl>mysql -h rm-bp1xxx.mysql.rds.aliyuncs.com -u appuser -p --ssl-ca<span class=o>=</span>/path/to/ca.pem -e <span class=s2>&#34;SELECT 1&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Verify: from web-tier ECS (different security group), connection fails</span>
+</span></span><span class=line><span class=cl>mysql -h rm-bp1xxx.mysql.rds.aliyuncs.com -u appuser -p -e <span class=s2>&#34;SELECT 1&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1># ERROR 2003 (HY000): Can&#39;t connect to MySQL server (connection refused / timeout)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=解决方案具备高可用和读扩展的生产级数据库>解决方案：具备高可用和读扩展的生产级数据库</h2><p>咱们直接动手，从零搭建一套完整的生产级数据库环境：RDS MySQL 高可用版，带一个只读实例，配上 Database Proxy 做读写分离，再加上自动备份和监控。这是中大型 Web 应用的标准参考架构。</p><h3 id=第一步创建-rds-mysql-高可用实例>第一步：创建 RDS MySQL 高可用实例</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create primary HA instance (cross-AZ)</span>
+</span></span><span class=line><span class=cl><span class=nv>RDS_ID</span><span class=o>=</span><span class=k>$(</span>aliyun rds CreateDBInstance <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Engine MySQL <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EngineVersion <span class=s2>&#34;8.0&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceClass rds.mysql.s3.large <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorage <span class=m>200</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorageType cloud_essd <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Category HighAvailability <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceNetType Intranet <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VPCId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchId vsw-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneIdSlave1 cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityIPList <span class=s2>&#34;10.0.10.0/24,10.0.11.0/24&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PayType Postpaid <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceDescription <span class=s2>&#34;Production MySQL HA&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceNetworkType VPC <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.DBInstanceId&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;RDS Instance: </span><span class=nv>$RDS_ID</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Wait for Running status</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Waiting for instance to be ready...&#34;</span>
+</span></span><span class=line><span class=cl><span class=k>while</span> true<span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  <span class=nv>STATUS</span><span class=o>=</span><span class=k>$(</span>aliyun rds DescribeDBInstanceAttribute <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=p>|</span> jq -r <span class=s1>&#39;.Items.DBInstanceAttribute[0].DBInstanceStatus&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>  <span class=nb>echo</span> <span class=s2>&#34;Status: </span><span class=nv>$STATUS</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=o>[</span> <span class=s2>&#34;</span><span class=nv>$STATUS</span><span class=s2>&#34;</span> <span class=o>=</span> <span class=s2>&#34;Running&#34;</span> <span class=o>]</span> <span class=o>&amp;&amp;</span> <span class=nb>break</span>
+</span></span><span class=line><span class=cl>  sleep <span class=m>30</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第二步创建数据库和账号>第二步：创建数据库和账号</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create the application database</span>
+</span></span><span class=line><span class=cl>aliyun rds CreateDatabase <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBName myapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CharacterSetName utf8mb4 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBDescription <span class=s2>&#34;Main application database&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create application account</span>
+</span></span><span class=line><span class=cl>aliyun rds CreateAccount <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountName appuser <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountPassword <span class=s2>&#34;Pr0d_Str0ng!P@ss2026&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountType Normal <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountDescription <span class=s2>&#34;Application service account&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Grant ReadWrite on the application database</span>
+</span></span><span class=line><span class=cl>aliyun rds GrantAccountPrivilege <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountName appuser <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBName myapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountPrivilege ReadWrite
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create a DBA admin account</span>
+</span></span><span class=line><span class=cl>aliyun rds CreateAccount <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountName dbadmin <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountPassword <span class=s2>&#34;DB@dm1n_Str0ng!2026&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountType Super <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AccountDescription <span class=s2>&#34;DBA administrative account&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第三步配置生产级参数>第三步：配置生产级参数</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Apply production-tuned parameters</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyParameter <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Parameters <span class=s2>&#34;slow_query_log:ON;long_query_time:1;innodb_flush_log_at_trx_commit:1;sync_binlog:1;max_connections:500;innodb_print_all_deadlocks:ON;log_queries_not_using_indexes:ON&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第四步创建只读实例>第四步：创建只读实例</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create read replica in the alternate AZ</span>
+</span></span><span class=line><span class=cl><span class=nv>REPLICA_ID</span><span class=o>=</span><span class=k>$(</span>aliyun rds CreateReadOnlyDBInstance <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EngineVersion <span class=s2>&#34;8.0&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceClass rds.mysql.s2.large <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorage <span class=m>200</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceStorageType cloud_essd <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PayType Postpaid <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceDescription <span class=s2>&#34;Read Replica 1&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.DBInstanceId&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Read Replica: </span><span class=nv>$REPLICA_ID</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第五步启用-database-proxy-实现读写分离>第五步：启用 Database Proxy 实现读写分离</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Enable Database Proxy</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyDBProxy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ConfigDBProxyService <span class=nb>true</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBProxyInstanceType <span class=m>2</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBProxyInstanceNum <span class=m>2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Get the proxy endpoint</span>
+</span></span><span class=line><span class=cl><span class=nv>PROXY_ENDPOINT</span><span class=o>=</span><span class=k>$(</span>aliyun rds DescribeDBProxy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.DBProxyConnectStringItems.DBProxyConnectStringItems[0].DBProxyConnectString&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Proxy Endpoint: </span><span class=nv>$PROXY_ENDPOINT</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Configure read/write splitting weights</span>
+</span></span><span class=line><span class=cl><span class=c1># Primary: weight 0 (writes only), Replica: weight 100 (all reads)</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyReadWriteSplittingConnection <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ConnectionStringPrefix <span class=s2>&#34;myapp-proxy&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DistributionType Standard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MaxDelayTime <span class=m>10</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Weight <span class=s2>&#34;{\&#34;</span><span class=nv>$RDS_ID</span><span class=s2>\&#34;:\&#34;0\&#34;,\&#34;</span><span class=nv>$REPLICA_ID</span><span class=s2>\&#34;:\&#34;100\&#34;}&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第六步配置备份策略>第六步：配置备份策略</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Set backup policy: daily at 02:00 UTC, retain 14 days</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyBackupPolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PreferredBackupTime <span class=s2>&#34;02:00Z-03:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PreferredBackupPeriod <span class=s2>&#34;Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --BackupRetentionPeriod <span class=m>14</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EnableBackupLog <span class=nb>true</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LogBackupRetentionPeriod <span class=m>14</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Enable cross-region backup to cn-shanghai</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyInstanceCrossBackupPolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CrossBackupType <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CrossBackupRegion cn-shanghai <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RetentType <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Retention <span class=m>30</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Enable SSL encryption</span>
+</span></span><span class=line><span class=cl>aliyun rds ModifyDBInstanceSSL <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ConnectionString <span class=s2>&#34;</span><span class=nv>$PROXY_ENDPOINT</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SSLEnabled <span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第七步设置监控告警>第七步：设置监控告警</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># CPU alert</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;prod-rds-cpu&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;Prod RDS CPU High&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_rds_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;CpuUsage&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s2>&#34;[{\&#34;instanceId\&#34;:\&#34;</span><span class=nv>$RDS_ID</span><span class=s2>\&#34;}]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Average&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Disk usage alert</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;prod-rds-disk&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;Prod RDS Disk High&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_rds_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;DiskUsage&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s2>&#34;[{\&#34;instanceId\&#34;:\&#34;</span><span class=nv>$RDS_ID</span><span class=s2>\&#34;}]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Maximum&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>300</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Connection usage alert</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;prod-rds-conn&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;Prod RDS Connections High&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_rds_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;ConnectionUsage&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s2>&#34;[{\&#34;instanceId\&#34;:\&#34;</span><span class=nv>$RDS_ID</span><span class=s2>\&#34;}]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Maximum&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>2</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Replication lag alert (on the replica)</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;prod-rds-replag&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;Prod RDS Replication Lag&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_rds_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;ReplicationLag&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s2>&#34;[{\&#34;instanceId\&#34;:\&#34;</span><span class=nv>$REPLICA_ID</span><span class=s2>\&#34;}]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Maximum&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>30</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>2</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第八步验证完整-setup>第八步：验证完整 setup</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Get all endpoints</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;=== Connection Info ===&#34;</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Primary (direct): </span><span class=k>$(</span>aliyun rds DescribeDBInstanceNetInfo <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$RDS_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.DBInstanceNetInfos.DBInstanceNetInfo[] | select(.DBInstanceNetType==&#34;Intranet&#34;) | .ConnectionString&#39;</span><span class=k>)</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Replica (direct): </span><span class=k>$(</span>aliyun rds DescribeDBInstanceNetInfo <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DBInstanceId <span class=nv>$REPLICA_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.DBInstanceNetInfos.DBInstanceNetInfo[] | select(.DBInstanceNetType==&#34;Intranet&#34;) | .ConnectionString&#39;</span><span class=k>)</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Proxy (r/w split): </span><span class=nv>$PROXY_ENDPOINT</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>从应用层的 ECS 实例（同 VPC 内）测试整个链路：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Connect through the proxy endpoint</span>
+</span></span><span class=line><span class=cl>mysql -h myapp-proxy.rwlb.rds.aliyuncs.com -u appuser -p --ssl-ca<span class=o>=</span>/path/to/ca.pem <span class=s>&lt;&lt; &#39;SQL&#39;
+</span></span></span><span class=line><span class=cl><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>-- Verify we can write
+</span></span></span><span class=line><span class=cl><span class=s>CREATE TABLE IF NOT EXISTS healthcheck (
+</span></span></span><span class=line><span class=cl><span class=s>  id INT AUTO_INCREMENT PRIMARY KEY,
+</span></span></span><span class=line><span class=cl><span class=s>  checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+</span></span></span><span class=line><span class=cl><span class=s>  hostname VARCHAR(255)
+</span></span></span><span class=line><span class=cl><span class=s>);
+</span></span></span><span class=line><span class=cl><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>INSERT INTO healthcheck (hostname) VALUES (@@hostname);
+</span></span></span><span class=line><span class=cl><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>-- Verify read/write splitting is working
+</span></span></span><span class=line><span class=cl><span class=s>-- This SELECT should go to the replica via the proxy
+</span></span></span><span class=line><span class=cl><span class=s>SELECT * FROM healthcheck ORDER BY checked_at DESC LIMIT 5;
+</span></span></span><span class=line><span class=cl><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>-- Check the current server (shows which node handled the query)
+</span></span></span><span class=line><span class=cl><span class=s>SELECT @@hostname AS current_server, @@read_only AS is_readonly;
+</span></span></span><span class=line><span class=cl><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>-- Verify backup status
+</span></span></span><span class=line><span class=cl><span class=s>SHOW VARIABLES LIKE &#39;innodb_flush_log_at_trx_commit&#39;;
+</span></span></span><span class=line><span class=cl><span class=s>SHOW VARIABLES LIKE &#39;sync_binlog&#39;;
+</span></span></span><span class=line><span class=cl><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>-- Check replication health
+</span></span></span><span class=line><span class=cl><span class=s>SHOW SLAVE HOSTS;
+</span></span></span><span class=line><span class=cl><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>SQL</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=架构总结>架构总结</h3><p>咱们到底搭建了个啥：</p><pre tabindex=0><code>                    ┌────────────────────────┐
+                    │   Application (ECS)    │
+                    │   app tier VPC subnet  │
+                    └───────────┬────────────┘
+                                │
+                    ┌───────────▼────────────┐
+                    │   Database Proxy       │
+                    │   (read/write split)   │
+                    │   myapp-proxy.rwlb...  │
+                    └──────┬──────────┬──────┘
+                           │          │
+                    Write  │          │  Read
+                           │          │
+              ┌────────────▼──┐  ┌───▼─────────────┐
+              │   Primary     │  │   Read Replica   │
+              │   (AZ-H)      │  │   (AZ-I)         │
+              │ 4vCPU / 8GiB  │  │ 2vCPU / 4GiB     │
+              │ 200GB ESSD    │──│ async repl        │
+              └───────┬───────┘  └───────────────────┘
+                      │
+              ┌───────▼───────┐
+              │   Standby     │
+              │   (AZ-I)      │
+              │   semi-sync   │
+              └───────────────┘
+</code></pre><p>主实例扛所有写流量。备实例（用户不可见，RDS 托管）在主实例挂掉时自动接管。只读实例处理所有读查询，把主实例的压力卸掉。Database Proxy 自动路由流量。备份每天跑，保留 14 天。跨地域备份到 cn-shanghai 做灾难恢复。SSL 加密所有连接。监控告警会在问题变成故障前触发。</p><p>这套方案每月的总成本（估算）：</p><ul><li>主实例 (rds.mysql.s3.large, 200GB ESSD): ~600 CNY</li><li>备实例：高可用版自带</li><li>只读实例 (rds.mysql.s2.large, 200GB ESSD): ~350 CNY</li><li>Database Proxy: ~100 CNY</li><li>跨地域备份存储：~50 CNY</li><li><strong>总计：~1,100 CNY/月</strong> (~$150 USD)</li></ul><p>对于一套具备高可用、读扩展、自动备份和跨地域灾备的生产数据库来说，这价格相当划算。</p><h2 id=核心要点>核心要点</h2><p><strong>能用托管就别自己建。</strong> 除非你有非常特殊的理由（比如需要定制插件、特殊的复制拓扑，或者合规要求必须控制操作系统层面），否则 RDS 能帮你省去巨大的运维负担。</p><p><strong>先从 RDS 起步，需要时再升级 PolarDB。</strong> 10 TB 以下的负载 RDS 都能扛。当你需要超过 5 个只读实例、存储自动扩容，或者复制延迟要压在 10ms 以内时，再考虑迁到 PolarDB。</p><p><strong>按 Buffer Pool sizing，别只看 CPU。</strong> 性能最关键的因素是你的工作数据集能不能塞进 InnoDB buffer pool。实例内存要按这个配，而不是盯着 CPU 核数。</p><p><strong>读写分离交给 Database Proxy。</strong> 在应用代码里手动路由读写既容易出错又不够灵活。Database Proxy 用一个连接地址就能透明搞定。</p><p><strong>备份没得商量。</strong> 开启自动每日备份，保留期至少 14 天，启用 binlog 备份支持 PITR，再配上跨地域备份防灾难。每季度至少测试一次恢复流程。</p><p><strong>盯死四个核心指标。</strong> CPU 利用率、磁盘使用率、连接数使用率、复制延迟。告警阈值设在 80%。等你手动发现问题时，用户早就受害好几个小时了。</p><p><strong>把访问权限锁死。</strong> IP 白名单只放应用层 CIDR，别开公网地址，强制 SSL 加密，账号权限最小化。数据库里存的是你最宝贵的资产，安全上别省钱。</p><h2 id=接下来>接下来</h2><p>数据库跑起来了，复制、备份、监控也都到位了。但要想撑起生产环境，光靠关系型数据库可不够。</p><p>下一篇咱们聊聊缓存和存储层——用 Tair（托管 Redis）做会话存储和缓存，OSS 负责对象存储，NAS 搞定共享文件系统。这些服务就跟数据库并排部署，专门处理那些关系型数据库不擅长扛的负载。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/aliyun-fullstack/>阿里云全栈实战</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><span class=title>阿里云全栈实战（四）：OSS——对象存储最佳实践</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/01-ecosystem-map/><span class=series-nav-num>01</span>
+<span class=series-nav-title>阿里云全栈实战（一）：生态全景图——阿里云到底是什么</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/><span class=series-nav-num>02</span>
+<span class=series-nav-title>阿里云全栈实战（二）：ECS——让计算回归本质</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=series-nav-num>03</span>
+<span class=series-nav-title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><span class=series-nav-num>04</span>
+<span class=series-nav-title>阿里云全栈实战（四）：OSS——对象存储最佳实践</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>05</span>
+<span class=series-nav-title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=series-nav-num>06</span>
+<span class=series-nav-title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/07-observability/><span class=series-nav-num>07</span>
+<span class=series-nav-title>阿里云全栈实战（七）：SLS 打造可观测性体系</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/08-serverless/><span class=series-nav-num>08</span>
+<span class=series-nav-title>阿里云全栈实战（八）：Serverless 与事件驱动</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/09-opensearch/><span class=series-nav-num>09</span>
+<span class=series-nav-title>阿里云全栈实战（九）：OpenSearch 与 AI 搜索</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/10-bailian-llm/><span class=series-nav-num>10</span>
+<span class=series-nav-title>阿里云全栈实战（十）：DashScope 与大模型层</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/11-pai-ml-platform/><span class=series-nav-num>11</span>
+<span class=series-nav-title>阿里云全栈实战（十一）：PAI 打造机器学习平台</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/12-terraform-e2e/><span class=series-nav-num>12</span>
+<span class=series-nav-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#为什么选托管数据库>为什么选托管数据库？</a><ul><li><a href=#阿里云数据库家族>阿里云数据库家族</a></li></ul></li><li><a href=#rds-mysql-深度解析>RDS MySQL 深度解析</a><ul><li><a href=#架构>架构</a></li><li><a href=#版本>版本</a></li><li><a href=#存储类型>存储类型</a></li><li><a href=#连接方式>连接方式</a></li></ul></li><li><a href=#polardb-when-rds-isnt-enough>PolarDB: When RDS Isn&rsquo;t Enough</a><ul><li><a href=#how-polardb-differs-from-rds>How PolarDB differs from RDS</a></li><li><a href=#rds-vs-polardb-comparison>RDS vs PolarDB comparison</a></li><li><a href=#polardb-serverless>PolarDB Serverless</a></li><li><a href=#when-to-choose-polardb-over-rds>When to choose PolarDB over RDS</a></li></ul></li><li><a href=#instance-sizing-guide>Instance Sizing Guide</a><ul><li><a href=#key-metrics-for-sizing>Key metrics for sizing</a></li><li><a href=#sizing-table-for-common-workloads>Sizing table for common workloads</a></li><li><a href=#the-buffer-pool-rule>The buffer pool rule</a></li><li><a href=#connection-limits>Connection limits</a></li></ul></li><li><a href=#creating-an-rds-instance>Creating an RDS Instance</a><ul><li><a href=#step-by-step-via-cli>Step-by-step via CLI</a></li><li><a href=#create-a-database-and-accounts>Create a database and accounts</a></li><li><a href=#get-the-connection-endpoint>Get the connection endpoint</a></li><li><a href=#configure-instance-parameters>Configure instance parameters</a></li></ul></li><li><a href=#只读副本与数据库代理>只读副本与数据库代理</a><ul><li><a href=#添加只读副本>添加只读副本</a></li><li><a href=#数据库代理-database-proxy>数据库代理 (Database Proxy)</a></li></ul></li><li><a href=#备份与恢复>备份与恢复</a><ul><li><a href=#自动备份>自动备份</a></li><li><a href=#手动备份>手动备份</a></li><li><a href=#按时间点恢复-pitr>按时间点恢复 (PITR)</a></li><li><a href=#跨地域备份>跨地域备份</a></li></ul></li><li><a href=#监控与性能>监控与性能</a><ul><li><a href=#云监控指标>云监控指标</a></li><li><a href=#das数据库自治服务>DAS：数据库自治服务</a></li><li><a href=#慢查询分析>慢查询分析</a></li><li><a href=#索引建议>索引建议</a></li></ul></li><li><a href=#安全性>安全性</a><ul><li><a href=#ip-白名单>IP 白名单</a></li><li><a href=#ssl-加密>SSL 加密</a></li><li><a href=#tde-transparent-data-encryption>TDE (Transparent Data Encryption)</a></li><li><a href=#sql-审计>SQL 审计</a></li><li><a href=#从-ecs-建立安全连接>从 ECS 建立安全连接</a></li></ul></li><li><a href=#解决方案具备高可用和读扩展的生产级数据库>解决方案：具备高可用和读扩展的生产级数据库</a><ul><li><a href=#第一步创建-rds-mysql-高可用实例>第一步：创建 RDS MySQL 高可用实例</a></li><li><a href=#第二步创建数据库和账号>第二步：创建数据库和账号</a></li><li><a href=#第三步配置生产级参数>第三步：配置生产级参数</a></li><li><a href=#第四步创建只读实例>第四步：创建只读实例</a></li><li><a href=#第五步启用-database-proxy-实现读写分离>第五步：启用 Database Proxy 实现读写分离</a></li><li><a href=#第六步配置备份策略>第六步：配置备份策略</a></li><li><a href=#第七步设置监控告警>第七步：设置监控告警</a></li><li><a href=#第八步验证完整-setup>第八步：验证完整 setup</a></li><li><a href=#架构总结>架构总结</a></li></ul></li><li><a href=#核心要点>核心要点</a></li><li><a href=#接下来>接下来</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/aliyun-fullstack/ class=series-name>阿里云全栈实战</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/01-ecosystem-map/><span class=chapter-num>01</span>
+<span class=chapter-title>阿里云全栈实战（一）：生态全景图——阿里云到底是什么</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/><span class=chapter-num>02</span>
+<span class=chapter-title>阿里云全栈实战（二）：ECS——让计算回归本质</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=chapter-num>03</span>
+<span class=chapter-title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><span class=chapter-num>04</span>
+<span class=chapter-title>阿里云全栈实战（四）：OSS——对象存储最佳实践</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>05</span>
+<span class=chapter-title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=chapter-num>06</span>
+<span class=chapter-title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/07-observability/><span class=chapter-num>07</span>
+<span class=chapter-title>阿里云全栈实战（七）：SLS 打造可观测性体系</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/08-serverless/><span class=chapter-num>08</span>
+<span class=chapter-title>阿里云全栈实战（八）：Serverless 与事件驱动</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/09-opensearch/><span class=chapter-num>09</span>
+<span class=chapter-title>阿里云全栈实战（九）：OpenSearch 与 AI 搜索</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/10-bailian-llm/><span class=chapter-num>10</span>
+<span class=chapter-title>阿里云全栈实战（十）：DashScope 与大模型层</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/11-pai-ml-platform/><span class=chapter-num>11</span>
+<span class=chapter-title>阿里云全栈实战（十一）：PAI 打造机器学习平台</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/12-terraform-e2e/><span class=chapter-num>12</span>
+<span class=chapter-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>40 min</strong></div><div class=row><span>字数</span><strong>9948</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div></footer></body></html>

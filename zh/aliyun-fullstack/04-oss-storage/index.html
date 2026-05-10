@@ -1,0 +1,1421 @@
+<!doctype html><html lang=zh data-translation=/en/aliyun-fullstack/04-oss-storage/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>阿里云全栈实战（四）：OSS——对象存储最佳实践 · Chen Kai Blog</title>
+<meta name=description content="Master Alibaba Cloud OSS: bucket types, storage classes, access control (ACL, RAM, STS, signed URLs), lifecycle rules, cross-region replication, CDN integration, and custom domains. Build a complete media storage backend."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-fullstack/04-oss-storage/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><meta property="og:type" content="article"><meta property="og:title" content="阿里云全栈实战（四）：OSS——对象存储最佳实践"><meta property="og:description" content="Master Alibaba Cloud OSS: bucket types, storage classes, access control (ACL, RAM, STS, signed URLs), lifecycle rules, cross-region replication, CDN integration, and custom domains. Build a complete media storage backend."><meta property="og:url" content="https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><meta property="og:image:alt" content="阿里云全栈实战（四）：OSS——对象存储最佳实践"><meta property="article:published_time" content="2026-04-24T09:00:00Z"><meta property="article:modified_time" content="2026-04-24T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Alibaba Cloud"><meta property="article:tag" content="OSS"><meta property="article:tag" content="Storage"><meta property="article:tag" content="CDN"><meta property="article:tag" content="Cloud Computing"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="阿里云全栈实战（四）：OSS——对象存储最佳实践"><meta name=twitter:description content="Master Alibaba Cloud OSS: bucket types, storage classes, access control (ACL, RAM, STS, signed URLs), lifecycle rules, cross-region replication, CDN integration, and custom domains. Build a complete media storage backend."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"阿里云全栈实战（四）：OSS——对象存储最佳实践\"","description":"\"Master Alibaba Cloud OSS: bucket types, storage classes, access control (ACL, RAM, STS, signed URLs), lifecycle rules, cross-region replication, CDN integration, and custom domains. Build a complete media storage backend.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2026-04-24T09:00:00Z\"","dateModified":"\"2026-04-24T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.ffe8d1412c95bc9c9e1b0778441a3fa076b6c785bfacb3710830bedcf4b0b3c4.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>阿里云全栈实战</a>
+· 第 4 篇</div><h1>阿里云全栈实战（四）：OSS——对象存储最佳实践</h1><p class=deck>Master Alibaba Cloud OSS: bucket types, storage classes, access control (ACL, RAM, STS, signed URLs), lifecycle rules, cross-region replication, CDN integration, and custom domains. Build a complete media storage backend.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-24>April 24, 2026</time> · 38 分钟 · 9217 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/zh/tags/oss/ class=tag>#OSS</a><a href=/zh/tags/storage/ class=tag>#Storage</a><a href=/zh/tags/cdn/ class=tag>#CDN</a><a href=/zh/tags/cloud-computing/ class=tag>#Cloud Computing</a></div><a class="pill pill-outline" href=/en/aliyun-fullstack/04-oss-storage/>Read in English →</a></div></header><div class=prose><p>以前我把用户上传的文件直接塞进 ECS 磁盘里。头像、PDF 发票、CSV 导出文件——统统丢在一台跑着 Flask 应用的 <code>ecs.g7.large</code> 实例的 <code>/var/data/uploads/</code> 目录下。我写了个 cron 任务，每六小时 rsync 一次到第二台 ECS 上，美其名曰“备份”。直到某个周五凌晨 3 点，批处理任务生成了 40GB 没人下载的报表，系统盘瞬间爆满到 100%，实例变成只读，应用直接挂掉，而 rsync 自从前一天晚上就没跑过。我丢了六小时的用户上传数据，整个周末都在跟客户道歉。就是那一周让我明白，对象存储不是什么“有了更好”的选项——它是你在云上构建一切的基础。应用服务器是 ephemeral 的，但数据不是。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/04-oss-storage/cover.png alt="OSS Object Storage" loading=lazy decoding=async class=content-image></figure></p><p>这篇文章会从第一性原理讲到生产部署，带你彻底搞定阿里云对象存储 OSS。读完你就能拥有一个带生命周期管理、CDN 加速和 Python API 预签名上传的媒体存储后端。我们在 <a href=/zh/aliyun-fullstack/02-ecs-compute/>Part 2</a>
+和 <a href=/zh/aliyun-fullstack/03-vpc-networking/>Part 3</a>
+已经搭好了 VPC 和 ECS 基础——现在加上这个能扛住实例故障、扩展到 PB 级、成本却只有块存储零头的存储层。</p><h2 id=什么是-oss>什么是 OSS？</h2><p>对象存储服务（Object Storage Service）就是阿里云版的 AWS S3。你把文件——称为“对象”——存进叫“桶”（Bucket）的容器里。每个对象有个唯一的 key（也就是路径）、数据本身和元数据。这就是全部的数据模型。没有目录，没有文件层级，没有 POSIX 语义。当你在 OSS 里看到 <code>images/2026/05/avatar.png</code> 时，斜杠只是 key 字符串的一部分，不是目录结构。控制台为了方便把它们渲染成文件夹，但存储层其实是扁平的。</p><p>这种简单性正是重点。因为 OSS 不需要维护文件系统树，它可以透明地把对象分发到成千上万个存储节点上。你永远不用考虑容量规划、磁盘 IOPS 或 RAID 配置。你 PUT 一个对象，OSS 自己决定存哪儿、怎么跨可用区复制以保证耐久性、以及你 GET 时怎么取回来。标准存储的耐久性保证是 99.9999999999%（12 个 9）。这意味着“如果你存一百亿个对象，设计上也最多只丢一个”。</p><h3 id=三种云存储类型>三种云存储类型</h3><p>阿里云提供三种 fundamentally different 的存储产品，选错是我见中最常见的错误：</p><table><thead><tr><th>存储类型</th><th>产品</th><th>访问模式</th><th>类比</th></tr></thead><tbody><tr><td><strong>块存储</strong></td><td>EBS (云盘)</td><td>挂载到单台 ECS，随机读写</td><td>插在你电脑上的硬盘</td></tr><tr><td><strong>文件存储</strong></td><td>NAS / CPFS</td><td>通过 NFS/SMB 被多台 ECS 共享</td><td>办公室里的网络文件共享</td></tr><tr><td><strong>对象存储</strong></td><td>OSS</td><td>HTTP API，无需挂载，容量无限</td><td>带 API 的 Dropbox</td></tr></tbody></table><p><strong>块存储</strong>（挂载到 ECS 的云盘）给你的是一个原始块设备，操作系统用 ext4 或 xfs 格式化。它快、延迟低、支持随机 I/O——完美适合数据库、系统启动卷以及任何需要 POSIX 文件系统语义的场景。但它一次只能挂载到一个实例，而且不管你用不用，都得为预配容量付费。</p><p><strong>文件存储</strong>（NAS）提供一个共享文件系统，多台 ECS 实例可以通过 NFS v3/v4 或 SMB 同时挂载。适合那些需要共享 <code>/data</code> 目录的遗留应用、CMS 系统或开发环境。但它每 GB 成本高，性能取决于你购买的容量层级。</p><p><strong>对象存储</strong>（OSS）适合其他所有场景——而“其他所有”通常占你数据的 90%。静态资源、用户上传、备份、日志、数据湖文件、ML 训练数据集、视频、音频、文档。如果你通过 HTTP 访问它，且不需要修改文件中间的字节，OSS 就是正确答案。</p><h3 id=oss-对比-aws-s3>OSS 对比 AWS S3</h3><p>如果你是从 AWS 过来的，映射关系很直接：</p><table><thead><tr><th>AWS S3 概念</th><th>OSS 对应物</th><th>备注</th></tr></thead><tbody><tr><td>Bucket</td><td>Bucket</td><td>同样的 3-63 字符命名规则</td></tr><tr><td>Object</td><td>Object</td><td>同样的 key/value/metadata 模型</td></tr><tr><td>Region</td><td>Region</td><td>同样的区域 scoped bucket 概念</td></tr><tr><td>S3 Standard</td><td>Standard</td><td>热数据，频繁访问</td></tr><tr><td>S3 Standard-IA</td><td>Infrequent Access (IA)</td><td>最低存储 30 天</td></tr><tr><td>S3 Glacier</td><td>Archive</td><td>最低 90 天，1 分钟恢复</td></tr><tr><td>S3 Glacier Deep Archive</td><td>Deep Cold Archive</td><td>最低 180 天，数小时恢复</td></tr><tr><td>Presigned URL</td><td>Signed URL</td><td>概念相同，SDK 方法名不同</td></tr><tr><td>Bucket Policy</td><td>Bucket Policy</td><td>基于 JSON，语法相似</td></tr><tr><td>S3 Lifecycle</td><td>Lifecycle Rules</td><td>同样的转换/过期模型</td></tr><tr><td>Cross-Region Replication</td><td>Cross-Region Replication</td><td>同样的异步复制模型</td></tr><tr><td>CloudFront + S3</td><td>CDN + OSS</td><td>原生集成，同样的回源模式</td></tr></tbody></table><p>主要区别：OSS 用 AccessKey ID/Secret 而不是 AWS Signature V4（不过 SDK 会处理）。OSS 端点遵循 <code>oss-{region}.aliyuncs.com</code> 模式，而不是 <code>s3.{region}.amazonaws.com</code>。而且 OSS 每个区域都有独特的“内网端点”（例如 <code>oss-cn-beijing-internal.aliyuncs.com</code>），当同一区域的 ECS 实例访问时流量免费——AWS 对同样流量收费。</p><h3 id=核心概念>核心概念</h3><p>写代码前得搞清楚这四个概念：</p><p><strong>Bucket</strong> &ndash; 对象的全局唯一容器。Bucket 名必须 3-63 字符，仅限小写字母、数字和连字符。它是区域 scoped 的——<code>cn-beijing</code> 的 bucket 数据就存北京。创建后不能重命名或移动。</p><p><strong>Object</strong> &ndash; 存在 bucket 里的文件，由 key（路径字符串）标识。最大对象大小 48.8 TB。对象是不可变的——更新时你替换整个对象，不能原地修改字节。</p><p><strong>Region 和 Endpoint</strong> &ndash; 每个 bucket lives 在一个区域。通过公共端点（<code>oss-cn-beijing.aliyuncs.com</code>）、内网端点（同区域 ECS 免费）或你绑定的自定义域名访问。</p><p><strong>AccessKey</strong> &ndash; API 访问的凭证。生产环境永远别用根账号的 AccessKey。用 RAM 用户或 STS 临时凭证，我们在下面的访问控制部分会讲。</p><h2 id=存储类型>存储类型</h2><p>OSS 有五种存储类型，选对能省 80% 账单，选错能 inflate 10 倍。心理模型：存储越便宜， retrieval 越贵越慢。</p><table><thead><tr><th>存储类型</th><th>$/GB/月</th><th>最低存储时长</th><th>取回成本</th><th>恢复时间</th><th>最佳场景</th></tr></thead><tbody><tr><td><strong>Standard</strong></td><td>~0.020</td><td>无</td><td>免费</td><td>即时</td><td>热数据，频繁访问文件</td></tr><tr><td><strong>Infrequent Access (IA)</strong></td><td>~0.012</td><td>30 天</td><td>~0.010/GB</td><td>即时</td><td>每月访问 &lt; 1-2 次的数据</td></tr><tr><td><strong>Archive</strong></td><td>~0.005</td><td>90 天</td><td>~0.020/GB</td><td>1 分钟 (Expedited)</td><td>季度报表，旧备份</td></tr><tr><td><strong>Cold Archive</strong></td><td>~0.002</td><td>180 天</td><td>~0.030/GB</td><td>1-10 小时</td><td>合规归档，法律保留</td></tr><tr><td><strong>Deep Cold Archive</strong></td><td>~0.001</td><td>180 天</td><td>~0.050/GB</td><td>12-48 小时</td><td>再也不想读的数据</td></tr></tbody></table><p><em>价格为 cn-beijing 近似值。查看 <a href=https://www.alibabacloud.com/product/object-storage-service/pricing target=_blank rel="noopener noreferrer">OSS 定价页 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+获取当前费率和区域差异。</em></p><p>有几个坑容易踩：</p><p><strong>最低存储时长是按账单算的，不是按实际存储算。</strong> 如果你上传文件到 Archive 存储，10 天后删除，你依然要被收 90 天的钱。除了 Standard，所有类型都这样。</p><p><strong>取回成本是按 GB 算的。</strong> 从 Cold Archive 恢复 1TB 数据，光取回费用就要约 30 美元，这还不算传输费。归档前要想清楚。</p><p><strong>IA 有最小对象大小限制。</strong> 小于 64KB 的对象按 64KB 计费。如果你存几百万个 tiny JSON 文件，IA 会比 Standard 更贵。</p><p><strong>Archive 和 Cold Archive 需要恢复步骤。</strong> 你不能直接读对象。你得发起恢复请求，等恢复完成，然后对象在可配置周期内（1-7 天）可读。过后它又回到归档状态。</p><p>黄金法则：所有数据先从 Standard 开始，用 OSS 访问日志测 30 天访问模式，然后设生命周期规则自动转换冷数据。别猜。</p><h2 id=创建和管理-bucket>创建和管理 Bucket</h2><h3 id=控制台-walkthrough>控制台 walkthrough</h3><p>创建第一个 bucket 最快的方法：</p><ol><li>打开 <a href=https://oss.console.aliyun.com/ target=_blank rel="noopener noreferrer">OSS 控制台 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>点击 <strong>创建 Bucket</strong></li><li>设置 bucket 名称（全局唯一，例如 <code>myapp-prod-media-cn</code>）</li><li>选择区域（例如 <code>cn-beijing</code>）</li><li>存储类型：Standard（ later 通过生命周期规则改）</li><li>访问控制：<strong>私有</strong>（永远从私有开始）</li><li>版本控制：启用（以后可以暂停，但 retroactively 启用不会给现有对象版本化）</li><li>服务器端加密：AES-256 或 KMS（我建议大多数 workload 用 AES-256——免费且透明）</li><li>点击 <strong>确定</strong></li></ol><h3 id=cli-使用-ossutil>CLI 使用 ossutil</h3><p><code>ossutil</code> 是 OSS 命令行工具。先安装：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># macOS</span>
+</span></span><span class=line><span class=cl>brew install ossutil
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Linux (amd64)</span>
+</span></span><span class=line><span class=cl>curl -o ossutil https://gosspublic.alicdn.com/ossutil/v2/2.0.3/ossutil-linux-amd64
+</span></span><span class=line><span class=cl>chmod +x ossutil
+</span></span><span class=line><span class=cl>sudo mv ossutil /usr/local/bin/
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Configure credentials</span>
+</span></span><span class=line><span class=cl>ossutil config <span class=nb>set</span> --access-key-id <span class=nv>$ALIBABA_CLOUD_ACCESS_KEY_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>                   --access-key-secret <span class=nv>$ALIBABA_CLOUD_ACCESS_KEY_SECRET</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>                   --region cn-beijing
+</span></span></code></pre></td></tr></table></div></div><p>现在创建 bucket 并开始操作对象：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create a bucket in cn-beijing with Standard storage</span>
+</span></span><span class=line><span class=cl>ossutil mb oss://myapp-prod-media --region cn-beijing
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Upload a single file</span>
+</span></span><span class=line><span class=cl>ossutil cp ./avatar.png oss://myapp-prod-media/images/users/avatar.png
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Upload a directory recursively</span>
+</span></span><span class=line><span class=cl>ossutil cp ./static/ oss://myapp-prod-media/static/ --recursive
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># List objects in a bucket</span>
+</span></span><span class=line><span class=cl>ossutil ls oss://myapp-prod-media/
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># List with details (size, last modified, storage class)</span>
+</span></span><span class=line><span class=cl>ossutil ls oss://myapp-prod-media/ --all-versions
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Download a file</span>
+</span></span><span class=line><span class=cl>ossutil cp oss://myapp-prod-media/images/users/avatar.png ./downloaded-avatar.png
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Copy between buckets</span>
+</span></span><span class=line><span class=cl>ossutil cp oss://myapp-prod-media/images/ oss://myapp-backup-media/images/ <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --recursive
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Delete a file</span>
+</span></span><span class=line><span class=cl>ossutil rm oss://myapp-prod-media/old-file.txt
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Delete all objects with a prefix</span>
+</span></span><span class=line><span class=cl>ossutil rm oss://myapp-prod-media/temp/ --recursive
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Get bucket info</span>
+</span></span><span class=line><span class=cl>ossutil bucket-info oss://myapp-prod-media
+</span></span></code></pre></td></tr></table></div></div><h3 id=bucket-命名规则>Bucket 命名规则</h3><ul><li>3-63 字符</li><li>仅限小写字母、数字、连字符</li><li>必须以字母或数字开头和结尾</li><li>在整个阿里云全局唯一（不只是你的账号内）</li><li>创建后不能重命名</li></ul><p>我用 <code>{app}-{env}-{purpose}-{region-short}</code> 模式——例如 <code>myapp-prod-media-cn</code>、<code>myapp-staging-logs-cn</code>。这能防止命名冲突，当你凌晨 2 点盯着 30 个 bucket 列表时，一眼就能看出每个是干嘛的。</p><h3 id=版本控制>版本控制</h3><p>版本控制保留每个对象的每个版本。当你覆盖 <code>report.pdf</code> 时，旧版本不会被删——它变成非当前版本。当你删除 <code>report.pdf</code> 时，它会打个删除标记，但数据还在。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Enable versioning</span>
+</span></span><span class=line><span class=cl>ossutil bucket-versioning --method put oss://myapp-prod-media enabled
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Check versioning status</span>
+</span></span><span class=line><span class=cl>ossutil bucket-versioning --method get oss://myapp-prod-media
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># List all versions of objects</span>
+</span></span><span class=line><span class=cl>ossutil ls oss://myapp-prod-media/ --all-versions
+</span></span></code></pre></td></tr></table></div></div><p>任何包含用户数据的 bucket 都必须开版本控制。存储成本会翻倍（因为留着旧版本），但替代方案—— accidental overwrite 导致数据永久丢失——更糟。配合生命周期规则，30 天后自动删除非当前版本，这样能控制成本。</p><h2 id=访问控制深度解析>访问控制深度解析</h2><p>OSS 的访问控制分四层，搞清楚它们怎么交互，是安全系统和数据裸奔的区别。优先级从高到低：STS/RAM 策略 > Bucket 策略 > Bucket ACL。</p><h3 id=第一层bucket-acl>第一层：Bucket ACL</h3><p>最简单也是最粗粒度的控制。就三个选项：</p><table><thead><tr><th>ACL</th><th>Anonymous read</th><th>Anonymous write</th><th>Use case</th></tr></thead><tbody><tr><td><strong>private</strong></td><td>No</td><td>No</td><td>Default. Almost everything.</td></tr><tr><td><strong>public-read</strong></td><td>Yes</td><td>No</td><td>Static websites, public CDN origin</td></tr><tr><td><strong>public-read-write</strong></td><td>Yes</td><td>Yes</td><td><strong>Never use this.</strong></td></tr></tbody></table><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Set bucket ACL</span>
+</span></span><span class=line><span class=cl>ossutil bucket-acl --method put oss://myapp-prod-media private
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Check bucket ACL</span>
+</span></span><span class=line><span class=cl>ossutil bucket-acl --method get oss://myapp-prod-media
+</span></span></code></pre></td></tr></table></div></div><p>我没吓唬你，<code>public-read-write</code> 真的不能用。把 Bucket 设成这个，意味着互联网上任何人都能往你 Bucket 里随便传文件，你的存储账单会爆炸，甚至变成 malware 分发点。生产环境我真见过这么干的，别学。</p><p><code>public-read</code> 只适合直接从 OSS 托管静态资源（不用 CDN）且想要最简单配置的场景。即便如此，我更推荐 <code>private</code> 配合 CDN 的 Origin Access Identity——后面会细说。</p><h3 id=第二层bucket-policy>第二层：Bucket Policy</h3><p>Bucket Policy 是挂在 Bucket 上的 JSON 文档，定义谁能干什么。这是基于资源的策略，跟 S3 Bucket Policy 类似。如果要搞跨账号访问或者细粒度权限，又不想动 RAM，这是推荐做法。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Version&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Statement&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Principal&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;203917385849****&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:GetObject&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:GetObjectAcl&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;acs:oss:*:*:myapp-prod-media/shared/*&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Condition&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;IpAddress&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;acs:SourceIp&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;203.0.113.0/24&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这策略的意思是：“允许阿里云账号 <code>203917385849****</code> 读取 <code>shared/</code> 前缀下的对象，但限制来源 IP 必须是 <code>203.0.113.0/24</code>。”你可以限制 IP、VPC、时间段、Referer 头，或者强制要求 HTTPS。</p><p>用 CLI 应用策略：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>ossutil bucket-policy --method put oss://myapp-prod-media ./bucket-policy.json
+</span></span></code></pre></td></tr></table></div></div><h3 id=第三层ram-policy>第三层：RAM Policy</h3><p>RAM 策略是基于身份的——挂在 RAM 用户、用户组或角色上。你的应用服务器主要用这个。</p><p>给你的应用创建一个 RAM 用户，只给最小必要权限：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Version&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Statement&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:PutObject&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:GetObject&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:DeleteObject&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:ListObjects&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;acs:oss:*:*:myapp-prod-media&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;acs:oss:*:*:myapp-prod-media/*&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这里需要配两个 Resource：Bucket 本身（用于 <code>ListObjects</code>）和 <code>bucket/*</code>（用于对象操作）。很多人配漏了第一个，结果报 ListBuckets 权限错误。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create RAM user</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateUser --UserName app-oss-user
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create and attach the policy</span>
+</span></span><span class=line><span class=cl>aliyun ram CreatePolicy --PolicyName AppOSSReadWrite <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyDocument <span class=s2>&#34;</span><span class=k>$(</span>cat oss-policy.json<span class=k>)</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToUser --PolicyName AppOSSReadWrite <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType Custom --UserName app-oss-user
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create AccessKey for the user</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateAccessKey --UserName app-oss-user
+</span></span></code></pre></td></tr></table></div></div><h3 id=第四层sts-临时凭证>第四层：STS 临时凭证</h3><p>STS 发的是临时凭证，过期时间可配（15 分钟到 1 小时）。浏览器上传和移动端 App 都用这个——千万别把长期 AccessKey 写死在客户端代码里。</p><p>流程如下：</p><ol><li>客户端向后端请求一个上传 token</li><li>后端调用 STS <code>AssumeRole</code>，带上缩小范围的 policy</li><li>STS 返回临时 AccessKeyId、AccessKeySecret 和 SecurityToken</li><li>客户端用这些凭证直传 OSS</li><li>凭证自动过期</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_sts20150401.client</span> <span class=kn>import</span> <span class=n>Client</span> <span class=k>as</span> <span class=n>StsClient</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_sts20150401.models</span> <span class=kn>import</span> <span class=n>AssumeRoleRequest</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_tea_openapi.models</span> <span class=kn>import</span> <span class=n>Config</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>config</span> <span class=o>=</span> <span class=n>Config</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>access_key_id</span><span class=o>=</span><span class=s1>&#39;&lt;RAM_USER_AK&gt;&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>access_key_secret</span><span class=o>=</span><span class=s1>&#39;&lt;RAM_USER_SK&gt;&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>endpoint</span><span class=o>=</span><span class=s1>&#39;sts.cn-beijing.aliyuncs.com&#39;</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>sts_client</span> <span class=o>=</span> <span class=n>StsClient</span><span class=p>(</span><span class=n>config</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Scope the temporary credentials to a specific upload path</span>
+</span></span><span class=line><span class=cl><span class=n>policy</span> <span class=o>=</span> <span class=s1>&#39;&#39;&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [{
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Action&#34;: [&#34;oss:PutObject&#34;],
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Resource&#34;: [&#34;acs:oss:*:*:myapp-prod-media/uploads/user-12345/*&#34;]
+</span></span></span><span class=line><span class=cl><span class=s1>    }]
+</span></span></span><span class=line><span class=cl><span class=s1>}&#39;&#39;&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>request</span> <span class=o>=</span> <span class=n>AssumeRoleRequest</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>role_arn</span><span class=o>=</span><span class=s1>&#39;acs:ram::123456789:role/oss-upload-role&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>role_session_name</span><span class=o>=</span><span class=s1>&#39;user-12345-upload&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>duration_seconds</span><span class=o>=</span><span class=mi>900</span><span class=p>,</span>  <span class=c1># 15 minutes</span>
+</span></span><span class=line><span class=cl>    <span class=n>policy</span><span class=o>=</span><span class=n>policy</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>response</span> <span class=o>=</span> <span class=n>sts_client</span><span class=o>.</span><span class=n>assume_role</span><span class=p>(</span><span class=n>request</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>credentials</span> <span class=o>=</span> <span class=n>response</span><span class=o>.</span><span class=n>body</span><span class=o>.</span><span class=n>credentials</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;AccessKeyId: </span><span class=si>{</span><span class=n>credentials</span><span class=o>.</span><span class=n>access_key_id</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;AccessKeySecret: </span><span class=si>{</span><span class=n>credentials</span><span class=o>.</span><span class=n>access_key_secret</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;SecurityToken: </span><span class=si>{</span><span class=n>credentials</span><span class=o>.</span><span class=n>security_token</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Expiration: </span><span class=si>{</span><span class=n>credentials</span><span class=o>.</span><span class=n>expiration</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>关键点在于：<code>AssumeRole</code> 里的 <code>policy</code> 参数会进一步限制角色的权限。哪怕角色本身有 OSS 全权，临时凭证也只能在特定路径下 <code>PutObject</code>。这就是纵深防御。</p><h3 id=签名-url>签名 URL</h3><p>偶尔分享个文件或者搞个限时下载，生成个带过期的签名 URL 就行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Generate a signed URL valid for 1 hour (3600 seconds)</span>
+</span></span><span class=line><span class=cl>ossutil sign oss://myapp-prod-media/reports/q1-2026.pdf --timeout <span class=m>3600</span>
+</span></span></code></pre></td></tr></table></div></div><p>生成的 URL 里嵌了签名参数。拿到 URL 的人能在过期前下载文件，客户端无需额外认证。</p><p>Python 里这么写：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>oss2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>auth</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Auth</span><span class=p>(</span><span class=s1>&#39;&lt;ACCESS_KEY_ID&gt;&#39;</span><span class=p>,</span> <span class=s1>&#39;&lt;ACCESS_KEY_SECRET&gt;&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Bucket</span><span class=p>(</span><span class=n>auth</span><span class=p>,</span> <span class=s1>&#39;https://oss-cn-beijing.aliyuncs.com&#39;</span><span class=p>,</span> <span class=s1>&#39;myapp-prod-media&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Generate a signed URL for download, valid for 1 hour</span>
+</span></span><span class=line><span class=cl><span class=n>url</span> <span class=o>=</span> <span class=n>bucket</span><span class=o>.</span><span class=n>sign_url</span><span class=p>(</span><span class=s1>&#39;GET&#39;</span><span class=p>,</span> <span class=s1>&#39;reports/q1-2026.pdf&#39;</span><span class=p>,</span> <span class=mi>3600</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>url</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Generate a signed URL for upload</span>
+</span></span><span class=line><span class=cl><span class=n>upload_url</span> <span class=o>=</span> <span class=n>bucket</span><span class=o>.</span><span class=n>sign_url</span><span class=p>(</span><span class=s1>&#39;PUT&#39;</span><span class=p>,</span> <span class=s1>&#39;uploads/new-file.pdf&#39;</span><span class=p>,</span> <span class=mi>600</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                              <span class=n>headers</span><span class=o>=</span><span class=p>{</span><span class=s1>&#39;Content-Type&#39;</span><span class=p>:</span> <span class=s1>&#39;application/pdf&#39;</span><span class=p>})</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>upload_url</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=上传与下载>上传与下载</h2><h3 id=简单上传>简单上传</h3><p>5GB 以下的文件，直接 PUT 就行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>oss2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>auth</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Auth</span><span class=p>(</span><span class=s1>&#39;&lt;ACCESS_KEY_ID&gt;&#39;</span><span class=p>,</span> <span class=s1>&#39;&lt;ACCESS_KEY_SECRET&gt;&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Bucket</span><span class=p>(</span><span class=n>auth</span><span class=p>,</span> <span class=s1>&#39;https://oss-cn-beijing.aliyuncs.com&#39;</span><span class=p>,</span> <span class=s1>&#39;myapp-prod-media&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Upload from a local file</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span><span class=o>.</span><span class=n>put_object_from_file</span><span class=p>(</span><span class=s1>&#39;images/photo.jpg&#39;</span><span class=p>,</span> <span class=s1>&#39;/tmp/photo.jpg&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Upload from memory (bytes or string)</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span><span class=o>.</span><span class=n>put_object</span><span class=p>(</span><span class=s1>&#39;config/settings.json&#39;</span><span class=p>,</span> <span class=s1>&#39;{&#34;debug&#34;: false, &#34;version&#34;: 3}&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Upload with metadata</span>
+</span></span><span class=line><span class=cl><span class=n>headers</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;Content-Type&#39;</span><span class=p>:</span> <span class=s1>&#39;image/jpeg&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;x-oss-meta-uploaded-by&#39;</span><span class=p>:</span> <span class=s1>&#39;user-12345&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;x-oss-meta-original-filename&#39;</span><span class=p>:</span> <span class=s1>&#39;vacation.jpg&#39;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span><span class=o>.</span><span class=n>put_object_from_file</span><span class=p>(</span><span class=s1>&#39;images/photo.jpg&#39;</span><span class=p>,</span> <span class=s1>&#39;/tmp/photo.jpg&#39;</span><span class=p>,</span> <span class=n>headers</span><span class=o>=</span><span class=n>headers</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=分片上传>分片上传</h3><p>超过 100MB 的文件，走分片上传。文件被切分成片（每片最小 100KB，最后一片除外），并行上传，服务端组装。如果某片失败，只重传那一片，不用重传整个文件。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>oss2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>auth</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Auth</span><span class=p>(</span><span class=s1>&#39;&lt;ACCESS_KEY_ID&gt;&#39;</span><span class=p>,</span> <span class=s1>&#39;&lt;ACCESS_KEY_SECRET&gt;&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Bucket</span><span class=p>(</span><span class=n>auth</span><span class=p>,</span> <span class=s1>&#39;https://oss-cn-beijing.aliyuncs.com&#39;</span><span class=p>,</span> <span class=s1>&#39;myapp-prod-media&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The SDK handles multipart automatically for large files</span>
+</span></span><span class=line><span class=cl><span class=c1># Default part size is 10 MB, parallelism is 1</span>
+</span></span><span class=line><span class=cl><span class=n>oss2</span><span class=o>.</span><span class=n>resumable_upload</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>bucket</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;videos/presentation.mp4&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;/tmp/presentation.mp4&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>part_size</span><span class=o>=</span><span class=mi>10</span> <span class=o>*</span> <span class=mi>1024</span> <span class=o>*</span> <span class=mi>1024</span><span class=p>,</span>    <span class=c1># 10 MB per part</span>
+</span></span><span class=line><span class=cl>    <span class=n>num_threads</span><span class=o>=</span><span class=mi>4</span>                   <span class=c1># Upload 4 parts in parallel</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>底层逻辑是 <code>resumable_upload</code> 自动处理：</p><ol><li>调用 <code>InitiateMultipartUpload</code> 获取 upload ID</li><li>切分文件</li><li>并行调用 <code>UploadPart</code> 上传每片</li><li>调用 <code>CompleteMultipartUpload</code> 组装对象</li><li>本地存 checkpoint 文件，中断后可续传</li></ol><h3 id=断点续传下载>断点续传下载</h3><p>网络不稳下载大文件时用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>oss2</span><span class=o>.</span><span class=n>resumable_download</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>bucket</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;videos/presentation.mp4&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;/tmp/downloaded-presentation.mp4&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>part_size</span><span class=o>=</span><span class=mi>10</span> <span class=o>*</span> <span class=mi>1024</span> <span class=o>*</span> <span class=mi>1024</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>num_threads</span><span class=o>=</span><span class=mi>4</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=用-ossutil-搞批量操作>用 ossutil 搞批量操作</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Upload a directory with 8 parallel threads</span>
+</span></span><span class=line><span class=cl>ossutil cp ./media/ oss://myapp-prod-media/media/ <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --recursive --jobs <span class=m>8</span> --parallel <span class=m>4</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Download with filters</span>
+</span></span><span class=line><span class=cl>ossutil cp oss://myapp-prod-media/logs/2026-05/ ./local-logs/ <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --recursive --include <span class=s2>&#34;*.gz&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Sync (like rsync -- only uploads changed files)</span>
+</span></span><span class=line><span class=cl>ossutil sync ./static/ oss://myapp-prod-media/static/ --delete
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># The --delete flag removes objects in OSS that don&#39;t exist locally.</span>
+</span></span><span class=line><span class=cl><span class=c1># Be very careful with this -- test without --delete first.</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>--delete</code> 标志会删掉 OSS 上本地没有的文件。这玩意儿危险，先不带参数跑一遍试试。</p><h3 id=浏览器端直传-presigned-url>浏览器端直传 Presigned URL</h3><p>面向用户的应用最常用的模式：服务端生成 presigned PUT URL，发给浏览器，浏览器直传 OSS。服务器根本不碰文件流。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Server-side: generate presigned upload URL</span>
+</span></span><span class=line><span class=cl><span class=n>url</span> <span class=o>=</span> <span class=n>bucket</span><span class=o>.</span><span class=n>sign_url</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;PUT&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=sa>f</span><span class=s1>&#39;uploads/</span><span class=si>{</span><span class=n>user_id</span><span class=si>}</span><span class=s1>/</span><span class=si>{</span><span class=n>filename</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=mi>600</span><span class=p>,</span>  <span class=c1># 10 minutes</span>
+</span></span><span class=line><span class=cl>    <span class=n>headers</span><span class=o>=</span><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;Content-Type&#39;</span><span class=p>:</span> <span class=n>content_type</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;x-oss-forbid-overwrite&#39;</span><span class=p>:</span> <span class=s1>&#39;true&#39;</span>  <span class=c1># Prevent overwrites</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># Return this URL to the frontend</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=c1>// Client-side: upload directly to OSS
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>async</span> <span class=kd>function</span> <span class=nx>uploadToOSS</span><span class=p>(</span><span class=nx>file</span><span class=p>,</span> <span class=nx>presignedUrl</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>response</span> <span class=o>=</span> <span class=kr>await</span> <span class=nx>fetch</span><span class=p>(</span><span class=nx>presignedUrl</span><span class=p>,</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>method</span><span class=o>:</span> <span class=s1>&#39;PUT&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nx>headers</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=s1>&#39;Content-Type&#39;</span><span class=o>:</span> <span class=nx>file</span><span class=p>.</span><span class=nx>type</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s1>&#39;x-oss-forbid-overwrite&#39;</span><span class=o>:</span> <span class=s1>&#39;true&#39;</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=nx>body</span><span class=o>:</span> <span class=nx>file</span>
+</span></span><span class=line><span class=cl>  <span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=nx>response</span><span class=p>.</span><span class=nx>ok</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>throw</span> <span class=k>new</span> <span class=nb>Error</span><span class=p>(</span><span class=sb>`Upload failed: </span><span class=si>${</span><span class=nx>response</span><span class=p>.</span><span class=nx>status</span><span class=si>}</span><span class=sb>`</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=k>return</span> <span class=nx>response</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这样就不用让应用服务器代理上传流量了，否则带宽和内存消耗跟文件大小成正比。用了 presigned URL，浏览器直连 OSS，服务器只负责协调。</p><h2 id=生命周期规则>生命周期规则</h2><p>生命周期规则能自动切换存储类型和处理对象过期。真正的省钱大招都在这儿。配好一次，后面基本可以忘掉了。</p><h3 id=常见模式>常见模式</h3><p><strong>模式 1：渐进式归档</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Rules&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;ID&#34;</span><span class=p>:</span> <span class=s2>&#34;progressive-archive&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Prefix&#34;</span><span class=p>:</span> <span class=s2>&#34;logs/&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Status&#34;</span><span class=p>:</span> <span class=s2>&#34;Enabled&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Transitions&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>30</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;IA&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>90</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;Archive&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>365</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;ColdArchive&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Expiration&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>730</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这条规则挂在 <code>logs/</code> 前缀下，逻辑很简单：</p><ul><li>30 天后，转低频访问（省 ~40%）</li><li>90 天后，转归档存储（省 ~75%）</li><li>365 天后，转冷归档（省 ~90%）</li><li>730 天（2 年）后，直接删除</li></ul><p><strong>模式 2：清理未完成的多部分上传</strong></p><p>未完成的多部分上传会占空间但在 <code>ls</code> 里看不见。它们会静默积累。这条规则必须加：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Rules&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;ID&#34;</span><span class=p>:</span> <span class=s2>&#34;abort-incomplete-uploads&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Prefix&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Status&#34;</span><span class=p>:</span> <span class=s2>&#34;Enabled&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;AbortMultipartUpload&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>3</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>模式 3：删除旧版本</strong></p><p>开了版本控制后，非当前版本会堆叠。定期清理：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Rules&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;ID&#34;</span><span class=p>:</span> <span class=s2>&#34;cleanup-old-versions&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Prefix&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Status&#34;</span><span class=p>:</span> <span class=s2>&#34;Enabled&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;NoncurrentVersionTransitions&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;NoncurrentDays&#34;</span><span class=p>:</span> <span class=mi>30</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;IA&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;NoncurrentVersionExpiration&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;NoncurrentDays&#34;</span><span class=p>:</span> <span class=mi>90</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=通过-cli-应用生命周期规则>通过 CLI 应用生命周期规则</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 从 JSON 文件应用生命周期配置</span>
+</span></span><span class=line><span class=cl>ossutil lifecycle --method put oss://myapp-prod-media ./lifecycle.json
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 查看当前生命周期规则</span>
+</span></span><span class=line><span class=cl>ossutil lifecycle --method get oss://myapp-prod-media
+</span></span></code></pre></td></tr></table></div></div><h3 id=成本影响>成本影响</h3><p>这是我管理的一个生产 bucket 的真实数据。2 TB 日志数据，每月增长 ~50 GB：</p><table><thead><tr><th>Strategy</th><th>Monthly cost</th><th>Annual cost</th></tr></thead><tbody><tr><td>All Standard, no lifecycle</td><td>~$40</td><td>~$480</td></tr><tr><td>Lifecycle: IA at 30d, Archive at 90d</td><td>~$18</td><td>~$216</td></tr><tr><td>Lifecycle: IA at 30d, Archive at 90d, delete at 365d</td><td>~$14</td><td>~$168</td></tr></tbody></table><p>单个 JSON 文件就能让成本降低 65%。如果组织内有 20 个 bucket，十分钟的工作量一年能省几千刀。</p><h2 id=跨区域复制-crr>跨区域复制 (CRR)</h2><p>跨区域复制会把对象异步拷贝到另一个 Region 的目标 bucket。主要两个场景：</p><ol><li><strong>灾难恢复</strong> &ndash; 如果 cn-beijing 发生 Region 级故障，你的数据在 cn-shanghai 还有份</li><li><strong>合规</strong> &ndash; 监管要求必须在特定地理位置存储副本</li></ol><h3 id=配置-crr>配置 CRR</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 步骤 1：在另一个 Region 创建目标 bucket</span>
+</span></span><span class=line><span class=cl>ossutil mb oss://myapp-dr-media --region cn-shanghai
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 步骤 2：通过控制台或 API 启用 CRR</span>
+</span></span><span class=line><span class=cl><span class=c1># (ossutil 不支持直接配置 CRR -- 用控制台或 SDK)</span>
+</span></span></code></pre></td></tr></table></div></div><p>通过 SDK：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>oss2</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>oss2.models</span> <span class=kn>import</span> <span class=n>ReplicationRule</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>auth</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Auth</span><span class=p>(</span><span class=s1>&#39;&lt;ACCESS_KEY_ID&gt;&#39;</span><span class=p>,</span> <span class=s1>&#39;&lt;ACCESS_KEY_SECRET&gt;&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Bucket</span><span class=p>(</span><span class=n>auth</span><span class=p>,</span> <span class=s1>&#39;https://oss-cn-beijing.aliyuncs.com&#39;</span><span class=p>,</span> <span class=s1>&#39;myapp-prod-media&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>rule</span> <span class=o>=</span> <span class=n>ReplicationRule</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>rule_id</span><span class=o>=</span><span class=s1>&#39;replicate-to-shanghai&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>target_bucket_name</span><span class=o>=</span><span class=s1>&#39;myapp-dr-media&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>target_bucket_location</span><span class=o>=</span><span class=s1>&#39;oss-cn-shanghai&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>target_transfer_type</span><span class=o>=</span><span class=s1>&#39;oss_acc&#39;</span><span class=p>,</span>  <span class=c1># 使用传输加速</span>
+</span></span><span class=line><span class=cl>    <span class=n>prefix_list</span><span class=o>=</span><span class=p>[</span><span class=s1>&#39;images/&#39;</span><span class=p>,</span> <span class=s1>&#39;documents/&#39;</span><span class=p>],</span>  <span class=c1># 只复制这些前缀</span>
+</span></span><span class=line><span class=cl>    <span class=n>action_list</span><span class=o>=</span><span class=p>[</span><span class=s1>&#39;ALL&#39;</span><span class=p>],</span>  <span class=c1># 复制 PUT, DELETE, 和 AbortMultipartUpload</span>
+</span></span><span class=line><span class=cl>    <span class=n>is_enable_historical_object_replication</span><span class=o>=</span><span class=kc>True</span>  <span class=c1># 复制现有对象</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>bucket</span><span class=o>.</span><span class=n>put_bucket_replication</span><span class=p>(</span><span class=n>rule</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=crr-细节>CRR 细节</h3><table><thead><tr><th>Aspect</th><th>Details</th></tr></thead><tbody><tr><td><strong>Replication lag</strong></td><td>Usually &lt; 10 minutes for most objects, can be longer for large objects</td></tr><tr><td><strong>What is replicated</strong></td><td>Object data, metadata, ACL (optionally)</td></tr><tr><td><strong>What is NOT replicated</strong></td><td>Lifecycle transitions, bucket policies, server-side encryption settings</td></tr><tr><td><strong>Cost</strong></td><td>You pay for storage in the destination + data transfer between regions</td></tr><tr><td><strong>Direction</strong></td><td>One-way by default. For bidirectional, set up two rules.</td></tr><tr><td><strong>Delete replication</strong></td><td>Optional. You can choose whether deletes propagate.</td></tr></tbody></table><p>得提醒一句：CRR 是最终一致性，复制时间没有 SLA 保障。别把它当成实时同步机制。如果需要跨 Region 实时访问，去看 CEN + 多 Region 部署。</p><h2 id=cdn-集成>CDN 集成</h2><p>阿里云 CDN + OSS 是最常见的生产模式。CDN 边缘节点把对象缓存到离用户最近的地方，延迟从几百毫秒降到个位数。只有缓存 miss 才会回源到你的 OSS bucket。</p><h3 id=为什么用-cdn--oss-而不是直接用-oss>为什么用 CDN + OSS 而不是直接用 OSS？</h3><table><thead><tr><th>Factor</th><th>OSS direct</th><th>CDN + OSS</th></tr></thead><tbody><tr><td><strong>Latency</strong></td><td>50-200ms (varies by user location)</td><td>5-30ms (from nearest edge)</td></tr><tr><td><strong>Cost per GB transfer</strong></td><td>~0.12/GB (internet)</td><td>~0.04/GB (CDN is cheaper for high volume)</td></tr><tr><td><strong>DDoS protection</strong></td><td>Basic</td><td>Built-in at the CDN edge</td></tr><tr><td><strong>HTTPS</strong></td><td>Supported</td><td>Free certificate via CDN</td></tr><tr><td><strong>Cache control</strong></td><td>None</td><td>Configurable TTL, cache purge API</td></tr><tr><td><strong>Custom domain</strong></td><td>Supported but no free HTTPS</td><td>Full custom domain + free HTTPS</td></tr></tbody></table><p>只要是面向用户的内容（图片、CSS、JS、视频、下载），CDN 绝对更优。唯一不用 CDN 的情况是私有 API 访问（比如后端服务程序化读取文件）。</p><h3 id=完整的-cdn--oss-setup>完整的 CDN + OSS setup</h3><h4 id=步骤-1添加-cdn-域名>步骤 1：添加 CDN 域名</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 使用 aliyun CLI</span>
+</span></span><span class=line><span class=cl>aliyun cdn AddCdnDomain <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CdnType web <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DomainName cdn.example.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Sources <span class=s1>&#39;[{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;content&#34;: &#34;myapp-prod-media.oss-cn-beijing.aliyuncs.com&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;type&#34;: &#34;oss&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;priority&#34;: &#34;20&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;port&#34;: 443
+</span></span></span><span class=line><span class=cl><span class=s1>  }]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=步骤-2配置-cname-dns>步骤 2：配置 CNAME DNS</h4><p>添加 CDN 域名后，阿里云会给你一个 CNAME 值，比如 <code>cdn.example.com.w.kunlunsl.com</code>。在你的 DNS 里加一条 CNAME 记录：</p><pre tabindex=0><code>cdn.example.com  CNAME  cdn.example.com.w.kunlunsl.com
+</code></pre><h4 id=步骤-3启用-https-免费证书>步骤 3：启用 HTTPS 免费证书</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun cdn SetDomainServerCertificate <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DomainName cdn.example.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ServerCertificateStatus on <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CertType free
+</span></span></code></pre></td></tr></table></div></div><p>阿里云 CDN 提供免费的 DV (Domain Validated) 证书。自动续期。生产环境你可以上传自己的证书或用证书管理服务。</p><h4 id=步骤-4设置缓存规则>步骤 4：设置缓存规则</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 图片缓存 30 天</span>
+</span></span><span class=line><span class=cl>aliyun cdn BatchSetCdnDomainConfig <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DomainNames cdn.example.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Functions <span class=s1>&#39;[{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;functionName&#34;: &#34;filetype_based_ttl_set&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;functionArgs&#34;: [{
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;argName&#34;: &#34;ttl&#34;, &#34;argValue&#34;: &#34;2592000&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>    }, {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;argName&#34;: &#34;file_type&#34;, &#34;argValue&#34;: &#34;jpg,jpeg,png,gif,webp,svg,ico&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>    }, {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;argName&#34;: &#34;weight&#34;, &#34;argValue&#34;: &#34;99&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>    }]
+</span></span></span><span class=line><span class=cl><span class=s1>  }]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=步骤-5配置回源>步骤 5：配置回源</h4><p>OSS 做 CDN 源站默认就能用，但建议配这些优化：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 启用 CDN 访问 OSS 私有 bucket</span>
+</span></span><span class=line><span class=cl>aliyun cdn BatchSetCdnDomainConfig <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DomainNames cdn.example.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Functions <span class=s1>&#39;[{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;functionName&#34;: &#34;l2_oss_key&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;functionArgs&#34;: [{
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;argName&#34;: &#34;private_oss_auth&#34;, &#34;argValue&#34;: &#34;on&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>    }]
+</span></span></span><span class=line><span class=cl><span class=s1>  }]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>这样 CDN 就能访问私有 bucket 而不需要把 bucket 公开。CDN 通过内部授权机制认证 OSS。你的 bucket 保持私有，但 CDN 可以在缓存 miss 时获取对象。</p><h4 id=步骤-6验证-setup>步骤 6：验证 setup</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 测试 CDN 解析</span>
+</span></span><span class=line><span class=cl>dig cdn.example.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 测试内容分发</span>
+</span></span><span class=line><span class=cl>curl -I https://cdn.example.com/images/test.jpg
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 检查响应头 -- 找这些字段：</span>
+</span></span><span class=line><span class=cl><span class=c1># X-Cache: HIT or MISS (CDN 缓存状态)</span>
+</span></span><span class=line><span class=cl><span class=c1># Via: S.mix... (CDN 边缘节点标识)</span>
+</span></span><span class=line><span class=cl><span class=c1># Age: 3600 (缓存后的秒数)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=缓存刷新>缓存刷新</h3><p>当你更新了 OSS 里的文件但 CDN 还在服旧版本时：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 刷新特定 URL</span>
+</span></span><span class=line><span class=cl>aliyun cdn RefreshObjectCaches <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ObjectPath <span class=s2>&#34;https://cdn.example.com/images/logo.png&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ObjectType File
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 刷新整个目录</span>
+</span></span><span class=line><span class=cl>aliyun cdn RefreshObjectCaches <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ObjectPath <span class=s2>&#34;https://cdn.example.com/static/&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ObjectType Directory
+</span></span></code></pre></td></tr></table></div></div><h2 id=图片处理-imm>图片处理 (IMM)</h2><p>OSS 内置了图片处理功能，通过 URL 参数实时转换图片。不用单独起服务，也不用预处理流水线，直接在对象 URL 后追加查询参数就行。</p><h3 id=基础转换>基础转换</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 原图</span>
+</span></span><span class=line><span class=cl>https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/images/photo.jpg
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 缩放至 800px 宽，保持 aspect ratio</span>
+</span></span><span class=line><span class=cl>https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/images/photo.jpg?x-oss-process<span class=o>=</span>image/resize,w_800
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 缩放至 200x200 中心裁剪</span>
+</span></span><span class=line><span class=cl>https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/images/photo.jpg?x-oss-process<span class=o>=</span>image/resize,m_fill,w_200,h_200
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 转 WebP 格式（省 ~30% 带宽）</span>
+</span></span><span class=line><span class=cl>https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/images/photo.jpg?x-oss-process<span class=o>=</span>image/format,webp
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 降低质量 (80%)</span>
+</span></span><span class=line><span class=cl>https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/images/photo.jpg?x-oss-process<span class=o>=</span>image/quality,q_80
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 链式操作：resize + webp + quality</span>
+</span></span><span class=line><span class=cl>https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/images/photo.jpg?x-oss-process<span class=o>=</span>image/resize,w_800/format,webp/quality,q_80
+</span></span></code></pre></td></tr></table></div></div><h3 id=水印>水印</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 文字水印</span>
+</span></span><span class=line><span class=cl>?x-oss-process<span class=o>=</span>image/watermark,text_Q2hlbmsgQmxvZw<span class=o>==</span>,type_d3F5LXplbmhlaQ,size_30,color_FFFFFF,t_80,g_se,x_10,y_10
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 文字是 base64 编码。&#34;Chenk Blog&#34; = Q2hlbmsgQmxvZw==</span>
+</span></span><span class=line><span class=cl><span class=c1># g_se = southeast (右下角)</span>
+</span></span><span class=line><span class=cl><span class=c1># t_80 = 80% 透明度</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=图片信息>图片信息</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 获取图片尺寸、格式、文件大小</span>
+</span></span><span class=line><span class=cl>curl <span class=s2>&#34;https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/images/photo.jpg?x-oss-process=image/info&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Response:</span>
+</span></span><span class=line><span class=cl><span class=c1># {</span>
+</span></span><span class=line><span class=cl><span class=c1>#   &#34;FileSize&#34;: {&#34;value&#34;: &#34;2458632&#34;},</span>
+</span></span><span class=line><span class=cl><span class=c1>#   &#34;Format&#34;: {&#34;value&#34;: &#34;jpg&#34;},</span>
+</span></span><span class=line><span class=cl><span class=c1>#   &#34;ImageHeight&#34;: {&#34;value&#34;: &#34;2048&#34;},</span>
+</span></span><span class=line><span class=cl><span class=c1>#   &#34;ImageWidth&#34;: {&#34;value&#34;: &#34;3072&#34;}</span>
+</span></span><span class=line><span class=cl><span class=c1># }</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=结合-cdn-使用图片处理>结合 CDN 使用图片处理</h3><p>当你访问 <code>https://cdn.example.com/images/photo.jpg?x-oss-process=image/resize,w_800/format,webp</code>，CDN 会缓存处理后的版本。后续请求同样的转换会命中 CDN 缓存，不再回源 OSS。这意味着你既能实时处理，又能享受 CDN 速度的分发。</p><p>处理后的图片和原图分开缓存，完整 URL 包括查询参数才是缓存 key。所以 <code>photo.jpg</code>、<code>photo.jpg?x-oss-process=image/resize,w_800</code> 和 <code>photo.jpg?x-oss-process=image/resize,w_400</code> 是三个独立的缓存条目。</p><h2 id=解决方案媒体存储后端>解决方案：媒体存储后端</h2><p>咱们把前面聊的都串起来。这次我们要落地一个完整的媒体存储后端：带生命周期规则的 OSS Bucket、配了自定义域名的 CDN，还有一个 Python Flask API。它负责生成预签名上传 URL，并通过 CDN 提供带处理能力的图片服务。</p><h3 id=第一步创建并配置-bucket>第一步：创建并配置 Bucket</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create bucket</span>
+</span></span><span class=line><span class=cl>ossutil mb oss://myapp-prod-media --region cn-beijing
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Enable versioning</span>
+</span></span><span class=line><span class=cl>ossutil bucket-versioning --method put oss://myapp-prod-media enabled
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Set CORS for browser uploads</span>
+</span></span><span class=line><span class=cl>cat &gt; /tmp/cors.json <span class=s>&lt;&lt; &#39;CORS&#39;
+</span></span></span><span class=line><span class=cl><span class=s>{
+</span></span></span><span class=line><span class=cl><span class=s>  &#34;CORS</span>Rules<span class=s2>&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s2>    {
+</span></span></span><span class=line><span class=cl><span class=s2>      &#34;</span>AllowedOrigin<span class=s2>&#34;: [&#34;</span>https://myapp.example.com<span class=s2>&#34;],
+</span></span></span><span class=line><span class=cl><span class=s2>      &#34;</span>AllowedMethod<span class=s2>&#34;: [&#34;</span>PUT<span class=s2>&#34;, &#34;</span>GET<span class=s2>&#34;, &#34;</span>HEAD<span class=s2>&#34;],
+</span></span></span><span class=line><span class=cl><span class=s2>      &#34;</span>AllowedHeader<span class=s2>&#34;: [&#34;</span>*<span class=s2>&#34;],
+</span></span></span><span class=line><span class=cl><span class=s2>      &#34;</span>ExposeHeader<span class=s2>&#34;: [&#34;</span>ETag<span class=s2>&#34;, &#34;</span>x-oss-request-id<span class=s2>&#34;],
+</span></span></span><span class=line><span class=cl><span class=s2>      &#34;</span>MaxAgeSeconds<span class=s2>&#34;: 3600
+</span></span></span><span class=line><span class=cl><span class=s2>    }
+</span></span></span><span class=line><span class=cl><span class=s2>  ]
+</span></span></span><span class=line><span class=cl><span class=s2>}
+</span></span></span><span class=line><span class=cl><span class=s2>CORS
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>ossutil cors --method put oss://myapp-prod-media /tmp/cors.json
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=第二步配置生命周期规则>第二步：配置生命周期规则</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>cat &gt; /tmp/lifecycle.json <span class=s>&lt;&lt; &#39;LIFECYCLE&#39;
+</span></span></span><span class=line><span class=cl><span class=s>{
+</span></span></span><span class=line><span class=cl><span class=s>  &#34;Rules&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s>    {
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;ID&#34;: &#34;user-uploads-archive&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;Prefix&#34;: &#34;uploads/&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;Status&#34;: &#34;Enabled&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;Transitions&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s>        {&#34;Days&#34;: 30, &#34;StorageClass&#34;: &#34;IA&#34;},
+</span></span></span><span class=line><span class=cl><span class=s>        {&#34;Days&#34;: 90, &#34;StorageClass&#34;: &#34;Archive&#34;}
+</span></span></span><span class=line><span class=cl><span class=s>      ],
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;NoncurrentVersionExpiration&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s>        &#34;NoncurrentDays&#34;: 30
+</span></span></span><span class=line><span class=cl><span class=s>      }
+</span></span></span><span class=line><span class=cl><span class=s>    },
+</span></span></span><span class=line><span class=cl><span class=s>    {
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;ID&#34;: &#34;temp-cleanup&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;Prefix&#34;: &#34;temp/&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;Status&#34;: &#34;Enabled&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;Expiration&#34;: {&#34;Days&#34;: 1}
+</span></span></span><span class=line><span class=cl><span class=s>    },
+</span></span></span><span class=line><span class=cl><span class=s>    {
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;ID&#34;: &#34;abort-incomplete-uploads&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;Prefix&#34;: &#34;&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;Status&#34;: &#34;Enabled&#34;,
+</span></span></span><span class=line><span class=cl><span class=s>      &#34;AbortMultipartUpload&#34;: {&#34;Days&#34;: 3}
+</span></span></span><span class=line><span class=cl><span class=s>    }
+</span></span></span><span class=line><span class=cl><span class=s>  ]
+</span></span></span><span class=line><span class=cl><span class=s>}
+</span></span></span><span class=line><span class=cl><span class=s>LIFECYCLE</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>ossutil lifecycle --method put oss://myapp-prod-media /tmp/lifecycle.json
+</span></span></code></pre></td></tr></table></div></div><h3 id=第三步接入-cdn>第三步：接入 CDN</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Add CDN domain pointing to OSS</span>
+</span></span><span class=line><span class=cl>aliyun cdn AddCdnDomain <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CdnType web <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DomainName media.myapp.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Sources <span class=s1>&#39;[{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;content&#34;: &#34;myapp-prod-media.oss-cn-beijing.aliyuncs.com&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;type&#34;: &#34;oss&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;priority&#34;: &#34;20&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;port&#34;: 443
+</span></span></span><span class=line><span class=cl><span class=s1>  }]&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Enable HTTPS</span>
+</span></span><span class=line><span class=cl>aliyun cdn SetDomainServerCertificate <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DomainName media.myapp.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ServerCertificateStatus on <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CertType free
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Enable private bucket origin access</span>
+</span></span><span class=line><span class=cl>aliyun cdn BatchSetCdnDomainConfig <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DomainNames media.myapp.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Functions <span class=s1>&#39;[{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;functionName&#34;: &#34;l2_oss_key&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;functionArgs&#34;: [{&#34;argName&#34;: &#34;private_oss_auth&#34;, &#34;argValue&#34;: &#34;on&#34;}]
+</span></span></span><span class=line><span class=cl><span class=s1>  }]&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Add CNAME record in your DNS provider:</span>
+</span></span><span class=line><span class=cl><span class=c1># media.myapp.com  CNAME  media.myapp.com.w.kunlunsl.com</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第四步flask-api-服务>第四步：Flask API 服务</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>Media storage API with presigned OSS uploads and CDN delivery.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>Requirements:
+</span></span></span><span class=line><span class=cl><span class=s2>    pip install flask oss2 alibabacloud-sts20150401
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>uuid</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>flask</span> <span class=kn>import</span> <span class=n>Flask</span><span class=p>,</span> <span class=n>request</span><span class=p>,</span> <span class=n>jsonify</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>oss2</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_sts20150401.client</span> <span class=kn>import</span> <span class=n>Client</span> <span class=k>as</span> <span class=n>StsClient</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_sts20150401.models</span> <span class=kn>import</span> <span class=n>AssumeRoleRequest</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_tea_openapi.models</span> <span class=kn>import</span> <span class=n>Config</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>app</span> <span class=o>=</span> <span class=n>Flask</span><span class=p>(</span><span class=vm>__name__</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Configuration</span>
+</span></span><span class=line><span class=cl><span class=n>OSS_REGION</span> <span class=o>=</span> <span class=s1>&#39;cn-beijing&#39;</span>
+</span></span><span class=line><span class=cl><span class=n>OSS_BUCKET_NAME</span> <span class=o>=</span> <span class=s1>&#39;myapp-prod-media&#39;</span>
+</span></span><span class=line><span class=cl><span class=n>OSS_ENDPOINT</span> <span class=o>=</span> <span class=sa>f</span><span class=s1>&#39;https://oss-</span><span class=si>{</span><span class=n>OSS_REGION</span><span class=si>}</span><span class=s1>.aliyuncs.com&#39;</span>
+</span></span><span class=line><span class=cl><span class=n>OSS_INTERNAL_ENDPOINT</span> <span class=o>=</span> <span class=sa>f</span><span class=s1>&#39;https://oss-</span><span class=si>{</span><span class=n>OSS_REGION</span><span class=si>}</span><span class=s1>-internal.aliyuncs.com&#39;</span>
+</span></span><span class=line><span class=cl><span class=n>CDN_DOMAIN</span> <span class=o>=</span> <span class=s1>&#39;https://media.myapp.com&#39;</span>
+</span></span><span class=line><span class=cl><span class=n>STS_ROLE_ARN</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s1>&#39;STS_ROLE_ARN&#39;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>AK_ID</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s1>&#39;ALIBABA_CLOUD_ACCESS_KEY_ID&#39;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>AK_SECRET</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s1>&#39;ALIBABA_CLOUD_ACCESS_KEY_SECRET&#39;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Use internal endpoint when running on ECS in same region (free transfer)</span>
+</span></span><span class=line><span class=cl><span class=n>endpoint</span> <span class=o>=</span> <span class=n>OSS_INTERNAL_ENDPOINT</span> <span class=k>if</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;ON_ECS&#39;</span><span class=p>)</span> <span class=k>else</span> <span class=n>OSS_ENDPOINT</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>auth</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Auth</span><span class=p>(</span><span class=n>AK_ID</span><span class=p>,</span> <span class=n>AK_SECRET</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Bucket</span><span class=p>(</span><span class=n>auth</span><span class=p>,</span> <span class=n>endpoint</span><span class=p>,</span> <span class=n>OSS_BUCKET_NAME</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>ALLOWED_TYPES</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;image/jpeg&#39;</span><span class=p>:</span> <span class=s1>&#39;.jpg&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;image/png&#39;</span><span class=p>:</span> <span class=s1>&#39;.png&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;image/webp&#39;</span><span class=p>:</span> <span class=s1>&#39;.webp&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;image/gif&#39;</span><span class=p>:</span> <span class=s1>&#39;.gif&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;application/pdf&#39;</span><span class=p>:</span> <span class=s1>&#39;.pdf&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s1>&#39;video/mp4&#39;</span><span class=p>:</span> <span class=s1>&#39;.mp4&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=n>MAX_FILE_SIZE</span> <span class=o>=</span> <span class=mi>100</span> <span class=o>*</span> <span class=mi>1024</span> <span class=o>*</span> <span class=mi>1024</span>  <span class=c1># 100 MB</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@app.route</span><span class=p>(</span><span class=s1>&#39;/api/upload/presign&#39;</span><span class=p>,</span> <span class=n>methods</span><span class=o>=</span><span class=p>[</span><span class=s1>&#39;POST&#39;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>get_upload_url</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Generate a presigned URL for direct browser-to-OSS upload.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>data</span> <span class=o>=</span> <span class=n>request</span><span class=o>.</span><span class=n>json</span>
+</span></span><span class=line><span class=cl>    <span class=n>content_type</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;content_type&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>filename</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;filename&#39;</span><span class=p>,</span> <span class=s1>&#39;unnamed&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>user_id</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;user_id&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>content_type</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>ALLOWED_TYPES</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>jsonify</span><span class=p>({</span><span class=s1>&#39;error&#39;</span><span class=p>:</span> <span class=sa>f</span><span class=s1>&#39;Unsupported file type: </span><span class=si>{</span><span class=n>content_type</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>}),</span> <span class=mi>400</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Generate a unique object key</span>
+</span></span><span class=line><span class=cl>    <span class=n>ext</span> <span class=o>=</span> <span class=n>ALLOWED_TYPES</span><span class=p>[</span><span class=n>content_type</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>date_prefix</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>strftime</span><span class=p>(</span><span class=s1>&#39;%Y/%m/</span><span class=si>%d</span><span class=s1>&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>unique_id</span> <span class=o>=</span> <span class=n>uuid</span><span class=o>.</span><span class=n>uuid4</span><span class=p>()</span><span class=o>.</span><span class=n>hex</span><span class=p>[:</span><span class=mi>12</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>object_key</span> <span class=o>=</span> <span class=sa>f</span><span class=s1>&#39;uploads/</span><span class=si>{</span><span class=n>user_id</span><span class=si>}</span><span class=s1>/</span><span class=si>{</span><span class=n>date_prefix</span><span class=si>}</span><span class=s1>/</span><span class=si>{</span><span class=n>unique_id</span><span class=si>}{</span><span class=n>ext</span><span class=si>}</span><span class=s1>&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Generate presigned PUT URL (valid for 10 minutes)</span>
+</span></span><span class=line><span class=cl>    <span class=n>upload_url</span> <span class=o>=</span> <span class=n>bucket</span><span class=o>.</span><span class=n>sign_url</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;PUT&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>object_key</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=mi>600</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>headers</span><span class=o>=</span><span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s1>&#39;Content-Type&#39;</span><span class=p>:</span> <span class=n>content_type</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s1>&#39;x-oss-forbid-overwrite&#39;</span><span class=p>:</span> <span class=s1>&#39;true&#39;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># CDN URL for accessing the file after upload</span>
+</span></span><span class=line><span class=cl>    <span class=n>cdn_url</span> <span class=o>=</span> <span class=sa>f</span><span class=s1>&#39;</span><span class=si>{</span><span class=n>CDN_DOMAIN</span><span class=si>}</span><span class=s1>/</span><span class=si>{</span><span class=n>object_key</span><span class=si>}</span><span class=s1>&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>jsonify</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;upload_url&#39;</span><span class=p>:</span> <span class=n>upload_url</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;object_key&#39;</span><span class=p>:</span> <span class=n>object_key</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;cdn_url&#39;</span><span class=p>:</span> <span class=n>cdn_url</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;expires_in&#39;</span><span class=p>:</span> <span class=mi>600</span>
+</span></span><span class=line><span class=cl>    <span class=p>})</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@app.route</span><span class=p>(</span><span class=s1>&#39;/api/image/&lt;path:object_key&gt;&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>get_image_url</span><span class=p>(</span><span class=n>object_key</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Return CDN URL with optional image processing parameters.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>width</span> <span class=o>=</span> <span class=n>request</span><span class=o>.</span><span class=n>args</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;w&#39;</span><span class=p>,</span> <span class=nb>type</span><span class=o>=</span><span class=nb>int</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>height</span> <span class=o>=</span> <span class=n>request</span><span class=o>.</span><span class=n>args</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;h&#39;</span><span class=p>,</span> <span class=nb>type</span><span class=o>=</span><span class=nb>int</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>fmt</span> <span class=o>=</span> <span class=n>request</span><span class=o>.</span><span class=n>args</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;format&#39;</span><span class=p>,</span> <span class=s1>&#39;webp&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>quality</span> <span class=o>=</span> <span class=n>request</span><span class=o>.</span><span class=n>args</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;q&#39;</span><span class=p>,</span> <span class=mi>80</span><span class=p>,</span> <span class=nb>type</span><span class=o>=</span><span class=nb>int</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>url</span> <span class=o>=</span> <span class=sa>f</span><span class=s1>&#39;</span><span class=si>{</span><span class=n>CDN_DOMAIN</span><span class=si>}</span><span class=s1>/</span><span class=si>{</span><span class=n>object_key</span><span class=si>}</span><span class=s1>&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Build image processing parameters</span>
+</span></span><span class=line><span class=cl>    <span class=n>processes</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>width</span> <span class=ow>and</span> <span class=n>height</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>processes</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s1>&#39;image/resize,m_fill,w_</span><span class=si>{</span><span class=n>width</span><span class=si>}</span><span class=s1>,h_</span><span class=si>{</span><span class=n>height</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>elif</span> <span class=n>width</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>processes</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s1>&#39;image/resize,w_</span><span class=si>{</span><span class=n>width</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>elif</span> <span class=n>height</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>processes</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s1>&#39;image/resize,h_</span><span class=si>{</span><span class=n>height</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>fmt</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>processes</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s1>&#39;format,</span><span class=si>{</span><span class=n>fmt</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>quality</span> <span class=ow>and</span> <span class=n>quality</span> <span class=o>&lt;</span> <span class=mi>100</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>processes</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s1>&#39;quality,q_</span><span class=si>{</span><span class=n>quality</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>processes</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>process_string</span> <span class=o>=</span> <span class=s1>&#39;/&#39;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>processes</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Ensure &#34;image/&#34; prefix is only on the first operation</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=ow>not</span> <span class=n>process_string</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s1>&#39;image/&#39;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>process_string</span> <span class=o>=</span> <span class=s1>&#39;image/&#39;</span> <span class=o>+</span> <span class=n>process_string</span>
+</span></span><span class=line><span class=cl>        <span class=n>url</span> <span class=o>+=</span> <span class=sa>f</span><span class=s1>&#39;?x-oss-process=</span><span class=si>{</span><span class=n>process_string</span><span class=si>}</span><span class=s1>&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>jsonify</span><span class=p>({</span><span class=s1>&#39;url&#39;</span><span class=p>:</span> <span class=n>url</span><span class=p>})</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@app.route</span><span class=p>(</span><span class=s1>&#39;/api/upload/sts-token&#39;</span><span class=p>,</span> <span class=n>methods</span><span class=o>=</span><span class=p>[</span><span class=s1>&#39;POST&#39;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>get_sts_token</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Issue STS temporary credentials for mobile/SPA uploads.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>user_id</span> <span class=o>=</span> <span class=n>request</span><span class=o>.</span><span class=n>json</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;user_id&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>sts_config</span> <span class=o>=</span> <span class=n>Config</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>access_key_id</span><span class=o>=</span><span class=n>AK_ID</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>access_key_secret</span><span class=o>=</span><span class=n>AK_SECRET</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>endpoint</span><span class=o>=</span><span class=sa>f</span><span class=s1>&#39;sts.</span><span class=si>{</span><span class=n>OSS_REGION</span><span class=si>}</span><span class=s1>.aliyuncs.com&#39;</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>sts_client</span> <span class=o>=</span> <span class=n>StsClient</span><span class=p>(</span><span class=n>sts_config</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Scope credentials to this user&#39;s upload directory only</span>
+</span></span><span class=line><span class=cl>    <span class=n>policy</span> <span class=o>=</span> <span class=sa>f</span><span class=s1>&#39;&#39;&#39;</span><span class=se>{{</span><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Version&#34;: &#34;1&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Statement&#34;: [</span><span class=se>{{</span><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>            &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>            &#34;Action&#34;: [&#34;oss:PutObject&#34;],
+</span></span></span><span class=line><span class=cl><span class=s1>            &#34;Resource&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>                &#34;acs:oss:*:*:</span><span class=si>{</span><span class=n>OSS_BUCKET_NAME</span><span class=si>}</span><span class=s1>/uploads/</span><span class=si>{</span><span class=n>user_id</span><span class=si>}</span><span class=s1>/*&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>            ]
+</span></span></span><span class=line><span class=cl><span class=s1>        </span><span class=se>}}</span><span class=s1>]
+</span></span></span><span class=line><span class=cl><span class=s1>    </span><span class=se>}}</span><span class=s1>&#39;&#39;&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>resp</span> <span class=o>=</span> <span class=n>sts_client</span><span class=o>.</span><span class=n>assume_role</span><span class=p>(</span><span class=n>AssumeRoleRequest</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>role_arn</span><span class=o>=</span><span class=n>STS_ROLE_ARN</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>role_session_name</span><span class=o>=</span><span class=sa>f</span><span class=s1>&#39;upload-</span><span class=si>{</span><span class=n>user_id</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>duration_seconds</span><span class=o>=</span><span class=mi>900</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>policy</span><span class=o>=</span><span class=n>policy</span>
+</span></span><span class=line><span class=cl>    <span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>creds</span> <span class=o>=</span> <span class=n>resp</span><span class=o>.</span><span class=n>body</span><span class=o>.</span><span class=n>credentials</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>jsonify</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;access_key_id&#39;</span><span class=p>:</span> <span class=n>creds</span><span class=o>.</span><span class=n>access_key_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;access_key_secret&#39;</span><span class=p>:</span> <span class=n>creds</span><span class=o>.</span><span class=n>access_key_secret</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;security_token&#39;</span><span class=p>:</span> <span class=n>creds</span><span class=o>.</span><span class=n>security_token</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;expiration&#39;</span><span class=p>:</span> <span class=n>creds</span><span class=o>.</span><span class=n>expiration</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;bucket&#39;</span><span class=p>:</span> <span class=n>OSS_BUCKET_NAME</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;region&#39;</span><span class=p>:</span> <span class=n>OSS_REGION</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;endpoint&#39;</span><span class=p>:</span> <span class=n>OSS_ENDPOINT</span>
+</span></span><span class=line><span class=cl>    <span class=p>})</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s1>&#39;__main__&#39;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>app</span><span class=o>.</span><span class=n>run</span><span class=p>(</span><span class=n>host</span><span class=o>=</span><span class=s1>&#39;0.0.0.0&#39;</span><span class=p>,</span> <span class=n>port</span><span class=o>=</span><span class=mi>8080</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第五步全流程测试>第五步：全流程测试</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 1. Request a presigned upload URL</span>
+</span></span><span class=line><span class=cl>curl -X POST http://localhost:8080/api/upload/presign <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -H <span class=s2>&#34;Content-Type: application/json&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -d <span class=s1>&#39;{&#34;content_type&#34;: &#34;image/jpeg&#34;, &#34;filename&#34;: &#34;photo.jpg&#34;, &#34;user_id&#34;: &#34;u123&#34;}&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Response:</span>
+</span></span><span class=line><span class=cl><span class=c1># {</span>
+</span></span><span class=line><span class=cl><span class=c1>#   &#34;upload_url&#34;: &#34;https://myapp-prod-media.oss-cn-beijing.aliyuncs.com/uploads/u123/2026/05/14/a1b2c3d4e5f6.jpg?OSSAccessKeyId=...&amp;Signature=...&amp;Expires=...&#34;,</span>
+</span></span><span class=line><span class=cl><span class=c1>#   &#34;object_key&#34;: &#34;uploads/u123/2026/05/14/a1b2c3d4e5f6.jpg&#34;,</span>
+</span></span><span class=line><span class=cl><span class=c1>#   &#34;cdn_url&#34;: &#34;https://media.myapp.com/uploads/u123/2026/05/14/a1b2c3d4e5f6.jpg&#34;,</span>
+</span></span><span class=line><span class=cl><span class=c1>#   &#34;expires_in&#34;: 600</span>
+</span></span><span class=line><span class=cl><span class=c1># }</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. Upload the file directly to OSS using the presigned URL</span>
+</span></span><span class=line><span class=cl>curl -X PUT <span class=s2>&#34;&lt;presigned_upload_url&gt;&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -H <span class=s2>&#34;Content-Type: image/jpeg&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -H <span class=s2>&#34;x-oss-forbid-overwrite: true&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --data-binary @photo.jpg
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. Access via CDN with image processing</span>
+</span></span><span class=line><span class=cl>curl -I <span class=s2>&#34;https://media.myapp.com/uploads/u123/2026/05/14/a1b2c3d4e5f6.jpg?x-oss-process=image/resize,w_400/format,webp/quality,q_80&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 4. Get a processed image URL from the API</span>
+</span></span><span class=line><span class=cl>curl <span class=s2>&#34;http://localhost:8080/api/image/uploads/u123/2026/05/14/a1b2c3d4e5f6.jpg?w=400&amp;format=webp&amp;q=80&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=架构总结>架构总结</h3><pre tabindex=0><code>Browser                          Your Flask API                OSS Bucket
+  │                                   │                           │
+  │  1. POST /api/upload/presign      │                           │
+  │──────────────────────────────────►│                           │
+  │                                   │  (generates signed URL)   │
+  │  2. {upload_url, cdn_url}         │                           │
+  │◄──────────────────────────────────│                           │
+  │                                                               │
+  │  3. PUT (file bytes) ────────────────────────────────────────►│
+  │                                                               │
+  │  4. GET cdn_url ──────► CDN Edge ──── (cache miss) ─────────►│
+  │  ◄── cached response ◄─── CDN ◄──── object data ◄───────────│
+  │                                                               │
+  │  5. GET cdn_url ──────► CDN Edge                              │
+  │  ◄── cached response ◄─── CDN (cache HIT, no OSS request)    │
+</code></pre><p>这套架构最爽的地方在于：应用服务器完全不碰文件 I/O。上传流量直接从浏览器打到 OSS。下载流量走 CDN 边缘节点。Flask API 只是个协调员，生成签名 URL、拼拼 CDN 路径。它保持轻量，容易扩展，跑起来也省钱。</p><h2 id=核心要点>核心要点</h2><p><strong>OSS 不是文件系统。</strong> 它是基于 HTTP 访问的扁平键值存储。别把它当挂载盘用。别存几百万个小文件，那种场景 NAS 或数据库更合适。用它擅长的场景：存任意大小的 Blob，极致耐用，HTTP 分发。</p><p><strong>默认私有，谨慎开放。</strong> 每个 Bucket 默认都该是私有的。临时访问用签名 URL，客户端上传用 STS Token，公开内容走 CDN 回源。基础设施里永远不该出现 <code>public-read-write</code> 这种 ACL。</p><p><strong>生命周期规则就是白捡的钱。</strong> 每个 Bucket 都配上。哪怕只配一条"30 天转 IA"，你不常读的数据能省 40%。配置不要钱，自动运行。</p><p><strong>务必用内网 Endpoint。</strong> ECS 和 OSS 在同地域时，用 <code>oss-{region}-internal.aliyuncs.com</code>。内网流量免费。走公网 Endpoint 要付 ~$0.12/GB。这钱积少成多。</p><p><strong>面向用户的内容，CDN 不是可选项。</strong> 更低延迟、更低成本、自带 DDoS 防护，CDN + OSS 绝对比单用 OSS 强。配置也就 15 分钟。</p><p><strong>预签名 URL 让服务器保持轻量。</strong> 别让应用服务器代理文件上传下载。生成预签名 URL，让客户端直连 OSS（或 CDN）。服务器只管元数据和权限，别碰字节流。</p><p>关于用基础设施即代码管理 OSS，可以参考 <a href=/zh/terraform-agents/05-storage-for-agent-memory/>Terraform Part 5: Storage</a>
+。我们会在 <a href=/zh/aliyun-fullstack/11-pai-ml-platform/>Part 11: PAI</a>
+中把 OSS 用作 ML 模型的后端存储。</p><h2 id=接下来聊什么>接下来聊什么</h2><p>存储就是数据安家的地方。OSS 配置妥当——Bucket、生命周期规则、访问控制、CDN 和图片处理都就位——持久化层这块算是稳了。下一篇文章，咱们转向托管数据库：关系型数据交给 RDS，缓存交给 Redis，顺便聊聊复制、备份和故障转移策略。毕竟硬件总会出问题，得确保数据能活下来。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/aliyun-fullstack/>阿里云全栈实战</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><span class=title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/01-ecosystem-map/><span class=series-nav-num>01</span>
+<span class=series-nav-title>阿里云全栈实战（一）：生态全景图——阿里云到底是什么</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/><span class=series-nav-num>02</span>
+<span class=series-nav-title>阿里云全栈实战（二）：ECS——让计算回归本质</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=series-nav-num>03</span>
+<span class=series-nav-title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>04</span>
+<span class=series-nav-title>阿里云全栈实战（四）：OSS——对象存储最佳实践</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><span class=series-nav-num>05</span>
+<span class=series-nav-title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=series-nav-num>06</span>
+<span class=series-nav-title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/07-observability/><span class=series-nav-num>07</span>
+<span class=series-nav-title>阿里云全栈实战（七）：SLS 打造可观测性体系</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/08-serverless/><span class=series-nav-num>08</span>
+<span class=series-nav-title>阿里云全栈实战（八）：Serverless 与事件驱动</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/09-opensearch/><span class=series-nav-num>09</span>
+<span class=series-nav-title>阿里云全栈实战（九）：OpenSearch 与 AI 搜索</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/10-bailian-llm/><span class=series-nav-num>10</span>
+<span class=series-nav-title>阿里云全栈实战（十）：DashScope 与大模型层</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/11-pai-ml-platform/><span class=series-nav-num>11</span>
+<span class=series-nav-title>阿里云全栈实战（十一）：PAI 打造机器学习平台</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/12-terraform-e2e/><span class=series-nav-num>12</span>
+<span class=series-nav-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#什么是-oss>什么是 OSS？</a><ul><li><a href=#三种云存储类型>三种云存储类型</a></li><li><a href=#oss-对比-aws-s3>OSS 对比 AWS S3</a></li><li><a href=#核心概念>核心概念</a></li></ul></li><li><a href=#存储类型>存储类型</a></li><li><a href=#创建和管理-bucket>创建和管理 Bucket</a><ul><li><a href=#控制台-walkthrough>控制台 walkthrough</a></li><li><a href=#cli-使用-ossutil>CLI 使用 ossutil</a></li><li><a href=#bucket-命名规则>Bucket 命名规则</a></li><li><a href=#版本控制>版本控制</a></li></ul></li><li><a href=#访问控制深度解析>访问控制深度解析</a><ul><li><a href=#第一层bucket-acl>第一层：Bucket ACL</a></li><li><a href=#第二层bucket-policy>第二层：Bucket Policy</a></li><li><a href=#第三层ram-policy>第三层：RAM Policy</a></li><li><a href=#第四层sts-临时凭证>第四层：STS 临时凭证</a></li><li><a href=#签名-url>签名 URL</a></li></ul></li><li><a href=#上传与下载>上传与下载</a><ul><li><a href=#简单上传>简单上传</a></li><li><a href=#分片上传>分片上传</a></li><li><a href=#断点续传下载>断点续传下载</a></li><li><a href=#用-ossutil-搞批量操作>用 ossutil 搞批量操作</a></li><li><a href=#浏览器端直传-presigned-url>浏览器端直传 Presigned URL</a></li></ul></li><li><a href=#生命周期规则>生命周期规则</a><ul><li><a href=#常见模式>常见模式</a></li><li><a href=#通过-cli-应用生命周期规则>通过 CLI 应用生命周期规则</a></li><li><a href=#成本影响>成本影响</a></li></ul></li><li><a href=#跨区域复制-crr>跨区域复制 (CRR)</a><ul><li><a href=#配置-crr>配置 CRR</a></li><li><a href=#crr-细节>CRR 细节</a></li></ul></li><li><a href=#cdn-集成>CDN 集成</a><ul><li><a href=#为什么用-cdn--oss-而不是直接用-oss>为什么用 CDN + OSS 而不是直接用 OSS？</a></li><li><a href=#完整的-cdn--oss-setup>完整的 CDN + OSS setup</a><ul><li><a href=#步骤-1添加-cdn-域名>步骤 1：添加 CDN 域名</a></li><li><a href=#步骤-2配置-cname-dns>步骤 2：配置 CNAME DNS</a></li><li><a href=#步骤-3启用-https-免费证书>步骤 3：启用 HTTPS 免费证书</a></li><li><a href=#步骤-4设置缓存规则>步骤 4：设置缓存规则</a></li><li><a href=#步骤-5配置回源>步骤 5：配置回源</a></li><li><a href=#步骤-6验证-setup>步骤 6：验证 setup</a></li></ul></li><li><a href=#缓存刷新>缓存刷新</a></li></ul></li><li><a href=#图片处理-imm>图片处理 (IMM)</a><ul><li><a href=#基础转换>基础转换</a></li><li><a href=#水印>水印</a></li><li><a href=#图片信息>图片信息</a></li><li><a href=#结合-cdn-使用图片处理>结合 CDN 使用图片处理</a></li></ul></li><li><a href=#解决方案媒体存储后端>解决方案：媒体存储后端</a><ul><li><a href=#第一步创建并配置-bucket>第一步：创建并配置 Bucket</a></li><li><a href=#第二步配置生命周期规则>第二步：配置生命周期规则</a></li><li><a href=#第三步接入-cdn>第三步：接入 CDN</a></li><li><a href=#第四步flask-api-服务>第四步：Flask API 服务</a></li><li><a href=#第五步全流程测试>第五步：全流程测试</a></li><li><a href=#架构总结>架构总结</a></li></ul></li><li><a href=#核心要点>核心要点</a></li><li><a href=#接下来聊什么>接下来聊什么</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/aliyun-fullstack/ class=series-name>阿里云全栈实战</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/01-ecosystem-map/><span class=chapter-num>01</span>
+<span class=chapter-title>阿里云全栈实战（一）：生态全景图——阿里云到底是什么</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/><span class=chapter-num>02</span>
+<span class=chapter-title>阿里云全栈实战（二）：ECS——让计算回归本质</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=chapter-num>03</span>
+<span class=chapter-title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>04</span>
+<span class=chapter-title>阿里云全栈实战（四）：OSS——对象存储最佳实践</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><span class=chapter-num>05</span>
+<span class=chapter-title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=chapter-num>06</span>
+<span class=chapter-title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/07-observability/><span class=chapter-num>07</span>
+<span class=chapter-title>阿里云全栈实战（七）：SLS 打造可观测性体系</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/08-serverless/><span class=chapter-num>08</span>
+<span class=chapter-title>阿里云全栈实战（八）：Serverless 与事件驱动</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/09-opensearch/><span class=chapter-num>09</span>
+<span class=chapter-title>阿里云全栈实战（九）：OpenSearch 与 AI 搜索</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/10-bailian-llm/><span class=chapter-num>10</span>
+<span class=chapter-title>阿里云全栈实战（十）：DashScope 与大模型层</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/11-pai-ml-platform/><span class=chapter-num>11</span>
+<span class=chapter-title>阿里云全栈实战（十一）：PAI 打造机器学习平台</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/12-terraform-e2e/><span class=chapter-num>12</span>
+<span class=chapter-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>38 min</strong></div><div class=row><span>字数</span><strong>9217</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div></footer></body></html>

@@ -1,0 +1,988 @@
+<!doctype html><html lang=zh data-translation=/en/aliyun-fullstack/02-ecs-compute/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>阿里云全栈实战（二）：ECS——让计算回归本质 · Chen Kai Blog</title>
+<meta name=description content="Everything you need to know about ECS: instance families (g8, c8, r8, GPU), pricing models, cloud-init automation, security groups, and key pairs. We deploy a production-ready app server from scratch."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-fullstack/02-ecs-compute/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/><meta property="og:type" content="article"><meta property="og:title" content="阿里云全栈实战（二）：ECS——让计算回归本质"><meta property="og:description" content="Everything you need to know about ECS: instance families (g8, c8, r8, GPU), pricing models, cloud-init automation, security groups, and key pairs. We deploy a production-ready app server from scratch."><meta property="og:url" content="https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><meta property="og:image:alt" content="阿里云全栈实战（二）：ECS——让计算回归本质"><meta property="article:published_time" content="2026-04-20T09:00:00Z"><meta property="article:modified_time" content="2026-04-20T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Alibaba Cloud"><meta property="article:tag" content="ECS"><meta property="article:tag" content="Compute"><meta property="article:tag" content="Cloud Computing"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="阿里云全栈实战（二）：ECS——让计算回归本质"><meta name=twitter:description content="Everything you need to know about ECS: instance families (g8, c8, r8, GPU), pricing models, cloud-init automation, security groups, and key pairs. We deploy a production-ready app server from scratch."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"阿里云全栈实战（二）：ECS——让计算回归本质\"","description":"\"Everything you need to know about ECS: instance families (g8, c8, r8, GPU), pricing models, cloud-init automation, security groups, and key pairs. We deploy a production-ready app server from scratch.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2026-04-20T09:00:00Z\"","dateModified":"\"2026-04-20T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.ffe8d1412c95bc9c9e1b0778441a3fa076b6c785bfacb3710830bedcf4b0b3c4.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>阿里云全栈实战</a>
+· 第 2 篇</div><h1>阿里云全栈实战（二）：ECS——让计算回归本质</h1><p class=deck>Everything you need to know about ECS: instance families (g8, c8, r8, GPU), pricing models, cloud-init automation, security groups, and key pairs. We deploy a production-ready app server from scratch.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-20>April 20, 2026</time> · 34 分钟 · 8352 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/zh/tags/ecs/ class=tag>#ECS</a><a href=/zh/tags/compute/ class=tag>#Compute</a><a href=/zh/tags/cloud-computing/ class=tag>#Cloud Computing</a></div><a class="pill pill-outline" href=/en/aliyun-fullstack/02-ecs-compute/>Read in English →</a></div></header><div class=prose><p>记得我第一次启动 ECS 实例时，配置选得离谱地高。挑了个能找到的最大规格——<code>ecs.r6.8xlarge</code>，32 vCPU 配 256 GiB 内存，就为了跑个每分钟大概 20 个请求的 Flask 应用。结果一周内把额度烧光了，慌得不行，赶紧学会怎么在线降配，最后发现换个 2 vCPU 的机器跑得一样好，成本还低了 94%。选对规格比单纯堆算力重要得多，搞懂计算层也是你掌握任何云平台最有价值的一步。</p><p>这篇文章就是 ECS 的完全指南。我们从 ECS 到底是什么讲起，穿过实例家族和定价模型，最后用 CLI 从零搭建一个生产级的应用服务器。读完这篇，你就有足够的实战知识去为真实业务配置、加固和运维 ECS 实例了。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/02-ecs-compute/cover.png alt="ECS Compute" loading=lazy decoding=async class=content-image></figure></p><h2 id=ecs-到底是什么>ECS 到底是什么</h2><p>弹性计算服务（ECS）就是阿里云的虚拟机产品。如果你用过 AWS EC2、Azure VMs 或者 GCP Compute Engine，ECS 就是它们的直接对标物。你拿到的是一个跑着 Linux 或 Windows 的虚拟服务器，连着虚拟网络，挂着块存储。通过 SSH 或 RDP 控制，按小时或按月付费。</p><p>但 ECS 不仅仅是“一台 VM"。它由六个构建块组成，分开理解每一块能省去很多麻烦：</p><table><thead><tr><th>组件</th><th>说明</th><th>AWS 对标</th></tr></thead><tbody><tr><td><strong>Instance</strong></td><td>虚拟机本身 — vCPU、RAM、本地 NVMe</td><td>EC2 instance</td></tr><tr><td><strong>Image</strong></td><td>用于启动实例的 OS 模板</td><td>AMI</td></tr><tr><td><strong>Block Storage (disk)</strong></td><td>网络附加持久存储 — 系统盘 + 数据盘</td><td>EBS</td></tr><tr><td><strong>Security Group</strong></td><td>绑定在实例网卡上的有状态防火墙规则</td><td>Security Group</td></tr><tr><td><strong>VPC / VSwitch</strong></td><td>实例所在的虚拟网络和子网</td><td>VPC / Subnet</td></tr><tr><td><strong>ENI</strong></td><td>弹性网卡 — 虚拟 NIC</td><td>ENI</td></tr></tbody></table><p>在控制台“创建 ECS 实例”时，其实是在一次性配置这六个组件。控制台把它们打包是为了减少摩擦，但它们是拥有独立生命周期的独立资源。你可以把磁盘从一台实例卸下来挂到另一台。ENI 可以在实例间迁移。安全组是跨实例共享的。搞懂这种分解，才是区分“使用 ECS 的人”和“运维 ECS 的人”的关键。</p><h3 id=ecs-生命周期>ECS 生命周期</h3><p>每个实例都会经过一个定义明确的状态机：</p><pre tabindex=0><code>                  ┌──────────┐
+         create   │          │  start
+    ────────────► │ Stopped  │ ──────────┐
+                  │          │           │
+                  └────┬─────┘           ▼
+                       │          ┌──────────┐
+                 delete│          │          │
+                       │          │ Starting │
+                       ▼          │          │
+                  ┌──────────┐    └────┬─────┘
+                  │          │         │
+                  │ Released │         ▼
+                  │          │    ┌──────────┐
+                  └──────────┘    │          │  stop
+                                  │ Running  │ ──────┐
+                                  │          │       │
+                                  └────┬─────┘       ▼
+                                       │       ┌──────────┐
+                                       │       │          │
+                                       └───────│ Stopping │
+                                               │          │
+                                               └──────────┘
+</code></pre><p>实践中几个关键状态：</p><ul><li><strong>Stopped</strong>: 按量付费实例不收计算费（磁盘和 IP 继续计费）。这是开发实例过夜该有的状态。</li><li><strong>Running</strong>: 实例运行中，正在计费。CPU/内存/网络计量生效。</li><li><strong>Stopping</strong>: 短暂过渡。<code>ForceStop</code> 最多耗时 60 秒。优雅停止会向 OS 发送 ACPI shutdown 信号并等待。</li><li><strong>Released</strong>: 没了。实例、系统盘和本地盘被永久删除。数据盘只有配置了 <code>DeleteWithInstance = false</code> 才能保留。</li></ul><p>有个地方容易踩坑：Stopped 状态的实例依然占用私网 IP 和弹性 IP 关联。停止实例并不会释放网络资源。如果想彻底释放一切，得释放实例。</p><h3 id=ecs-vs-ec2差异在哪>ECS vs EC2：差异在哪</h3><p>如果你从 AWS 过来，以下是值得注意的差异：</p><ol><li><strong>No instance store volumes</strong>：没有 EC2 意义上的实例存储卷。ECS 本地 NVMe 磁盘只存在于特定实例家族（i-series），大多数工作负载 exclusively 使用云盘。</li><li><strong>Security groups are VPC-scoped</strong>：安全组是 VPC 范围的，不是 Region 范围。不能跨 VPC 共享安全组。</li><li><strong>Metadata endpoint</strong>：是 <code>http://100.100.100.200/latest/meta-data/</code> 而不是 <code>169.254.169.254</code>。Cloud-init 工作方式一样，但如果你要移植脚本，得更新 URL。</li><li><strong>Chinese regions</strong>：中国区域有独立的基础设施。<code>cn-hangzhou</code> 和 <code>us-east-1</code> 不只是可用区不同——它们是完全独立的控制平面，账号和账单都分开。</li></ol><h2 id=实例家族深挖>实例家族深挖</h2><p>实例家族是硬件专业化的核心抽象。命名 convention 是：</p><pre tabindex=0><code>ecs.{family}{generation}.{size}
+
+Examples:
+  ecs.g8i.large      →  General Purpose, gen 8 (Intel), large
+  ecs.c8y.xlarge     →  Compute Optimized, gen 8 (Yitian ARM), xlarge
+  ecs.r7.2xlarge     →  Memory Optimized, gen 7, 2xlarge
+  ecs.gn7i.xlarge    →  GPU (NVIDIA), gen 7 (Intel), xlarge
+</code></pre><p>代际后面的字母后缀表示处理器：</p><ul><li>无后缀或 <code>i</code> = Intel Xeon</li><li><code>a</code> = AMD EPYC</li><li><code>y</code> = Alibaba Yitian 710 (ARM)</li></ul><p>以下是你实际会用到的实例家族参考：</p><table><thead><tr><th>家族</th><th>类型</th><th>vCPU : 内存</th><th>处理器</th><th>网络 (Gbps)</th><th>最佳场景</th></tr></thead><tbody><tr><td><strong>g7</strong></td><td>通用型</td><td>1:4</td><td>Intel Xeon (Ice Lake)</td><td>最高 25</td><td>Web 服务器，中层 API</td></tr><tr><td><strong>g8i</strong></td><td>通用型</td><td>1:4</td><td>Intel Xeon (Sapphire Rapids)</td><td>最高 40</td><td>通用工作负载，最新代际</td></tr><tr><td><strong>g8y</strong></td><td>通用型</td><td>1:4</td><td>Yitian 710 (ARM)</td><td>最高 40</td><td>成本敏感的 ARM 工作负载</td></tr><tr><td><strong>c7</strong></td><td>计算优化型</td><td>1:2</td><td>Intel Xeon (Ice Lake)</td><td>最高 25</td><td>高 CPU：编码，CI/CD</td></tr><tr><td><strong>c8i</strong></td><td>计算优化型</td><td>1:2</td><td>Intel Xeon (Sapphire Rapids)</td><td>最高 40</td><td>批处理，游戏服务器</td></tr><tr><td><strong>c8y</strong></td><td>计算优化型</td><td>1:2</td><td>Yitian 710 (ARM)</td><td>最高 40</td><td>ARM CI/CD，构建农场</td></tr><tr><td><strong>r7</strong></td><td>内存优化型</td><td>1:8</td><td>Intel Xeon (Ice Lake)</td><td>最高 25</td><td>数据库，内存缓存</td></tr><tr><td><strong>r8i</strong></td><td>内存优化型</td><td>1:8</td><td>Intel Xeon (Sapphire Rapids)</td><td>最高 40</td><td>Redis，Elasticsearch</td></tr><tr><td><strong>r8y</strong></td><td>内存优化型</td><td>1:8</td><td>Yitian 710 (ARM)</td><td>最高 40</td><td>成本敏感的内存工作负载</td></tr><tr><td><strong>gn7i</strong></td><td>GPU</td><td>可变</td><td>A10 (24 GB)</td><td>最高 32</td><td>ML 推理，微调</td></tr><tr><td><strong>gn7</strong></td><td>GPU</td><td>可变</td><td>V100 (16/32 GB)</td><td>最高 25</td><td>ML 训练，HPC</td></tr><tr><td><strong>gn6v</strong></td><td>GPU</td><td>可变</td><td>V100 (16 GB)</td><td>最高 5</td><td>预算 ML，开发推理</td></tr><tr><td><strong>t6</strong></td><td>突发型</td><td>1:1/1:2/1:4</td><td>Intel Xeon</td><td>最高 1.2</td><td>开发/测试，微工作负载</td></tr><tr><td><strong>ebmg7</strong></td><td>裸金属</td><td>1:4</td><td>Intel Xeon (Ice Lake)</td><td>最高 65</td><td>高性能，无 Hypervisor</td></tr><tr><td><strong>ebmc7</strong></td><td>裸金属</td><td>1:2</td><td>Intel Xeon (Ice Lake)</td><td>最高 65</td><td>专用硬件，合规</td></tr></tbody></table><h3 id=家族内的规格>家族内的规格</h3><p>每个家族提供的规格每一步资源翻倍：</p><table><thead><tr><th>规格</th><th>vCPU</th><th>内存 (g-family, 1:4 比例)</th></tr></thead><tbody><tr><td>small</td><td>1</td><td>2 GiB</td></tr><tr><td>large</td><td>2</td><td>8 GiB</td></tr><tr><td>xlarge</td><td>4</td><td>16 GiB</td></tr><tr><td>2xlarge</td><td>8</td><td>32 GiB</td></tr><tr><td>4xlarge</td><td>16</td><td>64 GiB</td></tr><tr><td>8xlarge</td><td>32</td><td>128 GiB</td></tr><tr><td>16xlarge</td><td>64</td><td>256 GiB</td></tr></tbody></table><blockquote><p><strong>关于 Yitian 710 (ARM) 的实战建议：</strong> <code>*y</code> 家族同规格下比 Intel equivalents 便宜 20-30%。如果你的工作负载跑在 Linux 上且不依赖 x86 特定二进制文件，优先尝试 ARM variant。大多数 Python/Node/Go/Java 工作负载直接能跑。Docker 镜像需要是多架构的（<code>linux/arm64</code>），这在 Dockerfile build 里只是一行改动。</p></blockquote><h3 id=突发实例陷阱与修复>突发实例：陷阱与修复</h3><p><code>t6</code> 家族值得单独提一下，因为它几乎坑遍了所有人。突发性能实例在空闲时积累 CPU 积分，忙碌时消耗积分。一旦积分耗尽，CPU 就会被限制到基线——通常是 vCPU 的 10-20%。</p><p>这对大部分时间空闲、偶尔跑构建的开发/测试机器很完美。但对于任何有持续 CPU 使用率的工作负载来说都很糟糕。我亲眼见过生产数据库在 <code>t6.large</code> 实例上跑了几周没问题，然后在流量高峰期间突然崩盘，因为积分余额归零了。</p><p>规则很简单：如果你的平均 CPU 超过基线（具体规格去产品页查），你就需要非突发实例。没得商量。</p><h2 id=选择合适的规格>选择合适的规格</h2><p>这里的决策比看起来简单。从工作负载出发，而不是从实例出发：</p><table><thead><tr><th>工作负载</th><th>推荐起步</th><th>原因</th></tr></thead><tbody><tr><td>静态站点 / 反向代理</td><td><code>ecs.c7.large</code> (2 vCPU, 4 GiB)</td><td>CPU 密集，几乎不需要内存</td></tr><tr><td>REST API 后端 (Node/Python)</td><td><code>ecs.g7.xlarge</code> (4 vCPU, 16 GiB)</td><td>平衡 — 一些 CPU 用于 JSON 序列化，内存用于连接池</td></tr><tr><td>PostgreSQL / MySQL</td><td><code>ecs.r7.2xlarge</code> (8 vCPU, 64 GiB)</td><td>内存密集用于 buffer pool。考虑直接用 RDS。</td></tr><tr><td>Redis / Memcached</td><td><code>ecs.r7.xlarge</code> (4 vCPU, 32 GiB)</td><td>全是内存。同样，考虑托管 Redis。</td></tr><tr><td>CI/CD runner</td><td><code>ecs.c8y.xlarge</code> (4 vCPU, 8 GiB)</td><td>CPU 密集编译。ARM 对大多数构建没问题。</td></tr><tr><td>ML 推理 (LLM)</td><td><code>ecs.gn7i.xlarge</code> (4 vCPU, 1x A10)</td><td>GPU 用于矩阵运算，适度 CPU 用于前/后处理</td></tr><tr><td>ML 训练</td><td><code>ecs.gn7.8xlarge</code> (32 vCPU, 8x V100)</td><td>多 GPU 用于分布式训练</td></tr><tr><td>开发/测试一次性</td><td><code>ecs.t6.large</code> (2 vCPU, 4 GiB)</td><td>便宜，突发，晚上停止它</td></tr></tbody></table><p>黄金法则：<strong>从小开始，监控一周，然后调整规格。</strong> ECS 支持大多数家族的在线实例类型变更——停止实例，更改类型，再启动。整个过程不到两分钟。从一开始就过度配置就是在烧钱赌运气。</p><h2 id=计费模式详解>计费模式详解</h2><p>ECS 计费方式主要有四种，选对方案账单能省 80%。按价格从高到低排个序：</p><h3 id=按量付费-payg>按量付费 (PAYG)</h3><p>按秒计费，最小粒度一分钟。停止实例后，计算费用停止（磁盘和 IP 继续计费）。这是默认选项，单位小时价格最贵，但零承诺、零浪费——用多少付多少。</p><p>适用场景：开发测试、波动型负载、每天只跑几小时的实例。</p><h3 id=包年包月-subscription>包年包月 (Subscription)</h3><p>承诺使用 1 个月、3 个月、6 个月、1 年、2 年或 3 年。相比 PAYG，折扣范围从 ~15%（1 个月）到 ~50%（3 年）不等。需要预付。不管你用不用，实例都在跑。</p><p>适用场景：利用率稳定可预测的生产环境负载。</p><h3 id=抢占式实例-spot>抢占式实例 (Spot)</h3><p>硬件和 PAYG 一样，但价格随供需浮动——通常便宜 70-90%。缺点是：需求高峰时，阿里云会提前 5 分钟通知回收实例。你会被打断。</p><p>适用场景：无状态批处理、CI/CD、分布式 ML 训练（带 checkpoint 机制）、任何能容忍中断的负载。</p><h3 id=节省计划与预留实例>节省计划与预留实例</h3><p>节省计划允许你承诺一个消费金额（比如 100 CNY/小时），适用于区域内任意实例族，折扣 30-60%。预留实例类似，但锁定特定实例类型和可用区。</p><p>适用场景：规模较大、基线用量明确的实例集群。</p><h3 id=价格对比>价格对比</h3><p>下面是 <code>ecs.c7.large</code> (2 vCPU, 4 GiB) 在 <code>cn-beijing</code> 区域，24/7 运行一个月的真实成本对比（价格近似，请以当前费率为准）：</p><table><thead><tr><th>Model</th><th>Hourly (CNY)</th><th>Monthly (CNY)</th><th>Savings vs PAYG</th></tr></thead><tbody><tr><td>Pay-as-you-go</td><td>0.68</td><td>~490</td><td>—</td></tr><tr><td>Subscription (1 month)</td><td>—</td><td>~415</td><td>15%</td></tr><tr><td>Subscription (1 year)</td><td>—</td><td>~310</td><td>37%</td></tr><tr><td>Subscription (3 years)</td><td>—</td><td>~245</td><td>50%</td></tr><tr><td>Preemptible (avg)</td><td>0.10</td><td>~72</td><td>85%</td></tr><tr><td>Savings Plan (1 year)</td><td>—</td><td>~295</td><td>40%</td></tr></tbody></table><p>抢占式实例的价格没写错。如果你的负载能容忍中断，Spot 实例几乎等于免费。我把所有 CI/CD 都跑在 Spot 上，一年大概只被中断过三次——都是在中国 major 购物节需求峰值期间。</p><blockquote><p><strong>我自己实际采用的混合策略：</strong> 生产环境跑包年包月（1 年期）。开发测试跑 PAYG，配合午夜自动停止脚本。批处理任务跑抢占式实例，如果 Spot 容量不足则 fallback 到 PAYG。相比全用 PAYG，这套组合拳能把总账单砍掉约 45%。</p></blockquote><h2 id=手把手创建-ecs-实例>手把手创建 ECS 实例</h2><h3 id=前置准备>前置准备</h3><p>创建实例前，你需要准备好：</p><ol><li><strong>VPC 和 VSwitch</strong>，位于目标区域。我们在 <a href=/zh/aliyun-fullstack/03-vpc-networking/>Part 3</a>
+详细讲过 VPC setup，但为了本教程，假设你已经在 <code>cn-beijing-h</code> 有了一个带 VSwitch 的 VPC。</li><li><strong>安全组</strong>，位于该 VPC 内（下面会创建）。</li><li><strong>密钥对</strong>，用于 SSH 访问（下面会创建）。</li><li><strong>Alibaba Cloud CLI (<code>aliyun</code>)</strong>，已安装并配置。如果还没配，运行 <code>aliyun configure</code>。</li></ol><h3 id=控制台操作快速版>控制台操作（快速版）</h3><p>控制台路径：<strong>ECS 控制台</strong> > <strong>实例</strong> > <strong>创建实例</strong>。</p><ol><li><strong>计费方式</strong>：暂时选按量付费。</li><li><strong>地域</strong>：<code>China (Beijing)</code>，可用区 H。</li><li><strong>实例规格</strong>：搜索 <code>ecs.c7.large</code>。选中它。</li><li><strong>镜像</strong>：Alibaba Cloud Linux 3.2104 LTS 64-bit（默认）。兼容 CentOS 且免费。</li><li><strong>存储</strong>：系统盘 = 40 GiB ESSD PL0。暂时不加数据盘。</li><li><strong>网络</strong>：选中你的 VPC，可用区 H 的 VSwitch。分配公网 IP（SSH 用 1 Mbps 够了；生产流量走 SLB/ALB）。</li><li><strong>安全组</strong>：选中或创建一个允许你的 IP 访问 TCP 22 端口的组。</li><li><strong>登录方式</strong>：密钥对（别用密码）。</li><li><strong>高级选项</strong>：在 User Data 里粘贴 cloud-init 脚本（下面会写）。</li><li><strong>创建</strong>。</li></ol><p>大概七次点击加三个下拉菜单。但如果你要创建多个实例，或者想要可复现性，请用 CLI。</p><h3 id=cli-操作正经玩法>CLI 操作（正经玩法）</h3><p>先创建支撑资源。如果你已经有了 VPC 和安全组，直接跳到实例创建步骤。</p><p><strong>创建安全组：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create security group</span>
+</span></span><span class=line><span class=cl>aliyun ecs CreateSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupName <span class=s2>&#34;app-server-sg&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupType normal <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Security group for app servers&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>把返回结果里的 <code>SecurityGroupId</code> 存好——后面要用。</p><p><strong>创建密钥对：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create key pair — the private key is returned ONLY ONCE</span>
+</span></span><span class=line><span class=cl>aliyun ecs CreateKeyPair <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyPairName <span class=s2>&#34;app-server-key&#34;</span> <span class=p>|</span> tee keypair-response.json
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Extract and save the private key</span>
+</span></span><span class=line><span class=cl>cat keypair-response.json <span class=p>|</span> jq -r <span class=s1>&#39;.PrivateKeyBody&#39;</span> &gt; ~/.ssh/app-server-key.pem
+</span></span><span class=line><span class=cl>chmod <span class=m>600</span> ~/.ssh/app-server-key.pem
+</span></span><span class=line><span class=cl>rm keypair-response.json
+</span></span></code></pre></td></tr></table></div></div><p><strong>创建 ECS 实例：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ecs CreateInstance <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-beijing-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceType ecs.c7.large <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ImageId aliyun_3_x64_20G_alibase_20240528.vhd <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchId vsw-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceName <span class=s2>&#34;app-server-01&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --HostName <span class=s2>&#34;app-server-01&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyPairName <span class=s2>&#34;app-server-key&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SystemDisk.Category cloud_essd <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SystemDisk.Size <span class=m>40</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SystemDisk.PerformanceLevel PL0 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InternetMaxBandwidthOut <span class=m>5</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InternetChargeType PayByTraffic <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceChargeType PostPaid <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SpotStrategy NoSpot <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --UserData <span class=s2>&#34;</span><span class=k>$(</span>base64 -w0 cloud-init.yaml<span class=k>)</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Production app server&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Tag.1.Key Environment <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Tag.1.Value production <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Tag.2.Key App <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Tag.2.Value web-server
+</span></span></code></pre></td></tr></table></div></div><p>注意：<code>--ImageId</code> 会随着新镜像发布而变化。查找最新的 Alibaba Cloud Linux 3 镜像：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ecs DescribeImages <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --OSType linux <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ImageOwnerAlias system <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ImageName <span class=s2>&#34;Alibaba Cloud Linux 3*&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PageSize <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SortKey CreatedOn <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq <span class=s1>&#39;.Images.Image[0] | {ImageId, ImageName, CreationTime}&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>创建完成后，实例处于 <code>Stopped</code> 状态。启动它：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ecs StartInstance --InstanceId i-2ze1234567890abcdef
+</span></span></code></pre></td></tr></table></div></div><p>等大概 30 秒，然后 SSH 登录：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>ssh -i ~/.ssh/app-server-key.pem root@&lt;public-ip&gt;
+</span></span></code></pre></td></tr></table></div></div><h2 id=cloud-init开机即自动化>Cloud-init：开机即自动化</h2><p>千万别 SSH 进新实例手动装包。Cloud-init 在首次启动时运行，自动配置实例。每个 ECS 镜像都预装了 cloud-init。</p><p>创建实例时，你把 cloud-init 配置作为 <code>UserData</code> 传进去。必须 base64 编码。下面是一个全面的 <code>cloud-init.yaml</code>，能 setup 一个生产就绪的应用服务器：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c>#cloud-config</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c># --- System ---</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>timezone</span><span class=p>:</span><span class=w> </span><span class=l>Asia/Shanghai</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>locale</span><span class=p>:</span><span class=w> </span><span class=l>en_US.UTF-8</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c># --- Package management ---</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>package_update</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>package_upgrade</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>packages</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>nginx</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>python3</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>python3-pip</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>python3-venv</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>git</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>curl</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>htop</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>jq</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>supervisor</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>certbot</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>python3-certbot-nginx</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>fail2ban</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c># --- Users ---</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>users</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>deploy</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>groups</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>sudo, www-data]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>shell</span><span class=p>:</span><span class=w> </span><span class=l>/bin/bash</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>sudo</span><span class=p>:</span><span class=w> </span><span class=l>ALL=(ALL) NOPASSWD:ALL</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>ssh_authorized_keys</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span>- <span class=l>ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ... deploy@workstation</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c># --- SSH hardening ---</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>ssh_pwauth</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>disable_root</span><span class=p>:</span><span class=w> </span><span class=kc>false</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>write_files</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=nt>path</span><span class=p>:</span><span class=w> </span><span class=l>/etc/ssh/sshd_config.d/hardened.conf</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>content</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>      PermitRootLogin prohibit-password
+</span></span></span><span class=line><span class=cl><span class=sd>      PasswordAuthentication no
+</span></span></span><span class=line><span class=cl><span class=sd>      ChallengeResponseAuthentication no
+</span></span></span><span class=line><span class=cl><span class=sd>      MaxAuthTries 3
+</span></span></span><span class=line><span class=cl><span class=sd>      ClientAliveInterval 300
+</span></span></span><span class=line><span class=cl><span class=sd>      ClientAliveCountMax 2</span><span class=w>      
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=nt>path</span><span class=p>:</span><span class=w> </span><span class=l>/opt/app/deploy.sh</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>permissions</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;0755&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>content</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>      #!/bin/bash
+</span></span></span><span class=line><span class=cl><span class=sd>      set -euxo pipefail
+</span></span></span><span class=line><span class=cl><span class=sd>      cd /opt/app
+</span></span></span><span class=line><span class=cl><span class=sd>      python3 -m venv venv
+</span></span></span><span class=line><span class=cl><span class=sd>      source venv/bin/activate
+</span></span></span><span class=line><span class=cl><span class=sd>      pip install --upgrade pip
+</span></span></span><span class=line><span class=cl><span class=sd>      pip install flask gunicorn
+</span></span></span><span class=line><span class=cl><span class=sd>      
+</span></span></span><span class=line><span class=cl><span class=sd>      cat &gt; app.py &lt;&lt; &#39;PYEOF&#39;
+</span></span></span><span class=line><span class=cl><span class=sd>      from flask import Flask, jsonify
+</span></span></span><span class=line><span class=cl><span class=sd>      import os, socket
+</span></span></span><span class=line><span class=cl><span class=sd>      
+</span></span></span><span class=line><span class=cl><span class=sd>      app = Flask(__name__)
+</span></span></span><span class=line><span class=cl><span class=sd>      
+</span></span></span><span class=line><span class=cl><span class=sd>      @app.route(&#34;/health&#34;)
+</span></span></span><span class=line><span class=cl><span class=sd>      def health():
+</span></span></span><span class=line><span class=cl><span class=sd>          return jsonify(status=&#34;ok&#34;, host=socket.gethostname())
+</span></span></span><span class=line><span class=cl><span class=sd>      
+</span></span></span><span class=line><span class=cl><span class=sd>      @app.route(&#34;/&#34;)
+</span></span></span><span class=line><span class=cl><span class=sd>      def index():
+</span></span></span><span class=line><span class=cl><span class=sd>          return jsonify(message=&#34;Hello from ECS&#34;, instance=os.uname().nodename)
+</span></span></span><span class=line><span class=cl><span class=sd>      PYEOF
+</span></span></span><span class=line><span class=cl><span class=sd>      
+</span></span></span><span class=line><span class=cl><span class=sd>      cat &gt; /etc/supervisor/conf.d/app.conf &lt;&lt; &#39;SUPEOF&#39;
+</span></span></span><span class=line><span class=cl><span class=sd>      [program:app]
+</span></span></span><span class=line><span class=cl><span class=sd>      command=/opt/app/venv/bin/gunicorn -w 4 -b 127.0.0.1:8000 app:app
+</span></span></span><span class=line><span class=cl><span class=sd>      directory=/opt/app
+</span></span></span><span class=line><span class=cl><span class=sd>      user=deploy
+</span></span></span><span class=line><span class=cl><span class=sd>      autostart=true
+</span></span></span><span class=line><span class=cl><span class=sd>      autorestart=true
+</span></span></span><span class=line><span class=cl><span class=sd>      stderr_logfile=/var/log/app/error.log
+</span></span></span><span class=line><span class=cl><span class=sd>      stdout_logfile=/var/log/app/access.log
+</span></span></span><span class=line><span class=cl><span class=sd>      SUPEOF
+</span></span></span><span class=line><span class=cl><span class=sd>      
+</span></span></span><span class=line><span class=cl><span class=sd>      mkdir -p /var/log/app
+</span></span></span><span class=line><span class=cl><span class=sd>      chown deploy:deploy /var/log/app
+</span></span></span><span class=line><span class=cl><span class=sd>      supervisorctl reread
+</span></span></span><span class=line><span class=cl><span class=sd>      supervisorctl update</span><span class=w>      
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=nt>path</span><span class=p>:</span><span class=w> </span><span class=l>/etc/nginx/sites-available/app</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>content</span><span class=p>:</span><span class=w> </span><span class=p>|</span><span class=sd>
+</span></span></span><span class=line><span class=cl><span class=sd>      server {
+</span></span></span><span class=line><span class=cl><span class=sd>          listen 80;
+</span></span></span><span class=line><span class=cl><span class=sd>          server_name _;
+</span></span></span><span class=line><span class=cl><span class=sd>          
+</span></span></span><span class=line><span class=cl><span class=sd>          location / {
+</span></span></span><span class=line><span class=cl><span class=sd>              proxy_pass http://127.0.0.1:8000;
+</span></span></span><span class=line><span class=cl><span class=sd>              proxy_set_header Host $host;
+</span></span></span><span class=line><span class=cl><span class=sd>              proxy_set_header X-Real-IP $remote_addr;
+</span></span></span><span class=line><span class=cl><span class=sd>              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+</span></span></span><span class=line><span class=cl><span class=sd>              proxy_set_header X-Forwarded-Proto $scheme;
+</span></span></span><span class=line><span class=cl><span class=sd>          }
+</span></span></span><span class=line><span class=cl><span class=sd>          
+</span></span></span><span class=line><span class=cl><span class=sd>          location /health {
+</span></span></span><span class=line><span class=cl><span class=sd>              proxy_pass http://127.0.0.1:8000/health;
+</span></span></span><span class=line><span class=cl><span class=sd>              access_log off;
+</span></span></span><span class=line><span class=cl><span class=sd>          }
+</span></span></span><span class=line><span class=cl><span class=sd>      }</span><span class=w>      
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c># --- Run commands on first boot ---</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>runcmd</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=c># Enable and start fail2ban</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>systemctl enable fail2ban</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>systemctl start fail2ban</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=c># Configure nginx</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>ln -sf /etc/nginx/sites-available/app /etc/nginx/sites-enabled/app</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>rm -f /etc/nginx/sites-enabled/default</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>nginx -t &amp;&amp; systemctl reload nginx</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=c># Deploy the application</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>/opt/app/deploy.sh</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=c># Restart SSH with hardened config</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>systemctl restart sshd</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=c># Log completion</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=l>echo &#34;cloud-init complete at $(date)&#34; &gt;&gt; /var/log/cloud-init-complete.log</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>实例启动后，cloud-init 分阶段处理这个文件：设时区、装包、建用户、写文件、跑命令。在 <code>ecs.c7.large</code> 上全过程大概 2-3 分钟。</p><p>验证 cloud-init 是否成功完成：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Check cloud-init status</span>
+</span></span><span class=line><span class=cl>cloud-init status --long
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># If something failed, check the log</span>
+</span></span><span class=line><span class=cl>tail -100 /var/log/cloud-init-output.log
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Verify the app is running</span>
+</span></span><span class=line><span class=cl>curl http://localhost/health
+</span></span></code></pre></td></tr></table></div></div><blockquote><p><strong>调试技巧：</strong> 最常见的 cloud-init 失败原因是 YAML 缩进错误。Base64 编码前，先用 <code>cloud-init schema --config-file cloud-init.yaml</code> 在本地验证配置。另外，<code>UserData</code> 有 16 KiB 限制——如果脚本复杂，让 cloud-init 从 OSS 拉取脚本 instead。</p></blockquote><h2 id=安全组你的第一道防火墙>安全组：你的第一道防火墙</h2><p>安全组就是挂在 ENI 层面的状态防火墙。进出 ECS 实例的每个数据包都要过一遍安全组规则。要是没匹配上任何规则，包就直接<strong>丢弃</strong>——默认拒绝。</p><p>&ldquo;状态化"是什么意思？比如你放行了入站 TCP 80，响应包会自动允许出站。你不需要为返回流量专门配一条出站规则。</p><h3 id=常见安全组模式>常见安全组模式</h3><p><strong>Web 服务器（对外）：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Allow HTTP from anywhere</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 80/80 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceCidrIp 0.0.0.0/0 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Policy accept <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Allow HTTP&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Allow HTTPS from anywhere</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 443/443 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceCidrIp 0.0.0.0/0 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Policy accept <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Allow HTTPS&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Allow SSH from your office IP only</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 22/22 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceCidrIp 203.0.113.50/32 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Policy accept <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Allow SSH from office&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>数据库服务器（仅内网）：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Allow PostgreSQL from app server security group</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-2zeDBSERVERSG <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 5432/5432 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceGroupId sg-2zeAPPSERVERSG <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Policy accept <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Allow PostgreSQL from app servers&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>注意最后一个例子用的是 <code>--SourceGroupId</code> 而不是 <code>--SourceCidrIp</code>。这意味着“允许来自该安全组内任何实例的流量”。这才是内部服务通信的正确姿势——别硬编码 IP。</p><h3 id=我给每个安全组定的规矩>我给每个安全组定的规矩</h3><ol><li><strong>SSH (22) 别对 <code>0.0.0.0/0</code> 开。</strong> 用办公室 CIDR，或者更好，用堡垒机。</li><li><strong>数据库端口别暴露公网。</strong> PostgreSQL 的 5432，MySQL 的 3306，Redis 的 6379——这些只能让应用安全组访问。</li><li><strong>每条规则写描述。</strong> 半年后你肯定忘了 8443 是干嘛的。描述会告诉你。</li><li><strong>每季度审查。</strong> 安全组规则会像藤壶一样堆积。设个日历提醒。</li></ol><h2 id=密钥对与-ssh-访问>密钥对与 SSH 访问</h2><p>密码登录 SSH 是大忌。容易被爆破，诱导密码复用，轮换还得登录实例。密钥对才是标准做法。</p><h3 id=创建和使用密钥对>创建和使用密钥对</h3><p>前面我们创建过密钥对。下面是完整的 SSH 工作流：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Your SSH config (~/.ssh/config)</span>
+</span></span><span class=line><span class=cl>Host app-server
+</span></span><span class=line><span class=cl>    HostName 47.94.xxx.xxx
+</span></span><span class=line><span class=cl>    User root
+</span></span><span class=line><span class=cl>    IdentityFile ~/.ssh/app-server-key.pem
+</span></span><span class=line><span class=cl>    StrictHostKeyChecking accept-new
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Host bastion
+</span></span><span class=line><span class=cl>    HostName 47.94.yyy.yyy
+</span></span><span class=line><span class=cl>    User deploy
+</span></span><span class=line><span class=cl>    IdentityFile ~/.ssh/bastion-key.pem
+</span></span><span class=line><span class=cl>    StrictHostKeyChecking accept-new
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Host app-internal
+</span></span><span class=line><span class=cl>    HostName 172.16.1.10
+</span></span><span class=line><span class=cl>    User deploy
+</span></span><span class=line><span class=cl>    IdentityFile ~/.ssh/app-server-key.pem
+</span></span><span class=line><span class=cl>    ProxyJump bastion
+</span></span></code></pre></td></tr></table></div></div><p>有了这个配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Direct access to public instance</span>
+</span></span><span class=line><span class=cl>ssh app-server
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Access internal instance via bastion (two-hop)</span>
+</span></span><span class=line><span class=cl>ssh app-internal
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Copy files through bastion</span>
+</span></span><span class=line><span class=cl>scp -o <span class=nv>ProxyJump</span><span class=o>=</span>bastion localfile.tar.gz app-internal:/opt/app/
+</span></span></code></pre></td></tr></table></div></div><p><code>ProxyJump</code> 指令是穿越堡垒机 SSH 隧道的现代替代方案。它通过 <code>bastion</code> 透明建立 SSH 连接——你不需要先 SSH 到堡垒机，然后再 SSH 到内部主机。一条命令，两跳，内部 IP 不暴露。</p><h3 id=密钥轮换>密钥轮换</h3><p>要想不停机轮换密钥：</p><ol><li>在 ECS 控制台或 CLI 生成新密钥对。</li><li>把新公钥加到目标实例的 <code>~/.ssh/authorized_keys</code>（或者用 cloud-init 通过 API 管理密钥）。</li><li>测试新密钥登录。</li><li>从 <code>authorized_keys</code> 移除旧公钥。</li><li>从 ECS 删除旧密钥对。</li></ol><p>对于大批量机器，通过 cloud-init 或 Ansible 实战手册 管理 SSH 密钥——别手动去改 20 台实例的 <code>authorized_keys</code>。</p><h2 id=磁盘与存储>磁盘与存储</h2><p>每个 ECS 实例至少有一块磁盘：系统盘，装着 OS。你可以挂载最多 16 块额外数据盘。所有磁盘都是网络附加块存储——配置得当的话，它们独立于实例生命周期持久存在。</p><h3 id=磁盘类型>磁盘类型</h3><table><thead><tr><th>Type</th><th>IOPS (max)</th><th>Throughput (max)</th><th>Latency</th><th>Best for</th></tr></thead><tbody><tr><td><strong>ESSD PL0</strong></td><td>10,000</td><td>180 MB/s</td><td>0.2-0.5 ms</td><td>System disks, light workloads</td></tr><tr><td><strong>ESSD PL1</strong></td><td>50,000</td><td>350 MB/s</td><td>0.1-0.3 ms</td><td>General production, databases</td></tr><tr><td><strong>ESSD PL2</strong></td><td>100,000</td><td>750 MB/s</td><td>0.1-0.3 ms</td><td>High-IOPS databases</td></tr><tr><td><strong>ESSD PL3</strong></td><td>1,000,000</td><td>4,000 MB/s</td><td>0.1-0.3 ms</td><td>Extreme performance, OLTP</td></tr><tr><td><strong>Standard SSD</strong></td><td>25,000</td><td>300 MB/s</td><td>0.5-2 ms</td><td>Legacy, non-critical</td></tr><tr><td><strong>Ultra Disk</strong></td><td>5,000</td><td>140 MB/s</td><td>1-3 ms</td><td>Cold storage, archives</td></tr></tbody></table><p>性能等级（PL0 到 PL3）是你做的最重要的存储决策。数据库跑在 PL0 上会撞 10,000 IOPS 天花板，操作排队；同样的数据库在 PL1 上就有 5 倍余量。PL0 和 PL1 的差价大概 2 倍——比起计算成本还是很便宜的。</p><blockquote><p><strong>我的默认选择：</strong> 系统盘用 PL0（OS 不需要高 IOPS），跑数据库或任何有 fsync 的数据盘用 PL1。拿不准就先上 PL1——100 GiB 磁盘差价也就 40 元/月。</p></blockquote><h3 id=在线扩容磁盘>在线扩容磁盘</h3><p>ECS 支持在线扩容磁盘——不用停机也不用卸载文件系统就能扩容：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Step 1: Expand the disk via API (does not touch the filesystem)</span>
+</span></span><span class=line><span class=cl>aliyun ecs ResizeDisk <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DiskId d-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --NewSize <span class=m>100</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Type online
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Step 2: SSH into the instance and grow the filesystem</span>
+</span></span><span class=line><span class=cl><span class=c1># For ext4:</span>
+</span></span><span class=line><span class=cl>sudo growpart /dev/vda <span class=m>1</span>
+</span></span><span class=line><span class=cl>sudo resize2fs /dev/vda1
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># For xfs:</span>
+</span></span><span class=line><span class=cl>sudo growpart /dev/vda <span class=m>1</span>
+</span></span><span class=line><span class=cl>sudo xfs_growfs /
+</span></span></code></pre></td></tr></table></div></div><p>只能扩，不能缩。初始大小保守点，按需增长——这是云，不是物理服务器，换盘不用申请维护窗口。</p><h3 id=快照>快照</h3><p>快照是磁盘的时间点拷贝。它们是增量的（只存变化的块）且崩溃一致性。用途如下：</p><ol><li><strong>高风险操作前备份。</strong> 跑数据库迁移前执行 <code>aliyun ecs CreateSnapshot --DiskId d-xxx</code>。</li><li><strong>制作镜像。</strong> 快照配置好的实例系统盘，然后基于它创建自定义镜像。新实例启动就是全配置状态，30 秒搞定，不用等 cloud-init 跑 3 分钟。</li><li><strong>灾难恢复。</strong> 设自动快照策略——每天快照保留 7 天是个合理的起点。</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create an on-demand snapshot</span>
+</span></span><span class=line><span class=cl>aliyun ecs CreateSnapshot <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DiskId d-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnapshotName <span class=s2>&#34;pre-migration-backup&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Before v2.0 database migration&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RetentionDays <span class=m>30</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create an automatic snapshot policy (daily at 02:00, keep 7 days)</span>
+</span></span><span class=line><span class=cl>aliyun ecs CreateAutoSnapshotPolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --autoSnapshotPolicyName <span class=s2>&#34;daily-7d&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --timePoints <span class=s1>&#39;[&#34;2&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --repeatWeekdays <span class=s1>&#39;[&#34;1&#34;,&#34;2&#34;,&#34;3&#34;,&#34;4&#34;,&#34;5&#34;,&#34;6&#34;,&#34;7&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --retentionDays <span class=m>7</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Apply the policy to a disk</span>
+</span></span><span class=line><span class=cl>aliyun ecs ApplyAutoSnapshotPolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --autoSnapshotPolicyId sp-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --diskIds <span class=s1>&#39;[&#34;d-2ze1234567890abcdef&#34;]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=监控与维护>监控与维护</h2><h3 id=云监控指标>云监控指标</h3><p>每个 ECS 实例自动上报指标给云监控。你要盯着这几个：</p><ul><li><strong>CPUUtilization</strong>: 持续 >80% 意味着你需要升配或扩容。</li><li><strong>MemoryUsedUtilization</strong>: 持续 >85% 意味着快接近 OOM 了。注意：这个指标需要云监控插件（Alibaba Cloud Linux 默认安装）。</li><li><strong>DiskReadIOPS / DiskWriteIOPS</strong>: 对照磁盘的 PL 上限。如果持续跑到上限的 80%，升级 PL 或加盘。</li><li><strong>IntranetInRate / IntranetOutRate</strong>: 网络吞吐。如果撞到实例族上限，得换 bigger instance。</li><li><strong>vm.TcpConnectionCount</strong>: 连接数。 useful for detecting connection leaks.</li></ul><h3 id=设置告警>设置告警</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Alert when CPU &gt; 90% for 5 minutes</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;ecs-cpu-high&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;ECS CPU High&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_ecs_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;CPUUtilization&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;i-2ze1234567890abcdef&#34;}]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Average&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>90</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=计划维护与热迁移>计划维护与热迁移</h3><p>阿里云定期维护物理基础设施。当你的实例宿主机需要维护时，你会收到通知（邮件、短信或控制台告警），会给一个计划窗口——通常提前 2-4 周。</p><p>对于大多数实例族，阿里云执行<strong>热迁移</strong>：实例被移到另一台物理主机，几乎零停机（最后内存拷贝期间短暂暂停 10-100ms）。你不需要做任何事。</p><p>对于不能热迁移的实例（裸金属、带 VGPU 的 GPU 实例），你会得到一个维护窗口，需要自己重启实例。设个流程检查 pending 维护事件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Check for pending system events</span>
+</span></span><span class=line><span class=cl>aliyun ecs DescribeInstancesFullStatus <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceId.1 i-2ze1234567890abcdef <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq <span class=s1>&#39;.InstanceFullStatusSet.InstanceFullStatusType[] | .ScheduledSystemEventSet&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=解决方案生产级应用服务器>解决方案：生产级应用服务器</h2><p>咱们把之前的内容串起来。下面这套流程，能让你从零开始，只用 CLI 就在 ECS 上跑起一个安全、可监控的 Flask 应用。</p><h3 id=step-1-create-the-vpc-and-vswitch>Step 1: Create the VPC and VSwitch</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create VPC</span>
+</span></span><span class=line><span class=cl><span class=nv>VPC_ID</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateVpc <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 172.16.0.0/12 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcName <span class=s2>&#34;prod-vpc&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.VpcId&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;VPC: </span><span class=nv>$VPC_ID</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Wait for VPC to be available</span>
+</span></span><span class=line><span class=cl>sleep <span class=m>5</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create VSwitch in zone H</span>
+</span></span><span class=line><span class=cl><span class=nv>VSWITCH_ID</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-beijing-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=s2>&#34;</span><span class=nv>$VPC_ID</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 172.16.1.0/24 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchName <span class=s2>&#34;prod-app-subnet&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.VSwitchId&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;VSwitch: </span><span class=nv>$VSWITCH_ID</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-2-create-security-group-with-rules>Step 2: Create security group with rules</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create security group</span>
+</span></span><span class=line><span class=cl><span class=nv>SG_ID</span><span class=o>=</span><span class=k>$(</span>aliyun ecs CreateSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=s2>&#34;</span><span class=nv>$VPC_ID</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupName <span class=s2>&#34;prod-app-sg&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.SecurityGroupId&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Security Group: </span><span class=nv>$SG_ID</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Allow HTTP</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId <span class=s2>&#34;</span><span class=nv>$SG_ID</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp --PortRange 80/80 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceCidrIp 0.0.0.0/0 --Policy accept --Priority <span class=m>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Allow HTTPS</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId <span class=s2>&#34;</span><span class=nv>$SG_ID</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp --PortRange 443/443 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceCidrIp 0.0.0.0/0 --Policy accept --Priority <span class=m>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Allow SSH from specific IP (replace with yours)</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId <span class=s2>&#34;</span><span class=nv>$SG_ID</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp --PortRange 22/22 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceCidrIp <span class=s2>&#34;</span><span class=k>$(</span>curl -s ifconfig.me<span class=k>)</span><span class=s2>/32&#34;</span> --Policy accept --Priority <span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-3-create-key-pair>Step 3: Create key pair</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ecs CreateKeyPair <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyPairName <span class=s2>&#34;prod-app-key&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.PrivateKeyBody&#39;</span> &gt; ~/.ssh/prod-app-key.pem
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>chmod <span class=m>600</span> ~/.ssh/prod-app-key.pem
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-4-find-the-latest-image>Step 4: Find the latest image</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nv>IMAGE_ID</span><span class=o>=</span><span class=k>$(</span>aliyun ecs DescribeImages <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --OSType linux <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ImageOwnerAlias system <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ImageName <span class=s2>&#34;Alibaba Cloud Linux 3*&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PageSize <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.Images.Image[0].ImageId&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Image: </span><span class=nv>$IMAGE_ID</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-5-create-and-start-the-instance>Step 5: Create and start the instance</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create instance with cloud-init user data</span>
+</span></span><span class=line><span class=cl><span class=nv>INSTANCE_ID</span><span class=o>=</span><span class=k>$(</span>aliyun ecs CreateInstance <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-beijing-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceType ecs.c7.large <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ImageId <span class=s2>&#34;</span><span class=nv>$IMAGE_ID</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId <span class=s2>&#34;</span><span class=nv>$SG_ID</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchId <span class=s2>&#34;</span><span class=nv>$VSWITCH_ID</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceName <span class=s2>&#34;prod-app-01&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --HostName <span class=s2>&#34;prod-app-01&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyPairName <span class=s2>&#34;prod-app-key&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SystemDisk.Category cloud_essd <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SystemDisk.Size <span class=m>40</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SystemDisk.PerformanceLevel PL0 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InternetMaxBandwidthOut <span class=m>10</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InternetChargeType PayByTraffic <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceChargeType PostPaid <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --UserData <span class=s2>&#34;</span><span class=k>$(</span>base64 -w0 cloud-init.yaml<span class=k>)</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.InstanceId&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Instance: </span><span class=nv>$INSTANCE_ID</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Start the instance</span>
+</span></span><span class=line><span class=cl>aliyun ecs StartInstance --InstanceId <span class=s2>&#34;</span><span class=nv>$INSTANCE_ID</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Wait for it to be running</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Waiting for instance to start...&#34;</span>
+</span></span><span class=line><span class=cl>sleep <span class=m>30</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Get the public IP</span>
+</span></span><span class=line><span class=cl><span class=nv>PUBLIC_IP</span><span class=o>=</span><span class=k>$(</span>aliyun ecs DescribeInstances <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-beijing <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceIds <span class=s2>&#34;[\&#34;</span><span class=nv>$INSTANCE_ID</span><span class=s2>\&#34;]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> jq -r <span class=s1>&#39;.Instances.Instance[0].PublicIpAddress.IpAddress[0]&#39;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;Public IP: </span><span class=nv>$PUBLIC_IP</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-6-verify-the-deployment>Step 6: Verify the deployment</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Wait for cloud-init to finish (usually 2-3 min)</span>
+</span></span><span class=line><span class=cl>sleep <span class=m>120</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Test the health endpoint</span>
+</span></span><span class=line><span class=cl>curl -s <span class=s2>&#34;http://</span><span class=nv>$PUBLIC_IP</span><span class=s2>/health&#34;</span> <span class=p>|</span> jq .
+</span></span><span class=line><span class=cl><span class=c1># Expected: {&#34;host&#34;:&#34;prod-app-01&#34;,&#34;status&#34;:&#34;ok&#34;}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># SSH in and check logs</span>
+</span></span><span class=line><span class=cl>ssh -i ~/.ssh/prod-app-key.pem root@<span class=s2>&#34;</span><span class=nv>$PUBLIC_IP</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=s2>&#34;cloud-init status --long &amp;&amp; supervisorctl status&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-7-set-up-https-with-certbot>Step 7: Set up HTTPS with certbot</h3><p>After pointing your domain&rsquo;s DNS A record to the public IP:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>ssh -i ~/.ssh/prod-app-key.pem root@<span class=s2>&#34;</span><span class=nv>$PUBLIC_IP</span><span class=s2>&#34;</span> <span class=s>&lt;&lt; &#39;EOF&#39;
+</span></span></span><span class=line><span class=cl><span class=s>  certbot --nginx -d app.example.com \
+</span></span></span><span class=line><span class=cl><span class=s>    --non-interactive --agree-tos \
+</span></span></span><span class=line><span class=cl><span class=s>    --email admin@example.com
+</span></span></span><span class=line><span class=cl><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>  # Verify auto-renewal
+</span></span></span><span class=line><span class=cl><span class=s>  certbot renew --dry-run
+</span></span></span><span class=line><span class=cl><span class=s>
+</span></span></span><span class=line><span class=cl><span class=s>  # Set up cron for renewal
+</span></span></span><span class=line><span class=cl><span class=s>  echo &#34;0 3 * * * certbot renew --quiet&#34; | crontab -
+</span></span></span><span class=line><span class=cl><span class=s>EOF</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-8-set-up-monitoring>Step 8: Set up monitoring</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create alert for CPU</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;prod-app-01-cpu&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;Prod App CPU High&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_ecs_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;CPUUtilization&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s2>&#34;[{\&#34;instanceId\&#34;:\&#34;</span><span class=nv>$INSTANCE_ID</span><span class=s2>\&#34;}]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Average&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>90</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create alert for disk usage</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId <span class=s2>&#34;prod-app-01-disk&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;Prod App Disk Full&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace <span class=s2>&#34;acs_ecs_dashboard&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName <span class=s2>&#34;diskusage_utilization&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s2>&#34;[{\&#34;instanceId\&#34;:\&#34;</span><span class=nv>$INSTANCE_ID</span><span class=s2>\&#34;}]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics <span class=s2>&#34;Maximum&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator <span class=s2>&#34;GreaterThanThreshold&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>85</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>300</span>
+</span></span></code></pre></td></tr></table></div></div><p>这就搞定了一套完整的生产部署：VPC、安全组、密钥对、带 cloud-init 自动化的 ECS 实例、nginx 反向代理、supervisor 托管的 Flask 应用、自动续期的 HTTPS，还有监控告警。从零到生产环境，API 调用大概 5 分钟，cloud-init 执行 3 分钟。</p><h2 id=key-takeaways>Key takeaways</h2><p><strong>先小后大，随时扩容。</strong> ECS 支持在线变配实例规格。别靠猜来决定配置，先跑起来，看监控数据再调整。</p><p><strong>选对实例族。</strong> 通用型（g-series）是默认选项。CPU 密集型换计算型（c-series），内存密集型换内存型（r-series），ML 任务上 GPU（gn-series）。想省 20-30% 成本，试试 ARM 架构（y-suffix）。</p><p><strong>混合计费模式。</strong> 长期生产用包年包月，开发测试用按量付费（PAYG），批处理任务用抢占式实例。混合策略通常比全按量付费省 40-50%。</p><p><strong>开机即自动化。</strong> cloud-init 应该让实例启动后就处于生产就绪状态，无需手动 SSH 安装软件。如果你还得 SSH 进去装东西，说明 cloud-init 脚本写得不够完善。</p><p><strong>安全组必不可少。</strong> 默认拒绝，只开必要的端口。内部流量用安全组引用而不是 IP 地址，每季度审查一次规则。</p><p><strong>快照是救命稻草。</strong> 自动每日快照几乎不花钱，但已经救过我好几次命了。</p><p>如果想用 Infrastructure-as-Code 的方式管理 ECS，可以参考我们的 <a href=/zh/terraform-agents/04-compute-for-agent-runtime/>Terraform 系列第 4 部分：计算资源</a>
+，里面用 Terraform 资源实现了同样的概念。本系列下一篇 <a href=/zh/aliyun-fullstack/03-vpc-networking/>第 3 部分</a>
+会深入讲解 VPC、交换机、路由表和 NAT 网关——这是连接所有 ECS 实例的网络层基础。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/aliyun-fullstack/>阿里云全栈实战</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/aliyun-fullstack/01-ecosystem-map/><span class=title>阿里云全栈实战（一）：生态全景图——阿里云到底是什么</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/01-ecosystem-map/><span class=series-nav-num>01</span>
+<span class=series-nav-title>阿里云全栈实战（一）：生态全景图——阿里云到底是什么</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>02</span>
+<span class=series-nav-title>阿里云全栈实战（二）：ECS——让计算回归本质</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=series-nav-num>03</span>
+<span class=series-nav-title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><span class=series-nav-num>04</span>
+<span class=series-nav-title>阿里云全栈实战（四）：OSS——对象存储最佳实践</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><span class=series-nav-num>05</span>
+<span class=series-nav-title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=series-nav-num>06</span>
+<span class=series-nav-title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/07-observability/><span class=series-nav-num>07</span>
+<span class=series-nav-title>阿里云全栈实战（七）：SLS 打造可观测性体系</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/08-serverless/><span class=series-nav-num>08</span>
+<span class=series-nav-title>阿里云全栈实战（八）：Serverless 与事件驱动</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/09-opensearch/><span class=series-nav-num>09</span>
+<span class=series-nav-title>阿里云全栈实战（九）：OpenSearch 与 AI 搜索</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/10-bailian-llm/><span class=series-nav-num>10</span>
+<span class=series-nav-title>阿里云全栈实战（十）：DashScope 与大模型层</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/11-pai-ml-platform/><span class=series-nav-num>11</span>
+<span class=series-nav-title>阿里云全栈实战（十一）：PAI 打造机器学习平台</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/12-terraform-e2e/><span class=series-nav-num>12</span>
+<span class=series-nav-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#ecs-到底是什么>ECS 到底是什么</a><ul><li><a href=#ecs-生命周期>ECS 生命周期</a></li><li><a href=#ecs-vs-ec2差异在哪>ECS vs EC2：差异在哪</a></li></ul></li><li><a href=#实例家族深挖>实例家族深挖</a><ul><li><a href=#家族内的规格>家族内的规格</a></li><li><a href=#突发实例陷阱与修复>突发实例：陷阱与修复</a></li></ul></li><li><a href=#选择合适的规格>选择合适的规格</a></li><li><a href=#计费模式详解>计费模式详解</a><ul><li><a href=#按量付费-payg>按量付费 (PAYG)</a></li><li><a href=#包年包月-subscription>包年包月 (Subscription)</a></li><li><a href=#抢占式实例-spot>抢占式实例 (Spot)</a></li><li><a href=#节省计划与预留实例>节省计划与预留实例</a></li><li><a href=#价格对比>价格对比</a></li></ul></li><li><a href=#手把手创建-ecs-实例>手把手创建 ECS 实例</a><ul><li><a href=#前置准备>前置准备</a></li><li><a href=#控制台操作快速版>控制台操作（快速版）</a></li><li><a href=#cli-操作正经玩法>CLI 操作（正经玩法）</a></li></ul></li><li><a href=#cloud-init开机即自动化>Cloud-init：开机即自动化</a></li><li><a href=#安全组你的第一道防火墙>安全组：你的第一道防火墙</a><ul><li><a href=#常见安全组模式>常见安全组模式</a></li><li><a href=#我给每个安全组定的规矩>我给每个安全组定的规矩</a></li></ul></li><li><a href=#密钥对与-ssh-访问>密钥对与 SSH 访问</a><ul><li><a href=#创建和使用密钥对>创建和使用密钥对</a></li><li><a href=#密钥轮换>密钥轮换</a></li></ul></li><li><a href=#磁盘与存储>磁盘与存储</a><ul><li><a href=#磁盘类型>磁盘类型</a></li><li><a href=#在线扩容磁盘>在线扩容磁盘</a></li><li><a href=#快照>快照</a></li></ul></li><li><a href=#监控与维护>监控与维护</a><ul><li><a href=#云监控指标>云监控指标</a></li><li><a href=#设置告警>设置告警</a></li><li><a href=#计划维护与热迁移>计划维护与热迁移</a></li></ul></li><li><a href=#解决方案生产级应用服务器>解决方案：生产级应用服务器</a><ul><li><a href=#step-1-create-the-vpc-and-vswitch>Step 1: Create the VPC and VSwitch</a></li><li><a href=#step-2-create-security-group-with-rules>Step 2: Create security group with rules</a></li><li><a href=#step-3-create-key-pair>Step 3: Create key pair</a></li><li><a href=#step-4-find-the-latest-image>Step 4: Find the latest image</a></li><li><a href=#step-5-create-and-start-the-instance>Step 5: Create and start the instance</a></li><li><a href=#step-6-verify-the-deployment>Step 6: Verify the deployment</a></li><li><a href=#step-7-set-up-https-with-certbot>Step 7: Set up HTTPS with certbot</a></li><li><a href=#step-8-set-up-monitoring>Step 8: Set up monitoring</a></li></ul></li><li><a href=#key-takeaways>Key takeaways</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/aliyun-fullstack/ class=series-name>阿里云全栈实战</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/01-ecosystem-map/><span class=chapter-num>01</span>
+<span class=chapter-title>阿里云全栈实战（一）：生态全景图——阿里云到底是什么</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>02</span>
+<span class=chapter-title>阿里云全栈实战（二）：ECS——让计算回归本质</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=chapter-num>03</span>
+<span class=chapter-title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><span class=chapter-num>04</span>
+<span class=chapter-title>阿里云全栈实战（四）：OSS——对象存储最佳实践</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><span class=chapter-num>05</span>
+<span class=chapter-title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=chapter-num>06</span>
+<span class=chapter-title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/07-observability/><span class=chapter-num>07</span>
+<span class=chapter-title>阿里云全栈实战（七）：SLS 打造可观测性体系</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/08-serverless/><span class=chapter-num>08</span>
+<span class=chapter-title>阿里云全栈实战（八）：Serverless 与事件驱动</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/09-opensearch/><span class=chapter-num>09</span>
+<span class=chapter-title>阿里云全栈实战（九）：OpenSearch 与 AI 搜索</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/10-bailian-llm/><span class=chapter-num>10</span>
+<span class=chapter-title>阿里云全栈实战（十）：DashScope 与大模型层</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/11-pai-ml-platform/><span class=chapter-num>11</span>
+<span class=chapter-title>阿里云全栈实战（十一）：PAI 打造机器学习平台</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/12-terraform-e2e/><span class=chapter-num>12</span>
+<span class=chapter-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>34 min</strong></div><div class=row><span>字数</span><strong>8352</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div></footer></body></html>

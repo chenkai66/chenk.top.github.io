@@ -1,0 +1,1553 @@
+<!doctype html><html lang=zh data-translation=/en/aliyun-fullstack/07-observability/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>阿里云全栈实战（七）：SLS 打造可观测性体系 · Chen Kai Blog</title>
+<meta name=description content="Build full-stack observability: SLS for log collection and querying, CloudMonitor for metrics and alerts, ARMS for distributed tracing. Set up a complete monitoring stack for a production web application."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/aliyun-fullstack/07-observability/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-fullstack/07-observability/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-fullstack/07-observability/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/aliyun-fullstack/07-observability/><meta property="og:type" content="article"><meta property="og:title" content="阿里云全栈实战（七）：SLS 打造可观测性体系"><meta property="og:description" content="Build full-stack observability: SLS for log collection and querying, CloudMonitor for metrics and alerts, ARMS for distributed tracing. Set up a complete monitoring stack for a production web application."><meta property="og:url" content="https://www.chenk.top/zh/aliyun-fullstack/07-observability/"><meta property="og:locale" content="zh"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><meta property="og:image:alt" content="阿里云全栈实战（七）：SLS 打造可观测性体系"><meta property="article:published_time" content="2026-04-30T09:00:00Z"><meta property="article:modified_time" content="2026-04-30T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Alibaba Cloud"><meta property="article:tag" content="SLS"><meta property="article:tag" content="CloudMonitor"><meta property="article:tag" content="ARMS"><meta property="article:tag" content="Observability"><meta property="article:tag" content="Cloud Computing"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="阿里云全栈实战（七）：SLS 打造可观测性体系"><meta name=twitter:description content="Build full-stack observability: SLS for log collection and querying, CloudMonitor for metrics and alerts, ARMS for distributed tracing. Set up a complete monitoring stack for a production web application."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"阿里云全栈实战（七）：SLS 打造可观测性体系\"","description":"\"Build full-stack observability: SLS for log collection and querying, CloudMonitor for metrics and alerts, ARMS for distributed tracing. Set up a complete monitoring stack for a production web application.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/zh/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2026-04-30T09:00:00Z\"","dateModified":"\"2026-04-30T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/zh/aliyun-fullstack/07-observability/\""},"inLanguage":"\"zh\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.ffe8d1412c95bc9c9e1b0778441a3fa076b6c785bfacb3710830bedcf4b0b3c4.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>首页</a>
+<a href=/zh/series/>系列</a>
+<a href=/zh/projects/>项目</a>
+<a href=/zh/archives/>归档</a>
+<a href=/zh/about/>关于</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>阿里云全栈实战</a>
+· 第 7 篇</div><h1>阿里云全栈实战（七）：SLS 打造可观测性体系</h1><p class=deck>Build full-stack observability: SLS for log collection and querying, CloudMonitor for metrics and alerts, ARMS for distributed tracing. Set up a complete monitoring stack for a production web application.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-30>April 30, 2026</time> · 44 分钟 · 10629 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/zh/tags/sls/ class=tag>#SLS</a><a href=/zh/tags/cloudmonitor/ class=tag>#CloudMonitor</a><a href=/zh/tags/arms/ class=tag>#ARMS</a><a href=/zh/tags/observability/ class=tag>#Observability</a><a href=/zh/tags/cloud-computing/ class=tag>#Cloud Computing</a></div><a class="pill pill-outline" href=/en/aliyun-fullstack/07-observability/>Read in English →</a></div></header><div class=prose><p>我职业生涯中最严重的一次生产事故，排查整整花了三个小时。当时有个 Node.js 服务间歇性返回 502，大概 5% 的请求受影响，而我手头没有任何工具。没有集中式日志（每台 ECS 实例都有自己的 <code>/var/log/</code>，我得一台台 SSH 上去看）。没有监控大盘（只能在终端里跑 <code>top</code> 和 <code>df -h</code>）。没有链路追踪（只能靠加 <code>console.log</code> 时间戳来猜是哪个下游调用卡住了）。三个小时后我才找到原因：一个被遗忘的 cron 任务占着连接不放，导致 RDS 连接池在高负载下耗尽。修复只需要两行代码。但因为缺乏可观测性，排查过程成了三个小时的折磨。</p><p>这个教训简单但昂贵：可观测性不是等应用稳定后才去补的东西，而是上线前就必须到位的基础设施。理想情况下，甚至在写业务代码之前就该搭建好，因为可观测性栈会决定你如何组织日志、如何传递请求 ID、以及如何埋点依赖库。最后再补，所有东西都得重构；最先搭建，所有东西自然融入。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/cover.png alt=Observability loading=lazy decoding=async class=content-image></figure></p><p>这篇文章会完整介绍阿里云上的可观测性栈：SLS 负责日志，CloudMonitor 负责指标，ARMS 负责链路追踪。读完这篇，本系列一直在构建的生产 Web 应用就会有一套可用的监控 setup。ECS 实例来自 <a href=/zh/aliyun-fullstack/02-ecs-compute/>Part 2</a>
+，网络架构来自 <a href=/zh/aliyun-fullstack/03-vpc-networking/>Part 3</a>
+。如果想用 Terraform 部署 这些监控资源，参考 <a href=/zh/terraform-agents/07-observability-and-cost-control/>Terraform Part 7: Observability and Cost Control</a>
+。</p><h2 id=the-three-pillars-of-observability>The Three Pillars of Observability</h2><p>行业已经共识了三个信号，组合起来就能看清系统到底在发生什么：</p><p><strong>Logs</strong> 告诉你发生了什么。日志行会说"14:32:07，用户 abc123 请求了 /api/orders，因为数据库连接 30 秒超时而返回 500"。日志是离散事件，带时间戳且结构化。它是出事后的 forensic evidence。</p><p><strong>Metrics</strong> 告诉你正在发生什么。指标会说"/api/orders 的 P99 延迟现在是 2.3 秒，应用层 CPU 利用率 78%，RDS 连接池耗尽 90%"。指标是数值时间序列。它是你在大盘上盯着的生命体征，用来在用户报障前发现问题。</p><p><strong>Traces</strong> 告诉你为什么发生。追踪会说“这个特定请求在 API 网关花了 15ms，在订单服务花了 200ms，等待数据库查询花了 1800ms，序列化响应花了 50ms"。追踪跟随单个请求穿越多个服务。它是分布式系统里的 X 光，揭示哪个组件是瓶颈。</p><p>三者缺一不可。指标告诉你出事了（错误率飙升），日志告诉你哪出事了（数据库超时错误），追踪告诉你为啥出事（orders 表上的某个特定查询在做全表扫描，因为索引被删了）。</p><p>在阿里云上，映射关系很清晰：</p><table><thead><tr><th>Pillar</th><th>Alibaba Cloud Service</th><th>AWS Equivalent</th><th>What It Does</th></tr></thead><tbody><tr><td><strong>Logs</strong></td><td>SLS (Simple Log Service)</td><td>CloudWatch Logs + OpenSearch</td><td>Log collection, indexing, querying, analytics</td></tr><tr><td><strong>Metrics</strong></td><td>CloudMonitor</td><td>CloudWatch Metrics</td><td>Infrastructure and custom metrics, alerting</td></tr><tr><td><strong>Traces</strong></td><td>ARMS (Application Real-Time Monitoring)</td><td>X-Ray + CloudWatch APM</td><td>APM, distributed tracing, service topology</td></tr></tbody></table><p>这三个服务是互通的。CloudMonitor 可以基于 SLS 查询结果触发告警。ARMS 追踪能关联到 SLS 日志条目。SLS 大盘可以拉取 CloudMonitor 指标数据。集成度虽不如 Datadog 那种统一平台丝滑，但不用第三方工具也能覆盖 90% 的需求。</p><h2 id=sls-simple-log-service>SLS: Simple Log Service</h2><p>SLS 是阿里云可观测性的 backbone。别看名字叫 Simple，它一点都不简单——这是一个功能完备的日志分析平台，集采集、存储、索引、查询、可视化、告警于一身。你可以把它理解为 AWS CloudWatch Logs 和 Elasticsearch 合体，上面还套了个 SQL 查询引擎。</p><h3 id=core-concepts>Core Concepts</h3><p>SLS 把 everything 组织成两层：</p><p><strong>Project</strong> &ndash; 顶层容器，通常每个环境或应用一个。Project 是 Region 级别的。项目内的所有 Logstore、Dashboard、告警共享同一个计费账户和访问控制。</p><p><strong>Logstore</strong> &ndash; 项目内的日志数据表。每个 Logstore 有自己的 schema、保留周期和索引配置。通常每个日志源创建一个 Logstore：一个给 nginx 访问日志，一个给应用日志，一个给系统日志。</p><pre tabindex=0><code>SLS Project: prod-webapp
+├── Logstore: nginx-access-log     (30-day retention)
+├── Logstore: app-log              (30-day retention)
+├── Logstore: system-log           (7-day retention)
+├── Logstore: slow-query-log       (90-day retention)
+├── Dashboard: ops-overview
+├── Dashboard: error-analysis
+└── Alert: high-error-rate
+</code></pre><p>通过 CLI 创建 project 和 logstores：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create the SLS project</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateProject <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;projectName&#34;: &#34;prod-webapp&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;description&#34;: &#34;Production web application logs&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create the nginx access log logstore</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateLogStore <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;logstoreName&#34;: &#34;nginx-access-log&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;ttl&#34;: 30,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;shardCount&#34;: 2,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;autoSplit&#34;: true,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;maxSplitShard&#34;: 8
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create the application log logstore</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateLogStore <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;logstoreName&#34;: &#34;app-log&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;ttl&#34;: 30,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;shardCount&#34;: 2,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;autoSplit&#34;: true,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;maxSplitShard&#34;: 8
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><p><code>shardCount</code> 决定写入吞吐量。每个 shard 处理 5 MB/s 写入和 10 MB/s 读取。两个 shard 给你 10 MB/s 写入能力。开启 <code>autoSplit</code> 后，当写入压力超过阈值，SLS 会自动增加 shard，直到 <code>maxSplitShard</code>。</p><h3 id=sls-vs-aws-what-is-different>SLS vs AWS: What Is Different</h3><p>如果你来自 AWS 背景，这个映射值得厘清，因为 SLS 不是 1:1 的 CloudWatch Logs 等价物：</p><table><thead><tr><th>Capability</th><th>SLS</th><th>AWS</th></tr></thead><tbody><tr><td>Log collection agent</td><td>Logtail (SLS-native)</td><td>CloudWatch Agent</td></tr><tr><td>Full-text search</td><td>Built-in, sub-second latency</td><td>CloudWatch Logs Insights (slower)</td></tr><tr><td>SQL analytics</td><td>Full SQL syntax on log data</td><td>CloudWatch Logs Insights (limited SQL)</td></tr><tr><td>Dashboards</td><td>Built into SLS</td><td>CloudWatch Dashboards (separate)</td></tr><tr><td>Long-term storage</td><td>Built-in tiered storage</td><td>Export to S3 + Athena</td></tr><tr><td>Schema-on-read</td><td>Yes, with indexing</td><td>Partially (Insights)</td></tr><tr><td>Real-time streaming</td><td>Built-in consumer groups</td><td>Kinesis Data Streams (separate)</td></tr></tbody></table><p>最大区别：SLS 把日志存储、搜索、分析合在一个服务里。在 AWS，你可能用 CloudWatch Logs 采集，导出到 S3，搭 Elasticsearch (OpenSearch) 做搜索，再用 Athena 做 SQL 分析。SLS 在一个地方全干了。代价是厂商锁定——SLS 查询语法跨云不标准。</p><h3 id=log-query-syntax>Log Query Syntax</h3><p>SLS 支持三种查询模式，搞清楚能省掉很多 frustration。</p><p><strong>Full-text search</strong> &ndash; 直接输关键词。SLS 搜所有索引字段。</p><pre tabindex=0><code>ERROR
+</code></pre><p>返回所有包含"ERROR"的日志行。</p><p><strong>Key-value search</strong> &ndash; 用字段名加操作符精确过滤。</p><pre tabindex=0><code>status &gt;= 500 and request_method: POST
+</code></pre><p>返回 HTTP 状态码 500 及以上且请求方法是 POST 的条目。冒号 <code>:</code> 是包含操作符；<code>>=</code> 是数值比较。</p><p><strong>SQL analytics</strong> &ndash; 搜索表达式后加 pipe <code>|</code> 然后写标准 SQL。</p><pre tabindex=0><code>status &gt;= 500 | SELECT 
+  date_format(__time__, &#39;%H:%i&#39;) as time_bucket,
+  count(*) as error_count,
+  approx_distinct(client_ip) as affected_users
+GROUP BY time_bucket
+ORDER BY time_bucket
+</code></pre><p>找出所有 5xx 错误，然后按分钟分组，展示错误计数和受影响唯一用户数随时间的变化。<code>__time__</code> 是内置日志时间戳。<code>approx_distinct</code> 是 HyperLogLog 近似值——对高基数字段来说快且省内存。</p><p>下面是我日常用的真实查询：</p><pre tabindex=0><code># Error rate over the last hour (as percentage)
+* | SELECT 
+  round(count_if(status &gt;= 500) * 100.0 / count(*), 2) as error_rate_pct,
+  count(*) as total_requests
+WHERE __time__ &gt; unix_timestamp() - 3600
+
+# P50, P90, P99 latency by endpoint
+* | SELECT 
+  request_uri,
+  approx_percentile(request_time, 0.50) as p50_ms,
+  approx_percentile(request_time, 0.90) as p90_ms,
+  approx_percentile(request_time, 0.99) as p99_ms,
+  count(*) as request_count
+GROUP BY request_uri
+ORDER BY request_count DESC
+LIMIT 20
+
+# Top 10 client IPs by request volume (bot detection)
+* | SELECT 
+  client_ip,
+  count(*) as requests,
+  count_if(status &gt;= 400) as errors,
+  round(count_if(status &gt;= 400) * 100.0 / count(*), 1) as error_pct
+GROUP BY client_ip
+ORDER BY requests DESC
+LIMIT 10
+
+# Slow requests (&gt;2 seconds)
+request_time &gt; 2 | SELECT 
+  request_uri,
+  request_time,
+  status,
+  client_ip,
+  __time__
+ORDER BY request_time DESC
+LIMIT 50
+</code></pre><h3 id=enabling-indexes>Enabling Indexes</h3><p>SLS 默认不索引字段。要想用 key-value 查询或 SQL 分析，先得创建索引配置。没索引的话，只有对原始日志内容的全文本搜索能用，而且那也得要有全文索引。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun sls CreateIndex <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --logstore nginx-access-log <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;line&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;token&#34;: [&#34;,&#34;, &#34; &#34;, &#34;\&#34;&#34;, &#34;\\t&#34;, &#34;;&#34;, &#34;=&#34;, &#34;(&#34;, &#34;)&#34;, &#34;[&#34;, &#34;]&#34;, &#34;{&#34;, &#34;}&#34;, &#34;?&#34;, &#34;@&#34;, &#34;&amp;&#34;, &#34;/&#34;, &#34;:&#34;, &#34;&#39;</span><span class=s2>&#34;&#39;&#34;</span><span class=s1>&#39;&#34;]
+</span></span></span><span class=line><span class=cl><span class=s1>    },
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;keys&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;client_ip&#34;: {&#34;type&#34;: &#34;text&#34;, &#34;doc_value&#34;: true},
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;request_method&#34;: {&#34;type&#34;: &#34;text&#34;, &#34;doc_value&#34;: true},
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;request_uri&#34;: {&#34;type&#34;: &#34;text&#34;, &#34;doc_value&#34;: true, &#34;token&#34;: [&#34;/&#34;, &#34;?&#34;, &#34;&amp;&#34;, &#34;=&#34;]},
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;status&#34;: {&#34;type&#34;: &#34;long&#34;, &#34;doc_value&#34;: true},
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;body_bytes_sent&#34;: {&#34;type&#34;: &#34;long&#34;, &#34;doc_value&#34;: true},
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;request_time&#34;: {&#34;type&#34;: &#34;double&#34;, &#34;doc_value&#34;: true},
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;upstream_response_time&#34;: {&#34;type&#34;: &#34;double&#34;, &#34;doc_value&#34;: true},
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;http_user_agent&#34;: {&#34;type&#34;: &#34;text&#34;, &#34;doc_value&#34;: true}
+</span></span></span><span class=line><span class=cl><span class=s1>    }
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><p><code>line</code> 部分启用全文索引，指定分词符。<code>keys</code> 部分定义字段级索引。设 <code>doc_value: true</code> 启用该字段的 SQL 分析。每个索引字段都占存储，只索引你真要查的字段。</p><blockquote><p><strong>Cost note:</strong> Indexing roughly doubles your storage cost. For high-volume logs where you only need full-text search, skip per-field indexing and rely on the <code>line</code> index. For access logs where you run SQL dashboards, per-field indexing is worth the cost.</p></blockquote><h2 id=配置-logtail>配置 Logtail</h2><p>Logtail 算是 SLS 的官方日志采集 agent 了。它跑在你的 ECS 实例上，监控日志文件，按配置解析，然后投递到 SLS。这玩意儿很轻量（通常占用 50-100 MB 内存，CPU &lt;1%），可靠（本地缓冲处理网络中断），并且和 SLS 深度集成。</p><h3 id=安装>安装</h3><p>只要 ECS 实例和 SLS 在同一个 region，一条命令就能搞定：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Download and install Logtail (cn-hangzhou region)</span>
+</span></span><span class=line><span class=cl>wget http://logtail-release-cn-hangzhou.oss-cn-hangzhou-internal.aliyuncs.com/linux64/logtail.sh -O logtail.sh
+</span></span><span class=line><span class=cl>chmod <span class=m>755</span> logtail.sh
+</span></span><span class=line><span class=cl>sudo ./logtail.sh install cn-hangzhou
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Verify installation</span>
+</span></span><span class=line><span class=cl>sudo /etc/init.d/ilogtaild status
+</span></span></code></pre></td></tr></table></div></div><p>安装脚本会自动识别你是走 VPC 内网还是公网，并配置对应的 endpoint。走 VPC 内网是免费的——同 region 内日志投递不收流量费。</p><p>装好后，得在 SLS 里建个 machine group，用来标记哪些实例该收哪些采集配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun sls CreateMachineGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;groupName&#34;: &#34;prod-app-servers&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;machineIdentifyType&#34;: &#34;ip&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;groupType&#34;: &#34;&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;groupAttribute&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;externalName&#34;: &#34;&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;groupTopic&#34;: &#34;&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>    },
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;machineList&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;10.0.10.5&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;10.0.10.6&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;10.0.11.5&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;10.0.11.6&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>    ]
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><p>如果是弹性伸缩组，IP 会变，这时候别用 IP 标识，改用用户自定义标识。在每个实例上创建文件 <code>/etc/ilogtail/user_defined_id</code>，里面写上组标识比如 <code>prod-app-servers</code>，然后把 <code>machineIdentifyType</code> 设成 <code>userdefined</code>。</p><h3 id=采集-nginx-访问日志>采集 Nginx 访问日志</h3><p>最常见的采集场景就是解析 Nginx 访问日志，而且最好用自定义格式。首先，配置 Nginx 写入结构化日志：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-nginx data-lang=nginx><span class=line><span class=cl><span class=c1># /etc/nginx/nginx.conf
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>log_format</span> <span class=s>structured</span> <span class=s>&#39;</span><span class=nv>$remote_addr</span> <span class=s>-</span> <span class=nv>$remote_user</span> <span class=s>[</span><span class=nv>$time_local]</span> <span class=s>&#39;</span>
+</span></span><span class=line><span class=cl>                      <span class=s>&#39;&#34;</span><span class=nv>$request_method</span> <span class=nv>$request_uri</span> <span class=nv>$server_protocol&#34;</span> <span class=s>&#39;</span>
+</span></span><span class=line><span class=cl>                      <span class=s>&#39;</span><span class=nv>$status</span> <span class=nv>$body_bytes_sent</span> <span class=s>&#39;</span>
+</span></span><span class=line><span class=cl>                      <span class=s>&#39;&#34;</span><span class=nv>$http_referer&#34;</span> <span class=s>&#34;</span><span class=nv>$http_user_agent&#34;</span> <span class=s>&#39;</span>
+</span></span><span class=line><span class=cl>                      <span class=s>&#39;</span><span class=nv>$request_time</span> <span class=nv>$upstream_response_time&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>access_log</span> <span class=s>/var/log/nginx/access.log</span> <span class=s>structured</span><span class=p>;</span>
+</span></span></code></pre></td></tr></table></div></div><p>接着配个 Logtail 采集配置来解析这个格式：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;configName&#34;</span><span class=p>:</span> <span class=s2>&#34;nginx-access-config&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;inputType&#34;</span><span class=p>:</span> <span class=s2>&#34;file&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;inputDetail&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;logType&#34;</span><span class=p>:</span> <span class=s2>&#34;common_reg_log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;logPath&#34;</span><span class=p>:</span> <span class=s2>&#34;/var/log/nginx&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;filePattern&#34;</span><span class=p>:</span> <span class=s2>&#34;access.log*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;topicFormat&#34;</span><span class=p>:</span> <span class=s2>&#34;none&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;timeFormat&#34;</span><span class=p>:</span> <span class=s2>&#34;%d/%b/%Y:%H:%M:%S&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;regex&#34;</span><span class=p>:</span> <span class=s2>&#34;([\\d.]+) - (\\S+) \\[(\\S+ \\S+)\\] \&#34;(\\w+) (\\S+) (\\S+)\&#34; (\\d+) (\\d+) \&#34;([^\&#34;]*)\&#34; \&#34;([^\&#34;]*)\&#34; ([\\d.]+) ([\\d.-]+)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;key&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;client_ip&#34;</span><span class=p>,</span> <span class=s2>&#34;remote_user&#34;</span><span class=p>,</span> <span class=s2>&#34;time_local&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;request_method&#34;</span><span class=p>,</span> <span class=s2>&#34;request_uri&#34;</span><span class=p>,</span> <span class=s2>&#34;protocol&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;status&#34;</span><span class=p>,</span> <span class=s2>&#34;body_bytes_sent&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;http_referer&#34;</span><span class=p>,</span> <span class=s2>&#34;http_user_agent&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=s2>&#34;request_time&#34;</span><span class=p>,</span> <span class=s2>&#34;upstream_response_time&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;outputType&#34;</span><span class=p>:</span> <span class=s2>&#34;LogService&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;outputDetail&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;projectName&#34;</span><span class=p>:</span> <span class=s2>&#34;prod-webapp&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;logstoreName&#34;</span><span class=p>:</span> <span class=s2>&#34;nginx-access-log&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>用 CLI 应用配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun sls CreateConfig <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body @nginx-access-config.json <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Bind the config to the machine group</span>
+</span></span><span class=line><span class=cl>aliyun sls ApplyConfigToMachineGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --groupName prod-app-servers <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --configName nginx-access-config <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><p>一分钟内日志就开始流入了。你可以在 SLS 控制台查，或者用 CLI 验证：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun sls GetLogs <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --logstore nginx-access-log <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --from <span class=k>$(</span>date -d <span class=s1>&#39;5 minutes ago&#39;</span> +%s<span class=k>)</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --to <span class=k>$(</span>date +%s<span class=k>)</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --query <span class=s1>&#39;*&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --line <span class=m>5</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><h3 id=采集应用日志推荐-json-格式>采集应用日志（推荐 JSON 格式）</h3><p>采应用日志的话，我强烈建议直接用 JSON 格式。这样就不用写正则解析了，不容易出错，字段索引也是自动的。</p><p>配置你的应用输出 JSON 日志。这是个用 pino 的 Node.js 例子：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=c1>// logger.js
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>pino</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;pino&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>logger</span> <span class=o>=</span> <span class=nx>pino</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>level</span><span class=o>:</span> <span class=nx>process</span><span class=p>.</span><span class=nx>env</span><span class=p>.</span><span class=nx>LOG_LEVEL</span> <span class=o>||</span> <span class=s1>&#39;info&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>formatters</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>level</span><span class=p>(</span><span class=nx>label</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=k>return</span> <span class=p>{</span> <span class=nx>level</span><span class=o>:</span> <span class=nx>label</span> <span class=p>};</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nx>timestamp</span><span class=o>:</span> <span class=p>()</span> <span class=p>=&gt;</span> <span class=sb>`,&#34;timestamp&#34;:&#34;</span><span class=si>${</span><span class=k>new</span> <span class=nb>Date</span><span class=p>().</span><span class=nx>toISOString</span><span class=p>()</span><span class=si>}</span><span class=sb>&#34;`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>base</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nx>service</span><span class=o>:</span> <span class=s1>&#39;order-service&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nx>env</span><span class=o>:</span> <span class=nx>process</span><span class=p>.</span><span class=nx>env</span><span class=p>.</span><span class=nx>NODE_ENV</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nx>hostname</span><span class=o>:</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;os&#39;</span><span class=p>).</span><span class=nx>hostname</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nx>module</span><span class=p>.</span><span class=nx>exports</span> <span class=o>=</span> <span class=nx>logger</span><span class=p>;</span>
+</span></span></code></pre></td></tr></table></div></div><p>打出来的日志长这样：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span><span class=nt>&#34;level&#34;</span><span class=p>:</span><span class=s2>&#34;info&#34;</span><span class=p>,</span><span class=nt>&#34;timestamp&#34;</span><span class=p>:</span><span class=s2>&#34;2026-05-20T08:15:32.456Z&#34;</span><span class=p>,</span><span class=nt>&#34;service&#34;</span><span class=p>:</span><span class=s2>&#34;order-service&#34;</span><span class=p>,</span><span class=nt>&#34;env&#34;</span><span class=p>:</span><span class=s2>&#34;production&#34;</span><span class=p>,</span><span class=nt>&#34;hostname&#34;</span><span class=p>:</span><span class=s2>&#34;app-01&#34;</span><span class=p>,</span><span class=nt>&#34;msg&#34;</span><span class=p>:</span><span class=s2>&#34;order created&#34;</span><span class=p>,</span><span class=nt>&#34;orderId&#34;</span><span class=p>:</span><span class=s2>&#34;ORD-12345&#34;</span><span class=p>,</span><span class=nt>&#34;userId&#34;</span><span class=p>:</span><span class=s2>&#34;USR-789&#34;</span><span class=p>,</span><span class=nt>&#34;amount&#34;</span><span class=p>:</span><span class=mf>129.99</span><span class=p>,</span><span class=nt>&#34;latencyMs&#34;</span><span class=p>:</span><span class=mi>45</span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>JSON 日志的 Logtail 配置简单多了，根本不需要正则：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;configName&#34;</span><span class=p>:</span> <span class=s2>&#34;app-json-log-config&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;inputType&#34;</span><span class=p>:</span> <span class=s2>&#34;file&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;inputDetail&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;logType&#34;</span><span class=p>:</span> <span class=s2>&#34;json_log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;logPath&#34;</span><span class=p>:</span> <span class=s2>&#34;/var/log/app&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;filePattern&#34;</span><span class=p>:</span> <span class=s2>&#34;*.log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;topicFormat&#34;</span><span class=p>:</span> <span class=s2>&#34;none&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;timeKey&#34;</span><span class=p>:</span> <span class=s2>&#34;timestamp&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;timeFormat&#34;</span><span class=p>:</span> <span class=s2>&#34;%Y-%m-%dT%H:%M:%S&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;outputType&#34;</span><span class=p>:</span> <span class=s2>&#34;LogService&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;outputDetail&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;projectName&#34;</span><span class=p>:</span> <span class=s2>&#34;prod-webapp&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;logstoreName&#34;</span><span class=p>:</span> <span class=s2>&#34;app-log&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=采集系统日志>采集系统日志</h3><p>像 syslog、journald 这种系统级事件，Logtail 原生就支持：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;configName&#34;</span><span class=p>:</span> <span class=s2>&#34;syslog-config&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;inputType&#34;</span><span class=p>:</span> <span class=s2>&#34;file&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;inputDetail&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;logType&#34;</span><span class=p>:</span> <span class=s2>&#34;common_reg_log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;logPath&#34;</span><span class=p>:</span> <span class=s2>&#34;/var/log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;filePattern&#34;</span><span class=p>:</span> <span class=s2>&#34;syslog*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;topicFormat&#34;</span><span class=p>:</span> <span class=s2>&#34;none&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;regex&#34;</span><span class=p>:</span> <span class=s2>&#34;(\\w+ \\d+ \\d+:\\d+:\\d+) (\\S+) (\\S+): (.*)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;key&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;timestamp&#34;</span><span class=p>,</span> <span class=s2>&#34;hostname&#34;</span><span class=p>,</span> <span class=s2>&#34;program&#34;</span><span class=p>,</span> <span class=s2>&#34;message&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;timeFormat&#34;</span><span class=p>:</span> <span class=s2>&#34;%b %d %H:%M:%S&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;outputType&#34;</span><span class=p>:</span> <span class=s2>&#34;LogService&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;outputDetail&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;projectName&#34;</span><span class=p>:</span> <span class=s2>&#34;prod-webapp&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;logstoreName&#34;</span><span class=p>:</span> <span class=s2>&#34;system-log&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=构建仪表盘>构建仪表盘</h2><p>没人看的仪表盘比没有更糟糕，因为它给你一种虚假的安全感。关键是要围绕故障排查时真正会问的问题去建，而不是堆砌那些看起来厉害的指标。</p><h3 id=五个核心面板>五个核心面板</h3><p>每个生产环境的 Web 应用，主仪表盘上只需要这五个面板：</p><table><thead><tr><th>面板</th><th>SLS 查询</th><th>它能告诉你什么</th></tr></thead><tbody><tr><td>QPS 趋势</td><td><code>* | SELECT date_trunc('minute', __time__) as t, count(*)/60.0 as qps GROUP BY t ORDER BY t</code></td><td>流量模式——是流量突增导致的问题，还是流量跌了（上游故障）？</td></tr><tr><td>错误率</td><td><code>* | SELECT date_trunc('minute', __time__) as t, round(count_if(status>=500)*100.0/count(*),2) as err_pct GROUP BY t ORDER BY t</code></td><td>错误率是否升高？任何超过 0.1% 的情况都值得调查。</td></tr><tr><td>P99 延迟</td><td><code>* | SELECT date_trunc('minute', __time__) as t, approx_percentile(request_time, 0.99) as p99 GROUP BY t ORDER BY t</code></td><td>服务是否变慢？P99 能捕捉到平均值掩盖的长尾延迟。</td></tr><tr><td>顶部接口</td><td><code>* | SELECT request_uri, count(*) as cnt, approx_percentile(request_time, 0.50) as p50 GROUP BY request_uri ORDER BY cnt DESC LIMIT 10</code></td><td>流量去哪了？哪些接口慢？</td></tr><tr><td>状态码分布</td><td><code>* | SELECT status, count(*) as cnt GROUP BY status ORDER BY cnt DESC</code></td><td>有没有异常的 4xx/5xx 模式？</td></tr></tbody></table><h3 id=创建仪表盘>创建仪表盘</h3><p>SLS 仪表盘是用 JSON 定义的。这是个精简版但能直接用的运维仪表盘：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span><span class=lnt>81
+</span><span class=lnt>82
+</span><span class=lnt>83
+</span><span class=lnt>84
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;dashboardName&#34;</span><span class=p>:</span> <span class=s2>&#34;ops-overview&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;displayName&#34;</span><span class=p>:</span> <span class=s2>&#34;Production Ops Overview&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;charts&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;title&#34;</span><span class=p>:</span> <span class=s2>&#34;QPS (Requests per Second)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;line&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;search&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;logstore&#34;</span><span class=p>:</span> <span class=s2>&#34;nginx-access-log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;topic&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;query&#34;</span><span class=p>:</span> <span class=s2>&#34;* | SELECT date_trunc(&#39;minute&#39;, __time__) as time, round(count(*)/60.0, 1) as qps GROUP BY time ORDER BY time&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;start&#34;</span><span class=p>:</span> <span class=s2>&#34;-1h&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;end&#34;</span><span class=p>:</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;display&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;xAxis&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;time&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;yAxis&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;qps&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;height&#34;</span><span class=p>:</span> <span class=mi>300</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;title&#34;</span><span class=p>:</span> <span class=s2>&#34;Error Rate (%)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;line&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;search&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;logstore&#34;</span><span class=p>:</span> <span class=s2>&#34;nginx-access-log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;topic&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;query&#34;</span><span class=p>:</span> <span class=s2>&#34;* | SELECT date_trunc(&#39;minute&#39;, __time__) as time, round(count_if(status &gt;= 500) * 100.0 / count(*), 2) as error_rate GROUP BY time ORDER BY time&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;start&#34;</span><span class=p>:</span> <span class=s2>&#34;-1h&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;end&#34;</span><span class=p>:</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;display&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;xAxis&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;time&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;yAxis&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;error_rate&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;height&#34;</span><span class=p>:</span> <span class=mi>300</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;title&#34;</span><span class=p>:</span> <span class=s2>&#34;P50 / P90 / P99 Latency (seconds)&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;line&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;search&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;logstore&#34;</span><span class=p>:</span> <span class=s2>&#34;nginx-access-log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;topic&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;query&#34;</span><span class=p>:</span> <span class=s2>&#34;* | SELECT date_trunc(&#39;minute&#39;, __time__) as time, approx_percentile(request_time, 0.50) as p50, approx_percentile(request_time, 0.90) as p90, approx_percentile(request_time, 0.99) as p99 GROUP BY time ORDER BY time&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;start&#34;</span><span class=p>:</span> <span class=s2>&#34;-1h&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;end&#34;</span><span class=p>:</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;display&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;xAxis&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;time&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;yAxis&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;p50&#34;</span><span class=p>,</span> <span class=s2>&#34;p90&#34;</span><span class=p>,</span> <span class=s2>&#34;p99&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;height&#34;</span><span class=p>:</span> <span class=mi>300</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;title&#34;</span><span class=p>:</span> <span class=s2>&#34;Status Code Distribution&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;pie&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;search&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;logstore&#34;</span><span class=p>:</span> <span class=s2>&#34;nginx-access-log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;topic&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;query&#34;</span><span class=p>:</span> <span class=s2>&#34;* | SELECT CASE WHEN status &gt;= 200 AND status &lt; 300 THEN &#39;2xx&#39; WHEN status &gt;= 300 AND status &lt; 400 THEN &#39;3xx&#39; WHEN status &gt;= 400 AND status &lt; 500 THEN &#39;4xx&#39; WHEN status &gt;= 500 THEN &#39;5xx&#39; END as code_class, count(*) as cnt GROUP BY code_class ORDER BY cnt DESC&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;start&#34;</span><span class=p>:</span> <span class=s2>&#34;-1h&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;end&#34;</span><span class=p>:</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;display&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;xAxis&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;code_class&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;yAxis&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;cnt&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;height&#34;</span><span class=p>:</span> <span class=mi>300</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;title&#34;</span><span class=p>:</span> <span class=s2>&#34;Top 10 Endpoints by Volume&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;table&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;search&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;logstore&#34;</span><span class=p>:</span> <span class=s2>&#34;nginx-access-log&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;topic&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;query&#34;</span><span class=p>:</span> <span class=s2>&#34;* | SELECT request_uri, count(*) as requests, round(avg(request_time), 3) as avg_latency, approx_percentile(request_time, 0.99) as p99_latency, count_if(status &gt;= 500) as errors GROUP BY request_uri ORDER BY requests DESC LIMIT 10&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;start&#34;</span><span class=p>:</span> <span class=s2>&#34;-1h&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;end&#34;</span><span class=p>:</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>},</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;display&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;height&#34;</span><span class=p>:</span> <span class=mi>300</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>用 CLI 创建：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun sls CreateDashboard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body @ops-dashboard.json <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><blockquote><p><strong>实战建议：</strong> 先用 SLS 控制台的可视化编辑器交互式的把图表调好，再导出 JSON 定义去做版本控制。手写仪表盘 JSON 太折磨人了。控制台的查询 explorer 能让你在提交到仪表盘面板前，先即时测试 SLS 查询语句。</p></blockquote><h2 id=cloudmonitor-基础设施监控与告警>CloudMonitor: 基础设施监控与告警</h2><p>SLS 负责日志，CloudMonitor 负责指标——也就是那些追踪基础设施健康状态的数值时间序列。所有阿里云资源默认都开着 CloudMonitor。只要你创建了 ECS 实例、RDS 数据库或者 SLB 负载均衡，监控立马就开始收集基础指标。</p><h3 id=内置指标>内置指标</h3><p>CloudMonitor 开箱即用，每台 ECS 实例都会收集这些指标：</p><table><thead><tr><th>指标</th><th>描述</th><th>采集间隔</th></tr></thead><tbody><tr><td><code>CPUUtilization</code></td><td>CPU 使用率百分比</td><td>60 秒</td></tr><tr><td><code>MemoryUsedPercent</code></td><td>内存使用率百分比</td><td>60 秒</td></tr><tr><td><code>DiskReadBPS</code> / <code>DiskWriteBPS</code></td><td>磁盘 I/O 吞吐量</td><td>60 秒</td></tr><tr><td><code>DiskReadIOPS</code> / <code>DiskWriteIOPS</code></td><td>磁盘 I/O 操作数</td><td>60 秒</td></tr><tr><td><code>InternetInRate</code> / <code>InternetOutRate</code></td><td>网络吞吐量</td><td>60 秒</td></tr><tr><td><code>IntranetInRate</code> / <code>IntranetOutRate</code></td><td>VPC 内部网络吞吐量</td><td>60 秒</td></tr><tr><td><code>disk_usage_percent</code></td><td>磁盘空间使用率（需 agent）</td><td>60 秒</td></tr><tr><td><code>load_5m</code></td><td>5 分钟负载平均值（需 agent）</td><td>60 秒</td></tr></tbody></table><p>前六个指标直接从 Hypervisor 层面拿，不用装 agent。最后两个得在实例上装 CloudMonitor agent。跟 Logtail 一起装就行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install CloudMonitor agent</span>
+</span></span><span class=line><span class=cl><span class=nv>ARGUS_VERSION</span><span class=o>=</span>3.5.9
+</span></span><span class=line><span class=cl><span class=nv>REGION_ID</span><span class=o>=</span>cn-hangzhou
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>wget <span class=s2>&#34;http://cms-download.aliyun.com/cms-go-client/</span><span class=nv>$ARGUS_VERSION</span><span class=s2>/cms-go-client.linux-amd64.tar.gz&#34;</span>
+</span></span><span class=line><span class=cl>tar xzf cms-go-client.linux-amd64.tar.gz
+</span></span><span class=line><span class=cl>sudo ./cms-go-client.linux-amd64/cloudmonitor --install
+</span></span><span class=line><span class=cl>sudo ./cms-go-client.linux-amd64/cloudmonitor --start
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Verify</span>
+</span></span><span class=line><span class=cl>sudo ./cms-go-client.linux-amd64/cloudmonitor --status
+</span></span></code></pre></td></tr></table></div></div><p>其他服务不用装 agent 也能提供指标：</p><table><thead><tr><th>服务</th><th>关键指标</th></tr></thead><tbody><tr><td><strong>RDS</strong></td><td>CPU、内存、连接数、IOPS、磁盘使用率、每秒慢查询数</td></tr><tr><td><strong>SLB</strong></td><td>活跃连接数、新建连接数、QPS、健康主机数、延迟</td></tr><tr><td><strong>OSS</strong></td><td>请求数、带宽、可用性、首字节延迟</td></tr><tr><td><strong>Redis (Tair)</strong></td><td>CPU、内存使用率、连接数、QPS、命中率、驱逐数</td></tr><tr><td><strong>NAT Gateway</strong></td><td>活跃连接数、带宽、包速率</td></tr></tbody></table><h3 id=自定义指标>自定义指标</h3><p>有些应用层的指标 CloudMonitor 不会自动收集，得通过 API 自己推自定义指标：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Push a custom metric: order processing latency</span>
+</span></span><span class=line><span class=cl>aliyun cms PutCustomMetric <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricList <span class=s1>&#39;[
+</span></span></span><span class=line><span class=cl><span class=s1>    {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;groupId&#34;: 12345,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;metricName&#34;: &#34;order_processing_latency&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;dimensions&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;service&#34;: &#34;order-service&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;env&#34;: &#34;production&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>      },
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;time&#34;: &#34;&#39;</span><span class=k>$(</span>date +%s%3N<span class=k>)</span><span class=s1>&#39;&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;type&#34;: 0,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;values&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Average&#34;: 245,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Maximum&#34;: 1830,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Minimum&#34;: 12,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;SampleCount&#34;: 150,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Sum&#34;: 36750
+</span></span></span><span class=line><span class=cl><span class=s1>      }
+</span></span></span><span class=line><span class=cl><span class=s1>    }
+</span></span></span><span class=line><span class=cl><span class=s1>  ]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>写代码的时候有个经验：别每请求推一次，把自定义指标攒一批，按固定节奏（比如每 60 秒）推上去：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=c1>// metrics-reporter.js
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>Core</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;@alicloud/pop-core&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>client</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>Core</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>accessKeyId</span><span class=o>:</span> <span class=nx>process</span><span class=p>.</span><span class=nx>env</span><span class=p>.</span><span class=nx>ALIBABA_CLOUD_ACCESS_KEY_ID</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>accessKeySecret</span><span class=o>:</span> <span class=nx>process</span><span class=p>.</span><span class=nx>env</span><span class=p>.</span><span class=nx>ALIBABA_CLOUD_ACCESS_KEY_SECRET</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>endpoint</span><span class=o>:</span> <span class=s1>&#39;https://metrics.cn-hangzhou.aliyuncs.com&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>apiVersion</span><span class=o>:</span> <span class=s1>&#39;2019-01-01&#39;</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>class</span> <span class=nx>MetricsBuffer</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>constructor</span><span class=p>(</span><span class=nx>groupId</span><span class=p>,</span> <span class=nx>flushIntervalMs</span> <span class=o>=</span> <span class=mi>60000</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>.</span><span class=nx>groupId</span> <span class=o>=</span> <span class=nx>groupId</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>.</span><span class=nx>buffer</span> <span class=o>=</span> <span class=p>{};</span>
+</span></span><span class=line><span class=cl>    <span class=nx>setInterval</span><span class=p>(()</span> <span class=p>=&gt;</span> <span class=k>this</span><span class=p>.</span><span class=nx>flush</span><span class=p>(),</span> <span class=nx>flushIntervalMs</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=nx>record</span><span class=p>(</span><span class=nx>metricName</span><span class=p>,</span> <span class=nx>value</span><span class=p>,</span> <span class=nx>dimensions</span> <span class=o>=</span> <span class=p>{})</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>key</span> <span class=o>=</span> <span class=sb>`</span><span class=si>${</span><span class=nx>metricName</span><span class=si>}</span><span class=sb>:</span><span class=si>${</span><span class=nx>JSON</span><span class=p>.</span><span class=nx>stringify</span><span class=p>(</span><span class=nx>dimensions</span><span class=p>)</span><span class=si>}</span><span class=sb>`</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=k>this</span><span class=p>.</span><span class=nx>buffer</span><span class=p>[</span><span class=nx>key</span><span class=p>])</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=k>this</span><span class=p>.</span><span class=nx>buffer</span><span class=p>[</span><span class=nx>key</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span> <span class=nx>metricName</span><span class=p>,</span> <span class=nx>dimensions</span><span class=p>,</span> <span class=nx>values</span><span class=o>:</span> <span class=p>[]</span> <span class=p>};</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>.</span><span class=nx>buffer</span><span class=p>[</span><span class=nx>key</span><span class=p>].</span><span class=nx>values</span><span class=p>.</span><span class=nx>push</span><span class=p>(</span><span class=nx>value</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=kr>async</span> <span class=nx>flush</span><span class=p>()</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>metricList</span> <span class=o>=</span> <span class=p>[];</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=kr>const</span> <span class=p>[</span><span class=nx>key</span><span class=p>,</span> <span class=nx>entry</span><span class=p>]</span> <span class=k>of</span> <span class=nb>Object</span><span class=p>.</span><span class=nx>entries</span><span class=p>(</span><span class=k>this</span><span class=p>.</span><span class=nx>buffer</span><span class=p>))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=k>if</span> <span class=p>(</span><span class=nx>entry</span><span class=p>.</span><span class=nx>values</span><span class=p>.</span><span class=nx>length</span> <span class=o>===</span> <span class=mi>0</span><span class=p>)</span> <span class=k>continue</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>      <span class=kr>const</span> <span class=nx>sorted</span> <span class=o>=</span> <span class=nx>entry</span><span class=p>.</span><span class=nx>values</span><span class=p>.</span><span class=nx>sort</span><span class=p>((</span><span class=nx>a</span><span class=p>,</span> <span class=nx>b</span><span class=p>)</span> <span class=p>=&gt;</span> <span class=nx>a</span> <span class=o>-</span> <span class=nx>b</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=nx>metricList</span><span class=p>.</span><span class=nx>push</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>        <span class=nx>groupId</span><span class=o>:</span> <span class=k>this</span><span class=p>.</span><span class=nx>groupId</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>metricName</span><span class=o>:</span> <span class=nx>entry</span><span class=p>.</span><span class=nx>metricName</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>dimensions</span><span class=o>:</span> <span class=nx>entry</span><span class=p>.</span><span class=nx>dimensions</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>time</span><span class=o>:</span> <span class=nb>Date</span><span class=p>.</span><span class=nx>now</span><span class=p>().</span><span class=nx>toString</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>        <span class=nx>type</span><span class=o>:</span> <span class=mi>0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nx>values</span><span class=o>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nx>Average</span><span class=o>:</span> <span class=nx>sorted</span><span class=p>.</span><span class=nx>reduce</span><span class=p>((</span><span class=nx>a</span><span class=p>,</span> <span class=nx>b</span><span class=p>)</span> <span class=p>=&gt;</span> <span class=nx>a</span> <span class=o>+</span> <span class=nx>b</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=o>/</span> <span class=nx>sorted</span><span class=p>.</span><span class=nx>length</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nx>Maximum</span><span class=o>:</span> <span class=nx>sorted</span><span class=p>[</span><span class=nx>sorted</span><span class=p>.</span><span class=nx>length</span> <span class=o>-</span> <span class=mi>1</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>          <span class=nx>Minimum</span><span class=o>:</span> <span class=nx>sorted</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>          <span class=nx>SampleCount</span><span class=o>:</span> <span class=nx>sorted</span><span class=p>.</span><span class=nx>length</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nx>Sum</span><span class=o>:</span> <span class=nx>sorted</span><span class=p>.</span><span class=nx>reduce</span><span class=p>((</span><span class=nx>a</span><span class=p>,</span> <span class=nx>b</span><span class=p>)</span> <span class=p>=&gt;</span> <span class=nx>a</span> <span class=o>+</span> <span class=nx>b</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>});</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=k>this</span><span class=p>.</span><span class=nx>buffer</span> <span class=o>=</span> <span class=p>{};</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=nx>metricList</span><span class=p>.</span><span class=nx>length</span> <span class=o>===</span> <span class=mi>0</span><span class=p>)</span> <span class=k>return</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=kr>await</span> <span class=nx>client</span><span class=p>.</span><span class=nx>request</span><span class=p>(</span><span class=s1>&#39;PutCustomMetric&#39;</span><span class=p>,</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nx>MetricList</span><span class=o>:</span> <span class=nx>JSON</span><span class=p>.</span><span class=nx>stringify</span><span class=p>(</span><span class=nx>metricList</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=p>});</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nx>module</span><span class=p>.</span><span class=nx>exports</span> <span class=o>=</span> <span class=nx>MetricsBuffer</span><span class=p>;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=事件监控>事件监控</h3><p>CloudMonitor 还能盯系统事件——也就是那些发生在资源上、不属于常规指标采集的事情。比如 ECS 实例重启、磁盘报错、计划维护、安全警报。这些是离散事件，不是连续的时间序列。</p><p>重点盯这几个事件：</p><table><thead><tr><th>事件</th><th>含义</th><th>建议操作</th></tr></thead><tbody><tr><td><code>Instance:SystemFailure.Reboot</code></td><td>阿里云因宿主机故障重启了你的实例</td><td>检查应用是否干净恢复</td></tr><tr><td><code>Disk:Stalled</code></td><td>磁盘 I/O 停滞，可能是存储后端问题</td><td>监控是否有数据损坏</td></tr><tr><td><code>Instance:PerformanceLimited</code></td><td>突发型实例（t 系列）耗尽了 CPU 积分</td><td>升级实例类型或切换到非突发型</td></tr><tr><td><code>SecurityGroup:AuthorizeFailed</code></td><td>连接被安全组规则拦截</td><td>确认这是预期行为还是配置错误</td></tr></tbody></table><p>订阅事件接收通知：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun cms PutEventRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName ecs-system-events <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EventPattern <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;product&#34;: &#34;ECS&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;eventTypeList&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;StatusNotification&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;SystemFailure.Reboot&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;SystemMaintenance.Reboot&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;Disk:Stalled&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>    ]
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --State ENABLED
+</span></span></code></pre></td></tr></table></div></div><h2 id=告警配置>告警配置</h2><p>告警是连接可观测性和行动的桥梁。对的告警能在错误率飙升时凌晨 3 点把你叫醒。错的告警也会凌晨 3 点把你叫醒，只不过是因为定时备份时 CPU 短暂冲到了 81%，30 秒后又回去了。把告警阈值设准了是一门艺术，不过下面这几条经验法则我一直用着挺顺手。</p><h3 id=告警设计原则>告警设计原则</h3><ol><li><strong>告警症状，别告警原因。</strong> 告警“错误率 > 1%"，别告警"CPU > 80%"。CPU 高只有导致用户能感知的影响时才算问题。错误率本身就是用户能感知的影响。</li><li><strong>使用持续阈值。</strong> 别单凭一个数据点就发告警。要求条件持续 3-5 分钟，过滤掉瞬时毛刺。</li><li><strong>正好设三个 severity 级别。</strong> Critical（立刻打电话叫人）、Warning（几小时内需要排查）、Info（记录留档）。超过三个级别，没人搞得清每个级别到底啥意思。</li><li><strong>已知维护期间静音。</strong> 没什么比明明提前通知了要部署，告警却还在狂发更破坏信任的了。</li></ol><h3 id=设置告警规则>设置告警规则</h3><p>下面是每个生产系统都该有的四条告警规则：</p><p><strong>1. 高错误率（Critical）</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># SLS Alert: Error rate exceeds 1% for 5 minutes</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateAlert <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;name&#34;: &#34;high-error-rate&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;displayName&#34;: &#34;High Error Rate (&gt;1%)&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;description&#34;: &#34;5xx error rate exceeds 1% over 5 minutes&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;schedule&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;type&#34;: &#34;FixedRate&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;interval&#34;: &#34;1m&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>    },
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;configuration&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;type&#34;: &#34;default&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;queryList&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>        {
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;project&#34;: &#34;prod-webapp&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;logstore&#34;: &#34;nginx-access-log&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;query&#34;: &#34;* | SELECT round(count_if(status &gt;= 500) * 100.0 / count(*), 2) as error_rate, count(*) as total WHERE __time__ &gt; unix_timestamp() - 300&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;timeSpanType&#34;: &#34;Custom&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;start&#34;: &#34;-5m&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;end&#34;: &#34;now&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>        }
+</span></span></span><span class=line><span class=cl><span class=s1>      ],
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;condition&#34;: &#34;error_rate &gt; 1 &amp;&amp; total &gt; 100&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;threshold&#34;: 1,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;noDataFire&#34;: false,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;sendResolved&#34;: true,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;notificationList&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>        {
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;type&#34;: &#34;DingTalk&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;serviceUri&#34;: &#34;https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;content&#34;: &#34;CRITICAL: Error rate is ${error_rate}% (${total} requests in last 5min)&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>        }
+</span></span></span><span class=line><span class=cl><span class=s1>      ]
+</span></span></span><span class=line><span class=cl><span class=s1>    }
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><p><code>total > 100</code> 这个条件是为了防止低流量期的误报。如果只进了 3 个请求却挂了 1 个，数值上看是 33% 错误率——看着吓人，实际没啥意义。</p><p><strong>2. 持续高 CPU（Warning）</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># CloudMonitor Alert: CPU &gt; 80% for 5 minutes</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId cpu-high-warning <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;High CPU Utilization&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace acs_ecs_dashboard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName CPUUtilization <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;i-bp1xxxxxxxxx&#34;}]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Statistics Average <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.ComparisonOperator GreaterThanOrEqualToThreshold <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Times <span class=m>5</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>Times: 5</code> 意味着条件必须在连续 5 个评估周期内都为真（间隔 60 秒，共 5 分钟）。流量突发导致的短暂 CPU 飙升不会触发这条告警。</p><p><strong>3. 磁盘空间不足（Warning）</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId disk-space-warning <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;Low Disk Space&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace acs_ecs_dashboard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName diskusage_utilization <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;i-bp1xxxxxxxxx&#34;}]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Statistics Maximum <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.ComparisonOperator GreaterThanOrEqualToThreshold <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Times <span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics Maximum <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator GreaterThanOrEqualToThreshold <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>90</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span></code></pre></td></tr></table></div></div><p>这里设了两个升级级别：磁盘使用率 80% 持续时 warn，达到 90% 立刻 critical。磁盘写满是我见过最容易预防、却也最常见的宕机原因。</p><p><strong>4. 数据库慢查询（Warning）</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># SLS Alert: P99 query time exceeds 1 second</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateAlert <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;name&#34;: &#34;slow-queries&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;displayName&#34;: &#34;Slow Database Queries&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;description&#34;: &#34;P99 query time exceeds 1 second over 10 minutes&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;schedule&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;type&#34;: &#34;FixedRate&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;interval&#34;: &#34;5m&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>    },
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;configuration&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;type&#34;: &#34;default&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;queryList&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>        {
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;project&#34;: &#34;prod-webapp&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;logstore&#34;: &#34;slow-query-log&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;query&#34;: &#34;* | SELECT approx_percentile(query_time, 0.99) as p99_query_time, count(*) as slow_query_count WHERE __time__ &gt; unix_timestamp() - 600&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;timeSpanType&#34;: &#34;Custom&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;start&#34;: &#34;-10m&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;end&#34;: &#34;now&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>        }
+</span></span></span><span class=line><span class=cl><span class=s1>      ],
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;condition&#34;: &#34;p99_query_time &gt; 1&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;threshold&#34;: 1,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;noDataFire&#34;: false,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;sendResolved&#34;: true,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;notificationList&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>        {
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;type&#34;: &#34;DingTalk&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;serviceUri&#34;: &#34;https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;content&#34;: &#34;WARNING: P99 query time is ${p99_query_time}s (${slow_query_count} slow queries in last 10min)&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>        }
+</span></span></span><span class=line><span class=cl><span class=s1>      ]
+</span></span></span><span class=line><span class=cl><span class=s1>    }
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><h3 id=联系人组和通知渠道>联系人组和通知渠道</h3><p>CloudMonitor 通过联系人组来路由告警通知。建个组，加上通知渠道：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create a contact group</span>
+</span></span><span class=line><span class=cl>aliyun cms PutContactGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroupName ops-team <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactNames <span class=s1>&#39;[&#34;engineer-a&#34;, &#34;engineer-b&#34;, &#34;on-call&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Describe <span class=s2>&#34;Production operations team&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create a contact with DingTalk and email</span>
+</span></span><span class=line><span class=cl>aliyun cms PutContact <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactName engineer-a <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Channels <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Mail&#34;: &#34;engineer-a@company.com&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;DingWebHook&#34;: &#34;https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Describe <span class=s2>&#34;Engineer A - primary on-call&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>支持的通知渠道：</p><table><thead><tr><th>Channel</th><th>Use Case</th></tr></thead><tbody><tr><td><strong>Email</strong></td><td>非紧急警告，每日汇总</td></tr><tr><td><strong>DingTalk webhook</strong></td><td>团队可见的告警，事故协调</td></tr><tr><td><strong>SMS</strong></td><td>需要立即关注的 Critical 告警</td></tr><tr><td><strong>Phone call</strong></td><td>生产不可用的严重程度（慎用）</td></tr><tr><td><strong>Webhook (HTTP)</strong></td><td>对接 PagerDuty、Slack 或自定义系统</td></tr></tbody></table><blockquote><p><strong>静音期：</strong> 对于计划内的维护窗口，在告警规则上设置静音期来抑制通知。这比直接禁用告警更好，因为告警依然会触发并记录事件——你只是不会为了已知的事情被吵醒而已。</p></blockquote><h2 id=arms应用实时监控服务>ARMS：应用实时监控服务</h2><p>ARMS 补上了可观测性的第三块拼图：链路追踪（traces）。SLS 告诉你发生了什么，CloudMonitor 告诉你系统层面的影响，而 ARMS 告诉你问题究竟出在应用的哪个位置。</p><h3 id=arms-能做什么>ARMS 能做什么</h3><p>ARMS 是一个 APM（应用性能监控）平台，提供以下功能：</p><ul><li><strong>分布式追踪</strong> &ndash; 跨服务、数据库、缓存和消息队列追踪请求。精确看到时间花在哪了。</li><li><strong>服务拓扑</strong> &ndash; 自动发现的服务通信地图。一眼看清依赖关系、调用量和错误率。</li><li><strong>异常诊断</strong> &ndash; 自动捕获和聚合异常，包含堆栈跟踪、频率和受影响用户。</li><li><strong>慢事务分析</strong> &ndash; 下钻具体的慢请求，查看完整调用链，包括数据库查询和外部 API 调用。</li></ul><p>ARMS 支持自动埋点（automatic instrumentation）的语言包括：</p><table><thead><tr><th>Language</th><th>Agent Type</th><th>What Gets Instrumented</th></tr></thead><tbody><tr><td>Java</td><td>ByteBuddy agent</td><td>Spring, Dubbo, gRPC, JDBC, Redis, HTTP clients</td></tr><tr><td>Node.js</td><td>npm package</td><td>Express, Koa, MySQL, Redis, HTTP, gRPC</td></tr><tr><td>Python</td><td>pip package</td><td>Django, Flask, SQLAlchemy, Redis, requests</td></tr><tr><td>Go</td><td>SDK</td><td>net/http, gRPC, database/sql, go-redis</td></tr><tr><td>PHP</td><td>Extension</td><td>Laravel, ThinkPHP, MySQLi, cURL</td></tr></tbody></table><p>所谓自动埋点，意味着你不需要修改应用代码。Agent 会拦截框架层的调用，自动生成 trace spans。你只需要在启动命令里加上 Agent，trace 就会出现。</p><h3 id=安装-arms-agentnodejs>安装 ARMS Agent（Node.js）</h3><p>对于我们一直在 ECS 实例上运行的 Node.js 应用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install the ARMS Node.js agent</span>
+</span></span><span class=line><span class=cl>npm install @alicloud/china-arms-apm --save
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Set environment variables</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>ARMS_APP_NAME</span><span class=o>=</span>order-service
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>ARMS_LICENSE_KEY</span><span class=o>=</span>your-license-key-from-console
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>ARMS_REGION_ID</span><span class=o>=</span>cn-hangzhou
+</span></span></code></pre></td></tr></table></div></div><p>在应用入口文件的最顶端添加 agent require，必须放在任何其他 import 之前：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=c1>// app.js - this MUST be the first line
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>require</span><span class=p>(</span><span class=s1>&#39;@alicloud/china-arms-apm&#39;</span><span class=p>).</span><span class=k>default</span><span class=p>({</span> <span class=nx>appName</span><span class=o>:</span> <span class=s1>&#39;order-service&#39;</span> <span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// everything else follows
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>express</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;express&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>app</span> <span class=o>=</span> <span class=nx>express</span><span class=p>();</span>
+</span></span><span class=line><span class=cl><span class=c1>// ... rest of your application
+</span></span></span></code></pre></td></tr></table></div></div><p>Java 应用更简单——只需加一个 JVM 参数：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>java -javaagent:/path/to/arms-agent.jar <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>     -Darms.appName<span class=o>=</span>order-service <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>     -Darms.licenseKey<span class=o>=</span>your-license-key <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>     -jar your-application.jar
+</span></span></code></pre></td></tr></table></div></div><h3 id=查看链路>查看链路</h3><p>Agent 运行后，ARMS 开始为每个进入的请求生成 trace。每个 trace 由 spans 组成——每个操作（HTTP 调用、数据库查询、缓存查找）对应一个 span。这些 spans 形成一棵树，展示完整的请求生命周期。</p><p>典型的 API 请求 trace 长这样：</p><pre tabindex=0><code>Trace: abc-123-def (total: 234ms)
+├── [order-service] POST /api/orders                       0-234ms
+│   ├── [order-service] MySQL: SELECT * FROM users         12-18ms
+│   ├── [order-service] Redis: GET user:789:cart            19-21ms
+│   ├── [order-service] MySQL: INSERT INTO orders           22-89ms
+│   ├── [order-service] HTTP: POST payment-service/charge   90-210ms
+│   │   ├── [payment-service] POST /charge                  95-205ms
+│   │   │   ├── [payment-service] MySQL: SELECT balance     100-105ms
+│   │   │   ├── [payment-service] HTTP: POST alipay.com     106-195ms
+│   │   │   └── [payment-service] MySQL: UPDATE balance     196-203ms
+│   └── [order-service] Redis: DEL user:789:cart            211-213ms
+</code></pre><p>从这个 trace 你能看出，支付服务调用支付宝花了 89ms——这是你优化不了的外部依赖。数据库 INSERT 花了 67ms——如果平时没这么久，这就值得排查。总耗时 234ms 对于 checkout 流程来说可以接受，但如果是 2340ms，你就能精确知道该看哪个 span。</p><h3 id=链路与日志关联>链路与日志关联</h3><p>真正的威力在于把 ARMS 链路和 SLS 日志条目关联起来。当链路显示某个数据库查询很慢时，你想看到对应的应用日志来理解上下文——是谁触发的、传了什么参数、查询计划是什么。</p><p>通过在日志输出中包含 trace ID 来启用链路 - 日志关联：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=c1>// middleware to inject trace ID into logs
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>app</span><span class=p>.</span><span class=nx>use</span><span class=p>((</span><span class=nx>req</span><span class=p>,</span> <span class=nx>res</span><span class=p>,</span> <span class=nx>next</span><span class=p>)</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=kr>const</span> <span class=nx>traceId</span> <span class=o>=</span> <span class=nx>req</span><span class=p>.</span><span class=nx>headers</span><span class=p>[</span><span class=s1>&#39;eagleeye-traceid&#39;</span><span class=p>]</span> <span class=o>||</span> <span class=s1>&#39;no-trace&#39;</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>  <span class=nx>req</span><span class=p>.</span><span class=nx>logger</span> <span class=o>=</span> <span class=nx>logger</span><span class=p>.</span><span class=nx>child</span><span class=p>({</span> <span class=nx>traceId</span> <span class=p>});</span>
+</span></span><span class=line><span class=cl>  <span class=nx>next</span><span class=p>();</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// In your route handlers, use req.logger
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=nx>app</span><span class=p>.</span><span class=nx>post</span><span class=p>(</span><span class=s1>&#39;/api/orders&#39;</span><span class=p>,</span> <span class=kr>async</span> <span class=p>(</span><span class=nx>req</span><span class=p>,</span> <span class=nx>res</span><span class=p>)</span> <span class=p>=&gt;</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nx>req</span><span class=p>.</span><span class=nx>logger</span><span class=p>.</span><span class=nx>info</span><span class=p>({</span> <span class=nx>userId</span><span class=o>:</span> <span class=nx>req</span><span class=p>.</span><span class=nx>user</span><span class=p>.</span><span class=nx>id</span> <span class=p>},</span> <span class=s1>&#39;creating order&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>  <span class=c1>// ... business logic
+</span></span></span><span class=line><span class=cl><span class=c1></span>  <span class=nx>req</span><span class=p>.</span><span class=nx>logger</span><span class=p>.</span><span class=nx>info</span><span class=p>({</span> <span class=nx>orderId</span><span class=o>:</span> <span class=nx>order</span><span class=p>.</span><span class=nx>id</span><span class=p>,</span> <span class=nx>latencyMs</span><span class=o>:</span> <span class=nx>elapsed</span> <span class=p>},</span> <span class=s1>&#39;order created&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span></code></pre></td></tr></table></div></div><p>现在在 SLS 里，你可以搜索特定 trace 关联的所有日志：</p><pre tabindex=0><code>traceId: abc-123-def
+</code></pre><p>在 ARMS 中，每个 trace span 也能链回对应的 SLS 日志条目。这种双向链接才是让生产问题排查变快的关键。</p><h2 id=解决方案全栈可观测性搭建>解决方案：全栈可观测性搭建</h2><p>咱们把前面几篇的内容串起来，直接上一套完整的搭建流程。这里默认你已经在 SLB 负载均衡后面跑了 ECS 实例，后端挂着 RDS 数据库——也就是本系列前几篇文章里提到的那个架构。</p><h3 id=第一步在所有-ecs-实例上安装-agent>第一步：在所有 ECS 实例上安装 Agent</h3><p>搞个 cloud-init 脚本或者 Ansible 实战手册，把两个 Agent 都装到每台应用服务器上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/bin/bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=c1># install-observability.sh</span>
+</span></span><span class=line><span class=cl><span class=c1># Run on each ECS instance in the app tier</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>set</span> -euo pipefail
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>REGION</span><span class=o>=</span>cn-hangzhou
+</span></span><span class=line><span class=cl><span class=nv>SLS_PROJECT</span><span class=o>=</span>prod-webapp
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;=== Installing Logtail ===&#34;</span>
+</span></span><span class=line><span class=cl>wget -q http://logtail-release-<span class=si>${</span><span class=nv>REGION</span><span class=si>}</span>.oss-<span class=si>${</span><span class=nv>REGION</span><span class=si>}</span>-internal.aliyuncs.com/linux64/logtail.sh -O /tmp/logtail.sh
+</span></span><span class=line><span class=cl>chmod <span class=m>755</span> /tmp/logtail.sh
+</span></span><span class=line><span class=cl>sudo /tmp/logtail.sh install <span class=si>${</span><span class=nv>REGION</span><span class=si>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Set machine group identity</span>
+</span></span><span class=line><span class=cl>sudo mkdir -p /etc/ilogtail
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;prod-app-servers&#34;</span> <span class=p>|</span> sudo tee /etc/ilogtail/user_defined_id
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Restart Logtail to pick up identity</span>
+</span></span><span class=line><span class=cl>sudo /etc/init.d/ilogtaild restart
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;=== Installing CloudMonitor Agent ===&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>ARGUS_VERSION</span><span class=o>=</span>3.5.9
+</span></span><span class=line><span class=cl>wget -q <span class=s2>&#34;http://cms-download.aliyun.com/cms-go-client/</span><span class=si>${</span><span class=nv>ARGUS_VERSION</span><span class=si>}</span><span class=s2>/cms-go-client.linux-amd64.tar.gz&#34;</span> -O /tmp/cms-agent.tar.gz
+</span></span><span class=line><span class=cl><span class=nb>cd</span> /tmp <span class=o>&amp;&amp;</span> tar xzf cms-agent.tar.gz
+</span></span><span class=line><span class=cl>sudo /tmp/cms-go-client.linux-amd64/cloudmonitor --install
+</span></span><span class=line><span class=cl>sudo /tmp/cms-go-client.linux-amd64/cloudmonitor --start
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;=== Installing ARMS Node.js Agent ===&#34;</span>
+</span></span><span class=line><span class=cl><span class=nb>cd</span> /opt/app
+</span></span><span class=line><span class=cl>npm install @alicloud/china-arms-apm --save
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;=== Verifying ===&#34;</span>
+</span></span><span class=line><span class=cl>sudo /etc/init.d/ilogtaild status
+</span></span><span class=line><span class=cl>sudo /tmp/cms-go-client.linux-amd64/cloudmonitor --status
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;All agents installed successfully.&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第二步配置日志采集>第二步：配置日志采集</h3><p>把 Logtail 配置应用到所有日志源上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create SLS project and logstores</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateProject --body <span class=s1>&#39;{&#34;projectName&#34;:&#34;prod-webapp&#34;,&#34;description&#34;:&#34;Production logs&#34;}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> STORE in nginx-access-log app-log system-log slow-query-log<span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  aliyun sls CreateLogStore --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --body <span class=s2>&#34;{\&#34;logstoreName\&#34;:\&#34;</span><span class=si>${</span><span class=nv>STORE</span><span class=si>}</span><span class=s2>\&#34;,\&#34;ttl\&#34;:30,\&#34;shardCount\&#34;:2,\&#34;autoSplit\&#34;:true,\&#34;maxSplitShard\&#34;:8}&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create machine group (user-defined identity)</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateMachineGroup --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;groupName&#34;:&#34;prod-app-servers&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;machineIdentifyType&#34;:&#34;userdefined&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;groupAttribute&#34;:{&#34;externalName&#34;:&#34;prod-app-servers&#34;,&#34;groupTopic&#34;:&#34;&#34;},
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;machineList&#34;:[&#34;prod-app-servers&#34;]
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Apply collection configs (nginx, app JSON, syslog)</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateConfig --project prod-webapp --body @nginx-access-config.json <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>aliyun sls ApplyConfigToMachineGroup --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --groupName prod-app-servers --configName nginx-access-config <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun sls CreateConfig --project prod-webapp --body @app-json-log-config.json <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>aliyun sls ApplyConfigToMachineGroup --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --groupName prod-app-servers --configName app-json-log-config <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create indexes for nginx logs</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateIndex --project prod-webapp --logstore nginx-access-log <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body @nginx-index.json --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><h3 id=第三步设置云监控告警>第三步：设置云监控告警</h3><p>别等出事了再救火，先把告警配好：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create contact group</span>
+</span></span><span class=line><span class=cl>aliyun cms PutContactGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroupName ops-team <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactNames <span class=s1>&#39;[&#34;primary-oncall&#34;]&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># ECS alerts</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> INSTANCE_ID in i-bp1xxxxxxxxx i-bp1yyyyyyyyy<span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  <span class=c1># CPU alert</span>
+</span></span><span class=line><span class=cl>  aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --RuleId <span class=s2>&#34;cpu-high-</span><span class=si>${</span><span class=nv>INSTANCE_ID</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --RuleName <span class=s2>&#34;High CPU - </span><span class=si>${</span><span class=nv>INSTANCE_ID</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Namespace acs_ecs_dashboard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --MetricName CPUUtilization <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Resources <span class=s2>&#34;[{\&#34;instanceId\&#34;:\&#34;</span><span class=si>${</span><span class=nv>INSTANCE_ID</span><span class=si>}</span><span class=s2>\&#34;}]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Warn.Statistics Average <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Warn.ComparisonOperator GreaterThanOrEqualToThreshold <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Warn.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Warn.Times <span class=m>5</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Period <span class=m>60</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=c1># Disk alert</span>
+</span></span><span class=line><span class=cl>  aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --RuleId <span class=s2>&#34;disk-high-</span><span class=si>${</span><span class=nv>INSTANCE_ID</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --RuleName <span class=s2>&#34;Low Disk - </span><span class=si>${</span><span class=nv>INSTANCE_ID</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Namespace acs_ecs_dashboard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --MetricName diskusage_utilization <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Resources <span class=s2>&#34;[{\&#34;instanceId\&#34;:\&#34;</span><span class=si>${</span><span class=nv>INSTANCE_ID</span><span class=si>}</span><span class=s2>\&#34;}]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Warn.Statistics Maximum <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Warn.ComparisonOperator GreaterThanOrEqualToThreshold <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Warn.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Warn.Times <span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Critical.Statistics Maximum <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Critical.ComparisonOperator GreaterThanOrEqualToThreshold <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Critical.Threshold <span class=m>90</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Escalations.Critical.Times <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Period <span class=m>60</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># RDS alerts</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId rds-connections-high <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;RDS Connection Pool Exhaustion&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace acs_rds_dashboard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName ConnectionUsage <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;rm-bp1xxxxxxxxx&#34;}]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Statistics Average <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.ComparisonOperator GreaterThanOrEqualToThreshold <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Threshold <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Times <span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># SLB health check alert</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId slb-unhealthy-hosts <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;SLB Unhealthy Backend Servers&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace acs_slb_dashboard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName UnhealthyServerCount <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;lb-bp1xxxxxxxxx&#34;}]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Statistics Maximum <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.ComparisonOperator GreaterThanThreshold <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Threshold <span class=m>0</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Critical.Times <span class=m>2</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=第四步配置-sls-大盘和告警>第四步：配置 SLS 大盘和告警</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create the ops dashboard</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateDashboard --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body @ops-dashboard.json <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create SLS alerts for error rate and slow queries</span>
+</span></span><span class=line><span class=cl>aliyun sls CreateAlert --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body @high-error-rate-alert.json <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun sls CreateAlert --project prod-webapp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --body @slow-queries-alert.json <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span></code></pre></td></tr></table></div></div><h3 id=第五步验证整套系统是否运转正常>第五步：验证整套系统是否运转正常</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 1. Check Logtail is collecting logs</span>
+</span></span><span class=line><span class=cl>aliyun sls GetLogs --project prod-webapp --logstore nginx-access-log <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --from <span class=k>$(</span>date -d <span class=s1>&#39;5 minutes ago&#39;</span> +%s<span class=k>)</span> --to <span class=k>$(</span>date +%s<span class=k>)</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --query <span class=s1>&#39;*&#39;</span> --line <span class=m>3</span> --endpoint cn-hangzhou.log.aliyuncs.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. Check CloudMonitor agent metrics</span>
+</span></span><span class=line><span class=cl>aliyun cms DescribeMetricLast <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace acs_ecs_dashboard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName CPUUtilization <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Dimensions <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;i-bp1xxxxxxxxx&#34;}]&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. Generate test traffic and verify dashboard</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> i in <span class=k>$(</span>seq <span class=m>1</span> 100<span class=k>)</span><span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  curl -s -o /dev/null -w <span class=s2>&#34;%{http_code}\n&#34;</span> https://your-app.com/api/health
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 4. Trigger a test alert (temporarily lower threshold)</span>
+</span></span><span class=line><span class=cl>aliyun cms PutResourceMetricRule <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleId cpu-high-test <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RuleName <span class=s2>&#34;Test CPU Alert&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Namespace acs_ecs_dashboard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MetricName CPUUtilization <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ContactGroups <span class=s1>&#39;[&#34;ops-team&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Resources <span class=s1>&#39;[{&#34;instanceId&#34;:&#34;i-bp1xxxxxxxxx&#34;}]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Statistics Average <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.ComparisonOperator GreaterThanOrEqualToThreshold <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Threshold <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Escalations.Warn.Times <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Period <span class=m>60</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Wait for the test alert, then delete it</span>
+</span></span><span class=line><span class=cl><span class=c1># aliyun cms DeleteMetricRules --Id &#39;[&#34;cpu-high-test&#34;]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=完整架构>完整架构</h3><p>走完上面这五步，你的可观测性栈大概长这样：</p><pre tabindex=0><code>                        ┌───────────────────────────────────────────┐
+                        │              SLS Dashboard                │
+                        │  QPS | Errors | Latency | Top Endpoints  │
+                        └──────────┬───────────────┬────────────────┘
+                                   │               │
+                    ┌──────────────┴───┐    ┌──────┴──────────┐
+                    │   SLS Alerts     │    │ CloudMonitor     │
+                    │  error rate &gt;1%  │    │  CPU &gt; 80%       │
+                    │  slow queries    │    │  disk &gt; 80%      │
+                    └──────┬───────────┘    │  RDS conn &gt; 80%  │
+                           │               │  SLB unhealthy   │
+                    ┌──────┴───────┐       └──────┬───────────┘
+                    │              │               │
+              ┌─────▼─────┐  ┌────▼──────┐  ┌────▼──────────┐
+              │ SLS       │  │ SLS       │  │ DingTalk /    │
+              │ Logstore  │  │ Logstore  │  │ Email / SMS   │
+              │ nginx     │  │ app       │  │ Webhook       │
+              └─────▲─────┘  └────▲──────┘  └───────────────┘
+                    │             │
+              ┌─────┴─────────────┴──────────────────────┐
+              │              Logtail Agent                │
+              │    /var/log/nginx/    /var/log/app/       │
+              ├──────────────────────────────────────────┤
+              │              ARMS Agent                   │
+              │    Traces → ARMS Console                 │
+              ├──────────────────────────────────────────┤
+              │           CloudMonitor Agent              │
+              │    CPU, Memory, Disk → CloudMonitor       │
+              └──────────────────────────────────────────┘
+                         ECS Instance (App Tier)
+</code></pre><h2 id=成本>成本</h2><p>可观测性是要花钱的，而且这钱容易不知不觉就超了。下面是一个小型生产环境（2 台 ECS，中等流量）的真实成本估算：</p><table><thead><tr><th>组件</th><th>免费额度</th><th>典型月度成本</th></tr></thead><tbody><tr><td>SLS 写入</td><td>500 MB/day</td><td>50-200 CNY (取决于日志量)</td></tr><tr><td>SLS 存储</td><td>包含在写入中</td><td>包含</td></tr><tr><td>SLS 索引</td><td>包含</td><td>大约是存储成本的 2 倍</td></tr><tr><td>CloudMonitor</td><td>基础指标免费</td><td>内置指标 0 元；自定义指标 10-50 CNY</td></tr><tr><td>ARMS</td><td>15 天免费试用</td><td>100-500 CNY (取决于 Trace 量)</td></tr></tbody></table><p>成本优化建议：</p><ul><li><strong>设置合理的保留周期。</strong> 访问日志通常不需要保留超过 30 天。系统日志留 7 天就够了。慢查询日志可以留 90 天。把保留期从 90 天降到 30 天，存储成本能省 66%。</li><li><strong>只索引你真正要查询的字段。</strong> 每个 indexed field 都会让该字段的存储翻倍。如果你从来不在 SQL 里查 <code>http_user_agent</code>，就别给它建字段索引。</li><li><strong>ARMS 使用采样。</strong> 高流量应用里，只 trace 10% 的请求，而不是 100%。这样照样能抓到异常，但成本只有原来的 1/10。</li><li><strong>存储前先聚合。</strong> 对于那些只需要 5-minute 粒度的指标，直接在应用层聚合好再推数据，别把每个请求的 datapoint 都推上去。</li></ul><h2 id=核心要点>核心要点</h2><ol><li><p><strong>上线前就把可观测性搞定，别等之后。</strong> 事后补救的成本——重构日志格式、补充链路追踪、重做仪表盘——永远比从一开始就做好要高。把 Logtail、CloudMonitor 插件和 ARMS 插件直接写进实例初始化脚本里，一步到位。</p></li><li><p><strong>三大支柱互补，不是冗余。</strong> 指标告诉你出事了（仪表盘上错误率飙升），日志告诉你啥事（应用日志里数据库超时），追踪告诉你为啥（某条查询路径因为缺失索引跑了 3 秒）。想高效排查线上问题，这三个缺一不可。</p></li><li><p><strong>把 SLS 当成你的瑞士军刀。</strong> 采集、搜索、SQL 分析、仪表盘、告警，一个服务全搞定。熟练掌握查询语法，尤其是 <code>search | SQL</code> 模式，左边全文检索，右边分析计算。仪表盘只要配好五个核心面板（QPS、错误率、P99 延迟、Top 接口、状态码分布），就能覆盖 80% 的事故排查场景。</p></li><li><p><strong>针对症状告警，别针对原因。</strong> &ldquo;5 分钟内错误率 > 1%&ldquo;比"CPU > 80%&ldquo;有价值得多。一定要设持续阈值（比如连续 3-5 个数据点），别让瞬时抖动把你搞出告警疲劳。计划维护期间记得设静音期。</p></li><li><p><strong>从最小可行监控栈开始。</strong> Logtail 收 nginx 和应用日志，CloudMonitor 看 ECS/RDS/SLB 自带指标，四条告警规则（错误率、CPU、磁盘、DB 连接），一个运维仪表盘。随着业务增长，再慢慢加 ARMS 追踪、自定义指标这些高级货。第一天就追求完美可观测性没必要，能在站点挂掉时把你叫醒才是正经事。</p></li></ol><p>下一篇我们聊容器，上 ACK 和 SAE。到时候你会庆幸自己先搞好了可观测性，因为如果没有集中式日志，调试一个行为异常的 Kubernetes 集群，那滋味可真不好受。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/aliyun-fullstack/>阿里云全栈实战</a> <span class=count>12 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/aliyun-fullstack/08-serverless/><span class=title>阿里云全栈实战（八）：Serverless 与事件驱动</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/01-ecosystem-map/><span class=series-nav-num>01</span>
+<span class=series-nav-title>阿里云全栈实战（一）：生态全景图——阿里云到底是什么</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/><span class=series-nav-num>02</span>
+<span class=series-nav-title>阿里云全栈实战（二）：ECS——让计算回归本质</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=series-nav-num>03</span>
+<span class=series-nav-title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><span class=series-nav-num>04</span>
+<span class=series-nav-title>阿里云全栈实战（四）：OSS——对象存储最佳实践</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><span class=series-nav-num>05</span>
+<span class=series-nav-title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=series-nav-num>06</span>
+<span class=series-nav-title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>07</span>
+<span class=series-nav-title>阿里云全栈实战（七）：SLS 打造可观测性体系</span>
+<span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/08-serverless/><span class=series-nav-num>08</span>
+<span class=series-nav-title>阿里云全栈实战（八）：Serverless 与事件驱动</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/09-opensearch/><span class=series-nav-num>09</span>
+<span class=series-nav-title>阿里云全栈实战（九）：OpenSearch 与 AI 搜索</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/10-bailian-llm/><span class=series-nav-num>10</span>
+<span class=series-nav-title>阿里云全栈实战（十）：DashScope 与大模型层</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/11-pai-ml-platform/><span class=series-nav-num>11</span>
+<span class=series-nav-title>阿里云全栈实战（十一）：PAI 打造机器学习平台</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/aliyun-fullstack/12-terraform-e2e/><span class=series-nav-num>12</span>
+<span class=series-nav-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#the-three-pillars-of-observability>The Three Pillars of Observability</a></li><li><a href=#sls-simple-log-service>SLS: Simple Log Service</a><ul><li><a href=#core-concepts>Core Concepts</a></li><li><a href=#sls-vs-aws-what-is-different>SLS vs AWS: What Is Different</a></li><li><a href=#log-query-syntax>Log Query Syntax</a></li><li><a href=#enabling-indexes>Enabling Indexes</a></li></ul></li><li><a href=#配置-logtail>配置 Logtail</a><ul><li><a href=#安装>安装</a></li><li><a href=#采集-nginx-访问日志>采集 Nginx 访问日志</a></li><li><a href=#采集应用日志推荐-json-格式>采集应用日志（推荐 JSON 格式）</a></li><li><a href=#采集系统日志>采集系统日志</a></li></ul></li><li><a href=#构建仪表盘>构建仪表盘</a><ul><li><a href=#五个核心面板>五个核心面板</a></li><li><a href=#创建仪表盘>创建仪表盘</a></li></ul></li><li><a href=#cloudmonitor-基础设施监控与告警>CloudMonitor: 基础设施监控与告警</a><ul><li><a href=#内置指标>内置指标</a></li><li><a href=#自定义指标>自定义指标</a></li><li><a href=#事件监控>事件监控</a></li></ul></li><li><a href=#告警配置>告警配置</a><ul><li><a href=#告警设计原则>告警设计原则</a></li><li><a href=#设置告警规则>设置告警规则</a></li><li><a href=#联系人组和通知渠道>联系人组和通知渠道</a></li></ul></li><li><a href=#arms应用实时监控服务>ARMS：应用实时监控服务</a><ul><li><a href=#arms-能做什么>ARMS 能做什么</a></li><li><a href=#安装-arms-agentnodejs>安装 ARMS Agent（Node.js）</a></li><li><a href=#查看链路>查看链路</a></li><li><a href=#链路与日志关联>链路与日志关联</a></li></ul></li><li><a href=#解决方案全栈可观测性搭建>解决方案：全栈可观测性搭建</a><ul><li><a href=#第一步在所有-ecs-实例上安装-agent>第一步：在所有 ECS 实例上安装 Agent</a></li><li><a href=#第二步配置日志采集>第二步：配置日志采集</a></li><li><a href=#第三步设置云监控告警>第三步：设置云监控告警</a></li><li><a href=#第四步配置-sls-大盘和告警>第四步：配置 SLS 大盘和告警</a></li><li><a href=#第五步验证整套系统是否运转正常>第五步：验证整套系统是否运转正常</a></li><li><a href=#完整架构>完整架构</a></li></ul></li><li><a href=#成本>成本</a></li><li><a href=#核心要点>核心要点</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/aliyun-fullstack/ class=series-name>阿里云全栈实战</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/01-ecosystem-map/><span class=chapter-num>01</span>
+<span class=chapter-title>阿里云全栈实战（一）：生态全景图——阿里云到底是什么</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/02-ecs-compute/><span class=chapter-num>02</span>
+<span class=chapter-title>阿里云全栈实战（二）：ECS——让计算回归本质</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><span class=chapter-num>03</span>
+<span class=chapter-title>阿里云全栈实战（三）：VPC、SLB 构建网络基石</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/04-oss-storage/><span class=chapter-num>04</span>
+<span class=chapter-title>阿里云全栈实战（四）：OSS——对象存储最佳实践</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/05-rds-database/><span class=chapter-num>05</span>
+<span class=chapter-title>阿里云全栈实战（五）：RDS 与 PolarDB 数据基石</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><span class=chapter-num>06</span>
+<span class=chapter-title>阿里云全栈实战（六）：RAM、KMS 筑牢云安全</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>阿里云全栈实战（七）：SLS 打造可观测性体系</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/08-serverless/><span class=chapter-num>08</span>
+<span class=chapter-title>阿里云全栈实战（八）：Serverless 与事件驱动</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/09-opensearch/><span class=chapter-num>09</span>
+<span class=chapter-title>阿里云全栈实战（九）：OpenSearch 与 AI 搜索</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/10-bailian-llm/><span class=chapter-num>10</span>
+<span class=chapter-title>阿里云全栈实战（十）：DashScope 与大模型层</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/11-pai-ml-platform/><span class=chapter-num>11</span>
+<span class=chapter-title>阿里云全栈实战（十一）：PAI 打造机器学习平台</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-fullstack/12-terraform-e2e/><span class=chapter-num>12</span>
+<span class=chapter-title>阿里云全栈实战（十二）：Terraform 全栈统一交付</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>44 min</strong></div><div class=row><span>字数</span><strong>10629</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/aliyun-fullstack/>阿里云全栈实战</a></li><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 指南</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform 实战</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=signature>杭州</span></div></div></footer></body></html>

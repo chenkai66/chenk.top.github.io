@@ -1,0 +1,963 @@
+<!doctype html><html lang=en data-translation=/zh/aliyun-fullstack/03-vpc-networking/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer · Chen Kai Blog</title>
+<meta name=description content="Build a production network from scratch: VPC architecture, CIDR planning, VSwitches across availability zones, security groups as stateful firewalls, SLB for load balancing, NAT Gateway for outbound traffic, and EIP for public access."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/aliyun-fullstack/03-vpc-networking/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-fullstack/03-vpc-networking/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-fullstack/03-vpc-networking/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/aliyun-fullstack/03-vpc-networking/><meta property="og:type" content="article"><meta property="og:title" content="Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer"><meta property="og:description" content="Build a production network from scratch: VPC architecture, CIDR planning, VSwitches across availability zones, security groups as stateful firewalls, SLB for load balancing, NAT Gateway for outbound traffic, and EIP for public access."><meta property="og:url" content="https://www.chenk.top/en/aliyun-fullstack/03-vpc-networking/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><meta property="og:image:alt" content="Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer"><meta property="article:published_time" content="2026-04-22T09:00:00Z"><meta property="article:modified_time" content="2026-04-22T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Alibaba Cloud"><meta property="article:tag" content="VPC"><meta property="article:tag" content="SLB"><meta property="article:tag" content="Networking"><meta property="article:tag" content="Cloud Computing"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer"><meta name=twitter:description content="Build a production network from scratch: VPC architecture, CIDR planning, VSwitches across availability zones, security groups as stateful firewalls, SLB for load balancing, NAT Gateway for outbound traffic, and EIP for public access."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer\"","description":"\"Build a production network from scratch: VPC architecture, CIDR planning, VSwitches across availability zones, security groups as stateful firewalls, SLB for load balancing, NAT Gateway for outbound traffic, and EIP for public access.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2026-04-22T09:00:00Z\"","dateModified":"\"2026-04-22T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/aliyun-fullstack/03-vpc-networking/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.ffe8d1412c95bc9c9e1b0778441a3fa076b6c785bfacb3710830bedcf4b0b3c4.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Alibaba Cloud Full Stack</a>
+· Chapter 3</div><h1>Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer</h1><p class=deck>Build a production network from scratch: VPC architecture, CIDR planning, VSwitches across availability zones, security groups as stateful firewalls, SLB for load balancing, NAT Gateway for outbound traffic, and EIP for public access.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-22>April 22, 2026</time> · 52 min read · 5514 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/en/tags/vpc/ class=tag>#VPC</a><a href=/en/tags/slb/ class=tag>#SLB</a><a href=/en/tags/networking/ class=tag>#Networking</a><a href=/en/tags/cloud-computing/ class=tag>#Cloud Computing</a></div><a class="pill pill-outline" href=/zh/aliyun-fullstack/03-vpc-networking/>阅读中文版 →</a></div></header><div class=prose><p>Every outage I have debugged in the cloud ultimately traced back to networking. Bad CIDR planning that ran out of IPs six months in. Missing routes that silently dropped traffic between tiers. Security groups that were either wide open (hello, port 22 to <code>0.0.0.0/0</code>) or so locked down that health checks failed and the load balancer kept draining healthy instances. Getting the network layer right is the single most important thing you can do before deploying anything else, and it is the single most painful thing to fix retroactively because changing a VPC CIDR means recreating everything inside it.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/03-vpc-networking/cover.png alt="VPC Networking" loading=lazy decoding=async class=content-image></figure></p><p>We set up the basic VPC in <a href=/en/aliyun-fullstack/01-ecosystem-map/>Part 1</a>
+&ndash; now we are going deep. By the end of this article you will have a production-grade multi-AZ network with isolated tiers, proper security boundaries, internet access via NAT, and load balancing via SLB. The ECS instances that go into these subnets are covered in <a href=/en/aliyun-fullstack/02-ecs-compute/>Part 2</a>
+. For the Terraform approach to VPC setup, see <a href=/en/terraform-agents/03-vpc-and-security-baseline/>Terraform Part 3: VPC and Security Baseline</a>
+.</p><h2 id=what-is-a-vpc>What Is a VPC?</h2><p>A Virtual Private Cloud is your own isolated network segment on Alibaba Cloud. Think of it as a private data center network that you define entirely in software: you pick the IP range, you carve it into subnets, you write the firewall rules, you decide what can reach the internet and what stays internal. Nothing gets in or out unless you explicitly allow it.</p><p>If you have used AWS, the mental model is almost identical. Alibaba Cloud&rsquo;s VPC is functionally equivalent to AWS VPC, with different naming:</p><table><thead><tr><th>Alibaba Cloud</th><th>AWS</th><th>What it does</th></tr></thead><tbody><tr><td>VPC</td><td>VPC</td><td>The top-level isolated network</td></tr><tr><td>VSwitch</td><td>Subnet</td><td>A subnet tied to one availability zone</td></tr><tr><td>Route Table</td><td>Route Table</td><td>Routing rules for traffic direction</td></tr><tr><td>Security Group</td><td>Security Group</td><td>Stateful instance-level firewall</td></tr><tr><td>Network ACL</td><td>Network ACL</td><td>Stateless subnet-level firewall</td></tr><tr><td>EIP</td><td>Elastic IP</td><td>Static public IP address</td></tr><tr><td>NAT Gateway</td><td>NAT Gateway</td><td>Internet access for private subnets</td></tr><tr><td>SLB (CLB/ALB/NLB)</td><td>ELB (CLB/ALB/NLB)</td><td>Load balancing</td></tr></tbody></table><p>Before VPC existed, Alibaba Cloud had a &ldquo;Classic Network&rdquo; where all instances in a region shared a flat network. Classic Network is deprecated and no longer available for new accounts. If you encounter it in legacy documentation, ignore it. Everything runs in VPC now.</p><p>The key components you will work with:</p><ul><li><strong>VPC</strong> &ndash; The container. One VPC per region (you can have multiple). Defined by a CIDR block.</li><li><strong>VSwitch</strong> &ndash; A subnet within the VPC, bound to exactly one availability zone. This is where instances actually live.</li><li><strong>Route Table</strong> &ndash; Controls where traffic goes. Every VPC has a system route table; you can create custom ones.</li><li><strong>Security Group</strong> &ndash; A stateful firewall attached to instances. Rules allow traffic; anything not explicitly allowed is denied inbound.</li><li><strong>Network ACL</strong> &ndash; An optional stateless firewall at the VSwitch level. Most setups skip this and rely on security groups.</li></ul><p>One VPC cannot span regions. If you need cross-region connectivity, that is where Cloud Enterprise Network (CEN) comes in, which we cover later in this article.</p><h2 id=cidr-planning-get-this-right-from-day-one>CIDR Planning: Get This Right from Day One</h2><p>CIDR (Classless Inter-Domain Routing) notation defines your IP address space. Get this wrong and you will spend a very unpleasant weekend migrating everything to a new VPC.</p><p>The notation works like this: <code>10.0.0.0/16</code> means &ldquo;all IPs from <code>10.0.0.0</code> to <code>10.0.255.255</code>.&rdquo; The number after the slash is the prefix length &ndash; how many bits are fixed. The remaining bits are yours to allocate.</p><table><thead><tr><th>CIDR</th><th>Prefix bits</th><th>Available IPs</th><th>Typical use</th></tr></thead><tbody><tr><td>/8</td><td>8</td><td>16,777,216</td><td>Enterprise-wide (10.0.0.0/8)</td></tr><tr><td>/16</td><td>16</td><td>65,536</td><td>One VPC</td></tr><tr><td>/20</td><td>20</td><td>4,096</td><td>Large subnet</td></tr><tr><td>/24</td><td>24</td><td>256 (254 usable)</td><td>Standard subnet</td></tr><tr><td>/28</td><td>28</td><td>16 (14 usable)</td><td>Tiny subnet (NAT, bastion)</td></tr></tbody></table><p>Alibaba Cloud VPCs support CIDR blocks from /8 to /24 using the private ranges: <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, or <code>192.168.0.0/16</code>. VSwitches can go down to /29 (8 IPs, 6 usable &ndash; Alibaba Cloud reserves the first two and last one in each VSwitch).</p><p>The golden rule: <strong>plan for 10x your current need</strong>. If you think you need 50 IPs, allocate a /24 (254 usable). If you think you need 500 IPs, allocate a /20 (4,094 usable). Subnets cannot be resized after creation &ndash; you would have to create a new VSwitch and migrate instances.</p><p>Here is my standard planning table for a 3-tier architecture across 2 availability zones:</p><table><thead><tr><th>Tier</th><th>AZ-A VSwitch</th><th>AZ-A CIDR</th><th>AZ-B VSwitch</th><th>AZ-B CIDR</th><th>Usable IPs per VSwitch</th></tr></thead><tbody><tr><td>Public (web/ALB)</td><td>vsw-public-a</td><td>10.0.1.0/24</td><td>vsw-public-b</td><td>10.0.2.0/24</td><td>251</td></tr><tr><td>Private App</td><td>vsw-app-a</td><td>10.0.10.0/24</td><td>vsw-app-b</td><td>10.0.11.0/24</td><td>251</td></tr><tr><td>Private Data</td><td>vsw-data-a</td><td>10.0.20.0/24</td><td>vsw-data-b</td><td>10.0.21.0/24</td><td>251</td></tr></tbody></table><p>The VPC itself gets <code>10.0.0.0/16</code>, giving us 65,534 usable IPs and room to add more subnets later without running out of address space. I deliberately leave gaps between the tier ranges (1.x, 10.x, 20.x) so that when you inevitably add a fourth tier &ndash; maybe a cache layer at 10.0.30.0/24 &ndash; it slots in cleanly without renumbering.</p><blockquote><p><strong>Note:</strong> If your VPCs will ever need to peer with each other (via CEN or VPN), their CIDR blocks must not overlap. Plan a scheme like VPC-prod = 10.0.0.0/16, VPC-staging = 10.1.0.0/16, VPC-dev = 10.2.0.0/16.</p></blockquote><h2 id=vswitches-subnets-across-availability-zones>VSwitches: Subnets Across Availability Zones</h2><p>A VSwitch is a subnet, and every VSwitch lives in exactly one availability zone. You cannot stretch a VSwitch across zones. This is by design &ndash; it means a zone failure only takes out instances in VSwitches assigned to that zone, not your entire tier.</p><p>The pattern is one VSwitch per AZ per tier. For a 3-tier setup across 2 AZs, that is 6 VSwitches. For 3 AZs, that is 9. I have never needed more than 3 AZs for a single application.</p><p>First, create the VPC:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun vpc CreateVpc <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.0.0/16 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcName prod-vpc <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Production VPC for 3-tier web application&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Note the <code>VpcId</code> from the response. Then create VSwitches for each tier and zone:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Public tier - AZ A</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.1.0/24 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchName prod-public-a <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Public subnet in AZ-A for ALB and bastion&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Public tier - AZ B</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.2.0/24 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchName prod-public-b <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Public subnet in AZ-B for ALB and bastion&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># App tier - AZ A</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.10.0/24 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchName prod-app-a <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Private app subnet in AZ-A&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># App tier - AZ B</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.11.0/24 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchName prod-app-b <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Private app subnet in AZ-B&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Data tier - AZ A</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.20.0/24 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchName prod-data-a <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Private data subnet in AZ-A for RDS/Redis&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Data tier - AZ B</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneId cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.21.0/24 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchName prod-data-b <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Private data subnet in AZ-B for RDS/Redis&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>You can verify the layout:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun vpc DescribeVSwitches <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>VSwitchId,VSwitchName,ZoneId,CidrBlock,AvailableIpAddressCount
+</span></span></code></pre></td></tr></table></div></div><p>A few things worth knowing:</p><ul><li>The <code>ZoneId</code> must match a real AZ in your region. Run <code>aliyun ecs DescribeZones --RegionId cn-hangzhou</code> to list available zones.</li><li>Not all instance types are available in all zones. Check before committing to a zone layout.</li><li>You can add VSwitches to an existing VPC at any time, as long as the CIDR does not overlap with existing VSwitches. This is why leaving gaps in the CIDR plan matters.</li></ul><h2 id=route-tables>Route Tables</h2><p>Every VPC comes with a system route table that you cannot delete. It contains one entry you care about: a local route that automatically enables all VSwitches within the VPC to communicate with each other. This is implicit &ndash; you will not see it in the console, but traffic between <code>10.0.1.0/24</code> and <code>10.0.20.0/24</code> just works.</p><p>The system route table also handles the default route (<code>0.0.0.0/0</code>), which initially goes nowhere. To give instances internet access, you point this default route at a NAT Gateway or an internet-facing router.</p><p>For most setups, the system route table is enough. You create custom route tables when you need different routing behavior for different VSwitches &ndash; for example, if your public VSwitches should route <code>0.0.0.0/0</code> to an internet gateway but your private VSwitches should route it to a NAT Gateway:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create a custom route table</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateRouteTable <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RouteTableName prod-private-rt <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Route table for private subnets via NAT&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Add a default route pointing to NAT Gateway</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateRouteEntry <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RouteTableId vtb-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DestinationCidrBlock 0.0.0.0/0 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --NextHopType NatGateway <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --NextHopId ngw-bp1xxxxxxxxx
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Associate with private VSwitches</span>
+</span></span><span class=line><span class=cl>aliyun vpc AssociateRouteTable <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RouteTableId vtb-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchId vsw-bp1xxxxxxxxx
+</span></span></code></pre></td></tr></table></div></div><p>When a VSwitch is associated with a custom route table, that table takes precedence over the system route table. The local route (intra-VPC traffic) is always inherited and cannot be overridden.</p><p>One route table detail that trips people up: Alibaba Cloud evaluates routes by longest prefix match. A route for <code>10.0.10.0/24</code> is more specific than <code>10.0.0.0/16</code>, which is more specific than <code>0.0.0.0/0</code>. Traffic always follows the most specific matching route.</p><h2 id=security-groups-deep-dive>Security Groups Deep Dive</h2><p>Security groups are where most people either under-invest (leaving everything open) or over-invest (creating 200 rules that nobody can audit). The right answer is a small number of groups with clear, intent-revealing names.</p><p>A security group is a stateful firewall at the instance level. &ldquo;Stateful&rdquo; means if you allow inbound traffic on port 80, the response traffic is automatically allowed out &ndash; you do not need a separate outbound rule for return packets.</p><p>Default behavior:</p><ul><li><strong>Inbound</strong>: deny all (nothing can reach your instance unless you add a rule)</li><li><strong>Outbound</strong>: allow all (your instance can reach anything, including the internet if routing permits)</li></ul><p>This default is reasonable for getting started but too permissive on the outbound side for production. A compromised instance with unrestricted outbound can exfiltrate data or join a botnet.</p><h3 id=rule-anatomy>Rule anatomy</h3><p>Each rule has:</p><ul><li><strong>Direction</strong>: Inbound or Outbound</li><li><strong>Protocol</strong>: TCP, UDP, ICMP, GRE, or All</li><li><strong>Port range</strong>: e.g., 80/80 (single port), 1/65535 (all ports), 443/443</li><li><strong>Source/Destination</strong>: A CIDR block (<code>0.0.0.0/0</code>) or another security group ID</li><li><strong>Priority</strong>: 1 (highest) to 100 (lowest). Lower number wins.</li><li><strong>Action</strong>: Allow or Drop</li></ul><p>The priority system is powerful. You can set a broad &ldquo;deny all&rdquo; at priority 100, then punch specific holes at priority 1. Alibaba Cloud evaluates rules from highest priority (1) to lowest (100) and applies the first match.</p><h3 id=enterprise-vs-basic-security-groups>Enterprise vs Basic security groups</h3><p>Alibaba Cloud offers two types:</p><table><thead><tr><th>Feature</th><th>Basic Security Group</th><th>Enterprise Security Group</th></tr></thead><tbody><tr><td>Max rules</td><td>200</td><td>200</td></tr><tr><td>Max instances</td><td>2,000</td><td>65,535</td></tr><tr><td>Allow rules referencing other SGs</td><td>Yes</td><td>No</td></tr><tr><td>Default inbound between members</td><td>Configurable</td><td>Isolated</td></tr><tr><td>Performance</td><td>Standard</td><td>Higher throughput</td></tr></tbody></table><p>For most setups, Basic security groups are the right choice because they support security-group-to-security-group references. Enterprise security groups are for large-scale deployments (thousands of instances) where you need higher network throughput and are willing to use CIDR-based rules exclusively.</p><h3 id=the-three-group-pattern>The three-group pattern</h3><p>Here is the pattern I use for every 3-tier application:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create security groups</span>
+</span></span><span class=line><span class=cl>aliyun ecs CreateSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupName prod-web-sg <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Web tier: ALB and public-facing instances&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun ecs CreateSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupName prod-app-sg <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;App tier: backend services&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun ecs CreateSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupName prod-data-sg <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Data tier: RDS, Redis, Elasticsearch&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Now add rules. The web tier accepts HTTP/HTTPS from anywhere and SSH from a bastion CIDR:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Web tier: allow HTTP from anywhere</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-web-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 80/80 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceCidrIp 0.0.0.0/0 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;HTTP from internet&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Web tier: allow HTTPS from anywhere</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-web-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 443/443 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceCidrIp 0.0.0.0/0 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;HTTPS from internet&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Web tier: SSH from bastion only</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-web-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 22/22 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceCidrIp 10.0.1.0/24 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;SSH from bastion subnet only&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>The app tier only accepts traffic from the web security group:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># App tier: accept traffic from web tier on port 8080</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-app-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 8080/8080 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceGroupId sg-web-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;App port from web tier SG&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># App tier: accept health checks from web tier</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-app-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 8081/8081 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceGroupId sg-web-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Health check port from web tier SG&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>The data tier only accepts connections from the app tier:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Data tier: MySQL from app tier</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-data-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 3306/3306 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceGroupId sg-app-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;MySQL from app tier SG&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Data tier: Redis from app tier</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SecurityGroupId sg-data-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PortRange 6379/6379 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceGroupId sg-app-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Priority <span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Redis from app tier SG&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>This creates a clean chain: internet &ndash;> web-sg &ndash;> app-sg &ndash;> data-sg. No tier can be reached directly from a tier that is not adjacent. A compromised web server cannot directly query the database.</p><p>The complete rule set in table form:</p><table><thead><tr><th>Security Group</th><th>Direction</th><th>Protocol</th><th>Port</th><th>Source / Dest</th><th>Priority</th><th>Description</th></tr></thead><tbody><tr><td>prod-web-sg</td><td>Inbound</td><td>TCP</td><td>80</td><td>0.0.0.0/0</td><td>1</td><td>HTTP</td></tr><tr><td>prod-web-sg</td><td>Inbound</td><td>TCP</td><td>443</td><td>0.0.0.0/0</td><td>1</td><td>HTTPS</td></tr><tr><td>prod-web-sg</td><td>Inbound</td><td>TCP</td><td>22</td><td>10.0.1.0/24</td><td>1</td><td>SSH from bastion</td></tr><tr><td>prod-app-sg</td><td>Inbound</td><td>TCP</td><td>8080</td><td>sg-web-xxx</td><td>1</td><td>App traffic from web</td></tr><tr><td>prod-app-sg</td><td>Inbound</td><td>TCP</td><td>8081</td><td>sg-web-xxx</td><td>1</td><td>Health check</td></tr><tr><td>prod-data-sg</td><td>Inbound</td><td>TCP</td><td>3306</td><td>sg-app-xxx</td><td>1</td><td>MySQL from app</td></tr><tr><td>prod-data-sg</td><td>Inbound</td><td>TCP</td><td>6379</td><td>sg-app-xxx</td><td>1</td><td>Redis from app</td></tr></tbody></table><h2 id=elastic-ip-eip>Elastic IP (EIP)</h2><p>An Elastic IP is a static public IP address that you own independently of any instance. You can allocate it, bind it to an ECS instance or NAT Gateway, unbind it, and rebind it to something else. The IP stays yours until you release it.</p><p>When to use EIP:</p><ul><li><strong>Bastion / jump hosts</strong> that need a fixed public IP for SSH access</li><li><strong>Small deployments</strong> (1-2 instances) where a load balancer is overkill</li><li><strong>NAT Gateway</strong> requires an EIP for outbound internet access</li><li><strong>Services that need a stable IP</strong> for whitelisting by partners</li></ul><p>When NOT to use EIP:</p><ul><li><strong>Web applications serving real traffic</strong> &ndash; use SLB instead (it handles failover)</li><li><strong>Every instance</strong> &ndash; if you are binding EIPs to 10 instances, you need a load balancer</li></ul><p>There are two billing modes:</p><table><thead><tr><th>Billing mode</th><th>How it works</th><th>Best for</th></tr></thead><tbody><tr><td>Pay-By-Traffic</td><td>Pay per GB transferred</td><td>Bursty workloads, dev/test</td></tr><tr><td>Pay-By-Bandwidth</td><td>Pay for reserved Mbps</td><td>Steady, predictable traffic</td></tr></tbody></table><p>Pay-By-Traffic is almost always right for getting started. You only pay for what you use, and the per-GB rate (roughly 0.12 USD/GB for outbound) is reasonable until you hit sustained high bandwidth.</p><p>Creating and binding an EIP:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Allocate an EIP</span>
+</span></span><span class=line><span class=cl>aliyun vpc AllocateEipAddress <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Bandwidth <span class=m>100</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InternetChargeType PayByTraffic <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceChargeType PostPaid <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ISP BGP
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Bind to an ECS instance</span>
+</span></span><span class=line><span class=cl>aliyun vpc AssociateEipAddress <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AllocationId eip-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceId i-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceType EcsInstance
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Later, unbind it</span>
+</span></span><span class=line><span class=cl>aliyun vpc UnassociateEipAddress <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AllocationId eip-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceId i-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceType EcsInstance
+</span></span></code></pre></td></tr></table></div></div><p>A common gotcha: an ECS instance can only have one EIP bound at a time via the primary ENI (Elastic Network Interface). If you need multiple public IPs on one instance, create secondary ENIs and bind EIPs to those. But if you need multiple public IPs, you almost certainly need an SLB instead.</p><h2 id=nat-gateway-internet-access-for-private-subnets>NAT Gateway: Internet Access for Private Subnets</h2><p>Instances in private subnets (the app and data tiers from our plan) have no public IP. They cannot reach the internet by default. But they often need to &ndash; pulling Docker images, calling external APIs, downloading security patches. NAT Gateway solves this.</p><p>NAT Gateway sits in a public subnet and provides two functions:</p><p><strong>SNAT (Source NAT)</strong> &ndash; outbound. Private instances send traffic to the NAT Gateway, which replaces the source IP with its own EIP and forwards the request to the internet. The response comes back to the NAT Gateway, which routes it back to the originating private instance. The private instance never gets a public IP.</p><p><strong>DNAT (Destination NAT)</strong> &ndash; inbound. Maps a specific port on the NAT Gateway&rsquo;s EIP to a specific private instance and port. Incoming traffic to <code>EIP:8080</code> gets forwarded to <code>10.0.10.5:8080</code>. This is useful for one-off services that need to be reachable from the internet but do not warrant an SLB.</p><p>When to use which:</p><table><thead><tr><th>Need</th><th>Solution</th></tr></thead><tbody><tr><td>Private instances need to reach the internet (pull updates, call APIs)</td><td>SNAT via NAT Gateway</td></tr><tr><td>One specific service needs to be reachable from outside</td><td>DNAT or EIP</td></tr><tr><td>Multiple instances serving the same service need to be reachable</td><td>SLB (not NAT)</td></tr><tr><td>A single dev/test instance needs a public IP</td><td>EIP directly</td></tr></tbody></table><p>Creating a NAT Gateway:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create an Enhanced NAT Gateway</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateNatGateway <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchId vsw-public-a-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --NatGatewayName prod-nat <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --NatType Enhanced <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InternetChargeType PayByLcu <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;NAT for private subnet outbound access&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Allocate an EIP for the NAT Gateway</span>
+</span></span><span class=line><span class=cl>aliyun vpc AllocateEipAddress <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Bandwidth <span class=m>200</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InternetChargeType PayByTraffic
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Bind EIP to NAT Gateway</span>
+</span></span><span class=line><span class=cl>aliyun vpc AssociateEipAddress <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AllocationId eip-bp1yyyyyyyyy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceId ngw-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceType Nat
+</span></span></code></pre></td></tr></table></div></div><p>Now create SNAT entries so private subnets can reach the internet:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># SNAT for app tier AZ-A</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateSnatEntry <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatTableId stb-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceVSwitchId vsw-app-a-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatIp 47.xxx.xxx.xxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatEntryName <span class=s2>&#34;app-a-outbound&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># SNAT for app tier AZ-B</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateSnatEntry <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatTableId stb-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceVSwitchId vsw-app-b-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatIp 47.xxx.xxx.xxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatEntryName <span class=s2>&#34;app-b-outbound&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># SNAT for data tier AZ-A (for package updates)</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateSnatEntry <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatTableId stb-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceVSwitchId vsw-data-a-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatIp 47.xxx.xxx.xxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatEntryName <span class=s2>&#34;data-a-outbound&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># SNAT for data tier AZ-B</span>
+</span></span><span class=line><span class=cl>aliyun vpc CreateSnatEntry <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatTableId stb-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SourceVSwitchId vsw-data-b-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatIp 47.xxx.xxx.xxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SnatEntryName <span class=s2>&#34;data-b-outbound&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>The <code>SnatIp</code> is the EIP address you bound to the NAT Gateway. All outbound traffic from these VSwitches will appear to come from this IP. This is useful for whitelisting &ndash; if an external API needs to whitelist your IP, you give them the NAT EIP.</p><p>Always use the Enhanced NAT type. The &ldquo;Normal&rdquo; type is the legacy version with lower throughput, no support for multi-EIP SNAT, and no integration with newer services. Enhanced NAT is billed by LCU (Logical Connection Unit) which scales with your actual usage.</p><h2 id=slb-server-load-balancer>SLB: Server Load Balancer</h2><p>Server Load Balancer distributes incoming traffic across multiple backend instances. It is the front door for any service that needs to be highly available, and it is what separates &ldquo;I have two servers&rdquo; from &ldquo;I have a production deployment.&rdquo;</p><p>Alibaba Cloud has three SLB products, and the naming is initially confusing:</p><table><thead><tr><th>Product</th><th>Full Name</th><th>Layer</th><th>Protocol</th><th>Best for</th></tr></thead><tbody><tr><td>CLB</td><td>Classic Load Balancer</td><td>4 and 7</td><td>TCP/UDP/HTTP/HTTPS</td><td>Legacy, still widely used</td></tr><tr><td>ALB</td><td>Application Load Balancer</td><td>7</td><td>HTTP/HTTPS/gRPC</td><td>Modern web apps, content-based routing</td></tr><tr><td>NLB</td><td>Network Load Balancer</td><td>4</td><td>TCP/UDP/TLS</td><td>High-performance TCP, gaming, IoT</td></tr></tbody></table><p><strong>CLB</strong> is the original. It works at both Layer 4 (TCP/UDP forwarding) and Layer 7 (HTTP/HTTPS with host/path routing). It is battle-tested and handles most use cases. If the docs or a tutorial says &ldquo;SLB&rdquo; without qualification, they mean CLB.</p><p><strong>ALB</strong> is the modern Layer 7 option. It supports content-based routing (route <code>/api/*</code> to one backend, <code>/static/*</code> to another), gRPC, WebSocket, and has better integration with WAF and DCDN. For new HTTP/HTTPS workloads, ALB is the right choice.</p><p><strong>NLB</strong> is for raw TCP/UDP. It passes through packets without terminating the connection, preserving the client&rsquo;s source IP. Use it for database proxies, game servers, or anything that needs maximum throughput with minimum latency at Layer 4.</p><p>For a typical web application, ALB is what you want:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create an ALB instance</span>
+</span></span><span class=line><span class=cl>aliyun alb CreateLoadBalancer <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LoadBalancerName prod-web-alb <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AddressType Internet <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LoadBalancerEdition Standard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LoadBalancerBillingConfig <span class=s1>&#39;{&#34;PayType&#34;:&#34;PostPay&#34;}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneMappings <span class=s1>&#39;[
+</span></span></span><span class=line><span class=cl><span class=s1>    {&#34;ZoneId&#34;:&#34;cn-hangzhou-h&#34;,&#34;VSwitchId&#34;:&#34;vsw-public-a-xxxxxxxxx&#34;},
+</span></span></span><span class=line><span class=cl><span class=s1>    {&#34;ZoneId&#34;:&#34;cn-hangzhou-i&#34;,&#34;VSwitchId&#34;:&#34;vsw-public-b-xxxxxxxxx&#34;}
+</span></span></span><span class=line><span class=cl><span class=s1>  ]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>The ALB spans two AZs. If one zone goes down, the ALB in the surviving zone keeps serving traffic. This is the whole point of multi-AZ &ndash; and the ALB must know about at least two zones to provide this.</p><p>Next, create a server group and add backend instances:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create a server group</span>
+</span></span><span class=line><span class=cl>aliyun alb CreateServerGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ServerGroupName prod-app-servers <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-bp1xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Protocol HTTP <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Scheduler Wrr <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --HealthCheckConfig <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckEnabled&#34;: true,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckProtocol&#34;: &#34;HTTP&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckPath&#34;: &#34;/health&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckCodes&#34;: [&#34;http_2xx&#34;],
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckInterval&#34;: 5,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthyThreshold&#34;: 3,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;UnhealthyThreshold&#34;: 3,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckTimeout&#34;: 3
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Add backend servers</span>
+</span></span><span class=line><span class=cl>aliyun alb AddServersToServerGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ServerGroupId sgp-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Servers <span class=s1>&#39;[
+</span></span></span><span class=line><span class=cl><span class=s1>    {&#34;ServerId&#34;:&#34;i-bp1aaaaaaa&#34;,&#34;ServerIp&#34;:&#34;10.0.10.5&#34;,&#34;ServerType&#34;:&#34;Ecs&#34;,&#34;Port&#34;:8080,&#34;Weight&#34;:100},
+</span></span></span><span class=line><span class=cl><span class=s1>    {&#34;ServerId&#34;:&#34;i-bp1bbbbbbb&#34;,&#34;ServerIp&#34;:&#34;10.0.11.5&#34;,&#34;ServerType&#34;:&#34;Ecs&#34;,&#34;Port&#34;:8080,&#34;Weight&#34;:100}
+</span></span></span><span class=line><span class=cl><span class=s1>  ]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>The <code>Scheduler</code> field controls how traffic is distributed:</p><ul><li><strong>Wrr</strong> (Weighted Round Robin) &ndash; distributes requests proportionally to server weights. Set weight 100 on all servers for equal distribution, or 200 on a bigger instance.</li><li><strong>Wlc</strong> (Weighted Least Connections) &ndash; sends new requests to the server with the fewest active connections, adjusted by weight. Better when request durations vary.</li><li><strong>Sch</strong> (Source-IP Hash) &ndash; same client IP always goes to the same backend. Useful for stateful apps, but defeats the purpose of load balancing if traffic is skewed.</li></ul><p>Finally, create a listener:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create an HTTP listener on port 80</span>
+</span></span><span class=line><span class=cl>aliyun alb CreateListener <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ListenerProtocol HTTP <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ListenerPort <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LoadBalancerId alb-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DefaultActions <span class=s1>&#39;[{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Type&#34;: &#34;ForwardGroup&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;ForwardGroupConfig&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;ServerGroupTuples&#34;: [{&#34;ServerGroupId&#34;:&#34;sgp-xxxxxxxxx&#34;}]
+</span></span></span><span class=line><span class=cl><span class=s1>    }
+</span></span></span><span class=line><span class=cl><span class=s1>  }]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>For production, you would add an HTTPS listener on port 443 with a TLS certificate, and redirect port 80 to 443. But the HTTP listener above is enough to verify that traffic is flowing.</p><h3 id=health-checks-matter-more-than-you-think>Health checks matter more than you think</h3><p>The health check configuration deserves deliberate thought. With the settings above:</p><ul><li>Every 5 seconds, the ALB sends <code>GET /health</code> to each backend</li><li>If a backend returns a non-2xx response 3 times in a row (<code>UnhealthyThreshold: 3</code>), it is removed from the pool</li><li>Once removed, it must return 2xx 3 times in a row (<code>HealthyThreshold: 3</code>) to be added back</li><li>Each health check times out after 3 seconds</li></ul><p>This means a failing backend is removed after roughly 15 seconds (3 checks * 5 second interval). A recovering backend is added back after another 15 seconds. Tune these values based on your application&rsquo;s startup time &ndash; if your app takes 30 seconds to warm up, set a higher HealthyThreshold or longer interval.</p><p>The <code>/health</code> endpoint in your application should check real dependencies. A health check that just returns <code>200 OK</code> without verifying database connectivity tells you nothing useful. At minimum, check that the process is running and the main datastore is reachable.</p><h2 id=cen-cross-region-networking>CEN: Cross-Region Networking</h2><p>Cloud Enterprise Network connects VPCs across different regions into a single private network. Instead of routing traffic over the public internet between your Beijing and Singapore deployments, CEN provides dedicated Alibaba Cloud backbone links with predictable latency and encryption.</p><p>The architecture is hub-and-spoke:</p><ol><li><strong>CEN Instance</strong> &ndash; the global container. Free to create.</li><li><strong>Transit Router (TR)</strong> &ndash; regional hub, one per region. This is the thing that actually routes traffic. Costs money.</li><li><strong>VPC Attachments</strong> &ndash; connect each VPC to its regional Transit Router.</li><li><strong>Inter-region connections</strong> &ndash; link Transit Routers across regions. Billed by bandwidth.</li></ol><p>When you need CEN:</p><ul><li><strong>Multi-region deployment</strong> &ndash; app servers in cn-hangzhou, disaster recovery in cn-shanghai</li><li><strong>Global presence</strong> &ndash; China + Southeast Asia + Europe</li><li><strong>Shared services</strong> &ndash; a central VPC with logging/monitoring that all regional VPCs send data to</li><li><strong>Hybrid cloud</strong> &ndash; connecting on-premises data centers via VPN or Express Connect, then extending to cloud VPCs</li></ul><p>When you do NOT need CEN:</p><ul><li>Single-region deployment (all your VSwitches are already in the same VPC)</li><li>Two VPCs in the same region that just need a few ports open (use VPC peering instead &ndash; simpler and cheaper)</li></ul><p>A basic CEN setup between two regions:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create CEN instance</span>
+</span></span><span class=line><span class=cl>aliyun cbn CreateCen <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Name prod-cen <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Cross-region backbone&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create Transit Router in cn-hangzhou</span>
+</span></span><span class=line><span class=cl>aliyun cbn CreateTransitRouter <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CenId cen-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --TransitRouterName tr-hangzhou
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Attach VPC to Transit Router</span>
+</span></span><span class=line><span class=cl>aliyun cbn CreateTransitRouterVpcAttachment <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --TransitRouterId tr-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId vpc-hangzhou-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneMappings <span class=s1>&#39;[
+</span></span></span><span class=line><span class=cl><span class=s1>    {&#34;ZoneId&#34;:&#34;cn-hangzhou-h&#34;,&#34;VSwitchId&#34;:&#34;vsw-xxxxxxxxx&#34;},
+</span></span></span><span class=line><span class=cl><span class=s1>    {&#34;ZoneId&#34;:&#34;cn-hangzhou-i&#34;,&#34;VSwitchId&#34;:&#34;vsw-yyyyyyyyy&#34;}
+</span></span></span><span class=line><span class=cl><span class=s1>  ]&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Repeat for cn-shanghai region, then create inter-region connection</span>
+</span></span><span class=line><span class=cl>aliyun cbn CreateTransitRouterPeerAttachment <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CenId cen-xxxxxxxxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --TransitRouterId tr-hangzhou-xxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PeerTransitRouterId tr-shanghai-xxx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PeerTransitRouterRegionId cn-shanghai <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Bandwidth <span class=m>100</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --BandwidthType DataTransfer
+</span></span></code></pre></td></tr></table></div></div><p>CEN pricing is primarily based on inter-region bandwidth. Intra-region traffic through the Transit Router is free (or very cheap). Cross-border traffic (e.g., cn-hangzhou to ap-southeast-1) costs more than domestic traffic. Budget 0.06-0.15 USD/GB for domestic inter-region, 0.08-0.20 USD/GB for cross-border, depending on direction.</p><h2 id=solution-multi-az-production-network>Solution: Multi-AZ Production Network</h2><p>Let us put everything together. Here is a complete, production-ready network setup for a 3-tier web application across 2 availability zones in cn-hangzhou.</p><p>The target architecture:</p><ul><li>VPC: <code>10.0.0.0/16</code></li><li>6 VSwitches (public/app/data across 2 AZs)</li><li>3 security groups (web/app/data with chained rules)</li><li>1 NAT Gateway with SNAT for private subnets</li><li>1 ALB for the web tier</li></ul><h3 id=step-1-create-the-vpc>Step 1: Create the VPC</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nv>VPC_ID</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateVpc <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.0.0/16 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcName prod-vpc <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Production 3-tier VPC&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>VpcId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;VPC created: </span><span class=nv>$VPC_ID</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Wait for VPC to become available</span>
+</span></span><span class=line><span class=cl>aliyun vpc DescribeVpcs <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>Status
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-2-create-all-6-vswitches>Step 2: Create all 6 VSwitches</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Public subnets</span>
+</span></span><span class=line><span class=cl><span class=nv>VSW_PUB_A</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> --ZoneId cn-hangzhou-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.1.0/24 --VSwitchName prod-public-a <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>VSwitchId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>VSW_PUB_B</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> --ZoneId cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.2.0/24 --VSwitchName prod-public-b <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>VSwitchId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># App subnets</span>
+</span></span><span class=line><span class=cl><span class=nv>VSW_APP_A</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> --ZoneId cn-hangzhou-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.10.0/24 --VSwitchName prod-app-a <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>VSwitchId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>VSW_APP_B</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> --ZoneId cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.11.0/24 --VSwitchName prod-app-b <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>VSwitchId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Data subnets</span>
+</span></span><span class=line><span class=cl><span class=nv>VSW_DATA_A</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> --ZoneId cn-hangzhou-h <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.20.0/24 --VSwitchName prod-data-a <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>VSwitchId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>VSW_DATA_B</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateVSwitch <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> --ZoneId cn-hangzhou-i <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CidrBlock 10.0.21.0/24 --VSwitchName prod-data-b <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>VSwitchId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-3-create-security-groups-with-chained-rules>Step 3: Create security groups with chained rules</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create the three groups</span>
+</span></span><span class=line><span class=cl><span class=nv>SG_WEB</span><span class=o>=</span><span class=k>$(</span>aliyun ecs CreateSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> --SecurityGroupName prod-web-sg <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>SecurityGroupId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>SG_APP</span><span class=o>=</span><span class=k>$(</span>aliyun ecs CreateSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> --SecurityGroupName prod-app-sg <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>SecurityGroupId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>SG_DATA</span><span class=o>=</span><span class=k>$(</span>aliyun ecs CreateSecurityGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> --SecurityGroupName prod-data-sg <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>SecurityGroupId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Web tier rules</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup --SecurityGroupId <span class=nv>$SG_WEB</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp --PortRange 80/80 --SourceCidrIp 0.0.0.0/0 --Priority <span class=m>1</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup --SecurityGroupId <span class=nv>$SG_WEB</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp --PortRange 443/443 --SourceCidrIp 0.0.0.0/0 --Priority <span class=m>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># App tier: only from web SG</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup --SecurityGroupId <span class=nv>$SG_APP</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp --PortRange 8080/8080 --SourceGroupId <span class=nv>$SG_WEB</span> --Priority <span class=m>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Data tier: only from app SG</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup --SecurityGroupId <span class=nv>$SG_DATA</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp --PortRange 3306/3306 --SourceGroupId <span class=nv>$SG_APP</span> --Priority <span class=m>1</span>
+</span></span><span class=line><span class=cl>aliyun ecs AuthorizeSecurityGroup --SecurityGroupId <span class=nv>$SG_DATA</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IpProtocol tcp --PortRange 6379/6379 --SourceGroupId <span class=nv>$SG_APP</span> --Priority <span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-4-set-up-nat-gateway-for-private-subnet-outbound>Step 4: Set up NAT Gateway for private subnet outbound</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create NAT Gateway in public subnet</span>
+</span></span><span class=line><span class=cl><span class=nv>NAT_ID</span><span class=o>=</span><span class=k>$(</span>aliyun vpc CreateNatGateway <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou --VpcId <span class=nv>$VPC_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchId <span class=nv>$VSW_PUB_A</span> --NatGatewayName prod-nat <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --NatType Enhanced --InternetChargeType PayByLcu <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>NatGatewayId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Allocate and bind EIP</span>
+</span></span><span class=line><span class=cl><span class=nv>EIP_ID</span><span class=o>=</span><span class=k>$(</span>aliyun vpc AllocateEipAddress <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou --Bandwidth <span class=m>200</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InternetChargeType PayByTraffic <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>AllocationId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nv>EIP_IP</span><span class=o>=</span><span class=k>$(</span>aliyun vpc DescribeEipAddresses <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AllocationId <span class=nv>$EIP_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>IpAddress --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun vpc AssociateEipAddress <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AllocationId <span class=nv>$EIP_ID</span> --InstanceId <span class=nv>$NAT_ID</span> --InstanceType Nat
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Get SNAT table ID</span>
+</span></span><span class=line><span class=cl><span class=nv>SNAT_TABLE</span><span class=o>=</span><span class=k>$(</span>aliyun vpc DescribeNatGateways <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --NatGatewayId <span class=nv>$NAT_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>SnatTableIds --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create SNAT entries for all private subnets</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> VSW in <span class=nv>$VSW_APP_A</span> <span class=nv>$VSW_APP_B</span> <span class=nv>$VSW_DATA_A</span> <span class=nv>$VSW_DATA_B</span><span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  aliyun vpc CreateSnatEntry <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --SnatTableId <span class=nv>$SNAT_TABLE</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --SourceVSwitchId <span class=nv>$VSW</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --SnatIp <span class=nv>$EIP_IP</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-5-create-alb-for-the-web-tier>Step 5: Create ALB for the web tier</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create ALB spanning both AZs</span>
+</span></span><span class=line><span class=cl><span class=nv>ALB_ID</span><span class=o>=</span><span class=k>$(</span>aliyun alb CreateLoadBalancer <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LoadBalancerName prod-web-alb <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AddressType Internet <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LoadBalancerEdition Standard <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LoadBalancerBillingConfig <span class=s1>&#39;{&#34;PayType&#34;:&#34;PostPay&#34;}&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ZoneMappings <span class=s2>&#34;[
+</span></span></span><span class=line><span class=cl><span class=s2>    {\&#34;ZoneId\&#34;:\&#34;cn-hangzhou-h\&#34;,\&#34;VSwitchId\&#34;:\&#34;</span><span class=nv>$VSW_PUB_A</span><span class=s2>\&#34;},
+</span></span></span><span class=line><span class=cl><span class=s2>    {\&#34;ZoneId\&#34;:\&#34;cn-hangzhou-i\&#34;,\&#34;VSwitchId\&#34;:\&#34;</span><span class=nv>$VSW_PUB_B</span><span class=s2>\&#34;}
+</span></span></span><span class=line><span class=cl><span class=s2>  ]&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>LoadBalancerId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create server group with health checks</span>
+</span></span><span class=line><span class=cl><span class=nv>SGP_ID</span><span class=o>=</span><span class=k>$(</span>aliyun alb CreateServerGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ServerGroupName prod-app-backend <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VpcId <span class=nv>$VPC_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Protocol HTTP <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Scheduler Wrr <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --HealthCheckConfig <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckEnabled&#34;:true,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckProtocol&#34;:&#34;HTTP&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckPath&#34;:&#34;/health&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckCodes&#34;:[&#34;http_2xx&#34;],
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckInterval&#34;:5,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthyThreshold&#34;:3,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;UnhealthyThreshold&#34;:3,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;HealthCheckTimeout&#34;:3
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>ServerGroupId --rows <span class=p>|</span> tail -1<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create HTTP listener</span>
+</span></span><span class=line><span class=cl>aliyun alb CreateListener <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ListenerProtocol HTTP <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ListenerPort <span class=m>80</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LoadBalancerId <span class=nv>$ALB_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DefaultActions <span class=s2>&#34;[{
+</span></span></span><span class=line><span class=cl><span class=s2>    \&#34;Type\&#34;:\&#34;ForwardGroup\&#34;,
+</span></span></span><span class=line><span class=cl><span class=s2>    \&#34;ForwardGroupConfig\&#34;:{
+</span></span></span><span class=line><span class=cl><span class=s2>      \&#34;ServerGroupTuples\&#34;:[{\&#34;ServerGroupId\&#34;:\&#34;</span><span class=nv>$SGP_ID</span><span class=s2>\&#34;}]
+</span></span></span><span class=line><span class=cl><span class=s2>    }
+</span></span></span><span class=line><span class=cl><span class=s2>  }]&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;ALB DNS: </span><span class=k>$(</span>aliyun alb GetLoadBalancerAttribute <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LoadBalancerId <span class=nv>$ALB_ID</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --output <span class=nv>cols</span><span class=o>=</span>DNSName --rows <span class=p>|</span> tail -1<span class=k>)</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-6-verify-connectivity>Step 6: Verify connectivity</h3><p>After launching instances into the subnets (covered in Part 2), verify:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># From an app-tier instance, test outbound via NAT</span>
+</span></span><span class=line><span class=cl>ssh bastion <span class=s2>&#34;ssh app-server-a &#39;curl -s ifconfig.me&#39;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1># Should return the NAT EIP address</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># From the internet, test ALB</span>
+</span></span><span class=line><span class=cl>curl -I http://&lt;ALB_DNS_NAME&gt;/health
+</span></span><span class=line><span class=cl><span class=c1># Should return HTTP 200</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># From app tier, test data tier connectivity</span>
+</span></span><span class=line><span class=cl>ssh bastion <span class=s2>&#34;ssh app-server-a &#39;mysql -h 10.0.20.5 -u app -p -e \&#34;SELECT 1\&#34;&#39;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1># Should succeed</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># From web tier, verify data tier is NOT reachable</span>
+</span></span><span class=line><span class=cl>ssh bastion <span class=s2>&#34;ssh web-server-a &#39;nc -zv 10.0.20.5 3306&#39;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1># Should fail (connection refused / timeout)</span>
+</span></span></code></pre></td></tr></table></div></div><p>That last test is the most important. If the web tier can reach the data tier directly, your security group chain is broken.</p><h2 id=key-takeaways>Key Takeaways</h2><p><strong>CIDR planning is permanent.</strong> You cannot resize a VPC or VSwitch after creation. Over-allocate now. A /16 VPC with /24 VSwitches gives you room for decades of growth. The cost of unused IP space is zero.</p><p><strong>One VSwitch per AZ per tier.</strong> This is the fundamental pattern. It survives zone failures, it maps cleanly to security groups, and it makes CIDR planning obvious.</p><p><strong>Security groups reference security groups, not CIDRs.</strong> Using <code>SourceGroupId</code> instead of <code>SourceCidrIp</code> means your rules survive IP changes, auto-scaling events, and instance replacements. The chain is always intact.</p><p><strong>NAT Gateway is for outbound. SLB is for inbound.</strong> Do not use DNAT for services that need to handle real traffic &ndash; use an ALB or NLB. NAT Gateway&rsquo;s DNAT is for one-off port mappings, not production load balancing.</p><p><strong>ALB over CLB for new HTTP workloads.</strong> CLB still works and will be supported for years, but ALB has better routing, better health check integration, and native gRPC support.</p><p><strong>Test the negative case.</strong> After setting up security groups, verify that disallowed traffic is actually blocked. A security group that allows everything is worse than no security group because it gives false confidence.</p><h2 id=whats-next>What&rsquo;s Next</h2><p>The network is the foundation. With VPC, VSwitches, security groups, NAT, and SLB in place, everything else we deploy has a predictable, secure place to land. In the next article, we move up the stack to managed databases &ndash; RDS for relational data, Redis for caching, and the replication and backup strategies that keep your data alive when hardware fails.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a> <span class=count>12 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/aliyun-fullstack/02-ecs-compute/><span class=title>Alibaba Cloud Full Stack (2): ECS — Compute That Actually Makes Sense</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/aliyun-fullstack/04-oss-storage/><span class=title>Alibaba Cloud Full Stack (4): OSS — Object Storage Done Right</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/01-ecosystem-map/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (1): The Ecosystem Map — What Alibaba Cloud Actually Is</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/02-ecs-compute/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (2): ECS — Compute That Actually Makes Sense</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>03</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/04-oss-storage/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (4): OSS — Object Storage Done Right</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/05-rds-database/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (5): RDS and PolarDB — The Database Layer</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/06-ram-security/><span class=series-nav-num>06</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/07-observability/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (7): SLS, CloudMonitor, and Observability</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/08-serverless/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (8): Serverless — Function Compute and EventBridge</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/09-opensearch/><span class=series-nav-num>09</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (9): OpenSearch and AI Search</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/10-bailian-llm/><span class=series-nav-num>10</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (10): Bailian and DashScope — The LLM Layer</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/11-pai-ml-platform/><span class=series-nav-num>11</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (11): PAI — The ML Platform</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/12-terraform-e2e/><span class=series-nav-num>12</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (12): End-to-End — One Terraform Apply for Everything</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-is-a-vpc>What Is a VPC?</a></li><li><a href=#cidr-planning-get-this-right-from-day-one>CIDR Planning: Get This Right from Day One</a></li><li><a href=#vswitches-subnets-across-availability-zones>VSwitches: Subnets Across Availability Zones</a></li><li><a href=#route-tables>Route Tables</a></li><li><a href=#security-groups-deep-dive>Security Groups Deep Dive</a><ul><li><a href=#rule-anatomy>Rule anatomy</a></li><li><a href=#enterprise-vs-basic-security-groups>Enterprise vs Basic security groups</a></li><li><a href=#the-three-group-pattern>The three-group pattern</a></li></ul></li><li><a href=#elastic-ip-eip>Elastic IP (EIP)</a></li><li><a href=#nat-gateway-internet-access-for-private-subnets>NAT Gateway: Internet Access for Private Subnets</a></li><li><a href=#slb-server-load-balancer>SLB: Server Load Balancer</a><ul><li><a href=#health-checks-matter-more-than-you-think>Health checks matter more than you think</a></li></ul></li><li><a href=#cen-cross-region-networking>CEN: Cross-Region Networking</a></li><li><a href=#solution-multi-az-production-network>Solution: Multi-AZ Production Network</a><ul><li><a href=#step-1-create-the-vpc>Step 1: Create the VPC</a></li><li><a href=#step-2-create-all-6-vswitches>Step 2: Create all 6 VSwitches</a></li><li><a href=#step-3-create-security-groups-with-chained-rules>Step 3: Create security groups with chained rules</a></li><li><a href=#step-4-set-up-nat-gateway-for-private-subnet-outbound>Step 4: Set up NAT Gateway for private subnet outbound</a></li><li><a href=#step-5-create-alb-for-the-web-tier>Step 5: Create ALB for the web tier</a></li><li><a href=#step-6-verify-connectivity>Step 6: Verify connectivity</a></li></ul></li><li><a href=#key-takeaways>Key Takeaways</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/aliyun-fullstack/ class=series-name>Alibaba Cloud Full Stack</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/01-ecosystem-map/><span class=chapter-num>01</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (1): The Ecosystem Map — What Alibaba Cloud Actually Is</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/02-ecs-compute/><span class=chapter-num>02</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (2): ECS — Compute That Actually Makes Sense</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/04-oss-storage/><span class=chapter-num>04</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (4): OSS — Object Storage Done Right</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/05-rds-database/><span class=chapter-num>05</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (5): RDS and PolarDB — The Database Layer</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/06-ram-security/><span class=chapter-num>06</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/07-observability/><span class=chapter-num>07</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (7): SLS, CloudMonitor, and Observability</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/08-serverless/><span class=chapter-num>08</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (8): Serverless — Function Compute and EventBridge</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/09-opensearch/><span class=chapter-num>09</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (9): OpenSearch and AI Search</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/10-bailian-llm/><span class=chapter-num>10</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (10): Bailian and DashScope — The LLM Layer</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/11-pai-ml-platform/><span class=chapter-num>11</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (11): PAI — The ML Platform</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/12-terraform-e2e/><span class=chapter-num>12</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (12): End-to-End — One Terraform Apply for Everything</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>52 min</strong></div><div class=row><span>Word count</span><strong>5514</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>

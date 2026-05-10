@@ -1,0 +1,1179 @@
+<!doctype html><html lang=en data-translation=/zh/aliyun-fullstack/06-ram-security/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security · Chen Kai Blog</title>
+<meta name=description content="Lock down your cloud: RAM users, groups, roles, and policies. STS for temporary credentials. KMS for encryption. ActionTrail for audit logging. Build a secure multi-team access model with least privilege."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/aliyun-fullstack/06-ram-security/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-fullstack/06-ram-security/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-fullstack/06-ram-security/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/aliyun-fullstack/06-ram-security/><meta property="og:type" content="article"><meta property="og:title" content="Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security"><meta property="og:description" content="Lock down your cloud: RAM users, groups, roles, and policies. STS for temporary credentials. KMS for encryption. ActionTrail for audit logging. Build a secure multi-team access model with least privilege."><meta property="og:url" content="https://www.chenk.top/en/aliyun-fullstack/06-ram-security/"><meta property="og:locale" content="en"><meta property="og:site_name" content="Chen Kai Blog"><meta property="og:image" content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><meta property="og:image:alt" content="Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security"><meta property="article:published_time" content="2026-04-28T09:00:00Z"><meta property="article:modified_time" content="2026-04-28T09:00:00Z"><meta property="article:author" content="Chen Kai"><meta property="article:tag" content="Alibaba Cloud"><meta property="article:tag" content="RAM"><meta property="article:tag" content="KMS"><meta property="article:tag" content="Security"><meta property="article:tag" content="IAM"><meta property="article:tag" content="Cloud Computing"><meta name=twitter:card content="summary_large_image"><meta name=twitter:title content="Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security"><meta name=twitter:description content="Lock down your cloud: RAM users, groups, roles, and policies. STS for temporary credentials. KMS for encryption. ActionTrail for audit logging. Build a secure multi-team access model with least privilege."><meta name=twitter:image content="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg"><script type=application/ld+json>{"@context":"https://schema.org","@type":"Article","headline":"\"Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security\"","description":"\"Lock down your cloud: RAM users, groups, roles, and policies. STS for temporary credentials. KMS for encryption. ActionTrail for audit logging. Build a secure multi-team access model with least privilege.\"","image":["\"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/aliyun-fullstack.jpg\""],"author":{"@type":"Person","name":"\"Chen Kai\"","url":"https://www.chenk.top/en/about/"},"publisher":{"@type":"Organization","name":"\"Chen Kai Blog\"","logo":{"@type":"ImageObject","url":"https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/default.jpg"}},"datePublished":"\"2026-04-28T09:00:00Z\"","dateModified":"\"2026-04-28T09:00:00Z\"","mainEntityOfPage":{"@type":"WebPage","@id":"\"https://www.chenk.top/en/aliyun-fullstack/06-ram-security/\""},"inLanguage":"\"en\""}</script><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.ffe8d1412c95bc9c9e1b0778441a3fa076b6c785bfacb3710830bedcf4b0b3c4.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" aria-label="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Alibaba Cloud Full Stack</a>
+· Chapter 6</div><h1>Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security</h1><p class=deck>Lock down your cloud: RAM users, groups, roles, and policies. STS for temporary credentials. KMS for encryption. ActionTrail for audit logging. Build a secure multi-team access model with least privilege.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-28>April 28, 2026</time> · 60 min read · 6189 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/en/tags/ram/ class=tag>#RAM</a><a href=/en/tags/kms/ class=tag>#KMS</a><a href=/en/tags/security/ class=tag>#Security</a><a href=/en/tags/iam/ class=tag>#IAM</a><a href=/en/tags/cloud-computing/ class=tag>#Cloud Computing</a></div><a class="pill pill-outline" href=/zh/aliyun-fullstack/06-ram-security/>阅读中文版 →</a></div></header><div class=prose><p>I once found a DashScope API key hardcoded in a public GitHub repo. It was mine. Someone had forked a demo I pushed months earlier, and the key was sitting in a config file I forgot to gitignore. By the time I noticed, the key had been used to generate 14,000 Qwen API calls in a single weekend. The bill was not catastrophic &ndash; DashScope per-token pricing is forgiving &ndash; but the lesson was. I had treated cloud security as something I would figure out later. &ldquo;Later&rdquo; arrived as a billing alert at 2 AM on a Sunday.</p><p>That was the day I set up RAM users, rotated every access key, enabled MFA, and started using STS for anything that touches a frontend. This article is everything I learned in the process, structured so you can do it in an afternoon instead of learning it from an incident.</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-fullstack/06-ram-security/cover.png alt="RAM and Security" loading=lazy decoding=async class=content-image></figure></p><p>Security groups &ndash; the network-layer firewall &ndash; are covered in <a href=/en/aliyun-fullstack/03-vpc-networking/>Part 3</a>
+. This article is about the identity layer: who can do what, how to encrypt data, and how to audit everything. For Terraform-managed security, see <a href=/en/terraform-agents/06-llm-gateway-and-secrets/>Terraform Part 6: LLM Gateway and Secrets</a>
+.</p><h2 id=the-security-mental-model>The Security Mental Model</h2><p>Cloud security is not a single feature you turn on. It is a stack of independent layers, each covering a different failure mode. Miss one layer and the others still protect you &ndash; that is the principle of defense in depth.</p><p>I think about it as four pillars:</p><table><thead><tr><th>Pillar</th><th>Question it answers</th><th>Alibaba Cloud service</th><th>AWS equivalent</th></tr></thead><tbody><tr><td><strong>Identity</strong></td><td>Who is making this request?</td><td>RAM (users, groups)</td><td>IAM (users, groups)</td></tr><tr><td><strong>Authorization</strong></td><td>What are they allowed to do?</td><td>RAM (policies, roles)</td><td>IAM (policies, roles)</td></tr><tr><td><strong>Encryption</strong></td><td>Is the data protected at rest and in transit?</td><td>KMS, SSL certificates</td><td>KMS, ACM</td></tr><tr><td><strong>Auditing</strong></td><td>Who did what, and when?</td><td>ActionTrail</td><td>CloudTrail</td></tr></tbody></table><p>Every security decision you make falls into one of these four buckets. When something goes wrong &ndash; and it will &ndash; the audit trail tells you which of the other three failed. When you design access for a new team, you walk through all four: create identities, assign permissions, encrypt their data, and log their actions.</p><p>The mental model maps cleanly to AWS IAM, which is intentional. Alibaba Cloud built RAM as a near-equivalent to AWS IAM, with the same conceptual hierarchy: root account at the top, RAM users underneath, policies granting permissions, roles for cross-service and cross-account access. If you have used AWS IAM, you already know 80% of what RAM does. The remaining 20% is naming differences and a few features that work slightly differently.</p><p>One critical difference: Alibaba Cloud&rsquo;s root account is called the &ldquo;Alibaba Cloud Account&rdquo; or sometimes the &ldquo;primary account.&rdquo; It is not called &ldquo;root&rdquo; in the console, but functionally it is the same thing &ndash; an all-powerful identity that should never be used for daily work.</p><h2 id=ram-resource-access-management>RAM: Resource Access Management</h2><p>RAM is the identity and access management system for Alibaba Cloud. Every API call, every console click, every CLI command is authenticated and authorized through RAM. Understanding RAM is not optional &ndash; it is the foundation that everything else in this article builds on.</p><h3 id=the-alibaba-cloud-account-root>The Alibaba Cloud Account (Root)</h3><p>When you sign up for Alibaba Cloud, you get an Alibaba Cloud Account. This is the root identity. It has unrestricted access to every service, every resource, every billing setting. It can create and delete RAM users, change payment methods, close the account entirely.</p><p>You should use this account for exactly three things:</p><ol><li>Initial setup (creating your first RAM admin user)</li><li>Billing and payment method changes</li><li>Emergency recovery when RAM is misconfigured</li></ol><p>For everything else &ndash; development, deployment, operations, monitoring &ndash; use RAM users. I have seen teams where six engineers all share the root account credentials. One person accidentally deletes a production RDS instance, and nobody can figure out who did it because ActionTrail shows &ldquo;root&rdquo; for every action. Separate identities are not bureaucracy; they are how you debug incidents.</p><h3 id=creating-ram-users>Creating RAM Users</h3><p>A RAM user is a permanent identity within your Alibaba Cloud Account. Each user gets their own login credentials (password for console, AccessKey for API/CLI) and their own set of permissions.</p><p>Create a RAM user via CLI:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ram CreateUser <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --UserName alice <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DisplayName <span class=s2>&#34;Alice Chen&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Comments <span class=s2>&#34;Backend developer, team-alpha&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Enable console login with a password:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ram CreateLoginProfile <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --UserName alice <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Password <span class=s1>&#39;TempP@ssw0rd!2026&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PasswordResetRequired <span class=nb>true</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --MFABindRequired <span class=nb>true</span>
+</span></span></code></pre></td></tr></table></div></div><p>The <code>--PasswordResetRequired true</code> flag forces Alice to change her password on first login. The <code>--MFABindRequired true</code> flag forces MFA setup before she can do anything. Both are non-negotiable for any account that has write access to production resources.</p><p>Create an AccessKey pair for programmatic access:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ram CreateAccessKey --UserName alice
+</span></span></code></pre></td></tr></table></div></div><p>This returns an AccessKeyId and AccessKeySecret. The secret is shown exactly once &ndash; if you lose it, you have to create a new key pair. Store it in a password manager, not in a config file, not in an environment variable on a shared server, and absolutely not in a Git repository.</p><h3 id=setting-up-mfa>Setting Up MFA</h3><p>Multi-factor authentication adds a second layer to the identity pillar. Even if someone steals a password, they cannot log in without the TOTP code from a phone app.</p><p>Enable virtual MFA for a RAM user:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Step 1: Create a virtual MFA device</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateVirtualMFADevice <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VirtualMFADeviceName alice-mfa
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Step 2: The output includes a Base32StringSeed -- scan this as a QR code</span>
+</span></span><span class=line><span class=cl><span class=c1># in Google Authenticator, Authy, or any TOTP app</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Step 3: Bind the MFA device to the user (requires two consecutive codes)</span>
+</span></span><span class=line><span class=cl>aliyun ram BindMFADevice <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --UserName alice <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SerialNumber <span class=s2>&#34;acs:ram::1234567890:mfa/alice-mfa&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AuthenticationCode1 <span class=m>123456</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AuthenticationCode2 <span class=m>789012</span>
+</span></span></code></pre></td></tr></table></div></div><p>For the root account specifically, go to the console: <strong>Account Management > Security Settings > MFA</strong>. Use a hardware key if you have one. The root MFA device should be stored in a safe, not on the CEO&rsquo;s phone that they replace every year.</p><h2 id=ram-groups>RAM Groups</h2><p>Managing permissions per user does not scale. When you have 3 developers, attaching policies to each user is fine. When you have 30, it becomes a maintenance nightmare. One developer changes teams and you forget to remove their old permissions. Another developer joins and you copy-paste policies from someone else, accidentally granting production delete access to a junior hire.</p><p>Groups solve this. A RAM group is a container for users. You attach policies to the group, and every user in the group inherits those policies. When someone changes teams, you move them between groups. When a new hire starts, you add them to the right group and they get exactly the permissions they need.</p><p>Here is the group structure I use for most projects:</p><table><thead><tr><th>Group</th><th>Purpose</th><th>Key policies</th></tr></thead><tbody><tr><td><code>Administrators</code></td><td>Full access to everything except billing</td><td>AdministratorAccess</td></tr><tr><td><code>Developers</code></td><td>Read/write to compute, storage, database</td><td>Custom: ECS/OSS/RDS full, no RAM/billing</td></tr><tr><td><code>ReadOnly</code></td><td>View everything, change nothing</td><td>ReadOnlyAccess</td></tr><tr><td><code>Billing</code></td><td>Manage payments and cost analysis</td><td>Custom: BSS full access</td></tr><tr><td><code>CICD</code></td><td>Deploy pipelines (not humans)</td><td>Custom: ECS/CR/ACK deploy-only</td></tr></tbody></table><p>Create groups and add users:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create the groups</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateGroup --GroupName Administrators --Comments <span class=s2>&#34;Full admin access&#34;</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateGroup --GroupName Developers --Comments <span class=s2>&#34;Dev team - compute and storage&#34;</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateGroup --GroupName ReadOnly --Comments <span class=s2>&#34;Stakeholders - view only&#34;</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateGroup --GroupName Billing --Comments <span class=s2>&#34;Finance team - billing only&#34;</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateGroup --GroupName CICD --Comments <span class=s2>&#34;CI/CD service accounts&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Add users to groups</span>
+</span></span><span class=line><span class=cl>aliyun ram AddUserToGroup --UserName alice --GroupName Developers
+</span></span><span class=line><span class=cl>aliyun ram AddUserToGroup --UserName bob --GroupName Administrators
+</span></span><span class=line><span class=cl>aliyun ram AddUserToGroup --UserName carol --GroupName ReadOnly
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Attach system policies to groups</span>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType System <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName AdministratorAccess <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --GroupName Administrators
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType System <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName ReadOnlyAccess <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --GroupName ReadOnly
+</span></span></code></pre></td></tr></table></div></div><p>List all users in a group:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ram ListUsersForGroup --GroupName Developers
+</span></span></code></pre></td></tr></table></div></div><p>Remove a user when they change teams:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ram RemoveUserFromGroup --UserName alice --GroupName Developers
+</span></span><span class=line><span class=cl>aliyun ram AddUserToGroup --UserName alice --GroupName Administrators
+</span></span></code></pre></td></tr></table></div></div><p>The key discipline: never attach policies directly to users. Always go through groups. The one exception is deny policies for specific users who need restricted access within their group &ndash; but even that is better handled with a separate group.</p><h2 id=ram-policies-deep-dive>RAM Policies Deep Dive</h2><p>Policies are the authorization engine. Every API call in Alibaba Cloud is evaluated against the caller&rsquo;s attached policies to decide: allow or deny. Understanding how policies work is the difference between &ldquo;it works&rdquo; and &ldquo;it works securely.&rdquo;</p><h3 id=system-policies-vs-custom-policies>System Policies vs Custom Policies</h3><p>Alibaba Cloud provides over 800 system policies &ndash; pre-built permission sets maintained by Alibaba Cloud. You cannot modify them, but they cover the most common scenarios:</p><table><thead><tr><th>System policy</th><th>What it grants</th></tr></thead><tbody><tr><td><code>AdministratorAccess</code></td><td>Full access to all services and resources</td></tr><tr><td><code>ReadOnlyAccess</code></td><td>Read-only access to all services</td></tr><tr><td><code>AliyunECSFullAccess</code></td><td>Full access to ECS</td></tr><tr><td><code>AliyunOSSFullAccess</code></td><td>Full access to OSS</td></tr><tr><td><code>AliyunRDSFullAccess</code></td><td>Full access to RDS</td></tr><tr><td><code>AliyunVPCFullAccess</code></td><td>Full access to VPC</td></tr><tr><td><code>AliyunRAMFullAccess</code></td><td>Full access to RAM (dangerous &ndash; this is the keys to the kingdom)</td></tr><tr><td><code>AliyunKMSFullAccess</code></td><td>Full access to KMS</td></tr><tr><td><code>AliyunActionTrailFullAccess</code></td><td>Full access to ActionTrail</td></tr><tr><td><code>AliyunBSSFullAccess</code></td><td>Full access to billing</td></tr></tbody></table><p>For anything beyond these broad strokes, you need custom policies.</p><h3 id=policy-structure>Policy Structure</h3><p>A RAM policy is a JSON document with a specific structure. Every policy has a Version and one or more Statements. Each Statement has an Effect (Allow or Deny), an Action (what API operations), a Resource (which specific resources), and optionally a Condition (when the rule applies).</p><p>Here is the anatomy:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Version&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Statement&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ecs:DescribeInstances&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ecs:StartInstance&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ecs:StopInstance&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=s2>&#34;acs:ecs:cn-hangzhou:1234567890:instance/*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Condition&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;IpAddress&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;acs:SourceIp&#34;</span><span class=p>:</span> <span class=s2>&#34;10.0.0.0/8&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Breaking this down:</p><ul><li><strong>Version</strong>: Always <code>"1"</code>. Alibaba Cloud RAM currently has only one policy version.</li><li><strong>Effect</strong>: <code>"Allow"</code> or <code>"Deny"</code>. Deny always wins over Allow when both match.</li><li><strong>Action</strong>: The API operations. Supports wildcards: <code>ecs:*</code> means all ECS operations, <code>ecs:Describe*</code> means all ECS read operations.</li><li><strong>Resource</strong>: The Alibaba Cloud Resource Name (ARN). Format: <code>acs:{service}:{region}:{account-id}:{resource-type}/{resource-id}</code>. Use <code>*</code> for all resources.</li><li><strong>Condition</strong>: Optional constraints. Common ones: source IP, MFA present, time of day, request tag values.</li></ul><h3 id=real-policy-examples>Real Policy Examples</h3><p><strong>ECS administrator &ndash; full ECS access in one region only:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Version&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Statement&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=s2>&#34;ecs:*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=s2>&#34;acs:ecs:cn-hangzhou:*:*&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=s2>&#34;vpc:Describe*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=s2>&#34;*&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>The second statement grants VPC read access &ndash; necessary because ECS operations often need to query VPC/VSwitch information. Without it, creating instances fails with an authorization error that does not mention VPC at all, which is confusing.</p><p><strong>OSS read-only for a specific bucket:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Version&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Statement&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:GetObject&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:GetObjectAcl&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:ListObjects&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:GetBucketInfo&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;oss:ListBuckets&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;acs:oss:*:*:my-data-bucket&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;acs:oss:*:*:my-data-bucket/*&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Note the two Resource lines: the first grants access to the bucket itself (for <code>ListObjects</code>), the second grants access to objects within the bucket (for <code>GetObject</code>). Missing either one produces confusing 403 errors.</p><p><strong>DashScope API access only (for AI developers):</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Version&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Statement&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;dashscope:*&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=s2>&#34;*&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Deny&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;dashscope:DeleteModel&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;dashscope:DeleteDeployment&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=s2>&#34;*&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>This grants full DashScope access but explicitly denies deletion operations. The Deny overrides the Allow, so even if someone has <code>dashscope:*</code>, they cannot delete models or deployments. This is a common pattern: broad Allow plus targeted Deny for destructive operations.</p><p><strong>Require MFA for sensitive operations:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Version&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Statement&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=s2>&#34;*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=s2>&#34;*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Condition&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;Bool&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;acs:MFAPresent&#34;</span><span class=p>:</span> <span class=s2>&#34;true&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ram:GetUser&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ram:ListMFADevicesForUser&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ram:CreateVirtualMFADevice&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ram:BindMFADevice&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>],</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=s2>&#34;*&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>The first statement says &ldquo;allow everything, but only if MFA is active.&rdquo; The second statement allows MFA-related actions without MFA (so the user can actually set up MFA in the first place). Without the second statement, a new user would be locked in a catch-22: cannot do anything without MFA, cannot set up MFA because that requires permissions.</p><h3 id=rbac-vs-abac>RBAC vs ABAC</h3><p>RAM supports two permission models, and most setups use both:</p><p><strong>RBAC (Role-Based Access Control)</strong>: Permissions are assigned based on the user&rsquo;s role (group membership). &ldquo;All Developers can start/stop ECS instances.&rdquo; This is what groups provide.</p><p><strong>ABAC (Attribute-Based Access Control)</strong>: Permissions are assigned based on resource attributes, typically tags. &ldquo;Users can only manage instances tagged with <code>team=alpha</code>.&rdquo;</p><p>ABAC example &ndash; users can only manage their own team&rsquo;s instances:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Version&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;Statement&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Effect&#34;</span><span class=p>:</span> <span class=s2>&#34;Allow&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Action&#34;</span><span class=p>:</span> <span class=s2>&#34;ecs:*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Resource&#34;</span><span class=p>:</span> <span class=s2>&#34;*&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;Condition&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;StringEquals&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;acs:ResourceTag/team&#34;</span><span class=p>:</span> <span class=s2>&#34;${ram:PrincipalTagValue/team}&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>This policy says: allow ECS operations only when the resource&rsquo;s <code>team</code> tag matches the user&rsquo;s <code>team</code> tag. Tag user Alice with <code>team=alpha</code>, tag her instances with <code>team=alpha</code>, and she can manage them. She cannot touch instances tagged <code>team=beta</code>, even though the Action says <code>ecs:*</code>.</p><p>ABAC is powerful but harder to debug. I recommend starting with RBAC (groups + policies) and adding ABAC only when you need tag-based isolation &ndash; typically when multiple teams share the same account.</p><p>Create and attach a custom policy:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create the policy</span>
+</span></span><span class=line><span class=cl>aliyun ram CreatePolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName ECS-HangZhou-Admin <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>      {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Action&#34;: &#34;ecs:*&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Resource&#34;: &#34;acs:ecs:cn-hangzhou:*:*&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>      },
+</span></span></span><span class=line><span class=cl><span class=s1>      {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Action&#34;: &#34;vpc:Describe*&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Resource&#34;: &#34;*&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>      }
+</span></span></span><span class=line><span class=cl><span class=s1>    ]
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Attach to a group</span>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType Custom <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName ECS-HangZhou-Admin <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --GroupName Developers
+</span></span></code></pre></td></tr></table></div></div><h2 id=ram-roles>RAM Roles</h2><p>RAM users are permanent identities for humans (and CI/CD pipelines). RAM roles are temporary identities designed for three scenarios:</p><ol><li><strong>Service roles</strong>: An Alibaba Cloud service (ECS, Function Compute, etc.) needs to access another service (OSS, RDS, etc.)</li><li><strong>Cross-account access</strong>: A user in Account A needs to access resources in Account B</li><li><strong>Federated login (SSO)</strong>: Users from an external identity provider (LDAP, SAML, OIDC) need Alibaba Cloud access</li></ol><p>The key difference between a user and a role:</p><table><thead><tr><th>Aspect</th><th>RAM User</th><th>RAM Role</th></tr></thead><tbody><tr><td>Identity type</td><td>Permanent</td><td>Temporary (assumed)</td></tr><tr><td>Credentials</td><td>Password + AccessKey</td><td>STS token (auto-expires)</td></tr><tr><td>Who uses it</td><td>Humans, CI/CD bots</td><td>Services, cross-account, SSO</td></tr><tr><td>MFA support</td><td>Yes</td><td>No (trust policy handles it)</td></tr><tr><td>Direct login</td><td>Yes (console)</td><td>No (must be assumed)</td></tr><tr><td>Max session</td><td>Permanent</td><td>1 hour (configurable to 12h)</td></tr></tbody></table><h3 id=trust-policy>Trust Policy</h3><p>Every role has a trust policy that specifies who can assume it. This is separate from the permission policy (which specifies what the role can do once assumed). Think of it as: the trust policy is the door lock, the permission policy is the key ring inside.</p><h3 id=service-role-example-ecs-accessing-oss>Service Role Example: ECS Accessing OSS</h3><p>A common scenario: your ECS instance needs to read files from an OSS bucket. The wrong way to do this is to put an AccessKey in the instance&rsquo;s environment variables. If the instance is compromised, the attacker has permanent credentials. The right way is an instance role &ndash; the ECS instance automatically gets temporary credentials that rotate every hour.</p><p>Step 1 &ndash; Create the role with a trust policy allowing ECS to assume it:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ram CreateRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName ECS-OSS-Reader <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AssumeRolePolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>      {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Action&#34;: &#34;sts:AssumeRole&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Principal&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;Service&#34;: [&#34;ecs.aliyuncs.com&#34;]
+</span></span></span><span class=line><span class=cl><span class=s1>        }
+</span></span></span><span class=line><span class=cl><span class=s1>      }
+</span></span></span><span class=line><span class=cl><span class=s1>    ],
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Allows ECS instances to read from OSS&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Step 2 &ndash; Attach a permission policy to the role:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ram AttachPolicyToRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType Custom <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName OSS-DataBucket-ReadOnly <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName ECS-OSS-Reader
+</span></span></code></pre></td></tr></table></div></div><p>Step 3 &ndash; Attach the role to an ECS instance:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ecs AttachInstanceRamRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceIds <span class=s1>&#39;[&#34;i-bp1234567890abcdef&#34;]&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RamRoleName ECS-OSS-Reader
+</span></span></code></pre></td></tr></table></div></div><p>Step 4 &ndash; Inside the ECS instance, the SDK automatically picks up the role credentials:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_oss20190517.client</span> <span class=kn>import</span> <span class=n>Client</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_tea_openapi.models</span> <span class=kn>import</span> <span class=n>Config</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># No AccessKey needed -- SDK uses instance metadata to get STS tokens</span>
+</span></span><span class=line><span class=cl><span class=n>config</span> <span class=o>=</span> <span class=n>Config</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>region_id</span><span class=o>=</span><span class=s1>&#39;cn-hangzhou&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>credential</span><span class=o>=</span><span class=kc>None</span>  <span class=c1># SDK auto-discovers instance role credentials</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>Client</span><span class=p>(</span><span class=n>config</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Read from OSS as usual</span>
+</span></span><span class=line><span class=cl><span class=n>result</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>get_object</span><span class=p>(</span><span class=s1>&#39;my-data-bucket&#39;</span><span class=p>,</span> <span class=s1>&#39;data/input.csv&#39;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The SDK calls the instance metadata service at <code>http://100.100.100.200/latest/meta-data/ram/security-credentials/ECS-OSS-Reader</code> to get temporary credentials. These credentials rotate automatically. No AccessKey is stored on the instance. If the instance is compromised, the attacker gets credentials that expire within the hour, and you can revoke the role immediately.</p><h3 id=cross-account-role>Cross-Account Role</h3><p>When Account B (ID: <code>9876543210</code>) needs to let users from Account A (ID: <code>1234567890</code>) manage its ECS instances:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># In Account B: create a role trusting Account A</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName CrossAccount-ECS-Admin <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AssumeRolePolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>      {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Action&#34;: &#34;sts:AssumeRole&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Principal&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;RAM&#34;: [&#34;acs:ram::1234567890:root&#34;]
+</span></span></span><span class=line><span class=cl><span class=s1>        },
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Condition&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;Bool&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>            &#34;acs:MFAPresent&#34;: &#34;true&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>          }
+</span></span></span><span class=line><span class=cl><span class=s1>        }
+</span></span></span><span class=line><span class=cl><span class=s1>      }
+</span></span></span><span class=line><span class=cl><span class=s1>    ],
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Attach ECS admin policy to the role</span>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType System <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName AliyunECSFullAccess <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName CrossAccount-ECS-Admin
+</span></span></code></pre></td></tr></table></div></div><p>In Account A, the user assumes the role:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun sts AssumeRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleArn acs:ram::9876543210:role/crossaccount-ecs-admin <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleSessionName alice-cross-account <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --DurationSeconds <span class=m>3600</span>
+</span></span></code></pre></td></tr></table></div></div><p>The Condition block requires MFA, adding a second verification layer for cross-account access.</p><h2 id=sts-temporary-credentials>STS: Temporary Credentials</h2><p>Security Token Service generates temporary AccessKey pairs with an attached security token. They work exactly like regular AccessKeys but expire automatically. This is the mechanism behind RAM roles, and you can also use it directly for scenarios like mobile uploads and frontend access.</p><h3 id=why-temporary-beats-permanent>Why Temporary Beats Permanent</h3><p>Permanent AccessKeys are a liability. They do not expire. If leaked, they remain valid until you manually rotate them. Rotation means updating every service that uses the key, which means downtime or a coordinated deployment. Most teams put off rotation because it is painful, which means leaked keys stay active for months.</p><p>STS tokens expire. The maximum lifetime is 12 hours (default 1 hour, minimum 15 minutes). If a token is leaked, the damage window is small. You do not need to rotate anything &ndash; just wait for it to expire, then investigate how it leaked.</p><h3 id=the-sts-workflow>The STS Workflow</h3><p>The flow is: trusted backend assumes a role, gets temporary credentials, passes them to the untrusted client (mobile app, browser, third-party service), client uses the credentials until they expire.</p><pre tabindex=0><code>┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+│             │  1. AssumeRole        │         │             │
+│  Your App   │ ──────────────────►   │   STS   │             │
+│  (Backend)  │         │             │ Service │             │
+│             │  ◄──────────────────  │         │             │
+│             │  2. Temp AK/SK/Token  │         │             │
+└──────┬──────┘         └─────────────┘         └─────────────┘
+       │
+       │ 3. Pass temp credentials
+       ▼
+┌─────────────┐         ┌─────────────┐
+│             │  4. Upload with       │             │
+│  Frontend/  │    temp credentials   │             │
+│  Mobile App │ ──────────────────►   │     OSS     │
+│             │                       │             │
+└─────────────┘                       └─────────────┘
+</code></pre><h3 id=complete-sts-example-frontend-upload-to-oss>Complete STS Example: Frontend Upload to OSS</h3><p>This is the most common STS use case. A mobile app or browser needs to upload files directly to OSS. You do not want the upload to go through your backend (bandwidth and latency), but you also do not want permanent OSS credentials in the frontend.</p><p>Step 1 &ndash; Create a role with a narrowly scoped OSS policy:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create the role</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName STS-OSS-Uploader <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AssumeRolePolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>      {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Action&#34;: &#34;sts:AssumeRole&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Principal&#34;: {
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;RAM&#34;: [&#34;acs:ram::1234567890:root&#34;]
+</span></span></span><span class=line><span class=cl><span class=s1>        }
+</span></span></span><span class=line><span class=cl><span class=s1>      }
+</span></span></span><span class=line><span class=cl><span class=s1>    ],
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create a narrowly scoped policy -- upload only, to one bucket prefix</span>
+</span></span><span class=line><span class=cl>aliyun ram CreatePolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName STS-Upload-Only <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>      {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Action&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;oss:PutObject&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;oss:InitiateMultipartUpload&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;oss:UploadPart&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;oss:CompleteMultipartUpload&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;oss:AbortMultipartUpload&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>        ],
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Resource&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;acs:oss:*:*:user-uploads&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>          &#34;acs:oss:*:*:user-uploads/uploads/*&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>        ]
+</span></span></span><span class=line><span class=cl><span class=s1>      }
+</span></span></span><span class=line><span class=cl><span class=s1>    ]
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Attach the policy to the role</span>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType Custom <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName STS-Upload-Only <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName STS-OSS-Uploader
+</span></span></code></pre></td></tr></table></div></div><p>Step 2 &ndash; Backend assumes the role and returns temporary credentials to the frontend:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_sts20150401.client</span> <span class=kn>import</span> <span class=n>Client</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_tea_openapi.models</span> <span class=kn>import</span> <span class=n>Config</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_sts20150401.models</span> <span class=kn>import</span> <span class=n>AssumeRoleRequest</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>config</span> <span class=o>=</span> <span class=n>Config</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>access_key_id</span><span class=o>=</span><span class=s1>&#39;&lt;backend-ak&gt;&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>access_key_secret</span><span class=o>=</span><span class=s1>&#39;&lt;backend-sk&gt;&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>endpoint</span><span class=o>=</span><span class=s1>&#39;sts.cn-hangzhou.aliyuncs.com&#39;</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>Client</span><span class=p>(</span><span class=n>config</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>request</span> <span class=o>=</span> <span class=n>AssumeRoleRequest</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>role_arn</span><span class=o>=</span><span class=s1>&#39;acs:ram::1234567890:role/sts-oss-uploader&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>role_session_name</span><span class=o>=</span><span class=s1>&#39;user-12345-upload&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>duration_seconds</span><span class=o>=</span><span class=mi>900</span>  <span class=c1># 15 minutes -- keep it short</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>response</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>assume_role</span><span class=p>(</span><span class=n>request</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Return these three values to the frontend</span>
+</span></span><span class=line><span class=cl><span class=n>credentials</span> <span class=o>=</span> <span class=n>response</span><span class=o>.</span><span class=n>body</span><span class=o>.</span><span class=n>credentials</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;AccessKeyId:     </span><span class=si>{</span><span class=n>credentials</span><span class=o>.</span><span class=n>access_key_id</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;AccessKeySecret: </span><span class=si>{</span><span class=n>credentials</span><span class=o>.</span><span class=n>access_key_secret</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;SecurityToken:   </span><span class=si>{</span><span class=n>credentials</span><span class=o>.</span><span class=n>security_token</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Expiration:      </span><span class=si>{</span><span class=n>credentials</span><span class=o>.</span><span class=n>expiration</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Step 3 &ndash; Frontend uses the temporary credentials to upload directly to OSS:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-javascript data-lang=javascript><span class=line><span class=cl><span class=c1>// Browser-side upload using STS credentials
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>OSS</span> <span class=o>=</span> <span class=nx>require</span><span class=p>(</span><span class=s1>&#39;ali-oss&#39;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kr>const</span> <span class=nx>client</span> <span class=o>=</span> <span class=k>new</span> <span class=nx>OSS</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>  <span class=nx>region</span><span class=o>:</span> <span class=s1>&#39;oss-cn-hangzhou&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>accessKeyId</span><span class=o>:</span> <span class=nx>stsCredentials</span><span class=p>.</span><span class=nx>AccessKeyId</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>accessKeySecret</span><span class=o>:</span> <span class=nx>stsCredentials</span><span class=p>.</span><span class=nx>AccessKeySecret</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>stsToken</span><span class=o>:</span> <span class=nx>stsCredentials</span><span class=p>.</span><span class=nx>SecurityToken</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>bucket</span><span class=o>:</span> <span class=s1>&#39;user-uploads&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>});</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Upload a file -- this goes directly to OSS, not through your backend
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>result</span> <span class=o>=</span> <span class=kr>await</span> <span class=nx>client</span><span class=p>.</span><span class=nx>put</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>  <span class=sb>`uploads/</span><span class=si>${</span><span class=nx>userId</span><span class=si>}</span><span class=sb>/</span><span class=si>${</span><span class=nx>filename</span><span class=si>}</span><span class=sb>`</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nx>file</span>
+</span></span><span class=line><span class=cl><span class=p>);</span>
+</span></span></code></pre></td></tr></table></div></div><p>The credentials expire after 15 minutes. If the user needs to upload more files, the frontend requests new credentials from your backend. The backend can add business logic (rate limiting, file type validation, quota checking) at the credential-issuance step, before any bytes reach OSS.</p><h2 id=kms-key-management-service>KMS: Key Management Service</h2><p>KMS handles the encryption pillar. It manages cryptographic keys and uses them to encrypt/decrypt data. You never see the raw key material &ndash; KMS keeps it in hardware security modules (HSMs) and performs cryptographic operations on your behalf.</p><h3 id=key-concepts>Key Concepts</h3><table><thead><tr><th>Concept</th><th>What it is</th></tr></thead><tbody><tr><td><strong>CMK</strong> (Customer Master Key)</td><td>The top-level key. Never leaves KMS. Used to encrypt data keys.</td></tr><tr><td><strong>Data Key</strong></td><td>A key generated by KMS, encrypted under a CMK. You use the plaintext version to encrypt your data, store the encrypted version alongside it.</td></tr><tr><td><strong>Envelope Encryption</strong></td><td>The pattern: KMS generates a data key → you encrypt data with the plaintext data key → you store the encrypted data key with the encrypted data → to decrypt, you send the encrypted data key to KMS, get the plaintext back, decrypt your data.</td></tr><tr><td><strong>Symmetric Key</strong></td><td>Same key for encrypt and decrypt. AES-256. Used for data encryption.</td></tr><tr><td><strong>Asymmetric Key</strong></td><td>Public/private pair. RSA or EC. Used for signatures and key exchange.</td></tr></tbody></table><h3 id=why-envelope-encryption>Why Envelope Encryption?</h3><p>You might ask: why not just send my data to KMS and let it encrypt everything directly? Because KMS has a 6 KB limit on direct encryption. For anything larger (which is everything in practice &ndash; files, database fields, disk volumes), you use envelope encryption.</p><p>The flow:</p><ol><li>Call <code>GenerateDataKey</code> &ndash; KMS returns a plaintext data key AND an encrypted copy of the same key</li><li>Use the plaintext data key to encrypt your data locally (AES-256-GCM)</li><li>Store the encrypted data + the encrypted data key together</li><li>Discard the plaintext data key from memory</li><li>To decrypt: send the encrypted data key to KMS (<code>Decrypt</code>), get the plaintext back, decrypt your data</li></ol><p>This way, KMS handles one small decryption (the data key), and your application handles the bulk encryption locally. Fast, scalable, and the master key never leaves KMS.</p><h3 id=creating-keys-and-encrypting-data>Creating Keys and Encrypting Data</h3><p>Create a symmetric CMK:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun kms CreateKey <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeySpec Aliyun_AES_256 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyUsage ENCRYPT/DECRYPT <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Origin Aliyun_KMS <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Production data encryption key&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ProtectionLevel HSM
+</span></span></code></pre></td></tr></table></div></div><p>The <code>ProtectionLevel HSM</code> means the key is stored in a hardware security module. It costs more but provides FIPS 140-2 Level 3 compliance.</p><p>Generate a data key for envelope encryption:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun kms GenerateDataKey <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyId &lt;your-cmk-id&gt; <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeySpec AES_256
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Response includes:</span>
+</span></span><span class=line><span class=cl><span class=c1># - Plaintext: base64-encoded plaintext data key (use this to encrypt, then discard)</span>
+</span></span><span class=line><span class=cl><span class=c1># - CiphertextBlob: base64-encoded encrypted data key (store this with your data)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Encrypt a small piece of data directly (under 6 KB):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Encrypt</span>
+</span></span><span class=line><span class=cl>aliyun kms Encrypt <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyId &lt;your-cmk-id&gt; <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Plaintext <span class=s2>&#34;</span><span class=k>$(</span><span class=nb>echo</span> <span class=s1>&#39;sensitive-api-key-value&#39;</span> <span class=p>|</span> base64<span class=k>)</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Decrypt</span>
+</span></span><span class=line><span class=cl>aliyun kms Decrypt <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --CiphertextBlob &lt;the-ciphertext-from-encrypt&gt;
+</span></span></code></pre></td></tr></table></div></div><h3 id=encrypting-alibaba-cloud-services>Encrypting Alibaba Cloud Services</h3><p>Most Alibaba Cloud services support KMS encryption natively. You provide your CMK ID and the service handles envelope encryption internally.</p><table><thead><tr><th>Service</th><th>What gets encrypted</th><th>How to enable</th></tr></thead><tbody><tr><td><strong>ECS</strong></td><td>System disk, data disks</td><td><code>--Encrypted true --KMSKeyId &lt;id></code> at disk creation</td></tr><tr><td><strong>OSS</strong></td><td>Objects at rest</td><td>Bucket SSE setting: <code>x-oss-server-side-encryption: KMS</code></td></tr><tr><td><strong>RDS</strong></td><td>Transparent Data Encryption (TDE)</td><td>Console: Instance > Data Security > TDE > Enable</td></tr><tr><td><strong>NAS</strong></td><td>File system data</td><td>Encryption type at filesystem creation</td></tr><tr><td><strong>ACK</strong></td><td>Kubernetes Secrets</td><td>Enable Secret encryption in cluster settings</td></tr></tbody></table><p>Enable server-side encryption for an OSS bucket:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun oss bucket-encryption --method put <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  oss://my-secure-bucket <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --sse-algorithm KMS <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --kms-masterkey-id &lt;your-cmk-id&gt;
+</span></span></code></pre></td></tr></table></div></div><p>Enable ECS disk encryption when creating an instance:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun ecs CreateInstance <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RegionId cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --InstanceType ecs.g7.large <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ImageId ubuntu_22_04_x64 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SystemDisk.Category cloud_essd <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SystemDisk.Encrypted <span class=nb>true</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SystemDisk.KMSKeyId &lt;your-cmk-id&gt; <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --VSwitchId &lt;your-vswitch-id&gt;
+</span></span></code></pre></td></tr></table></div></div><h3 id=key-rotation>Key Rotation</h3><p>KMS supports automatic key rotation. When you enable it, KMS creates a new key version on your schedule (e.g., every 90 days). New encryption operations use the latest version. Decryption automatically detects which version was used and decrypts correctly. You do not need to re-encrypt existing data.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Enable automatic rotation every 365 days</span>
+</span></span><span class=line><span class=cl>aliyun kms UpdateRotationPolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyId &lt;your-cmk-id&gt; <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EnableAutomaticRotation <span class=nb>true</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RotationInterval <span class=s2>&#34;365d&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>For manual rotation (useful for incident response &ndash; &ldquo;we think this key might be compromised&rdquo;):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun kms CreateKeyVersion --KeyId &lt;your-cmk-id&gt;
+</span></span></code></pre></td></tr></table></div></div><h2 id=actiontrail-audit-everything>ActionTrail: Audit Everything</h2><p>ActionTrail is the auditing pillar. It records every API call made against your Alibaba Cloud account &ndash; who did it, when, from what IP, with what parameters, and whether it succeeded. Think of it as the black box flight recorder for your cloud.</p><h3 id=what-gets-logged>What Gets Logged</h3><p>ActionTrail captures two categories of events:</p><ul><li><strong>Management events</strong>: API calls that create, modify, or delete resources. <code>CreateInstance</code>, <code>DeleteBucket</code>, <code>AttachPolicyToUser</code>. These are logged by default.</li><li><strong>Data events</strong>: API calls that read or write data within resources. <code>GetObject</code> on OSS, <code>SendMessage</code> on MNS. These are opt-in because of volume.</li></ul><p>Each event record includes:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;eventId&#34;</span><span class=p>:</span> <span class=s2>&#34;a1b2c3d4-...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;eventVersion&#34;</span><span class=p>:</span> <span class=s2>&#34;1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;eventSource&#34;</span><span class=p>:</span> <span class=s2>&#34;ecs.aliyuncs.com&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;eventType&#34;</span><span class=p>:</span> <span class=s2>&#34;ApiCall&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;eventName&#34;</span><span class=p>:</span> <span class=s2>&#34;StopInstance&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;eventTime&#34;</span><span class=p>:</span> <span class=s2>&#34;2026-05-18T03:24:15Z&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;userIdentity&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;ram-user&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;principalId&#34;</span><span class=p>:</span> <span class=s2>&#34;1234567890&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;accountId&#34;</span><span class=p>:</span> <span class=s2>&#34;1234567890&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;userName&#34;</span><span class=p>:</span> <span class=s2>&#34;alice&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;accessKeyId&#34;</span><span class=p>:</span> <span class=s2>&#34;LTAI5t...&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;sourceIpAddress&#34;</span><span class=p>:</span> <span class=s2>&#34;203.0.113.42&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;requestParameters&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;InstanceId&#34;</span><span class=p>:</span> <span class=s2>&#34;i-bp1234567890abcdef&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;ForceStop&#34;</span><span class=p>:</span> <span class=s2>&#34;false&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;responseElements&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;RequestId&#34;</span><span class=p>:</span> <span class=s2>&#34;e5f6g7h8-...&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;errorCode&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;errorMessage&#34;</span><span class=p>:</span> <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>This tells you: Alice stopped instance <code>i-bp1234567890abcdef</code> at 03:24 UTC from IP <code>203.0.113.42</code>, and it succeeded. If someone deletes a production RDS instance at 3 AM, you can find exactly who did it, from where, and what credentials they used.</p><h3 id=setting-up-a-trail>Setting Up a Trail</h3><p>A trail delivers audit events to a storage destination. You should have at least one trail active at all times, delivering to an OSS bucket in a region you control.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create an OSS bucket for audit logs (if you do not have one)</span>
+</span></span><span class=line><span class=cl>aliyun oss mb oss://company-audit-logs-cn-hangzhou
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create the trail</span>
+</span></span><span class=line><span class=cl>aliyun actiontrail CreateTrail <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Name production-audit <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --OssBucketName company-audit-logs-cn-hangzhou <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --OssKeyPrefix actiontrail/ <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName AliyunActionTrailDefaultRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --IsOrganizationTrail <span class=nb>false</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Start logging</span>
+</span></span><span class=line><span class=cl>aliyun actiontrail StartLogging --Name production-audit
+</span></span></code></pre></td></tr></table></div></div><p>The logs arrive in the OSS bucket as gzipped JSON files, partitioned by date:</p><pre tabindex=0><code>actiontrail/
+  AliyunLogs/
+    1234567890/
+      2026/05/18/
+        1234567890_actiontrail_cn-hangzhou_2026-05-18T03-00-00Z.json.gz
+</code></pre><p>For real-time analysis, also deliver to SLS (Simple Log Service):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>aliyun actiontrail UpdateTrail <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Name production-audit <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SlsProjectArn acs:log:cn-hangzhou:1234567890:project/security-audit <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --SlsWriteRoleArn acs:ram::1234567890:role/actiontrail-sls-role
+</span></span></code></pre></td></tr></table></div></div><h3 id=querying-audit-events>Querying Audit Events</h3><p>Look up recent events via CLI:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Find all events by a specific user in the last 24 hours</span>
+</span></span><span class=line><span class=cl>aliyun actiontrail LookupEvents <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --StartTime <span class=s2>&#34;2026-05-17T00:00:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EndTime <span class=s2>&#34;2026-05-18T00:00:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LookupAttribute <span class=s1>&#39;[{&#34;Key&#34;:&#34;UserName&#34;,&#34;Value&#34;:&#34;alice&#34;}]&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Find all delete operations</span>
+</span></span><span class=line><span class=cl>aliyun actiontrail LookupEvents <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --StartTime <span class=s2>&#34;2026-05-17T00:00:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EndTime <span class=s2>&#34;2026-05-18T00:00:00Z&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --LookupAttribute <span class=s1>&#39;[{&#34;Key&#34;:&#34;EventName&#34;,&#34;Value&#34;:&#34;Delete*&#34;}]&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>For compliance use cases (SOC 2, ISO 27001, PCI DSS), ActionTrail provides the audit evidence trail. The key requirements are:</p><ul><li>Logs must be tamper-proof: deliver to an OSS bucket with versioning enabled and a lifecycle rule that prevents deletion for N years</li><li>Logs must cover all accounts: use organization trails for multi-account setups</li><li>Logs must be monitored: set up SLS alerts for high-risk events (root login, policy changes, security group modifications)</li></ul><h2 id=security-best-practices-checklist>Security Best Practices Checklist</h2><p>After setting up RAM, KMS, and ActionTrail, here is the full checklist I run through for every Alibaba Cloud account. Print this and tape it to your wall.</p><p><strong>Identity:</strong></p><ul><li>Enable MFA on the root Alibaba Cloud Account. Use a hardware key if possible.</li><li>Create RAM users for every human. Never share the root credentials.</li><li>Use RAM groups. Never attach policies directly to users.</li><li>Delete or deactivate unused RAM users within 24 hours of offboarding.</li></ul><p><strong>Authorization:</strong></p><ul><li>Follow least privilege. Start with zero permissions and add only what is needed.</li><li>Use system policies for common scenarios, custom policies for everything else.</li><li>Never use <code>"Action": "*", "Resource": "*"</code> except for the Administrators group.</li><li>Review permissions quarterly. Use RAM&rsquo;s &ldquo;last accessed&rdquo; data to find unused permissions.</li><li>Rotate AccessKeys every 90 days. Set calendar reminders.</li></ul><p><strong>Encryption:</strong></p><ul><li>Enable server-side encryption (SSE-KMS) on all OSS buckets.</li><li>Enable disk encryption on all ECS instances.</li><li>Enable TDE on RDS instances containing sensitive data.</li><li>Use KMS for application-level encryption of secrets, API keys, tokens.</li><li>Enable automatic key rotation (annually at minimum).</li></ul><p><strong>Auditing:</strong></p><ul><li>Enable ActionTrail in every region you use.</li><li>Deliver logs to both OSS (long-term storage) and SLS (real-time analysis).</li><li>Set up alerts for: root account login, AccessKey creation, policy changes, security group changes, cross-account role assumptions.</li><li>Enable OSS versioning on the audit log bucket. Add a lifecycle rule preventing deletion.</li></ul><p><strong>Network (covered in <a href=/en/aliyun-fullstack/03-vpc-networking/>Part 3</a>
+but critical for security):</strong></p><ul><li>Never open port 22 (SSH) to <code>0.0.0.0/0</code>. Use bastion hosts or VPN.</li><li>Use VPC private endpoints for services that support them (OSS, RDS, KMS).</li><li>Restrict security groups to specific CIDR ranges, not <code>0.0.0.0/0</code>.</li></ul><p><strong>Credentials:</strong></p><ul><li>Never hardcode AccessKeys in source code. Use instance roles, STS, or environment variables.</li><li>Use STS temporary credentials for any untrusted client (mobile, browser, third-party).</li><li>Add <code>.env</code>, <code>credentials</code>, and <code>*.key</code> to your <code>.gitignore</code> before the first commit.</li></ul><h2 id=solution-secure-multi-team-access>Solution: Secure Multi-Team Access</h2><p>Let me put it all together. Here is a complete walkthrough for a startup with three teams (admin, development, stakeholders) that need different levels of access, an ECS application that reads from OSS, a frontend that uploads to OSS, and an audit trail for compliance.</p><h3 id=step-1-create-the-ram-groups>Step 1: Create the RAM Groups</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Admin group -- full access minus billing</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateGroup --GroupName admin-team <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Comments <span class=s2>&#34;Infrastructure admins - full access&#34;</span>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType System --PolicyName AdministratorAccess <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --GroupName admin-team
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Dev group -- compute + storage + database, no RAM/billing</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateGroup --GroupName dev-team <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Comments <span class=s2>&#34;Developers - compute, storage, database access&#34;</span>
+</span></span><span class=line><span class=cl>aliyun ram CreatePolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName dev-team-policy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [
+</span></span></span><span class=line><span class=cl><span class=s1>      {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Action&#34;: [&#34;ecs:*&#34;, &#34;oss:*&#34;, &#34;rds:*&#34;, &#34;vpc:Describe*&#34;, &#34;dashscope:*&#34;],
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Resource&#34;: &#34;*&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>      },
+</span></span></span><span class=line><span class=cl><span class=s1>      {
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Effect&#34;: &#34;Deny&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Action&#34;: [&#34;ecs:DeleteInstance&#34;, &#34;rds:DeleteDBInstance&#34;, &#34;oss:DeleteBucket&#34;],
+</span></span></span><span class=line><span class=cl><span class=s1>        &#34;Resource&#34;: &#34;*&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>      }
+</span></span></span><span class=line><span class=cl><span class=s1>    ]
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType Custom --PolicyName dev-team-policy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --GroupName dev-team
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Readonly group -- view everything</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateGroup --GroupName readonly-team <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Comments <span class=s2>&#34;Stakeholders - view only access&#34;</span>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToGroup <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType System --PolicyName ReadOnlyAccess <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --GroupName readonly-team
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-2-create-ram-users-and-assign-to-groups>Step 2: Create RAM Users and Assign to Groups</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create users</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> user in admin-wang dev-alice dev-bob readonly-carol<span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  aliyun ram CreateUser --UserName <span class=nv>$user</span>
+</span></span><span class=line><span class=cl>  aliyun ram CreateLoginProfile <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --UserName <span class=nv>$user</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --Password <span class=s2>&#34;ChangeMe@2026!&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --PasswordResetRequired <span class=nb>true</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --MFABindRequired <span class=nb>true</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Assign to groups</span>
+</span></span><span class=line><span class=cl>aliyun ram AddUserToGroup --UserName admin-wang --GroupName admin-team
+</span></span><span class=line><span class=cl>aliyun ram AddUserToGroup --UserName dev-alice --GroupName dev-team
+</span></span><span class=line><span class=cl>aliyun ram AddUserToGroup --UserName dev-bob --GroupName dev-team
+</span></span><span class=line><span class=cl>aliyun ram AddUserToGroup --UserName readonly-carol --GroupName readonly-team
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-3-create-service-role-for-ecs>Step 3: Create Service Role for ECS</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Role: ECS instances can read from the data bucket</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName app-oss-reader <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AssumeRolePolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [{&#34;Action&#34;:&#34;sts:AssumeRole&#34;,&#34;Effect&#34;:&#34;Allow&#34;,&#34;Principal&#34;:{&#34;Service&#34;:[&#34;ecs.aliyuncs.com&#34;]}}],
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun ram CreatePolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName app-oss-read-policy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [{
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;Action&#34;: [&#34;oss:GetObject&#34;, &#34;oss:ListObjects&#34;, &#34;oss:GetBucketInfo&#34;],
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;Resource&#34;: [&#34;acs:oss:*:*:app-data-bucket&#34;, &#34;acs:oss:*:*:app-data-bucket/*&#34;]
+</span></span></span><span class=line><span class=cl><span class=s1>    }]
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType Custom --PolicyName app-oss-read-policy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName app-oss-reader
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-4-set-up-sts-policy-for-frontend-upload>Step 4: Set Up STS Policy for Frontend Upload</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Role: backend can assume to get upload-only credentials</span>
+</span></span><span class=line><span class=cl>aliyun ram CreateRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName sts-frontend-uploader <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --AssumeRolePolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [{&#34;Action&#34;:&#34;sts:AssumeRole&#34;,&#34;Effect&#34;:&#34;Allow&#34;,&#34;Principal&#34;:{&#34;RAM&#34;:[&#34;acs:ram::1234567890:root&#34;]}}],
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun ram CreatePolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyName frontend-upload-policy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyDocument <span class=s1>&#39;{
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Version&#34;: &#34;1&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>    &#34;Statement&#34;: [{
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;Effect&#34;: &#34;Allow&#34;,
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;Action&#34;: [&#34;oss:PutObject&#34;, &#34;oss:InitiateMultipartUpload&#34;, &#34;oss:UploadPart&#34;, &#34;oss:CompleteMultipartUpload&#34;],
+</span></span></span><span class=line><span class=cl><span class=s1>      &#34;Resource&#34;: [&#34;acs:oss:*:*:user-uploads&#34;, &#34;acs:oss:*:*:user-uploads/uploads/*&#34;]
+</span></span></span><span class=line><span class=cl><span class=s1>    }]
+</span></span></span><span class=line><span class=cl><span class=s1>  }&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun ram AttachPolicyToRole <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --PolicyType Custom --PolicyName frontend-upload-policy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName sts-frontend-uploader
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-5-enable-actiontrail>Step 5: Enable ActionTrail</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create audit log bucket with versioning</span>
+</span></span><span class=line><span class=cl>aliyun oss mb oss://company-audit-trail
+</span></span><span class=line><span class=cl>aliyun oss bucket-versioning --method put oss://company-audit-trail --status Enabled
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Create and start the trail</span>
+</span></span><span class=line><span class=cl>aliyun actiontrail CreateTrail <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Name main-audit-trail <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --OssBucketName company-audit-trail <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --OssKeyPrefix logs/ <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RoleName AliyunActionTrailDefaultRole
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>aliyun actiontrail StartLogging --Name main-audit-trail
+</span></span></code></pre></td></tr></table></div></div><h3 id=step-6-create-kms-key-for-sensitive-data>Step 6: Create KMS Key for Sensitive Data</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Create the master key</span>
+</span></span><span class=line><span class=cl>aliyun kms CreateKey <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeySpec Aliyun_AES_256 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyUsage ENCRYPT/DECRYPT <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --Description <span class=s2>&#34;Production secrets encryption&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ProtectionLevel HSM
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Enable automatic rotation</span>
+</span></span><span class=line><span class=cl>aliyun kms UpdateRotationPolicy <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --KeyId &lt;cmk-id-from-above&gt; <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --EnableAutomaticRotation <span class=nb>true</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --RotationInterval <span class=s2>&#34;365d&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Encrypt the OSS bucket</span>
+</span></span><span class=line><span class=cl>aliyun oss bucket-encryption --method put <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  oss://app-data-bucket <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --sse-algorithm KMS <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --kms-masterkey-id &lt;cmk-id-from-above&gt;
+</span></span></code></pre></td></tr></table></div></div><p>After these six steps, you have: three groups with properly scoped permissions, MFA enforced on every user, a service role so ECS accesses OSS without stored credentials, STS for frontend uploads with 15-minute token expiry, encryption at rest for your data bucket, and a complete audit trail delivered to a versioned OSS bucket.</p><p>The total time to set this up is about 30 minutes via CLI. The total time to recover from not setting it up is measured in incident-response hours and compromised-data cleanup days.</p><h2 id=key-takeaways>Key Takeaways</h2><ol><li><p><strong>Never use the root account for daily work.</strong> Create RAM users, enforce MFA, use groups for permission management. The root account should be locked in a metaphorical safe.</p></li><li><p><strong>Least privilege is a practice, not a one-time setup.</strong> Start with zero permissions, add what is needed, review quarterly. The <code>"Action": "*"</code> policy is the security equivalent of leaving your front door open.</p></li><li><p><strong>Temporary credentials beat permanent credentials every time.</strong> Use STS for anything that touches an untrusted environment (frontend, mobile, third-party). Use instance roles for ECS and Function Compute. Reserve permanent AccessKeys for backend services that cannot use roles.</p></li><li><p><strong>Encrypt everything at rest.</strong> KMS makes this trivial &ndash; enable SSE-KMS on OSS, disk encryption on ECS, TDE on RDS. The performance overhead is negligible. The cost of a data breach is not.</p></li><li><p><strong>Audit everything, always.</strong> ActionTrail is free for management events. Enable it on day one, not after the first incident. When something goes wrong &ndash; and it will &ndash; the audit trail is the first thing you reach for.</p></li><li><p><strong>Security is layers, not a single wall.</strong> Identity controls who gets in. Authorization controls what they can do. Encryption protects data even if someone gets through. Auditing tells you when someone tried. Each layer compensates for failures in the others.</p></li></ol><p>The hardcoded API key that kicked off this article cost me a weekend and a modest bill. A production database leak or a compromised root account costs orders of magnitude more. The six steps in the solution section are 30 minutes of work. Do them now, not &ldquo;later.&rdquo;</p><h2 id=whats-next>What&rsquo;s Next</h2><p>In <a href=/en/aliyun-fullstack/07-oss-storage/>Part 7</a>
+, we move to the storage layer: OSS for object storage, NAS for shared filesystems, and the block storage options that back your ECS instances. We will build on the security foundations from this article &ndash; every bucket gets SSE-KMS, every access goes through RAM roles, and nothing gets a permanent AccessKey.</p></div><section class=series-nav-block aria-label="This series"><div class=series-nav-head><div class=label>In this series</div><h3><a href=/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a> <span class=count>12 parts</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/aliyun-fullstack/05-rds-database/><span class=title>Alibaba Cloud Full Stack (5): RDS and PolarDB — The Database Layer</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/aliyun-fullstack/07-observability/><span class=title>Alibaba Cloud Full Stack (7): SLS, CloudMonitor, and Observability</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/01-ecosystem-map/><span class=series-nav-num>01</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (1): The Ecosystem Map — What Alibaba Cloud Actually Is</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/02-ecs-compute/><span class=series-nav-num>02</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (2): ECS — Compute That Actually Makes Sense</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/03-vpc-networking/><span class=series-nav-num>03</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/04-oss-storage/><span class=series-nav-num>04</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (4): OSS — Object Storage Done Right</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/05-rds-database/><span class=series-nav-num>05</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (5): RDS and PolarDB — The Database Layer</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>06</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security</span>
+<span class=series-nav-here>you are here</span></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/07-observability/><span class=series-nav-num>07</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (7): SLS, CloudMonitor, and Observability</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/08-serverless/><span class=series-nav-num>08</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (8): Serverless — Function Compute and EventBridge</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/09-opensearch/><span class=series-nav-num>09</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (9): OpenSearch and AI Search</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/10-bailian-llm/><span class=series-nav-num>10</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (10): Bailian and DashScope — The LLM Layer</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/11-pai-ml-platform/><span class=series-nav-num>11</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (11): PAI — The ML Platform</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/en/aliyun-fullstack/12-terraform-e2e/><span class=series-nav-num>12</span>
+<span class=series-nav-title>Alibaba Cloud Full Stack (12): End-to-End — One Terraform Apply for Everything</span></a></li></ol></section><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-security-mental-model>The Security Mental Model</a></li><li><a href=#ram-resource-access-management>RAM: Resource Access Management</a><ul><li><a href=#the-alibaba-cloud-account-root>The Alibaba Cloud Account (Root)</a></li><li><a href=#creating-ram-users>Creating RAM Users</a></li><li><a href=#setting-up-mfa>Setting Up MFA</a></li></ul></li><li><a href=#ram-groups>RAM Groups</a></li><li><a href=#ram-policies-deep-dive>RAM Policies Deep Dive</a><ul><li><a href=#system-policies-vs-custom-policies>System Policies vs Custom Policies</a></li><li><a href=#policy-structure>Policy Structure</a></li><li><a href=#real-policy-examples>Real Policy Examples</a></li><li><a href=#rbac-vs-abac>RBAC vs ABAC</a></li></ul></li><li><a href=#ram-roles>RAM Roles</a><ul><li><a href=#trust-policy>Trust Policy</a></li><li><a href=#service-role-example-ecs-accessing-oss>Service Role Example: ECS Accessing OSS</a></li><li><a href=#cross-account-role>Cross-Account Role</a></li></ul></li><li><a href=#sts-temporary-credentials>STS: Temporary Credentials</a><ul><li><a href=#why-temporary-beats-permanent>Why Temporary Beats Permanent</a></li><li><a href=#the-sts-workflow>The STS Workflow</a></li><li><a href=#complete-sts-example-frontend-upload-to-oss>Complete STS Example: Frontend Upload to OSS</a></li></ul></li><li><a href=#kms-key-management-service>KMS: Key Management Service</a><ul><li><a href=#key-concepts>Key Concepts</a></li><li><a href=#why-envelope-encryption>Why Envelope Encryption?</a></li><li><a href=#creating-keys-and-encrypting-data>Creating Keys and Encrypting Data</a></li><li><a href=#encrypting-alibaba-cloud-services>Encrypting Alibaba Cloud Services</a></li><li><a href=#key-rotation>Key Rotation</a></li></ul></li><li><a href=#actiontrail-audit-everything>ActionTrail: Audit Everything</a><ul><li><a href=#what-gets-logged>What Gets Logged</a></li><li><a href=#setting-up-a-trail>Setting Up a Trail</a></li><li><a href=#querying-audit-events>Querying Audit Events</a></li></ul></li><li><a href=#security-best-practices-checklist>Security Best Practices Checklist</a></li><li><a href=#solution-secure-multi-team-access>Solution: Secure Multi-Team Access</a><ul><li><a href=#step-1-create-the-ram-groups>Step 1: Create the RAM Groups</a></li><li><a href=#step-2-create-ram-users-and-assign-to-groups>Step 2: Create RAM Users and Assign to Groups</a></li><li><a href=#step-3-create-service-role-for-ecs>Step 3: Create Service Role for ECS</a></li><li><a href=#step-4-set-up-sts-policy-for-frontend-upload>Step 4: Set Up STS Policy for Frontend Upload</a></li><li><a href=#step-5-enable-actiontrail>Step 5: Enable ActionTrail</a></li><li><a href=#step-6-create-kms-key-for-sensitive-data>Step 6: Create KMS Key for Sensitive Data</a></li></ul></li><li><a href=#key-takeaways>Key Takeaways</a></li><li><a href=#whats-next>What&rsquo;s Next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/aliyun-fullstack/ class=series-name>Alibaba Cloud Full Stack</a>
+<span class=count>12</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/01-ecosystem-map/><span class=chapter-num>01</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (1): The Ecosystem Map — What Alibaba Cloud Actually Is</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/02-ecs-compute/><span class=chapter-num>02</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (2): ECS — Compute That Actually Makes Sense</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/03-vpc-networking/><span class=chapter-num>03</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (3): VPC, SLB, and the Network Layer</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/04-oss-storage/><span class=chapter-num>04</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (4): OSS — Object Storage Done Right</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/05-rds-database/><span class=chapter-num>05</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (5): RDS and PolarDB — The Database Layer</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>06</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (6): RAM, KMS, and Cloud Security</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/07-observability/><span class=chapter-num>07</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (7): SLS, CloudMonitor, and Observability</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/08-serverless/><span class=chapter-num>08</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (8): Serverless — Function Compute and EventBridge</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/09-opensearch/><span class=chapter-num>09</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (9): OpenSearch and AI Search</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/10-bailian-llm/><span class=chapter-num>10</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (10): Bailian and DashScope — The LLM Layer</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/11-pai-ml-platform/><span class=chapter-num>11</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (11): PAI — The ML Platform</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-fullstack/12-terraform-e2e/><span class=chapter-num>12</span>
+<span class=chapter-title>Alibaba Cloud Full Stack (12): End-to-End — One Terraform Apply for Everything</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>60 min</strong></div><div class=row><span>Word count</span><strong>6189</strong></div><div class=row><span>Published</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>Series</h3><ul><li><a href=https://www.chenk.top/en/series/aliyun-fullstack/>Alibaba Cloud Full Stack</a></li><li><a href=https://www.chenk.top/en/series/llm-engineering/>LLM Engineering</a></li><li><a href=https://www.chenk.top/en/series/claude-code-learn/>Claude Code Hands-On</a></li><li><a href=https://www.chenk.top/en/series/openclaw-quickstart/>OpenClaw QuickStart</a></li><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform Agents</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Explore</h3><ul><li><a href=/en/archives/>All Posts</a></li><li><a href=/en/tags/>Tags</a></li><li><a href=/en/categories/>Categories</a></li><li><a href=/en/about/>About</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Projects</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>Elsewhere</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai</span>
+<span class=signature>Hangzhou.</span></div></div></footer></body></html>
