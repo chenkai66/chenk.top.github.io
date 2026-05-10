@@ -85,7 +85,7 @@ translationKey: "openclaw-quickstart-4"
 |----------|----------|
 | `dashscope` | 国内托管、便宜、Qwen 系列。我的默认选择。 |
 | `anthropic` | 想要 Claude 的推理质量，且不在乎成本。 |
-| `openai` |  specifically 需要 GPT-4 或 GPT-5.4。 |
+| `openai` |  就是需要 GPT-4 或 GPT-5.4。 |
 | `bailian-coding-plan` | 想要一个订阅包揽 Claude + Qwen + DeepSeek + GLM。 |
 
 实际配置长这样。
