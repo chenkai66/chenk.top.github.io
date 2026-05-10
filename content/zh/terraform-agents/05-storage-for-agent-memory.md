@@ -18,26 +18,25 @@ description: "Agent 有三种记忆，分别落到三个阿里云服务上：会
 disableNunjucks: true
 translationKey: "terraform-agents-5"
 ---
+大多数教程讲到 Agent 记忆这块都在糊弄。“把 embeddings 扔 Pinecone，sessions 扔 Postgres，截图扔 S3 就完事了。”在阿里云上这三样都有托管服务，但 Terraform 配得好不好，决定了是“记忆功能正常”还是“凌晨 4 点磁盘满了，丢了三周对话历史”。
 
-Agent 的"记忆"是大多数教程一笔带过的部分。"embedding 丢 Pinecone，会话进 Postgres，截图传 S3"——讲得轻巧。在阿里云上这三种存储都有托管服务，而能不能用 Terraform 把它们正确地建出来，就是"记忆好用"和"凌晨四点磁盘满了，丢了三周对话历史"之间的差距。
-
-本文覆盖三层存储、对应的 Terraform、那些枯燥但救命的备份与灾备配置、大版本升级的完整流程，以及那个让我赔上整个周六、之后改变了我所有运维习惯的事故。
+这篇文章会覆盖这三层架构，每层的 Terraform 代码，枯燥但至关重要的备份和灾难恢复管道，大版本升级的故事，还有那个周六的故障——它教会了我现在的所有不同做法。
 
 ## 三层记忆模型
 
-![Agent 的三种记忆对应到三个阿里云服务](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png)
+![An agent's three kinds of memory map onto three Aliyun services](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png)
 
-心智模型：
+脑子里的模型：
 
-- **短期 / 会话记忆**——Agent 当前运行和最近几次运行的痕迹：对话轮次、工具调用、中间状态。schema 稳定、低延迟、需要事务，归关系型数据库。
-- **长期 / 语义记忆**——文档、历史输出、召回库的 embedding。需要词项+向量混合检索，归向量存储。
-- **产物 / 大文件**——生成的图片、PDF、截图、运行快照。体积大、写多读少，归对象存储。
+- **短期 / 会话（Short-term / session）** —— Agent 在当前 run 和最近几次 run 里做了什么。对话轮次、工具调用、中间状态。Schema 稳定、低延迟、事务性。扔进关系型数据库。
+- **长期 / 语义（Long-term / semantic）** —— 文档 embeddings、 prior outputs、recall corpus。混合 lexical + vector 搜索。扔进向量存储。
+- **Artifact / blob** —— 生成的图片、PDF、截图、run 快照。通常很大，写一次读很少。扔进对象存储。
 
-千万别把三层混在一起。我见过一个团队把 50 GB 生成 PDF 直接塞进 Postgres，理由是"它有 `bytea` 列"。结果成本是 OSS 的十倍，查询延迟惨不忍睹，备份动辄几小时。每一层都有专门擅长它的服务，选对了账单才不会失控。
+别把它们混为一谈。我见过有团队想把 50GB 生成的 PDF 塞进 Postgres，理由是“它有 `bytea` 列”。成本是 OSS 的十倍，查询延迟变得一塌糊涂，备份要花好几个小时。每层都有专门擅长干这个活的服务——选对服务，账单才 sane。
 
-## 第 1 层：关系型，RDS for PostgreSQL
+## 第一层：关系型数据库，RDS for PostgreSQL
 
-会话状态——对话轮次、工具调用 trace、用户身份——必须用真正的 RDBMS。我默认 PostgreSQL；MySQL 也行，看团队偏好。需要横向扩展时再上 PolarDB。
+会话状态——逐轮对话、工具调用 trace、用户身份——你得用正经 RDBMS。PostgreSQL 是我的默认选项；如果团队偏好 MySQL 也没问题。需要水平扩展时，下一步是 PolarDB。
 
 ```hcl
 resource "random_password" "rds_admin" {
@@ -49,7 +48,7 @@ resource "alicloud_kms_secret" "rds_admin" {
   secret_name              = "agents-${terraform.workspace}-rds-admin"
   secret_data              = random_password.rds_admin.result
   version_id               = "v1"
-  description              = "agents-${terraform.workspace} 的 RDS admin 密码"
+  description              = "RDS admin password for agents-${terraform.workspace}"
   encryption_key_id        = module.vpc.kms_keys["secrets"]
   recovery_window_in_days  = 7
   force_delete_without_recovery = false
@@ -97,26 +96,26 @@ resource "alicloud_db_database" "session" {
 }
 ```
 
-值得逐行说明的几个点：
+这块代码里值得单拎出来说的几点：
 
-- 密码出生即在 KMS Secrets Manager 里。`random_password` 生成，写进 `alicloud_kms_secret`，Agent 启动时通过 STS 取。明文只在 Terraform 内存里短暂存在，下游通过 `secret_id` 引用而非引用值，因此不会落进 tfstate。
-- `encryption_key` 把磁盘绑到 `memory` CMK。静态加密，零额外成本。
-- `backup_period` + `retention_period` 一周三次自动备份，prod 留 30 天、dev 留 7 天。RDS 备份存在 OSS 上，bucket 不用你管。
-- `zone_id_slave_a` 在 prod 里建第二可用区热备。30 秒内 failover。代价是 2 倍——prod 值得，dev 过头。
-- `deletion_protection` 加上 `lifecycle.prevent_destroy` 在 prod 里同时挡住 `terraform destroy` 和 provider 触发的强制重建。为什么两个都要？后面那次事故复盘里会讲，简短版本是：其中一个曾经救了我的周六。
+- **密码从出生就待在 KMS Secrets Manager 里。** 由 `random_password` 生成，写入 `alicloud_kms_secret`，Agent 启动时通过 STS 获取。明文永远不会离开 Terraform 的内存，下游通过 `secret_id` 引用而不是值，所以不会留在 tfstate 里。
+- **`encryption_key`** 把磁盘绑定到 `memory` CMK 上。落盘加密，没有额外成本。
+- **`backup_period` + `retention_period`** 创建每周三次的自动备份，prod 保留 30 天，dev 保留 7 天。RDS 备份存在 OSS 上；你不用管 bucket。
+- **`zone_id_slave_a`** 在 prod 环境会在第二个可用区创建热备。故障切换小于 30 秒。成本翻倍——prod 值得，dev 没必要。
+- **`deletion_protection`** 加上 **`lifecycle.prevent_destroy`** 在 prod 环境能挡住 `terraform destroy` 和 provider 驱动的强制替换。下文故障复盘部分我会解释为什么两者都需要——长话短说，其中有一次救了我的周六。
 
-> **提示。** 当 sessions 表过 ~10M 行、或者需要无停机读副本时，再上 PolarDB。RDS → PolarDB 迁移文档完善，Terraform 两边都支持。但别一开始就上——小规模时 RDS 更简单更便宜。
+> **提示。** 一旦 sessions 表超过 ~1000 万行或者你需要无停机读副本，PolarDB 才是正解。从 RDS 迁移到 PolarDB 文档很全，Terraform 两者都支持。别一开始就上——小规模时 RDS 更简单便宜。
 
-关系层是骨架。下一层才是让 Agent 显得"聪明"的部分。
+小型关系层是脊柱。下一层才是让 Agent 显得聪明的关键。
 
-## 第 2 层：向量存储
+## 第二层：向量存储
 
-阿里云上向量层有两个像样的选择：
+阿里云上向量层有两个合理选择：
 
-1. OpenSearch 向量检索版——托管、Lucene 底层、支持 HNSW 和 IVF，按 QPS 配额计费。
-2. PolarDB 或 RDS PostgreSQL 加 `pgvector`——和关系数据共驻，无新增基础设施，过 ~100 万向量后变慢。
+1. **OpenSearch Vector Search Edition** —— 托管版，基于 Lucene，支持 HNSW + IVF，按 QPS 配额计费。
+2. **带 `pgvector` 的 PolarDB 或 RDS PostgreSQL** —— 和关系数据在一起，不用新 infra，超过 ~100 万向量后变慢。
 
-原型之后我都选 OpenSearch。成本是真的（最小规格 ~¥800/月），但开箱即用的词项+向量混合检索是召回场景该有的形状——纯向量相似度在太多真实查询里会输给 BM25，没法忽视。
+过了原型阶段我首选 OpenSearch。成本是实打实的（最小实例约 ¥800/月），但你开箱就能用混合 lexical+vector 搜索，这才是检索该有的样子——纯向量相似度在太多真实查询上输给 BM25，不容忽视。
 
 ```hcl
 resource "alicloud_opensearch_app_group" "vector" {
@@ -128,13 +127,13 @@ resource "alicloud_opensearch_app_group" "vector" {
     compute_resource = 20
     spec             = "opensearch.share.junior"
   }
-  description = "Agent 的长期语义记忆"
+  description = "Long-term semantic memory for agents"
 }
 ```
 
-App group 是 OpenSearch 里挂索引的逻辑单元。索引 schema 通过控制台或 SDK 创建——`alicloud_opensearch_app` 资源是有的，但 schema 这层属于运维操作，不是 IaC。embedding 维度（OpenAI `text-embedding-3-small` 是 1536，阿里 bge-m3 是 1024）在索引设置里钉死，永远别改；重建 1000 万向量的索引是好几天的活。
+app group 是 OpenSearch 里持有索引的概念。从这里开始你要通过 OpenSearch 控制台或 SDK 创建索引 schema——`alicloud_opensearch_app` 资源确实存在，但 schema 部分是运营操作而不是预配。在索引设置里定死 embedding 维度（`text-embedding-3-small` 是 1536，阿里云 bge-m3 是 1024），别改它；重索引 1000 万向量是好几天的活儿。
 
-如果走 pgvector 路线，在 RDS 的 database 创建里加：
+如果走 pgvector 路线，在 RDS 数据库创建时加上这个：
 
 ```hcl
 resource "alicloud_db_database" "vectors" {
@@ -143,17 +142,17 @@ resource "alicloud_db_database" "vectors" {
   character_set = "UTF8"
 }
 
-# pgvector 扩展通过迁移工具创建，不是 Terraform：
+# pgvector extension is created via your migration tool, not Terraform:
 # CREATE EXTENSION IF NOT EXISTS vector;
 # CREATE TABLE embeddings (id bigserial primary key, vec vector(1536), meta jsonb);
 # CREATE INDEX embeddings_vec_idx ON embeddings USING hnsw (vec vector_cosine_ops);
 ```
 
-Terraform 只管数据库；表结构是应用代码（Alembic、Flyway、sqlx-migrate 任挑一个）。别用 Terraform 管表结构，那条路只有疯掉一种结局，我有亲历的伤痕作证。
+Terraform 只管数据库；schema 是应用代码的事（Alembic、Flyway、sqlx-migrate——选一个）。别试图在 Terraform 里管表结构，那条路通向疯狂，我身上的伤疤就是证明。
 
-## 第 3 层：对象存储
+## 第三层：对象存储
 
-OSS 装产物：生成的图片、PDF、截图、运行 trace 的 tar 包、微调出来的 checkpoint。Agent 栈的 bucket 配置：
+OSS 是 artifacts 的去处：生成的图片、PDF、截图、run-trace tarballs，如果你做 fine-tune 还有模型 checkpoints。对于 Agent 栈：
 
 ```hcl
 resource "alicloud_oss_bucket" "artifacts" {
@@ -208,49 +207,48 @@ resource "random_id" "suffix" {
 }
 ```
 
-三个值得展开的点。
+三点值得细看。
 
-### Bucket 名称全局唯一
+### Bucket 名称唯一性
 
-OSS bucket 名跨所有阿里云用户唯一——和 S3 一样。`random_id` 后缀是为了避开新手必踩的"名字被占用"plan 报错。Bucket 一旦创建，名字就稳定了。
+OSS bucket 名称在所有阿里云客户间全局唯一——和 S3 一样。`random_id` 后缀能避开每个新手都会踩的“名称已被占用”plan 失败。Bucket 一旦创建，名称就稳定了。
 
 ### 生命周期分层
 
-`lifecycle_rule` 是 OSS 成本的最大杠杆：
+`lifecycle_rule` 块是 OSS 里最大的成本杠杆：
 
-![OSS 生命周期管理](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig2_oss_lifecycle.png)
+![OSS lifecycle for agent artifacts](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig2_oss_lifecycle.png)
 
-- 标准存储（0–30 天，~¥0.12/GB/月）——默认写入。
-- 低频访问（30–90 天，~¥0.08/GB/月）——更便宜，每 GB 取回 ~¥0.0125。
-- 归档（90–365 天，~¥0.033/GB/月）——分钟到小时级取回。
-- 冷归档（365 天以上，~¥0.015/GB/月）——小时级取回，最便宜。
+- **Standard**（0–30 天，~¥0.12/GB/月）—— 默认写入层。
+- **Infrequent Access**（30–90 天，~¥0.08/GB/月）—— 存储更便宜，检索 ~¥0.0125/GB。
+- **Archive**（90–365 天，~¥0.033/GB/月）—— 分钟到小时级检索。
+- **Cold Archive**（365 天+，~¥0.015/GB/月）—— 小时级检索，最便宜层。
 
-对 Agent 产物，这条规则的意思：30 天热存储，2 个月低频，9 个月归档，1 年冷归档，2 年删除。1 TB 的产物语料，全标准是 ¥1500/月，分层后是 ~¥250/月。HCL 里写一次，一年省五位数。唯一的坑是 IA 的最小存储期（30 天）和 Archive 的取回延迟——别把热数据塞进冷层就行。
+对于 Agent artifacts，规则是这样：热存 30 天，IA 存两个月，Archive 存九个月，Cold Archive 存一年，然后删除。对于 1TB 的 artifact corpus，这决定了账单是 ~¥1500/月（全 Standard）还是 ~¥250/月。HCL 里写一次，一年省五位数。IA 最低存储收费（30 天）和 Archive 检索延迟是唯一的坑——别把热数据放冷层就没事。
 
 ### 版本控制
 
-`versioning { status = "Enabled" }` 保留每个对象的所有版本。Agent 覆盖 `artifacts/run-123/output.pdf` 时，老版本不会真删，只是换了 version ID。两个理由：
+`versioning { status = "Enabled" }` 保留每个对象版本。Agent 覆盖 `artifacts/run-123/output.pdf` 实际上不会销毁旧版本——它还在那，只是 version ID 不同。这有两点重要性：
 
-1. 数据恢复。Bug 把 5 万个对象覆盖成垃圾？写个脚本回滚。
-2. 防篡改。配合 WORM（Write-Once-Read-Many）策略，合规白送。
+1. **恢复。** 一个 bug 用垃圾数据覆盖了 50,000 个对象？写个脚本恢复旧版本。
+2. **防篡改。** 配合 WORM (Write-Once-Read-Many) 策略，免费搞定合规。
 
-历史版本会持续累积，所以上面 lifecycle 里的 `noncurrent_version_expiration` 设了 180 天清理。不加这条，存储账单半年悄悄翻一倍。
+版本对象会累积，所以上面生命周期规则里的 `noncurrent_version_expiration` 会在 180 天后修剪旧版本。没有它，存储账单每六个月就会悄悄翻倍。
+## 备份、容灾，以及如何证明它们真的管用
 
-## 备份、灾备，以及证明它们真能用
+用 Terraform 管备份，架构大概长这样：
 
-Terraform 管的备份拓扑大致是这样：
+![Backups: not optional, just budgeted](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig3_backup_topology.png)
 
-![备份不是可选项，而是预算内的必要投入](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/05-storage-for-agent-memory/fig3_backup_topology.png)
+- **RDS** — 内置自动备份（上面的 HCL 里已经配了）。
+- **OSS** — 开启版本控制 + 跨地域复制，用来做容灾。
+- **OpenSearch** — 通过 `alicloud_opensearch_*` 快照资源把快照打到 OSS 上。
 
-- RDS：自带自动备份（前面 HCL 已写）。
-- OSS：版本控制 + 跨区复制做灾备。
-- OpenSearch：通过 `alicloud_opensearch_*` 快照资源备到 OSS。
-
-OSS 跨区复制就一个资源：
+OSS 的跨地域复制只需要一个资源：
 
 ```hcl
 resource "alicloud_oss_bucket" "artifacts_dr" {
-  provider = alicloud.beijing       # 第二 region 的 provider 别名
+  provider = alicloud.beijing       # second-region provider alias
   bucket   = "${alicloud_oss_bucket.artifacts.bucket}-dr"
   acl      = "private"
 
@@ -259,7 +257,7 @@ resource "alicloud_oss_bucket" "artifacts_dr" {
   }
 
   server_side_encryption_rule {
-    sse_algorithm = "AES256"        # KMS 密钥按 region 隔离，灾备桶用 AES256 更省事
+    sse_algorithm = "AES256"        # KMS keys are region-scoped; AES256 keeps the DR bucket simple
   }
 }
 
@@ -279,7 +277,7 @@ resource "alicloud_oss_bucket_replication" "artifacts" {
 }
 ```
 
-provider 别名让一次 Terraform 执行同时操作两个 region：
+通过 provider alias，一次 Terraform 运行就能操作两个地域：
 
 ```hcl
 provider "alicloud" {
@@ -288,25 +286,25 @@ provider "alicloud" {
 }
 ```
 
-无状态的研发型 Agent，灾备让存储成本翻倍可能不划算。但面向客户、对话历史合规要求长期保存的场景，灾备是硬约束。
+如果是那种 mainly stateless 的研究型 Agent，你可能觉得容灾不值得让存储成本翻倍。但要是面向客户、涉及对话历史且法律要求必须持久化的场景，这就是 mandatory。
 
-### 证明副本能用——每月演练
+### 证明副本真的能用——每月演练
 
-从未恢复过的副本就是不存在的备份。下面这个脚本能让"副本坏了 30 天才发现"变成"演练当天就发现"：
+从来没恢复过的副本，等于没有备份。下面这个脚本能在灾难发生前 30 天 catches a broken replica，而不是等到真出事的时候：
 
 ```bash
 #!/bin/bash
-# scripts/dr-drill.sh —— 每月 1 号 CI cron 跑一次
+# scripts/dr-drill.sh — run on the 1st of every month from a CI cron
 set -euo pipefail
 
 PRIMARY_BUCKET="agents-artifacts-prod-abc12345"
 REPLICA_BUCKET="${PRIMARY_BUCKET}-dr"
 DRILL_KEY="dr-drill/$(date -Iseconds).probe"
 
-# 1. 主桶写探针
+# 1. Write a probe to primary
 echo "drill $(uuidgen)" | aliyun oss put oss://$PRIMARY_BUCKET/$DRILL_KEY -
 
-# 2. 等复制（China 内通常 <60s）
+# 2. Wait for replication (typically <60s within China)
 for i in {1..30}; do
   if aliyun oss --region cn-beijing stat oss://$REPLICA_BUCKET/$DRILL_KEY > /dev/null 2>&1; then
     echo "Replicated in $((i*5))s"
@@ -315,32 +313,32 @@ for i in {1..30}; do
   sleep 5
 done
 
-# 3. 校验内容一致
+# 3. Verify content match
 PRIMARY_HASH=$(aliyun oss cat oss://$PRIMARY_BUCKET/$DRILL_KEY | sha256sum | awk '{print $1}')
 REPLICA_HASH=$(aliyun oss --region cn-beijing cat oss://$REPLICA_BUCKET/$DRILL_KEY | sha256sum | awk '{print $1}')
 [[ "$PRIMARY_HASH" == "$REPLICA_HASH" ]] || { echo "HASH MISMATCH"; exit 1; }
 
-# 4. 清理探针
+# 4. Clean up the probe
 aliyun oss rm oss://$PRIMARY_BUCKET/$DRILL_KEY
 aliyun oss --region cn-beijing rm oss://$REPLICA_BUCKET/$DRILL_KEY
 
-# 5. 成功通知钉钉
+# 5. Notify DingTalk on success
 curl -X POST "$DINGTALK_WEBHOOK" \
   -H 'Content-Type: application/json' \
   -d '{"msgtype":"text","text":{"content":"DR drill OK at '$(date -Iseconds)'"}}'
 ```
 
-2 分钟算力、零人工，副本健康从此不再是信念问题。挂到第二篇里那个 drift check 的同一个 GitHub Actions cron 上。这种模式——把"否则会在最坏时间发现是坏的"东西周期性自动演练一遍——对 RDS 恢复、KMS 密钥轮换、每条 failover 路径都适用。
+两分钟算力，零人工介入，副本健康状态就不再是靠信仰了。把它跟第二篇文章里的 drift check 一样挂到 GitHub Actions cron 上。同样的模式——定期自动化演练那些否则只能在最糟糕时刻才发现坏了的东西——也适用于 RDS 恢复、KMS 密钥轮转，以及每一个 failover 路径。
 
-> **提示。** 我还有个 `restore-drill.sh` 每月跑一次，随机抽一个 RDS 备份恢复到 `cn-shanghai-dr` 实例做 schema/checksum 校验。这是我每月最有价值的 30 分钟。
+> **Tip.** 我每月还会跑一个单独的 `restore-drill.sh`，把随机的 RDS 备份拉到 `cn-shanghai-dr` 实例里，跑 schema/checksum 验证。这是我每个月花得最值的 30 分钟。
 
-## 用 Terraform 做 RDS 大版本升级
+## 通过 Terraform 进行 RDS 大版本升级
 
-Postgres 每两年发一个大版本，旧版本随之 EOL。RDS for PostgreSQL 的大版本升级是实打实的运维事件——会有停机、可能失败，而 Terraform provider 把它暴露成"看起来无害实则危险"的 `engine_version` 改动。
+Postgres 每两年一个大版本，旧版本就会 EOL。RDS for PostgreSQL 升级是个真正的 operational event——会有 downtime，可能失败，而且 Terraform provider 通过 `engine_version` 变更暴露出的接口看着无害，其实不然。
 
-我在 v15 → v16 升级里跑通的流程：
+我在 v15 → v16 升级上跑通的流程是这样：
 
-**第 1 步：动手前先备份。**
+**Step 1 — 动任何东西之前先快照。**
 
 ```bash
 aliyun rds CreateBackup \
@@ -349,9 +347,9 @@ aliyun rds CreateBackup \
   --BackupType FullBackup
 ```
 
-通过 `aliyun rds DescribeBackups` 等完成。这是你的"救命按钮"。
+通过 `aliyun rds DescribeBackups` 等待完成。这是你的“救命按钮”。
 
-**第 2 步：克隆一个兄弟实例做试运行。**
+**Step 2 — 克隆一个兄弟实例做试验。**
 
 ```hcl
 resource "alicloud_db_instance" "memory_v16_trial" {
@@ -368,76 +366,76 @@ resource "alicloud_db_instance" "memory_v16_trial" {
 }
 ```
 
-`terraform apply` 会基于 v15 备份拉起一个 v16 实例。QA 把 staging 流量指过去跑一周。生产零风险。
+`terraform apply` 拉起一个 v16 实例，恢复的是 v15 的数据。QA 把 staging 流量切过去跑一周。零生产风险。
 
-**第 3 步：确认无误后原地升级。**
+**Step 3 — 有信心了，原地升级。**
 
 ```hcl
 resource "alicloud_db_instance" "memory" {
-  engine_version = "16.0"   # 原本是 "15.0"
-  # 其余不变
+  engine_version = "16.0"   # was "15.0"
+  # everything else unchanged
 }
 ```
 
-`terraform plan` 显示 `~ engine_version: "15.0" -> "16.0"`，apply 触发原地升级。停机时间看库大小——小库 1 分钟内，多 TB 的库可能 30 分钟。升级回滚只能靠第 1 步的快照，别跳过第 1 步。
+`terraform plan` 显示 `~ engine_version: "15.0" -> "16.0"`，apply 触发原地升级。Downtime 取决于数据库大小——小库 1 分钟内，多 TB 的库可能要到 30 分钟。升级只有通过 Step 1 的快照恢复才能回滚，所以别跳过 Step 1。
 
-**第 4 步：拆掉试运行实例。**
+**Step 4 — 拆掉试验实例。**
 
 ```bash
 terraform state rm alicloud_db_instance.memory_v16_trial
-# 删 HCL 配置块
-# 下次 plan：0 changes
+# remove the HCL block
+# next plan: 0 changes
 ```
 
-然后通过控制台或 API 删试运行实例。别在同一个项目里 `terraform destroy`，那会顺着依赖走，可能误伤兄弟资源。
+然后在控制台删除试验实例。别在同一个项目里 `terraform destroy` 它——那样会走依赖链，可能误伤兄弟资源。
 
-整个流程 2 周日历时间、3 小时聚焦工作、零计划外停机。用 Terraform 做的好处是试运行实例的 HCL 留在 git 里——半年后升 v17，playbook 已经在仓库里、被同一拨人 review 过了。
+整个过程日历时间约 2 周，专注工作时间约 3 小时，零计划外 downtime。用 Terraform 做的好处是，试验实例的 HCL 留在了 git 里——六个月后你要做 v17 升级时，playbook 已经在那儿了，在同一个 repo 里，被同一个团队 review 过。
 
-> **提示。** 升级前在 Agent 代码里测一遍连接字符串变更。Postgres v16 有些改动（比如移除 `password_encryption = md5`）会打挂老客户端库。先让 Agent 在试运行实例上跑一整天再切。
+> **Tip.** 升级前先在 agent 代码里测试 connection-string 变更。有些 Postgres v16 的改动（比如移除了 `password_encryption = md5`）会搞挂旧客户端库。在提升为主库前，让 agent 对着试验实例跑满一整天。
 
-## 那个 apply 错 workspace 的夜晚
+## 真实事故：那个我 `terraform apply` 错 workspace 的夜晚
 
-这件事赔上了我一个周六。值得讲是因为修复方法是结构性的，不是"下次小心点"。
+这事儿赔进去我一个周六。值得讲是因为修复方案是结构性的，而不是“下次小心点”。
 
-背景：三个 workspace——`dev`、`staging`、`prod`。dev 的 RDS 是小规格 `pg.n2.medium.1c`，prod 是带 HA 的 `pg.x4.large.2c`。我在笔记本上干活，切了个 feature 分支，跑 `terraform plan` 检查改动。看到"Plan: 2 to add, 1 to change, 0 to destroy"——挺干净，跑了 `terraform apply`，起身去泡咖啡。
+环境 setup：三个 workspace — `dev`、`staging`、`prod`。`dev` 的 RDS 是个小规格的 `pg.n2.medium.1c`。Prod 是 `pg.x4.large.2c` 带 HA。我当时用笔记本干活，切了个 feature 分支，跑 `terraform plan` 检查。看到 "Plan: 2 to add, 1 to change, 0 to destroy" — 看着挺干净。于是跑了 `terraform apply`。起身去冲了杯咖啡。
 
-回来发现 prod 数据库被销毁了。
+回来发现 prod 数据库没了。
 
-根因：之前一次会话我选了 prod workspace，后来没切回去。这次的改动（一个 tag 微调）在 dev 是无害的。在 prod，看起来"1 to change"实际是强制重建，因为 main 上落了一次和本次无关的 provider 升级，要求 RDS 重建。Provider 的 plan 输出本该说清楚——它没有。
+根因：我在前一次会话里选了 `prod` workspace，之后忘了切回来。我要应用的变更（改个 tag）在 dev 里无害。但在 prod 里，看着像 "1 to change" 的操作实际上是 force-replace，因为 `main` 分支里合入了一个无关的 provider  bump，要求重建 RDS。Provider 的 plan 输出本该更清楚些——可惜并没有。
 
-肇事的 HCL：
+咬我一口的 HCL 长这样：
 
 ```hcl
-# PR 里看似无害的改动
+# innocent-looking change in a PR
 resource "alicloud_db_instance" "memory" {
-  # ... 其余不变 ...
+  # ... unchanged ...
   parameter {
     name  = "log_min_duration_statement"
-    value = "100"   # 原值 "1000"，无害的调优
+    value = "100"   # was "1000", harmless tuning
   }
 }
 ```
 
-provider 在新升的 1.231 版本里，把这个参数对某些引擎版本标成了 `force_new`。Plan 显示 `~ parameter`——看起来原地修改——apply 干的是重建。
+Provider 在新 bump 的 1.231 版本里，决定这个参数对某些 engine 版本现在是 `force_new` 了。Plan 显示 `~ parameter` — 看着像原地变更 — apply 却触发了重建。
 
-从自动备份恢复花了 90 分钟（幸好备份够新）。事后复盘出了四条结构性改进，两年内零复发。
+从自动备份恢复花了 90 分钟（幸好备份够新）。事后复盘产出了四个结构性修复，过去两年防止了所有复发。
 
-### 修复 1：prod 有状态资源加 `lifecycle { prevent_destroy = true }`
+### 修复 1 — 给 prod 有状态资源加上 `lifecycle { prevent_destroy = true }`
 
-前面 RDS 块里已经加了。现在任何会销毁 prod RDS 的 `terraform apply` 都会报错：`Resource has lifecycle.prevent_destroy set`。要真销毁得先去 HCL 里删掉这行、提 PR、过审、然后 destroy 才被允许。仅这一行，就能挡掉那次周六的事故。
+本文前面 RDS 块里已经加上了。任何试图销毁 prod RDS 的 `terraform apply` 现在都会报错 `Resource has lifecycle.prevent_destroy set`。真要销毁的话，得先在 HCL 里删掉这行，提 PR，获得批准，*然后* 才允许销毁。单单这一行就能把我的周六 outage 直接拦下。
 
-### 修复 2：Shell 里提示当前 workspace
+### 修复 2 — Shell 里的 workspace 提示
 
-每次 `terraform` 调用都吼一嗓子的函数：
+一个函数，每次调用 `terraform` 都会吼一嗓子：
 
 ```bash
 function terraform() {
   local ws=$(/usr/local/bin/terraform workspace show 2>/dev/null)
   if [[ "$ws" == "prod" ]]; then
     echo -e "\033[1;31m================================\033[0m"
-    echo -e "\033[1;31m WARNING: 当前 workspace = prod\033[0m"
+    echo -e "\033[1;31m WARNING: workspace = prod\033[0m"
     echo -e "\033[1;31m================================\033[0m"
-    read -p "确定继续？[y/N] " -n 1 -r
+    read -p "Continue? [y/N] " -n 1 -r
     echo
     [[ ! $REPLY =~ ^[Yy]$ ]] && return 1
   fi
@@ -445,14 +443,14 @@ function terraform() {
 }
 ```
 
-这 1 秒的暂停足够打破"自动驾驶"。塞进 `.zshrc`，从此再没误触过 prod。
+这 1 秒钟的停顿足以打断 autopilot。写在我的 `.zshrc` 里。从那以后我再没误操作过 prod。
 
-### 修复 3：prod apply 只走 CI，绝不在笔记本上
+### 修复 3 — prod apply 只走 CI，绝不用笔记本
 
-更彻底的版本：直接吊销笔记本对 prod state 文件的写权限。只有 GitHub Actions runner 持有的 RAM 角色对 prod state 前缀有 `oss:PutObject`。本地 `terraform plan` 能跑（只读），本地 `apply` 直接 `AccessDenied`。
+更干净的版本：撤销笔记本对 prod state 文件的 apply 权限。只有 GitHub Actions runner 拥有的 RAM role 才有 prod state prefix 上的 `oss:PutObject` 权限。本地 `terraform plan` 照常工作（只读）；本地 `apply` 会报 `AccessDenied`。
 
 ```hcl
-# 开发者角色绑定的策略
+# Attached to the developer role
 {
   "Effect": "Deny",
   "Action": "oss:PutObject",
@@ -460,38 +458,38 @@ function terraform() {
 }
 ```
 
-开发者角色上的 Deny 优先级高于任何 Allow。开发者能 plan，只有 CI 能 apply，CI 又被 PR review 卡住。
+Developer role 上的 Deny 优先级高于任何 Allow。开发能 plan；只有 CI 能 apply。CI 运行还 gated by PR review。
 
-### 修复 4：`pre-apply` 钩子汇总销毁动作
+### 修复 4 — 一个总结销毁操作的 `pre-apply` hook
 
 ```bash
-# .git/hooks/pre-commit（或者 tflint 自定义规则）
+# .git/hooks/pre-commit (or a tflint custom rule)
 plan_file=$1
 n_destroy=$(terraform show -json "$plan_file" | jq '[.resource_changes[] | select(.change.actions[] == "delete")] | length')
 if [[ "$n_destroy" -gt 0 ]]; then
-  echo "本次 plan 将销毁 $n_destroy 个资源："
+  echo "Plan would destroy $n_destroy resources:"
   terraform show -json "$plan_file" | jq -r '.resource_changes[] | select(.change.actions[] == "delete") | .address'
-  echo "请用 DESTROY=yes terraform apply 显式确认"
+  echo "Confirm with DESTROY=yes terraform apply"
   [[ "$DESTROY" != "yes" ]] && exit 1
 fi
 ```
 
-任何带销毁的 plan 都需要环境变量里显式给 `DESTROY=yes`。这个不可能手滑。它是 `prevent_destroy` 的腰带——专门兜底子模块里漏锁的情况。
+任何涉及删除的 plan 都需要环境变量里设 `DESTROY=yes`。你不可能手滑敲出这个。这是 `prevent_destroy` 双重保险里的第二道保险——它能 catch 住那些你忘了锁定的子模块里的销毁操作。
 
-四条全要。任何一条单独都救不了那次事故；四条合在一起让这种失败模式在结构上不可能发生。
+把这四条全用上。单条救不了我；四条合在一起让这种 failure mode 在结构上变得不可能。
 
-## 把计算和存储连起来
+## 把计算节点连到存储
 
-第四篇里的 ECS 实例需要真的能访问到这些存储。三件事：
+第四篇文章里的 ECS 实例得真正连上这些存储。三块内容：
 
-1. 网络——已经搞定。VPC 模块里的 `agent_runtime_sg_id` 是 `memory_rds_sg` 和 `vector_store_sg` 入站规则的 source。
-2. 凭证——Agent 启动时通过 STS 从 KMS Secrets Manager 取 DB 密码：
+1. **网络** — 已经搞定。VPC 模块里的 `agent_runtime_sg_id` 是 `memory_rds_sg` 和 `vector_store_sg` 入站规则的 source。
+2. **凭证** — agent 通过 STS 从 KMS Secrets Manager 读 DB 密码：
    ```python
    from alibabacloud_kms20160120.client import Client as KmsClient
    resp = kms_client.get_secret_value(GetSecretValueRequest(secret_name="agents-prod-rds-admin"))
    db_password = resp.body.secret_data
    ```
-3. 端点——Terraform 输出：
+3. **Endpoints** — Terraform 输出它们：
    ```hcl
    output "rds_endpoint" {
      value = alicloud_db_instance.memory.connection_string
@@ -504,19 +502,18 @@ fi
    }
    ```
 
-Agent 从 cloud-init 注入的环境变量里读这些值，环境变量来自 Terraform output。无硬编码端点、无手动配置文件、轮换时无人工介入。
+Agent 从环境变量里读这些值，环境变量由 cloud-init 根据 Terraform outputs 设置。没有硬编码的 endpoint，没有手动配置文件，轮转密钥也不需要人工介入。
+## 到底要花多少钱
 
-## 成本
+按月算，开发环境，低流量场景：
 
-每月，dev workspace，低流量：
+- RDS PostgreSQL (`pg.n2.medium.1c`, 100 GB ESSD)：约 ¥350/月。
+- OpenSearch vector（最小规格）：约 ¥800/月。
+- OSS（10 GB Standard，开启 lifecycle）：约 ¥1.5/月 + 流量费。
+- KMS（第 3 篇讲过）：约 ¥10/月。
 
-- RDS PostgreSQL（`pg.n2.medium.1c`，100 GB ESSD）：~¥350/月。
-- OpenSearch 向量版（最小规格）：~¥800/月。
-- OSS（10 GB 标准存储，开生命周期）：~¥1.5/月 + 流量。
-- KMS（第三篇覆盖）：~¥10/月。
+开发环境下，存储层加起来大概 ¥1200/月。要是上生产，加上 RDS 高可用、OpenSearch 扩容、OSS 用量增加，还有跨地域副本，一个月得 ¥3000–5000。这时候成本压力才算真正来了——别等到月底对账单才傻眼，第 7 篇我会手把手教你怎么提前监控和设报警。
 
-dev 存储层大约 ¥1200/月。prod 上 HA RDS、更大的 OpenSearch、更多 OSS、再加跨区副本，¥3000–5000/月。这是成本压力开始变真的地方——第七篇讲怎么追踪和告警，避免它在月度账单评审上突袭你。
+## 下一步计划
 
-## 下一篇
-
-第六篇在第四篇的计算和本篇的存储之上搭 LLM 网关：API key 放哪、配额怎么拦、按 Agent 怎么归因成本。第六篇之后你就有一个完整的、能跑 Agent 的栈了——最后两篇把可观测性和成本控制盖上去。
+第 6 篇的核心任务是搭建 LLM gateway，它挡在我们第 4 篇准备的计算资源和刚搞定的存储层前面。API key 管理、配额限制、每个 Agent 的成本分摊，全在这儿解决。走完第 6 篇，你就拥有一个完整的可运行 Agent 栈了——最后两篇我们再往上叠加可观测性和成本控制。

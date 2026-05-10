@@ -15,104 +15,111 @@ description: "Shift+Tab 不是开关而是四态循环。Thinking Mode 有 5 档
 disableNunjucks: true
 translationKey: "claude-code-learn-2"
 ---
-这些快捷键没出现在帮助界面是有原因的——要用的时候自然会发现，而不是靠文档说明。不过我还是写一下吧。
-![Claude Code 实战入门（二）：快捷键、四态切换、Thinking Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
+快捷键没放在帮助屏幕里是有原因的——它们是靠用出来的，不是靠查文档出来的。不过既然你们问了，我还是列出来。
 
-## `Shift+Tab`——四态循环
+![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
 
-很多人以为 `Shift+Tab` 只是用来开关 auto-accept 的。其实不是，它会按顺序在四个状态之间循环：
+## `Shift+Tab` — 四态循环
+
+大多数人以为 `Shift+Tab` 只是开关自动接受。其实不是。它是四个状态按顺序循环：
 
 ```
-Normal → Accept edits → Plan mode → Bypass permissions → Normal
+Normal  →  Accept edits  →  Plan mode  →  Bypass permissions  →  Normal
 ```
 
-每个状态都会改变 Claude 的行为，而且不需要额外确认：
+每个状态决定了 Claude 在不询问的情况下能做什么：
 
-| 状态 | 改变 |
-|------|------|
-| **Normal** | 默认状态。写文件和执行 shell 命令前都会先询问。 |
-| **Accept edits** | 自动接受文件修改，但执行 shell 命令时仍会询问。 |
-| **Plan mode** | 只生成计划，不实际执行。适合在产生副作用之前先检查方案是否合理。 |
-| **Bypass permissions** | 跳过所有确认提示。只有在完全信任当前任务时才用这个状态。 |
+| State | What changes |
+|-------|--------------|
+| **Normal** | 默认。写文件和跑 shell 命令前会询问。 |
+| **Accept edits** | 自动接受文件修改。shell 命令还是会问。 |
+| **Plan mode** | 只生成计划不执行。适合在看副作用前先审视方案。 |
+| **Bypass permissions** | 跳过所有确认提示。只在信任当前任务时用。 |
 
-状态栏会显示当前处于哪个状态。按 `Shift+Tab` 就能切换。我不会固定使用某个状态，因为每个状态对应不同的场景。开始一个陌生改动时，我会用 Plan mode；进行长时间重构时，我会用 Accept edits，毕竟我本来就在盯着输出看；运行已知且范围明确的脚本时，我会选择 Bypass permissions，但绝不会盲目使用。
-## 思考模式——五个级别
+状态栏会显示当前处在哪个状态。`Shift+Tab` 负责循环切换。没有哪个状态是我用得最多的——它们对应不同的任务。刚开始改未知代码时我用 Plan mode。长时间重构且我会盯着输出时我用 Accept edits。跑已知范围的脚本时我会用 Bypass permissions——但绝不盲用。
 
-![Claude Code 实战入门（二）：快捷键、四态切换、Thinking Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
+## 思考模式 — 五个层级
 
-在 Prompt 的任意位置输入以下短语之一，Claude 会调整回答前的推理深度：
+![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
 
-| 短语 | 大致耗时 |
-|------|----------|
-| `think` | 轻微额外推理 |
-| `think more` | 再多花几秒 |
-| `think a lot` | 明显变慢，但更深入 |
+在 prompt 里输入这些短语，Claude 就会调整回应前的推理力度：
+
+| Phrase | Approximate effort |
+|--------|-------------------|
+| `think` | 轻度额外推理 |
+| `think more` | 多花几秒 |
+| `think a lot` | 明显变慢，深度更深 |
 | `think longer` | 适合架构决策 |
-| `ultrathink` | 最高推理级别 |
+| `ultrathink` | 最大值 |
 
-推理深度越高，成本越高——每级消耗更多 Token。选择哪一级取决于具体任务：
+成本随深度增加——每级消耗的 token 更多。选哪级取决于任务：
 
-- "修复这个拼写错误"——直接写就行，不用加思考指令  
-- "找出这个测试不稳定的原因"——用 `think more`  
-- "重构这个模块"——用 `think a lot`  
-- "是否应该从 REST 切换到 gRPC"——用 `ultrathink`  
+- "Fix this typo" — 不用加思考短语
+- "Find why this test is flaky" — `think more`
+- "Refactor this module" — `think a lot`
+- "Should we move this from REST to gRPC" — `ultrathink`
 
-我默认对所有“非简单”任务都用 `think a lot`。比这简单的任务，我直接写 Prompt；更复杂的任务，其实是在问一个完全不同的问题，而 `ultrathink` 对此很坦诚。
+只要是“非 trivial"的任务，我默认都用 `think a lot`。低于这个级别直接输 prompt。高于这个级别，意味着我在问一个不同的问题，`ultrathink` 对此很诚实。
 
-常见误区是觉得 `ultrathink` 听起来严谨，就每个 Prompt 都用它。其实不然——它只是更贵。模型在与任务复杂度匹配的级别上表现最佳。
-## `Control+V`——粘贴图片
+陷阱是因为 `ultrathink` 听起来严谨就在每个 prompt 都用。并不是——它很贵。模型在匹配实际任务复杂度的级别上表现最好。
 
-直接把图片粘贴到 Prompt 里。无论是 UI 截图、错误弹窗、设计稿，还是白板照片，Claude 都能像读文字一样读懂。最实用的场景是："测试失败了，输出结果在这张终端截图里，问题出在哪？" 这样一来，我完全不用手动转录内容。
-## `Escape` 和双击 `Escape`
+## `Control+V` — 粘贴图片
 
-按一下 `Escape`，可以中断当前的生成。只要发现指令给错了，马上按就行。Agent 会停下，然后我来修正。
+直接把图片粘贴到 prompt 里。UI 截图、错误弹窗、设计稿、白板照片——Claude 像读文本一样读它。最有用的场景是“测试挂了，输出在这张终端截图里，哪错了？”。不用手动转录。
 
-快速按两下 `Escape`，也就是双击，会打开最近几轮对话的历史视图。选中某一轮，对话就会从那里开始分叉。选中轮次之后的内容会被移出上下文。
+## `Escape` 和双按 `Escape`
 
-用其他编码助手时，我最想念的就是这个功能。对话分叉才是正确的基础操作——试了一条路，发现不对，就可以回头，完全不会影响助手的记忆。
+单按 `Escape` 中断当前生成。一旦发现指令给错了，马上用。Agent 停下，你修正。
+
+双按 `Escape`（快速按两次）打开最近几次交互的历史视图。选一个节点“回滚”，对话就从那里分叉。选中节点之后的内容会从 context 中丢弃。
+
+这是我用其他 coding agent 时最想念的功能。对话分叉才是正确的原语——它让你试一条路，发现错了，回去重来，而不污染 Agent 的记忆。
+
 ## `/compact` 和 `/clear`
 
-处理长对话有两种方法：
+处理长对话的两种方法：
 
-- `/compact` 会把当前对话总结成一段简短的消息，然后接着继续。如果上下文太大导致 Agent 变慢，就用这个命令。
-- `/clear` 会直接清空当前对话，从头开始。如果你在同一个项目里切换到不相关的任务，可以用它。
+- `/compact` 把目前的对话总结成更短的消息继续。当 context 太大导致 Agent 变慢时用。
+- `/clear` 直接丢弃对话重新开始。当你在同一项目里切换到无关任务时用。
 
-这两个命令都会保留 `CLAUDE.md` 和 `.claude/settings.json` 文件的内容，只会影响当前会话的消息记录。
-## 实际工作流的样子
+两者都保留 `CLAUDE.md` 和 `.claude/settings.json` 在 scope 内。只影响单次会话的消息历史。
 
-今天早上我经历了一个真实的工作流程：
+## 实际工作流长什么样
+
+今天早上我的实际工作流：
 
 ```
 > @src/api/handlers.ts
-> 仔细思考——团队想给这个文件里的 3 个 POST 处理函数加上幂等键。
-> 提出一个方案，复用现有的 middleware 模式。
+> think a lot — the team wants to add idempotency keys to the
+> three POST handlers in this file. propose an approach that
+> reuses the existing middleware pattern.
 
-[Claude 提出方案——我看了下]
+[Claude proposes — I read it]
 
-[按 Shift+Tab 切到计划模式]
+[Shift+Tab to plan mode]
 
-> 好的，把方案写成计划，先别改动代码。
+> ok, write it out as a plan, don't change anything yet.
 
-[Claude 列出步骤]
+[Claude lays out the steps]
 
-[按 Shift+Tab 切到接受编辑模式]
+[Shift+Tab to accept edits]
 
-> 开始。
+> go.
 
-[Claude 修改代码，我看着代码滚动]
+[Claude makes the changes, I watch them scroll]
 
-[按 Shift+Tab 切回普通模式，准备运行测试]
+[Shift+Tab back to normal mode for the test run]
 
-> 运行测试。
+> run the tests.
 
-[Claude 停下来确认——是的——运行测试——三个通过，一个失败]
+[Claude pauses to ask — yes — runs them — three pass, one fails]
 
-[按两次 Escape 回滚到测试运行之前]
+[Double-Escape to fork back to before the test run]
 
-> 那个失败的测试针对的是旧的非幂等路径。
-> 修改它，让它验证新的行为。
+> the failing test is testing the old non-idempotent path.
+> update it to verify the new behavior.
 ```
 
-整个流程用到了这篇文章提到的所有基础操作。单独看每个操作都很普通，但合在一起，Claude Code 就像一个真正的工具，而不是在聊天界面上加了个自动补全功能。
+整个流程用到了本文提到的所有原语。单看每一个都不算惊艳。合在一起，Claude Code 才像个真正的工具，而不是挂在聊天窗口上的自动补全。
 
-下一篇：自定义斜杠命令与 `$ARGUMENTS`。
+下一篇：自定义 slash 命令和 `$ARGUMENTS`。

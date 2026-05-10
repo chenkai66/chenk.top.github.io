@@ -17,36 +17,28 @@ disableNunjucks: true
 description: "JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。"
 translationKey: "llm-engineering-7"
 ---
-函数调用是 LLM 和外部世界的桥梁。聊天模板细节（第 2 篇）、结构化输出内核（第 5 篇）和提示工程（第 9 篇），都在这里交汇。我来聊聊底层机制、能依赖的保证，以及在真实负载中管用的 agent 循环模式。
+函数调用是 LLM 与其权重之外世界之间的桥梁。这里也是 chat-template（第 2 章）、structured-output kernels（第 5 章）和 prompt engineering（第 9 章）交汇的地方。本章我们要深挖底层机制，看看有哪些保证可以依赖，以及哪些 agent-loop 模式能扛住真实负载。
 
-工具使用作为 LLM 的能力，可以追溯到 2022 年两篇几乎同时发布的论文。**MRKL Systems**（Karpas 等，AI21）提出神经-符号模块间的专家路由。**ReAct**（[Yao 等，2022][yao-react]）把思维链推理和工具操作结合起来。到了 2023 年，**Toolformer**（[Schick 等，2023][schick-toolformer]）展示了自监督教学方法。模型通过在现有文本中插入工具调用标记生成训练数据。
+技术渊源很重要。LLM 的工具使用能力最早追溯到 2022 年两篇几乎同时发表的论文：**MRKL Systems** (Karpas et al., AI21) 提出了神经符号模块间的专家路由，**ReAct** ([Yao et al., 2022][yao-react]) 则将思维链推理与工具动作交错进行。**Toolformer** ([Schick et al., 2023][schick-toolformer]) 展示了工具使用的自监督教学，让模型在现有文本中插入工具调用标记来生成训练数据。到了 2024 年，所有前沿模型都有了围绕工具使用格式构建的后训练数据，工具调用也从“研究演示”变成了"API 功能”。
 
-2024 年，所有前沿模型的后训练数据都围绕工具使用格式构建。工具调用从“研究演示”变成了“API 特性”。
+![LLM Engineering (7): Function Calling and Tool Use — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_1.png)
 
-![大模型工程（七）：Function Calling 与工具使用 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_1.png)
-## "Function calling" 实际指的是什么
+## 函数调用到底是什么意思
 
-API 提供 "function calling" 时，背后可能有几种机制。
+当 API 暴露“函数调用”能力时，背后可能 happening 几种不同的情况：
 
-1. **训练行为 + 聊天模板标记**  
-模型经过后训练，会在适当时候生成工具调用，并用特殊标记包裹。比如，Qwen3 用 `tool_call` 标签，Mistral 用 `[TOOL_CALLS]`。
+1. **训练行为 + chat template 标记**。模型经过后训练，会在适当时候 emit 工具调用，并用特殊 token 包裹。例如：Qwen3 使用 `tool_call` 标签，Mistral 使用 `[TOOL_CALLS]`。
+2. **JSON-mode 约束解码**。通过 grammar-constrained decoding 强制输出为合法 JSON。模型未必为此训练过，是 *decoder* 在强制约束。
+3. **Schema 引导的结构化输出**。JSON-mode 加上 JSON 必须匹配特定 schema 的约束（函数名、参数类型）。
+4. **自由形式 prompt**。你在 system prompt 里写“用 JSON 回复，包含 X, Y 键”，然后祈祷。这对能力强的模型依然有效，但没有任何保证。
 
-2. **JSON 模式约束解码**  
-通过语法约束解码，强制输出合法 JSON。模型不一定专门训练过；解码器负责执行约束。
+生产系统里这四种往往是混用的。OpenAI/Anthropic 的 API 用的是 1+3（训练行为 + schema 强制）。vLLM 和 SGLang 为任意模型实现 2+3。自由形式（4）则是没有其他选择时的 fallback。
 
-3. **Schema 引导的结构化输出**  
-在 JSON 模式基础上，进一步要求 JSON 符合特定 schema，比如函数名和参数类型。
+有个细微但重要的区别：**工具格式用 JSON 还是 XML**。OpenAI 默认 JSON 工具调用；Anthropic Claude 内部训练的是类 XML 结构化输出，但在 API 中暴露为 JSON。Anthropic 团队在 2024 年公开论证过，XML 标签对模型来说更容易学习——尖括号结构与训练数据中标记特殊区域的方式对齐，且流式解析部分 XML 比部分 JSON 更容易。实证来看两种格式都有效；选择主要影响解析工具链。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。
 
-4. **自由格式提示**  
-在系统提示中写 "请以 JSON 格式响应，键为 X、Y"，然后寄希望于模型。能力强的模型有时能奏效，但没有保证。
+## 一个真实的函数调用请求
 
-实际生产系统通常混合使用这四种方法。OpenAI 和 Anthropic 的 API 结合了 1 和 3。vLLM 和 SGLang 为任何模型实现了 2 和 3。自由格式（4）是其他方法不可用时的备选。
-
-还有一个重要区别：**JSON 和 XML 工具格式**。  
-OpenAI 默认用 JSON 工具调用；Anthropic Claude 内部按 XML 类似的结构化输出训练，但在 API 中暴露为 JSON。Anthropic 团队在 2024 年公开表示，XML 标签更容易让模型学习。尖括号结构与训练数据中标记特殊区域的方式一致，部分 XML 在流中也比部分 JSON 更容易解析。实际上两种格式都能工作，选择主要影响解析工具链。在模型内部，两者都是带有学到文法的 token 序列。
-## 一次真实的 function-call 请求
-
-![fig1: tool-call request/response sequence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/fig1_tool_sequence.png)
+![fig1: tool-call request/response sequence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/fig1_tool_sequence.png)
 
 Anthropic Claude API 示例：
 
@@ -59,80 +51,84 @@ response = client.messages.create(
     max_tokens=1024,
     tools=[{
         "name": "get_weather",
-        "description": "获取某个地点的当前天气。",
+        "description": "Get current weather for a location.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "location": {"type": "string", "description": "城市和州，例如 San Francisco, CA"},
+                "location": {"type": "string", "description": "City and state, e.g. San Francisco, CA"},
                 "unit": {"type": "string", "enum": ["celsius", "fahrenheit"], "default": "celsius"},
             },
             "required": ["location"],
         },
     }],
-    messages=[{"role": "user", "content": "东京的天气怎么样？"}],
+    messages=[{"role": "user", "content": "What's the weather in Tokyo?"}],
 )
-# response.content 可能是：
-# [TextBlock(text="我来查一下东京的天气。"),
+
+# response.content might be:
+# [TextBlock(text="I'll check the weather in Tokyo."),
 #  ToolUseBlock(id="toolu_xxx", name="get_weather",
 #               input={"location": "Tokyo, Japan", "unit": "celsius"})]
 ```
 
-模型返回一个结构化的 `ToolUseBlock`。我执行工具后，发送一条后续消息：
+模型返回一个结构化的 `ToolUseBlock`。你的代码执行工具，然后发送跟进消息：
 
 ```python
 response2 = client.messages.create(
     model="claude-4-5-sonnet-20250901",
     max_tokens=1024,
-    tools=[...],  # 同样的工具
+    tools=[...],  # same tools
     messages=[
-        {"role": "user", "content": "东京的天气怎么样？"},
+        {"role": "user", "content": "What's the weather in Tokyo?"},
         {"role": "assistant", "content": response.content},
         {"role": "user", "content": [{
             "type": "tool_result",
             "tool_use_id": "toolu_xxx",
-            "content": "72°F，局部多云",
+            "content": "72°F, partly cloudy",
         }]},
     ],
 )
 ```
 
-会话中有了 tool call 和 tool result。下一轮 assistant 就能用这些信息了。这就是基本循环。
-## 工具定义最佳实践
+现在对话里有了一个工具调用和一个工具结果；下一轮 assistant 回复就可以利用这些信息。这就是基本的循环逻辑。
 
-工具定义其实就是提示词。每次调用时，模型会把它当成系统提示的一部分读取。定义质量直接影响模型选工具、调用工具和错误恢复的能力。
+## 工具定义的最佳实践
 
-**描述是提示中最常被读的部分。** 好的描述要包括三件事：工具功能一句话概括，什么时候用（什么时候不用），返回什么结果。“搜索数据库”太差了。好的例子是：“在客户数据库中搜索符合条件的订单。用户问具体订单或历史时用。返回最多 10 条最近记录。”
+工具定义本质上是伪装的 prompt。模型在每次调用时都把它们当作 system prompt 的一部分来读，定义的质量直接影响模型是否选对工具、调用是否正确以及能否从错误中恢复。以下模式 一致地 work：
 
-**参数描述比名字更重要。** 模型看到 `location` 能猜到需要地点，但不知道格式是 "Tokyo"、"Tokyo, Japan" 还是 "JP/Tokyo"。必须加格式示例。
+**描述是你 prompt 里被阅读次数最多的文本。** 好的描述包括 (a) 一句话说明工具做什么，(b) 何时使用（以及何时不用），(c) 返回什么。坏的描述只是复述函数名。“搜索数据库”很糟糕；“搜索客户数据库以匹配给定条件的订单。当用户询问特定订单或订单历史时使用。返回最多 10 条最新匹配项。”这才是好的。
 
-**尽量用枚举。** `unit` 参数加 `enum: ["celsius", "fahrenheit"]` 比自由字符串好得多。Schema 约束能防止模型乱发明，比如 "Kelvin" 或 "C°"。
+**参数描述比参数名更重要。** 模型能从 `location` 这个名字推断出它想要一个地点，但如果没有描述，它不知道格式应该是 "Tokyo"、"Tokyo, Japan" 还是 "JP/Tokyo"。务必包含格式示例。
 
-**复杂工具要加示例调用。** “Example: `transfer_money({from_account: 'A123', to_account: 'B456', amount: 100, currency: 'USD'})`” 比长篇大论更实用。
+**尽可能使用 enums。** 带有 `enum: ["celsius", "fahrenheit"]` 的 `unit` 参数比自由字符串 `unit` 难 misuse 得多。Schema 约束能防止模型发明 "Kelvin" 或 "C°"。
 
-**写清楚错误格式。** 比如：“账户不存在返回 404，权限不足返回 403。” 这样模型能正确处理错误，决定重试还是上报。
+**为复杂的工具在描述中提供调用示例。** "示例：`transfer_money({from_account: 'A123', to_account: 'B456', amount: 100, currency: 'USD'})`" 比三段散文更有用。
 
-**别定义太多工具。** 我见过一个注册表有 80 个工具，模型老是选错。把相关工具合并成少量多态工具更好。比如用一个带可选过滤器的 `query_orders`，而不是分开写 `query_orders_by_id`、`query_orders_by_date` 等。模型填参数比选菜单强多了。
+**记录错误格式。** “如果账户不存在返回 404。如果调用者缺乏权限返回 403。”这让模型能正确解释错误响应，并决定是重试还是升级处理。
+
+**不要过度定义工具。** 我见过包含 80 个工具的工具注册表，模型经常选错。将相关工具分组为较少数量的多态工具（例如，一个带有可选过滤器的 `query_orders`，而不是 `query_orders_by_id`、`query_orders_by_date`、`query_orders_by_customer` 等）。模型更擅长填充参数，而不是从长菜单中挑选。
+
 ## 并行工具调用
 
-![fig3: 并行与串行工具执行](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/fig3_parallel_vs_sequential.png)
+![fig3: parallel vs sequential tool execution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/fig3_parallel_vs_sequential.png)
 
-到 2026 年，所有前沿模型都会支持并行工具调用。简单说，就是一次输出多个工具调用块。比如用户问“东京和纽约天气如何？”，模型会同时发出两个调用。我并行执行它们，再把结果一起返回。
+到了 2026 年，所有前沿模型都支持并行工具调用——在一轮中 emit 多个 tool-use 块。如果用户问“东京和纽约的天气怎么样？”，模型会同时 emit 两个工具调用，你并行执行两者，然后把结果都传回去。
 
-这很重要。串行调用会叠加延迟。一个代理调用 5 个工具，每个耗时 200 毫秒，总延迟就是 1 秒。换成并行，延迟直接降到 200 毫秒。对于多数据源的代理（比如 OpenClaw 第 7 到 12 章提到的场景），这是“流畅”和“卡顿”的区别。
+为什么这很重要：串行工具调用会累积延迟。一个 5 工具 agent 做 5 次串行调用，每次 200 ms，就是 1 秒的纯工具延迟。并行能把它降到 200 ms。对于 agents（OpenClaw 第 7-12 章，任何涉及多个数据源的场景），这是“响应敏捷”和“令人沮丧”之间的区别。
 
-但并行调用有个前提：工具之间不能有依赖关系。查两个城市的天气没问题。“搜索航班，再订最便宜的”就不行，因为第二个调用依赖第一个的结果。模型训练时应该学会这一点，但实际中不一定靠谱。生产环境里，我会先验证调用是否真的独立。
+要注意：并行工具调用只适用于彼此不依赖的工具。查询两个城市的天气是并行安全的。“搜索航班，然后预订最便宜的”就不行——第二个工具调用依赖第一个的结果。模型应该通过训练知道这一点，但并不总是如此。生产代码应该在并行运行之前验证并行调用确实是独立的。
 
-依赖分析有时很复杂。比如两个工具都写同一个外部资源（比如对同一行的两个 `update_database` 调用）。即使它们不依赖对方的返回值，并行运行也可能引发竞态条件。更安全的做法是给工具分类：只读、写隔离、写共享。只在兼容类别内并行化。Anthropic 的 Claude 在 2025 年底比 GPT 类模型更保守，原因就在这里。不确定依赖关系时，它会偏向串行执行。
-## 用文法做结构化输出
+依赖分析可能很微妙。如果两个工具都写入同一个外部资源（例如，对同一行的两个 `update_database` 调用），即使它们都不依赖对方的 *返回值*，并行运行也会引入 race conditions。更安全的模式是为工具声明副作用类别（只读、写入隔离、写入共享），仅在兼容类别内并行化。正因为这个原因，截至 2025 年底，Anthropic 的 Claude  emit 并行调用比 GPT 类模型更保守——当不确定依赖关系时，它倾向于串行。
 
-![fig2: schema-constrained decoding](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/07-function-calling/fig2_schema_constrained_decode.png)
+## 基于语法的结构化输出
 
-Function-calling API 能生成格式正确的 JSON。但我想让每次生成的 JSON 都严格符合某个特定 schema，怎么办？
+![fig2: schema-constrained decoding](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/fig2_schema_constrained_decode.png)
 
-vLLM 和 SGLang 都支持 **文法约束解码**。每一步解码时，只保留能生成合法字符串的 token。这个方法最早来自 **Outlines**（[Willard & Louf, 2023][willard-outlines]）。它把正则表达式和 JSON-schema 约束编译成有限状态机，用来掩码每一步的 logits。后来更快的实现包括 **XGrammar**（SGLang 使用）、llama.cpp 的 GBNF 和微软的 **Guidance** 库。
+函数调用 API 保证 JSON 格式良好。但如果你想要 JSON 每次都必须匹配特定 schema，毫无例外呢？
+
+vLLM 和 SGLang 都实现了 **grammar-constrained decoding**。在每个解码步骤，mask 输出分布，只保留语法下能继续构成有效字符串的 token。实现追溯到 **Outlines** ([Willard & Louf, 2023][willard-outlines])，它将 regex 和 JSON-schema 约束编译成有限状态机，在每一步 mask logits。更快的后继者包括 **XGrammar**（SGLang 使用）、llama.cpp 的 GBNF 和微软的 **Guidance** 库。
 
 ```python
-# vLLM JSON schema 约束
+# vLLM with JSON schema constraint
 from vllm.sampling_params import GuidedDecodingParams
 
 schema = {
@@ -148,80 +144,83 @@ schema = {
 params = SamplingParams(max_tokens=200,
                        guided_decoding=GuidedDecodingParams(json=schema))
 out = llm.generate(prompts, params)
-# out 保证可解析且严格符合 schema
+# out is guaranteed parseable JSON matching the schema
 ```
 
-这是最强的输出保证：不是“通常是 JSON”，也不是“JSON 带正确键”，而是“完全符合 schema 的有效 JSON”。延迟开销很小，用 XGrammar 时仅 3-5%。
+这是最强的输出保证：不是“通常是 JSON"，不是“带有正确键的 JSON"，而是“完全符合 schema 的有效 JSON"。延迟成本很小（XGrammar 开销约 3-5%）。
 
-### Token 级掩码：实际原理
+### Token 级 masking：实际工作原理
 
-文法约束解码内部维护一个 **状态机**，跟踪当前生成位置。每步解码流程如下：
+内部实现上，grammar-constrained decoding 维护一个 **state machine** 来跟踪当前生成在语法中的位置。在每个解码步骤：
 
-1. 模型在全词表（约 100K-150K token）上生成 logits。
-2. 状态机计算当前状态下哪些 token 合法。比如，JSON schema 中“开括号和键名后，下一个 token 必须是 `:` 或空白”。多数 token 不合法。
-3. 不合法 token 的 logits 在 softmax 前设为 `-inf`。
-4. 采样到的 token 推进状态机到新状态。
+1. 模型在整个 vocabulary 上产生 logits（约 100K-150K tokens）。
+2. 状态机计算从当前状态哪些 tokens 是有效 continuation。对于 JSON schema，这可能是：“在左大括号和键名之后，下一个 token 必须是 `:` 或空白。”大多数 tokens 无效。
+3. 无效 tokens 的 logits 在 softmax 采样前被设为 `-inf`。
+4. 采样的 token 将状态机推进到新状态。
 
-性能是个难点。朴素实现每步重新计算合法 token 掩码，复杂度 $O(\text{vocab\_size})$。单 GPU 线程上每步耗时约 0.5 ms，接近小模型前向传递时间。Outlines 的创新点是预计算每个文法状态的合法 token 位图（通过正则表达式转有限状态机）。XGrammar 更进一步，采用字节码风格状态表示和增量掩码更新。
+挑战在于性能。 naive 实现每一步都重新计算有效 token mask，复杂度是 $O(\text{vocab\_size})$ —— 在单个 GPU 线程上每步约 0.5 ms，对于小模型来说相当于实际模型 forward pass 的时间。Outlines 的洞察是预先计算每个语法状态的有效 token bitmap（使用 regex-to-FSM 编译）。XGrammar 通过字节码风格的状态表示和增量 mask 更新进一步推进了这一点。
 
-现代实现解码开销低于 2%。编译开销（将 JSON schema 转状态机）通常小于 100 ms，请求时可以忽略。
+现代实现的解码步骤开销 <2%。编译成本（将 JSON schema 转为状态机）对于合理的 schema 通常 <100 ms，所以在请求时可以忽略不计。
 
-一个小问题：文法约束只管 *结构*，不管 *内容*。如果 schema 没定义 `conditions` 的 `enum`，模型可能生成 `"conditions": "elephant"` 并通过验证。Schema 约束只能保证输出 *可解析*，不能保证 *真实性*。
-## 自由格式：没有文法时
+有个细微的限制：语法约束影响 *结构*，不影响 *内容*。如果你的 schema 没有包含 `conditions` 的 `enum`，模型可以写 `"conditions": "elephant"` 并通过 schema 验证。Schema 约束不能让输出变 *真*，只能让它们可 *解析*。
+## 自由格式：当无法使用语法约束时
 
-很多 API 不支持文法约束解码。比如大多数非 OpenAI/Anthropic 提供商、设备端推理、内部服务。这时可以用 prompt 工程生成结构化输出：
+很多 API（大多数非 OpenAI/Anthropic 提供商、端侧推理、内部服务）都不支持语法约束解码。这时候退路只能是靠 Prompt 工程来搞结构化输出：
 
 ```python
-prompt = """输出 JSON 对象，包含以下键，不要用 markdown，也不要写成散文：
-- "city"（字符串）
-- "temp_c"（数字）
-- "conditions"（"sunny"、"cloudy"、"rainy" 之一）
+prompt = """Output a JSON object with these keys, no markdown, no prose:
+- "city" (string)
+- "temp_c" (number)
+- "conditions" (one of: "sunny", "cloudy", "rainy")
 
-查询：东京天气如何？
+Query: What's the weather in Tokyo?
 JSON:"""
 ```
 
-能力强的模型，比如 LLaMA-3.3-70B+ 和 Qwen3-32B+，95%-99% 的情况下都能正确输出。剩下的 1%-5% 失败情况主要有这些：
+能力强的模型（LLaMA-3.3-70B+, Qwen3-32B+）大概 95-99 % 都能听话。剩下那 1-5 % 的失败通常是这样：
 
-- 把 JSON 包在 markdown 代码块里。
-- 加上前言，比如“好的，这是 JSON：...”。
-- 多了一个尾逗号。
-- JSON 跨多个段落。
+- 给 JSON 包了一层 markdown 代码块。
+- 加了个前言（"Sure, here's the JSON: ..."）。
+- 多了个 trailing comma。
+- 把 JSON 拆到了好几个段落里。
 
-防御性解析能解决大部分问题：
+防御性解析能搞定大部分情况：
 
 ```python
 import json, re
 
 def parse_robust(text: str) -> dict:
-    # 先直接解析
+    # 1. Try direct parse
     try:
         return json.loads(text.strip())
     except json.JSONDecodeError:
         pass
-    # 去掉 markdown 代码块
+    # 2. Strip markdown fences
     m = re.search(r"```(?:json)?\s*(.+?)\s*```", text, re.DOTALL)
     if m:
         try:
             return json.loads(m.group(1))
         except json.JSONDecodeError:
             pass
-    # 找到第一个 { 和最后一个 }
+    # 3. Find first { ... last }
     s, e = text.find("{"), text.rfind("}")
     if s != -1 and e != -1 and e > s:
         try:
             return json.loads(text[s:e+1])
         except json.JSONDecodeError:
             pass
-    raise ValueError(f"无法解析: {text[:200]}")
+    raise ValueError(f"Could not parse: {text[:200]}")
 ```
 
-每次自由格式结构化输出，我都用这个解析器。生产流程中的失败率从约 3% 降到 <0.1%。
+我在生产环境里每个自由格式调用都跑这个解析器。失败率直接从 ~3 % 降到了 <0.1 %。
+
 ## 错误恢复模式
 
-工具会出问题。API 挂了，数据库返回意外 schema，函数超时，参数不合法。Agent 必须妥善处理。
+![fig4: error recovery patterns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/fig4_error_recovery.png)
 
-**模式 1：错误当结果返回。** 不抛异常，直接把错误信息塞进工具结果：
+工具总会挂的。API 宕机、数据库 schema 不对、函数超时、参数 invalid。Agent 得稳住，不能崩。
+
+**模式 1：把错误当成工具结果返回。** 错误信息要作为 *工具结果内容* 返回，别抛异常：
 
 ```python
 def execute_tool(name, args):
@@ -231,26 +230,28 @@ def execute_tool(name, args):
         return f"Error: {type(e).__name__}: {str(e)}"
 ```
 
-模型看到错误后，可以决定重试、换工具，或者优雅退出。抛异常会让模型掉线。
+这样模型能在上下文里看到错误，决定是重试、换工具还是优雅放弃。你要是抛异常，就把模型踢出循环了。
 
-**模式 2：工具内验证业务逻辑。** Schema 只管类型，业务逻辑自己校验语义。比如 `transfer_money(from_account, to_account, amount)`，遇到 `amount=-100` 要明确拒绝。Schema 不懂业务规则。
+**模式 2：校验逻辑写在工具里，别全指望 schema。** Schema 只管类型，业务逻辑管语义。比如 `transfer_money(from_account, to_account, amount)` 这个工具，得拒绝 `amount=-100` 并返回清晰错误 —— schema 可不知道你的业务规则。
 
-**模式 3：限制重试次数。** 模型反复调用坏工具时，必须打断循环。我设过 `max_tool_calls=10` 和 `max_consecutive_errors=3`。踩过的坑告诉我，大多数 agent 跑飞都是因为 "工具失败 → 照样重试" 的死循环。
+**模式 3：限制重试次数。** 模型要是死磕同一个坏掉的工具，得强行终止循环。设个 `max_tool_calls=10` 上限，再加个 `max_consecutive_errors=3` 上限。我调试过的大多数 Agent 失控，都是模型陷入了“工具失败 → 原样重试”的死循环。
 
-**模式 4：别暴露堆栈跟踪。** Python 堆栈动辄几百个 token，小模型根本看不懂。返回一句简单错误描述，完整堆栈单独记日志。
+**模式 4：别把 stack trace 丢给模型。** Python stack trace 好几百个 token，小模型看了更晕。返回一句错误描述就行，完整 trace 单独记日志方便调试。
 
-**模式 5：重试带上理由。** 模型重试时，先说明原因。比如："上次日期格式错了，这次改用 ISO 8601。" 这比瞎调参数更靠谱。LangGraph 和 CrewAI 这类框架会在错误后插入反思提示。
+**模式 5：重试时带上理由。** 模型重试工具时，前面加一小段推理说明改了什么。“上次调用失败是因为日期格式不对，这次我用 ISO 8601"比直接重发新参数靠谱得多。有些 Agent 框架（LangGraph, CrewAI）内置了这个机制，出错后自动注入反思 Prompt。
 
-**模式 6：求助用户。** 遇到不可恢复的错误，别死磕，直接找用户。比如："我发邮件失败，SMTP 提示地址无效，能再确认下吗？" 比静默重试 5 次后报错强多了。
+**模式 6：搞不定就问人。** 遇到不可恢复的错误，别无限重试，该升级给用户了。“我试着往这个地址发邮件，但 SMTP 服务器返回‘收件人无效’，能麻烦您核对一下地址吗？”这种体验比静默重试 5 次最后报个通用错误好得多。
 
-**模式 7：优雅放弃。** 工具都试过了还不行，就返回部分答案，带上说明。比如："最新数据没拿到，这是基于昨天缓存的结果。" 比硬编一个假答案靠谱。
+**模式 7：优雅放弃。** 要是 Agent 把合理的工具选项都试遍了，返回个带明确说明的部分答案（“我没拿到最新数据，所以这个答案基于昨天的缓存信息”）总比编个看着完整的答案强。
 
-下一节会讲如何设计工具接口。
 ## Agent 循环
 
-![大模型工程（七）：Function calling、结构化输出与 Agent loop 的工程实操 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_2.png)
+![LLM Engineering (7): Function Calling and Tool Use — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_2.png)
 
-生产环境里最简的 agent 循环代码如下：
+
+![fig5: agent loop control flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/fig5_agent_loop.png)
+
+生产环境里最小可用的 Agent 循环：
 
 ```python
 def run_agent(initial_message, tools, max_steps=20):
@@ -263,7 +264,7 @@ def run_agent(initial_message, tools, max_steps=20):
 
         tool_uses = [b for b in response.content if b.type == "tool_use"]
         if not tool_uses:
-            return response  # 最终答案
+            return response  # final answer
 
         tool_results = []
         for tu in tool_uses:
@@ -274,64 +275,59 @@ def run_agent(initial_message, tools, max_steps=20):
                 "content": str(result),
             })
         messages.append({"role": "user", "content": tool_results})
-    raise RuntimeError("Agent 超过最大步数")
+    raise RuntimeError("Agent exceeded max_steps")
 ```
 
-这段代码能搞定 80% 的 agent 场景。剩下的 20%，需要额外处理。
+这代码够应付 80 % 的 Agent 场景了。剩下 20 % 得搞这些：
 
-工具输出太长会炸上下文。比如 `read_file` 返回 10 万 token，必须截断到 1 万左右，加个 "[truncated]" 标记。
+- **工具输出截断**：`read_file` 要是返回 100K tokens，上下文直接爆掉。截断到 ~10K 加个 "[truncated]" 标记。
+- **记忆压缩**：第 15 步时对话已经 50K tokens 了；继续之前把旧步骤总结成一条消息。
+- **子 Agent**：把复杂子任务（"research X"）拆给独立 Agent，它有自己对话历史，只返回最终总结。
+- **工具调用流式输出**：工具调用生成时就 emit，别等完整响应。并行执行工具时能降低 TTFT。
 
-对话历史太长也有问题。第 15 步时可能已经有 5 万 token。继续之前，把早期内容总结成一条消息。
+## ReAct、Voyager 与 Agent 循环的演进
 
-复杂任务可以拆给子 agent。比如“研究 X”，单独开一个 agent，只返回最终结果。
+上面那个最小循环其实是 **ReAct 模式** ([Yao et al., 2022][yao-react]) 的改良版。ReAct  interleaved 三步：Thought（模型推理下一步动作）、Action（工具调用）、Observation（工具结果）。"Thought" 这一步很关键 —— 它给了模型一个明确的地方去规划和自我修正。现代 Agent 循环还在实现 ReAct，只不过 thought 隐含在模型的工具调用理由里了，不再单独成段。
 
-工具调用可以流式处理。不用等完整响应，边生成边发送。这样能降低并行执行的 TTFT。
-## ReAct、Voyager 与 agent 循环的谱系
+**Voyager** ([Wang et al., 2023][wang-voyager]) 在 ReAct 基础上加了三点，专为长程代理设计：自动课程（Agent 根据已知信息自己选下一个子任务）、技能库（存下成功的工具使用模式复用）、带环境反馈的迭代 Prompt 循环。Voyager 是在 Minecraft 里演示的，但这架构成了生产代码 Agent（Cursor, Cline, Claude Code）和研究型 Agent 的模板。
 
-最简循环是对 **ReAct 模式**（[Yao 等，2022][yao-react]）的改进。ReAct 分三步走：思考、行动、观察。思考是模型推理下一步动作，行动是调用工具，观察是获取工具结果。这一步很关键，给模型留了规划和自我修正的空间。现代 agent 循环依然沿用 ReAct，但思考过程藏在工具调用的理由里，不再单独写成文本块。
+**Generative Agents** ([Park et al., 2023][park-generative]) 探索了相关方向：带持久记忆流和基于反思的记忆巩固的 Agent。Park 的 Smallville 模拟显示，25 个带简单反应行为 plus 记忆 + 反思的 Agent 能产生可信的 emergent 社交行为。这套记忆架构（基于 embedding 的检索 + 定时反思总结）现在是长运行 Agent 系统（比如 SWE-bench 解决方案和个人 AI 助手）的标准配置。
 
-**Voyager**（[Wang 等，2023][wang-voyager]）为长程任务扩展了 ReAct。它加了三个功能：自动课程，agent 根据已知选下一个子任务；技能库，存储并复用成功的工具使用模式；迭代提示循环，带环境反馈。Voyager 在 Minecraft 上展示过，后来成了生产代码 agent（如 Cursor、Cline、Claude Code）和研究 agent 的模板。
+2024-2026 的演进：Agent 拿到了能返回丰富结构化数据的工具、递归子 Agent 调用、以及把明确的任务规划步骤和执行步骤分开。OpenClaw 的 "Memory-Planning-Tool-Reflection" 架构（OpenClaw 系列第 7-12 章）就是这条演进线的一个具体实例。
 
-**Generative Agents**（[Park 等，2023][park-generative]）探索了另一个方向：持久记忆流和基于反思的记忆整合。Park 的 Smallville 模拟中，25 个 agent 只靠简单反应行为、记忆和反思，就产生了可信的社交行为。这种记忆架构（嵌入检索 + 定期反思总结）现在已经是 SWE-bench 解决方案和个人 AI 助手的标准配置。
-
-2024-2026 年，agent 工具更强大了。工具能返回丰富结构化数据，支持递归调用子 agent，还把任务规划和执行分开。OpenClaw 的 "Memory-Planning-Tool-Reflection" 架构（OpenClaw 系列第 7-12 章）就是这个谱系的一个实例。
 ## MCP：协议层
 
-2024 年，每个框架都有自己的 tool-spec 格式。比如 LangChain tools、OpenAI function specs、Anthropic tool blocks 等等。每种格式都要为不同框架重新实现。到了 2024 年底，Anthropic 推出了 **Model Context Protocol (MCP)**。这是一个标准化的 JSON-RPC 接口，用来连接 LLM 和工具服务器。
+2024 年那会儿，每个框架都有自己的工具 spec 格式（LangChain tools, OpenAI function specs, Anthropic tool blocks 等等）。每个都得为每个框架重写一遍。Anthropic 在 2024 年末发布了 **Model Context Protocol (MCP)**，这是个标准化 JSON-RPC 接口，用来连接 LLM 和工具服务器。
 
-MCP 的架构很简单。**客户端**是 LLM 应用，比如 Claude Desktop、Cursor 或自定义代理。它们通过 JSON-RPC 和 **服务器**通信。服务器就是工具提供者，比如文件系统、数据库或 API。服务器暴露三种核心功能：**资源**（只读上下文，比如文件内容）、**工具**（可调用函数）和 **提示**（可复用的提示模板）。协议负责发现、模式验证、流式响应和认证。
+MCP 架构：**clients**（LLM 应用比如 Claude Desktop, Cursor, 自定义 Agent）通过 JSON-RPC 跟 **servers**（工具提供商 —— 文件系统、数据库、API 等）对话。服务器暴露三个原语：**resources**（只读上下文比如文件内容）、**tools**（可调函数）、**prompts**（可复用 Prompt 模板）。协议负责发现、schema 验证、流式响应和认证。
 
-MCP 的意义在于解耦。工具开发不再依赖特定的代理框架。如果我为内部 API 写一个 MCP 服务器，它就能兼容所有支持 MCP 的客户端，完全不用重写代码。到 2025 年年中，MCP 生态已经很丰富了。GitHub、GitLab、Slack、Postgres、Sentry、Linear 都加入了，还有几百个其他服务。这个协议已经成为工具集成的事实标准，就像 OpenAI 的 chat-completions 对推理 API 的意义一样。
+MCP 重要是因为它把工具开发和 Agent 框架选型解耦了。你要是给自己内部 API 写了个 MCP server，任何兼容 MCP 的 client 都能用，不用重写。到 2025 年中，MCP server 生态已经包括了 GitHub, GitLab, Slack, Postgres, Sentry, Linear 等几百个服务。这协议在工具集成领域的地位，就像 OpenAI 的 chat-completions schema 在推理 API 领域的地位一样：成了人人适配的事实标准。
 
-实际用起来，MCP 服务器有两种部署方式。一种是嵌入现有应用，比如在代码库旁边写个小 Python 服务器。另一种是独立运行的服务。本地模式特别有意思。Claude Desktop 的文件系统访问之所以安全，就是因为服务器跑在用户机器上，用的是用户权限。LLM 没有直接磁盘访问权限。这种本地性模型让 MCP 和老一代工具协议拉开了差距。
+有个实际观察：MCP servers 可以嵌入现有应用（你在代码库旁边写个小 Python server）或者作为独立服务运行。纯本地模式让 Claude Desktop 的文件系统访问变得安全 —— server 跑在用户机器上用他们的权限，LLM 没有直接磁盘访问权。这种本地性模型是 MCP 区别于旧式工具服务器协议的地方。
 
-下一节会讲 MCP 的具体实现细节。
-## 生产中常见的问题
+## 生产环境里的坑
 
-**虚构工具名称。** 模型调用了不存在的工具。解决方法很简单：验证 `tu.name in TOOLS`，返回工具未找到错误。小模型（尤其是 7B 以下）容易生成接近真实名称的假名，比如 `get_weather_info` 而不是 `get_weather`。在错误信息里建议最接近的匹配项，效果不错。
+**幻觉工具名。** 模型调用了一个不存在的工具。修复：验证 `tu.name in TOOLS` 返回工具未找到错误。有些模型（尤其是 7B 以下的小模型）会幻觉出跟真名 *差不多* 的工具 —— 比如 `get_weather_info` 而不是 `get_weather`。错误里建议最接近的匹配项会有帮助。
 
-**虚构工具参数。** 模型会发明 schema 中没有的参数，比如 `force=True`。Schema 验证能抓到这个问题。直接返回清晰的错误："参数 X 不支持"。
+**幻觉工具参数。** 模型编了个 schema 里没有的 `force=True` 参数。Schema 验证能抓到这个；返回清晰的 "parameter X not supported" 错误。
 
-**自信地给出错误结果。** 搜索工具返回 "无结果"，但模型还是凭空编了个答案。症状很明显：模型用了工具结果，但结论和结果矛盾。防御方法：在系统提示里加一句提醒，比如 "如果工具返回无结果，直接说明"。高风险场景下，可以用另一个模型对答案和工具日志进行后验证。
+**工具结果错了还自信。** 搜索工具返回 "no results" 但模型还是幻觉出了答案。症状：模型用了工具结果但它的 claim 跟结果矛盾。防御：系统 Prompt 里加明确提醒（"要是工具返回无结果，就这么说"）。高风险用例的话，用另一个模型拿着工具转录事后验证答案。
 
-**陷入工具错误循环。** 参考前面提到的模式 3。记住，一定要设置上限。
+**工具错误死循环。** 上面的模式 3。永远要设上限。
 
-**工具延迟级联。** 一个工具调用耗时 30 秒，用户的请求就卡住了。每个工具调用都得设超时。备用方案是提示用户："这个工具很慢，要不要不带它再试一次？"
+**延迟连锁反应。** 一个 30-second 工具调用会把用户请求卡住。每个工具调用都设超时。暴露 "这工具慢，要不要试着不用它？" 作为 fallback UX。
 
-**Schema 漂移。** 工具的实际返回结构变了，比如字段重命名或新增必填字段，但给模型的 schema 定义没更新。模型按旧 schema 发请求，工具就会失败，还不知道为啥。解决方法：在调度器里校验工具输出和 schema 的一致性，发现不匹配就报版本偏差错误。更好的办法是从工具实现自动生成 schema 定义，比如用 Pydantic 模型反射成 JSON schema，彻底避免漂移。
+**Schema 漂移。** 工具实际返回形状变了（字段改名、加了新必填字段）但你给模型的 schema 定义没更新。模型按旧 schema 发请求，工具失败得莫名其妙。修复：在 dispatcher 里验证工具输出 against schema，把不匹配作为 version-skew 错误暴露。更好：从工具实现生成 schema 定义（比如 Pydantic 模型反射成 JSON schema），这样就漂不了。
 
-**工具脚本中的 token 预算耗尽。** 20 步 agent 运行、工具调用和结果，轻松吃掉 50-100K token。模型一到上下文限制，要么被截断，要么丢掉早期上下文。解决方法：实现记忆压缩，在早期工具脚本老化前总结一下；长分支交给子 agent 处理；每一步都要监控 token 使用量。
+**工具转录里 Token 预算耗尽。** 20 步 Agent 运行带着工具调用和结果，轻松到 50-100K tokens。模型撞到上下文限制，要么被截断要么开始丢失早期上下文。修复：实现记忆压缩（工具转录过期前总结早期内容）、长分支用子 Agent、监控每步 Token 用量。
 
-**工具选择模糊。** 两个工具描述重叠，比如 "搜索文档" 和 "查找文档"，模型就会摇摆不定。解决方法：写清楚互斥的描述，或者合并成一个工具，用参数来区分。
+**工具选择歧义。** 两个工具描述重叠（"search documents" vs "find documents"）导致模型 oscillate。修复：写 distinct、互斥的描述，或者合并成一个带消歧参数的工具。
+## 核心要点与后续
 
-下一节会讲一些踩过的坑和血泪经验。
-## 小结与下一篇
+函数调用这套玩法，其实就是训练行为加上 chat template，再看需不需要加上 grammar enforcement。约束力度能多强就多强，优先级很明确：schema-constrained decoding > JSON mode > prompted JSON。模型支持并发工具调用时就并行跑，有数据依赖再改串行。工具出错了也别直接抛异常，把错误信息当成 tool result 返回给模型，让它自己想办法恢复。还有几条铁律：循环必须封顶，工具调用必须加超时，输出太长必须截断。从思想脉络上看，是从 ReAct 演进到 Toolformer、Voyager，再到现在的生产级 Agent；协议层面则正逐渐收敛到 MCP。
 
-函数调用是训练行为、聊天模板和可选语法约束的结合。优先选择最强的保障方式：模式约束解码 > JSON 模式 > 提示生成 JSON。模型支持时，并行调用工具；有数据依赖时，串行调用。工具错误直接作为结果返回，让模型自行恢复。循环次数要设上限，工具调用必须加超时，大输出记得截断。
+下一章咱们聊 **retrieval-augmented generation**。包括切分策略、embedding 模型怎么选、混合检索（dense + sparse）、reranking，还有实际落地时长上下文和 RAG 到底该怎么选。
 
-技术脉络从 ReAct 到 Toolformer，再到 Voyager，最终演进到现代生产代理。协议方面正逐步统一到 MCP。
-
-下一篇聊**检索增强生成**。切分策略、嵌入模型选型、混合检索（密集 + 稀疏）、重排序，还有长上下文和 RAG 的实际权衡。
 ## 参考文献
 
 - [Yao et al., "ReAct: Synergizing Reasoning and Acting in Language Models," ICLR 2023.][yao-react]

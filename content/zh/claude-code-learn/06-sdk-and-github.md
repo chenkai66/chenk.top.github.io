@@ -16,26 +16,27 @@ description: "SDK 把 Claude Code 从 CLI 变成库。GitHub Action 让它在 PR
 disableNunjucks: true
 translationKey: "claude-code-learn-6"
 ---
-CLI 是最直观的界面，SDK 才是真正有趣的部分，而 GitHub 集成则是价值体现的关键所在。
-![Claude Code 实战入门（六）：SDK、GitHub 集成、把 Claude 放进 CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_1.png)
+CLI 只是表面功夫，SDK 才有意思，GitHub 集成才是價值變現的地方。
 
-## 用一段话介绍 SDK
+![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_1.png)
 
-`@anthropic-ai/claude-code` 是一个 npm 包。它把 CLI 使用的 Claude Code 引擎直接封装成编程接口，工具和权限完全一致。你给它一个 Prompt，它返回一个异步可迭代的对话事件流。无论是脚本、服务还是 CI 步骤，都可以轻松集成。
+## 一段話說清 SDK
 
-安装命令：
+`@anthropic-ai/claude-code` 就是那個 npm 包。它暴露了 CLI 用的同一個 Claude Code 引擎，工具和權限一模一樣，只不過變成了程序化接口。你丟給它一個 prompt，它返回一個對話事件的異步迭代器。隨便插到哪兒都行——腳本、服務、CI 步驟。
+
+安裝：
 
 ```bash
 npm install @anthropic-ai/claude-code
 ```
 
-Hello world 示例：
+Hello-world 示例：
 
 ```typescript
 import { query } from '@anthropic-ai/claude-code';
 
 const result = query({
-  prompt: '列出本仓库最大的 3 个源文件，并用一句话说明每个文件的作用。',
+  prompt: 'List the three largest source files in this repo and explain each in one sentence.',
   options: {
     cwd: process.cwd(),
     permissionMode: 'default'
@@ -47,19 +48,20 @@ for await (const event of result) {
 }
 ```
 
-运行代码后，你会在终端看到完整的 Agent 执行过程——包括工具调用等细节。这就是 CLI 的核心功能，只是去掉了聊天界面。
-## 程序化的权限
+跑一下。你會看到一樣的 agent 循環在終端裡跑起來——包括工具調用。這本質上就是去掉了聊天 UI 的 CLI。
 
-这一部分必须处理好。CLI 默认会“询问用户”，但脚本没法做到这一点。因此，SDK 提供了权限模式：
+## 權限，程序化控制
 
-| 模式             | 含义                                   |
-|------------------|--------------------------------------|
-| `default`        | 对任何需要确认的工具直接报错               |
-| `acceptEdits`    | 自动接受文件修改，但对 shell 操作仍需确认     |
-| `bypassPermissions` | 全部自动接受（危险）                   |
-| 自定义           | 提供一个回调函数，按需决定每次调用的权限       |
+這塊必須搞對。CLI 默認策略是「問人」。腳本沒法問。所以 SDK 暴露了幾種權限模式：
 
-实际开发中，推荐使用回调函数的方式：
+| Mode | Meaning |
+|------|---------|
+| `default` | 任何通常需要確認的工具都會報錯 |
+| `acceptEdits` | 自動接受文件編輯，Shell 操作會問 |
+| `bypassPermissions` | 自動接受所有操作（危險） |
+| Custom | 你提供一個 callback，每次調用時決定 |
+
+真幹活的時候，直接用 callback：
 
 ```typescript
 const result = query({
@@ -75,10 +77,11 @@ const result = query({
 });
 ```
 
-这样一来，你就有了程序化的权限控制策略。脚本可以无人值守运行，同时你也能确保它不会执行那些你明确禁止的操作。
-## 一个实用脚本：自动更新 CHANGELOG
+這下策略就程序化了。腳本可以無人值守運行，你也清楚它絕對幹不了你明確禁止的事。
 
-我在几个项目里都写了这个脚本，放在 `scripts/update-changelog.ts`：
+## 實戰腳本：自動更新 CHANGELOG
+
+我幾個項目的 `scripts/update-changelog.ts` 裡都掛著這個：
 
 ```typescript
 import { query } from '@anthropic-ai/claude-code';
@@ -89,14 +92,14 @@ const commits = execSync(`git log ${lastTag}..HEAD --oneline`).toString();
 
 const result = query({
   prompt: `
-    给 CHANGELOG.md 添加一个新版本的条目。
-    自 ${lastTag} 以来的提交记录如下：
+    Update CHANGELOG.md with a new entry for an upcoming release.
+    The commits since ${lastTag} are:
 
     ${commits}
 
-    按 Added/Changed/Fixed/Removed 分类整理。
-    使用语义化版本号建议下一个版本。
-    直接修改 CHANGELOG.md 文件。
+    Group them into Added/Changed/Fixed/Removed.
+    Use semantic versioning to suggest the next version.
+    Edit CHANGELOG.md in place.
   `,
   options: {
     cwd: process.cwd(),
@@ -109,12 +112,13 @@ for await (const event of result) {
 }
 ```
 
-每次发版前运行一次。CHANGELOG 自动生成，提交记录被整理成清晰的文字，我只需要检查一遍然后提交。每次发版能省 5 分钟，半年下来已经省了不少时间。
+每次發布前跑一次。CHANGELOG 自己寫自己，commit log 被整理成通順的文字，我只負責審查和提交。每次發布省 5 分鐘 × 過去六個月的每次發布。
+
 ## GitHub Action
 
-![Claude Code 实战入门（六）：SDK、GitHub 集成、把 Claude 放进 CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_2.png)
+![Claude Code Hands-On (6): The SDK, GitHub Integration, and Claude in CI — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/06-sdk-and-github/illustration_2.png)
 
-Anthropic 提供了一个官方的 Action：`anthropic/claude-code-action@v1`。把它加到你的 workflow 里：
+Anthropic 出了官方 Action：`anthropic/claude-code-action@v1`。加到 workflow 裡：
 
 ```yaml
 name: Claude on PR
@@ -140,52 +144,55 @@ jobs:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-现在，仓库里的任何人都可以在 PR 评论中写 `@claude please review the failing test`，Claude 就会自动执行以下操作：
+現在倉庫裡任何人只要在 PR 評論裡寫 `@claude please review the failing test`，Claude 就會：
 
-1. 检出对应的分支  
-2. 阅读评论线程获取上下文  
-3. 运行需要的内容（测试、Lint 工具、文件读取等）  
-4. 在 PR 中回复分析结果  
-5. 如果被要求，还可以推送提交  
+1. Checkout 分支
+2. 讀取評論線程獲取上下文
+3. 運行需要的操作（測試、lint、讀文件）
+4. 在 PR 裡回復分析結果
+5. 如果被要求，還可以推送 commit
 
-这个 Action 会遵循仓库中的 `.claude/settings.json` 文件。第 5 篇文章里写的 hooks 依然有效。第 3 篇文章里提到的斜杠命令也照常工作——比如 `@claude /review` 会按你预期的方式运行。
-## 我用 GitHub Action 做什么
+Action 會認倉庫裡的 `.claude/settings.json`。你在第 5 篇寫的 hooks 依然生效。你在第 3 篇寫的 slash commands 也能用——`@claude /review` 會按預期工作。
 
-主要用来处理三件事：
+## 我拿 GitHub Action 幹什麼
 
-**1. PR 初步审查。** 每当有新 PR 提交时，workflow 会自动运行 `@claude /review`。等我去看的时候，系统已经生成了初步的评审意见。这能帮我节省大约 10 分钟时间，还能提前发现一些显而易见的问题。
+有三件事我離不開了：
 
-**2. Issue 自动分类和建议。** 新 issue 提交后，workflow 会自动给它打标签、评估修复范围，并关联相关代码。这样一来，问题提交者能更快得到反馈，我也能迅速掌握背景信息。
+**1. PR 初審。** 新 PR 一開，workflow 自動跑 `@claude /review`。等人來看的時候，對話裡已經有了第一輪審查結果。每次 PR 省審查者 10 分鐘，還能抓住那些顯而易見的問題。
 
-**3. 文档同步更新。** 当 schema 发生变化时，一个 Action 会调用 Claude 来更新文档，确保内容与最新改动一致。虽然结果不一定每次都完美，但大约 80% 的工作是机械性的，效果还不错。
-## SDK 与 Action 的区别
+**2. Issue 總結。** 新 Issue 觸發 workflow，自動打標籤、建議修復範圍、關聯相關代碼。報告者更快得到回應，維護者也有了起手式。
 
-我会用 SDK 的情况：
+**3. 文檔更新。** Schema 一變，Action 就跑起來讓 Claude 同步更新文檔。不總是完美，但 ~80% 的工作都是機械性的。
 
-- 我希望在本地运行的脚本中调用 Claude
-- 触发条件是定时任务、文件变更或者手动命令
-- 需要通过代码检查事件
+## SDK 和 Action 的邊界
 
-我会选择 Action 的场景：
+我用 SDK 的時候：
 
-- 触发条件是 GitHub 事件
-- 输出结果需要出现在 PR 或 Issue 中
-- 希望有人参与其中，而参与方式是 `@mention`
+- 我想在本地跑的腳本裡嵌入 Claude
+- 觸發條件是 cron、文件變更或手動命令
+- 我需要程序化檢查事件
 
-两者当然有重叠部分。Action 的底层实际上就是基于 SDK 构建的。
-## 整合整个系列
+我用 Action 的時候：
 
-6 篇文章，层层递进：
+- 觸發條件是 GitHub 事件
+- 輸出結果要落在 PR 或 Issue 裡
+- 我想要人在環路裡，且環路通過 `@mention` 觸發
 
-1. 安装 + 三层配置
-2. 快捷键与模式
-3. 个人工作流的斜杠命令
+當然有重疊。Action 底層就是基於 SDK 構建的。
+
+## 把系列串起來
+
+六篇文章，一個遞進過程：
+
+1. 安裝 + 三層 config
+2. 快捷方式和 modes
+3. 個人工作流的 Slash commands
 4. 外部集成的 MCP
-5. 提供安全保障的 Hooks
-6. 用于程序化和 CI 的 SDK + Action
+5. 安全護欄 Hooks
+6. 程序化和 CI 用的 SDK + Action
 
-每篇文章单独看都有实际价值。合在一起，Claude Code 就从一个代码聊天工具变成了嵌入你代码库的可编程基础设施。
+單看每一篇都能買到具體的東西。合在一起，Claude Code 就從代碼聊天客戶端變成了住在倉庫裡的程序化基礎設施。
 
-我观察到的高级用户有一个共同点：他们把 `.claude/` 当成代码库的一部分。设置、命令、Hooks 都会提交，都会经过 PR 审查，都会随着项目一起演进。这种习惯值得养成。
+我觀察過的那些高手，只有一個共同特質：他們把 `.claude/` 當作代碼庫的一部分。配置、命令、hooks 全部提交，全部在 PR 裡審查，全部隨項目進化。這才是值得養成的肌肉記憶。
 
-祝你发布顺利。
+放心交付。

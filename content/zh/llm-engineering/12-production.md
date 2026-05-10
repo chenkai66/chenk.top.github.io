@@ -18,91 +18,90 @@ disableNunjucks: true
 description: "服务栈选型细化、给 LLM 做 autoscaling、延迟预算、prompt+completion 成本跟踪、多模型路由、FrugalGPT 级联、第一天就要的可观测性，以及能用的 on-call 模式。"
 translationKey: "llm-engineering-12"
 ---
-这是最后一章。前面讲了模型、prompt、检索和评估的构建方法。这一章聊聊怎么让系统持续运行，还不烧光预算。
+这是最后一章了。前面我们聊了模型、Prompt、检索、评估，这一章只关心两件事：让服务跑稳，别破产。生产环境的 LLM 服务，其实更像高流量 Web 服务，而不是传统 ML 服务——只不过每个 Web 请求都要烧钱，而且可能卡上两分钟。
 
-生产环境下的 LLM 服务更像高流量 Web 服务，不像传统 ML 推理。区别在于，每个请求可能花几美元，还可能卡两分钟。
+这一章我会多摆点数据。原因很简单：在生产环境，一个功能到底赚钱还是亏钱，往往就差在那没人盯的 2-5 倍成本系数上。最有用的技能就是手算 LLM 负载的成本账。下面的数据截止到 2025 年底/2026 年初，真要用之前记得核对最新定价。
 
-这章我会多讲数字。原因很简单：生产环境中，功能是赚钱还是烧钱，往往差个 2 到 5 倍成本。这个差异通常没人注意。学会快速估算 LLM 工作负载成本是最有用的技能。
+![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/illustration_1.png)
 
-下面的数据截至 2025 年底到 2026 年初。用之前记得核对最新价格。
+## 端到端的服务栈
 
-![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_1.png)
-## 端到端服务栈
+![fig1: end-to-end serving stack architecture](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig1_stack_architecture.png)
 
-![fig1: 端到端服务栈架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig1_stack_architecture.png)
-
-生产级 LLM 应用的服务栈通常分这几层：
+生产环境的 LLM 应用栈通常长这样：
 
 ```
 [CDN / WAF]
    ↓
-[API 网关]    ← 限流、认证、请求标准化
+[API Gateway]   ← rate limiting, auth, request normalization
    ↓
-[应用服务器]  ← 提示组装、RAG 检索、工具执行、智能体循环
+[App Server]    ← prompt assembly, RAG retrieval, tool execution, agent loop
    ↓
-[LLM 网关]    ← 模型路由、回退机制、成本核算、提示缓存
+[LLM Gateway]   ← model routing, fallback, cost accounting, prompt caching
    ↓
-[LLM 服务]    ← vLLM/SGLang/托管 API
+[LLM Service]   ← vLLM/SGLang/managed API
    ↓
-[可观测性]    ← 日志、指标、追踪、评估运行
+[Observability] ← logs, metrics, traces, eval runs
 ```
 
-应用服务器和 LLM 网关是工程的核心。前者处理业务逻辑，后者让多个模型像一个服务那样工作。
+App Server 和 LLM Gateway 是工程重心。App Server 处理业务逻辑；LLM Gateway 则要让一堆模型表现得像单个服务。
 
-从一开始就该把 LLM 网关设计成独立服务。它需要支持以下功能：
+从第一天起就把 LLM Gateway 建成独立服务。你需要它来做这些事：
 
-- **多模型路由**：根据分类器，部分请求发给小型快速模型，其他发给大型慢速模型。
-- **回退机制**：主供应商返回 5xx 错误时，切换到备用供应商重试。
-- **成本跟踪**：记录每个请求的提示词 token 数、生成 token 数、模型名称和成本。
-- **提示缓存封装**：即使供应商支持缓存，应用代码也不用操心缓存键。
-- **A/B 测试**：按比例将流量路由到新模型变体。
-- **配额管理 / 熔断机制**：单用户消耗过多资源时，直接终止请求。
+- **多模型路由**：根据分类器，把某些请求发给小而快的模型，其他的发给大而慢的。
+- **降级（Fallback）**：主提供商返回 5xx 时，自动重试备用提供商。
+- **成本追踪**：记录每个请求的 prompt tokens、completion tokens、模型和美元成本。
+- **Prompt 缓存包装**：即使提供商支持缓存，你的业务代码也不该关心 cache key 怎么生成。
+- **A/B 测试**：把可配置比例的流量路由到新的模型 variant。
+- **配额/熔断**：当单个用户消耗成本 disproportionate 时，直接切断请求。
 
-从零开始搭建这个网关要花几周时间。不过开源社区已经有不少选项：
+从头构建这个大概需要几周工程量。开源选项覆盖了不少场景：
 
-- **LiteLLM**：纯 Python 实现，支持 100 多个供应商集成，提供 OpenAI 兼容接口，内置成本跟踪功能。最快的方式。
-- **OpenRouter**：托管式网关，单一 API 跨供应商，内置模型市场。每 token 成本略高，但自动处理故障转移和价格套利。
-- **Cloudflare AI Gateway**：部署在 CDN 边缘，支持缓存、限流和分析。便宜且运维简单，但灵活性稍差。
-- **BentoML / Bento Cloud**：重型框架，适合在同一网关后托管自定义训练模型。
-- **Portkey、Langfuse Gateway**：新兴玩家，观测能力很强。
+- **LiteLLM** — 纯 Python 代理，集成 100+ 提供商，提供 drop-in OpenAI 兼容端点，内置成本追踪不错。最快上手方案。
+- **OpenRouter** — 托管网关，单一 API 对接所有提供商，内置模型市场。单 token 成本比直连提供商高，但自动处理 failover 和价格套利。
+- **Cloudflare AI Gateway** — CDN 边缘的托管代理，带缓存、限流和分析。便宜且运维 trivial，但牺牲了一些灵活性。
+- **BentoML / Bento Cloud** — 更重的框架，适合同时需要在这个网关后托管自训模型的场景。
+- **Portkey, Langfuse Gateway** — 新入局者，观测性故事讲得比较好。
 
-尽早选一个方案，同时做好后期替换的准备。网关是少数容易导致供应商锁定的地方。我会写大量代码与网关接口绑定，所以尽量保持接口简洁。
-## 自托管 vs 托管 API
+早点选一个，但也做好以后换掉的准备。Gateway 是少数真正存在厂商锁定的地方（你会对着网关的契约写大量代码）；所以要把这个契约保持精简。
 
-一个老生常谈的问题。2026 年的实话是这样：
+## 自建 vs 托管 API
 
-**什么时候用托管 API？**
+这是个老生常谈的问题。2026 年的实话是这样：
 
-- 我需要 GPT-5、Claude-4.5、Gemini-3 这种前沿模型的质量，但没 GPU。
-- 每月 token 量低于 10 亿——这种规模托管更便宜。
-- 延迟要求宽松，TTFT 超过 500 毫秒也能接受。
-- 没有工程师专门负责 GPU 运维。
+**使用托管 API 当：**
 
-**什么时候选自托管？**
+- 你需要 frontier-model 质量（GPT-5, Claude-4.5, Gemini-3）且没有 GPU 资源托管它们。
+- 用量低于 ~10 亿 tokens/月 — 这个规模下托管通常更便宜。
+- 延迟要求宽松（>500 ms TTFT 可接受）。
+- 你无法 dedicate 工程师去搞 GPU 运维。
 
-- 每月 token 量超过 10 亿，且开源模型够用（如 Qwen3-32B+、LLaMA-3.3-70B+）。
-- 数据驻留有严格要求。
-- 需要稳定实现 TTFT 小于 100 毫秒。
-- 有特定微调需求。
+**自建当：**
 
-对于 Qwen3-32B 级别的负载，盈亏平衡点大约是每月 10 亿 token。低于这个量，算上工程成本，托管 API 更划算。高于这个量，用专用 GPU（租或买）自托管的成本优势能达到 3 到 10 倍。
+- 用量高于 10 亿 tokens/月 且开源模型符合质量要求（Qwen3-32B+, LLaMA-3.3-70B+）。
+- 有严格的数据驻留要求。
+- 需要持续 <100 ms TTFT。
+- 有特定的 fine-tuning 需求。
 
-常见错误是 GPU 利用率太低。比如 4xH100 设备跑在 30% 利用率时，单 token 成本比 OpenAI API 还贵。目标是让吞吐率持续高于 70%。
+盈亏平衡点大概在每月 10 亿 tokens（Qwen3-32B 级别 workload）。低于这个数，算上工程时间，托管 API 比自建划算。高于这个数， dedicated GPUs（租或买）自建成本能低 3-10 倍。
 
-2025 到 2026 年，一种流行的做法是：**用小规模开源模型自托管大部分低成本流量，把最难的 5%-10% 流量交给托管的前沿 API。** 这样既能享受自托管的成本优势，又能在关键场景保留前沿模型的质量。路由决策由一个小分类器完成（详见后面的多模型路由章节）。
-## 多模型路由和 FrugalGPT
+常见错误：自建 GPU 利用率太低。4xH100 部署如果利用率只有 30%，单 token 成本比 OpenAI API 还贵。目标得是持续吞吐量 >70%。
 
-![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/llm-engineering/12-production/illustration_2.png)
+2025-2026 流行的一种实用混合模式：**自建小模型扛大部分便宜流量，把难的 5-10% 路由给托管 frontier API。** 这样既拿到了自建的大部分成本优势，又在关键地方保留了 frontier 质量。路由决策由一个小分类器完成（见下文多模型路由章节）。
 
-Chen 等人在 2023 年的论文《FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance》中提出了路由再级联模式。核心观察很简单：大多数 LLM 请求都很简单，小模型或低成本模型就能搞定；只有少数请求需要大模型出马。如果能快速判断请求类型，成本可以降 5 到 10 倍，质量几乎不受影响。
+## 多模型路由与 FrugalGPT
 
-FrugalGPT 提出了三种方法：
+![LLM Engineering (12): Production — Deployment, Monitoring, Cost — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/illustration_2.png)
 
-1. **Prompt 优化**——压缩提示词，去掉冗余上下文，合并相关请求。
-2. **LLM 级联**——先用最便宜的模型试一下，获取置信度信号。如果置信度低，就切换到更贵的模型。
-3. **模型路由**——训练一个分类器，直接选对的模型。
+这种先路由再级联的模式，Chen 等人在 2023 年的 *FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance* 里 formalize 了。核心观察：大多数 LLM 查询很简单，小/便宜模型就能搞定；只有一小部分真需要 frontier model。如果你能低成本区分这两者，就能在不怎么损失质量的情况下削减 5-10 倍支出。
 
-实际生产中，级联用得最多。伪代码如下：
+FrugalGPT 提出了三种模式：
+
+1. **Prompt adaptation** — 压缩 prompts，去掉冗余 context，batch 相关请求。
+2. **LLM cascade** — 先试最便宜的模型，让它给个置信度信号，如果置信度低再 fallback 到更贵的模型。
+3. **Model routing** — 用 learned classifier  upfront 挑选合适的模型。
+
+Cascade 是生产环境部署最多的。伪代码：
 
 ```python
 def cascade(question, models=[CHEAP, MID, EXPENSIVE]):
@@ -110,105 +109,100 @@ def cascade(question, models=[CHEAP, MID, EXPENSIVE]):
         answer, confidence = m.generate_with_confidence(question)
         if confidence > THRESHOLDS[m]:
             return answer
-    return answer  # 返回最后一个模型的输出
+    return answer  # last model's output
 ```
 
-难点在于置信度信号怎么搞。常见方法有这些：
+难点在于置信度信号。选项有：
 
-- **自报告置信度**——让模型自己打分，比如“请为你的答案信心打 1 到 5 分”。这种方法有点用，但噪声很大。
-- **基于 logprob**——用答案片段的 logprob 值。合理，但只适合你能控制采样的场景。
-- **采样一致性**——对便宜模型采样 3 到 5 次。如果结果一致，就接受；不一致，就交给更贵的模型。
-- **任务专用验证器**——代码任务检查“是否通过公开测试”；数学问题判断“答案是否在合理范围内”。
+- **自报置信度** — 问模型“给你的回答打个 1-5 分的置信度”。和正确率轻相关，但噪声大。
+- **基于 Logprob** — 用 answer span 的 logprob。合理，但只有你能控制 sampling 时才管用。
+- **采样一致性** — 采样便宜模型 3-5 次；如果全一致就接受。不一致就升级。
+- **任务特定 verifier** — 代码类“过公共测试了吗？”；数学类“答案在合理范围内吗？”
 
-Hu 等人在 2024 年的论文《RouteLLM: Learning to Route LLMs with Preference Data》中提出基于 embedding 的路由方法。他们用离线偏好数据中的 (query, best-model) 对训练分类器，提前预测该用哪个模型。RouteLLM 训练的路由器在 MT-Bench 上以 26%-44% 的成本达到了 GPT-4 95% 的质量。
+基于 Embedding 的路由（Hu et al., 2024, *RouteLLM: Learning to Route LLMs with Preference Data*）在离线偏好数据上训练 (query, best-model) 对的分类器，学习 upfront 预测用哪个模型。RouteLLM 训练的路由器在 MT-Bench 上能达到 GPT-4 95% 的质量，成本只有 26-44%。
 
-生产环境里，路由决策通常归结为两个问题：“这个请求简单吗？”（交给便宜模型）和“这个请求是已知的复杂模式吗？”（交给昂贵模型）。中间情况走默认路径。一个包含 50 条规则的启发式分类器能捕捉 80% 的节省潜力，训练好的路由器则能捕捉约 90%。
+在生产环境，路由决策往往简化为两个问题：“这查询简单吗？”（路由给便宜的）和“这是已知难点模式吗？”（路由给贵的）。中间地带走默认模型。50 问 heuristic 分类器能拿到 80% 的节省；learned routers 大概能拿到 90%。
 
-下一节会聊我在生产环境中踩过的坑和血泪经验。
-## 缓存层
+## 缓存层级
 
-三种缓存很重要，还能叠加使用。
+三层缓存很重要，而且它们是叠加的：
 
-1. **供应商侧的 prompt 缓存**（第 9 章）。复用重复 prompt 前缀的 KV 缓存。Anthropic、OpenAI、DeepSeek 和 Google 都在用。缓存部分成本能降 90%。
-2. **应用侧的语义缓存**。两个用户查询语义相似时，直接返回缓存答案。工具包括 GPTCache（基于 FAISS）、Redis Semantic Cache、MemCache 加自定义 embedding 查找。FAQ 类工作负载命中率 30%-70%，开放式对话几乎为 0。
-3. **确定性函数的结果缓存**。LLM 输出送入下游流水线（如分类、抽取）且输入完全相同时，用输入哈希值存储输出。相同输入不会触发第二次 LLM 调用。
+1. **提供商侧 Prompt 缓存**（第 9 章）— 针对重复 prompt prefix 的 KV-cache 复用。Anthropic / OpenAI / DeepSeek / Google 都在跑。缓存部分成本降低 90%。
+2. **应用侧语义缓存** — 当两个用户查询 *语义相似* 时，直接服缓存答案。工具：GPTCache（原创，基于 FAISS）、Redis Semantic Cache、MemCache + 自定义 embedding  lookup。FAQ 类 workload 命中率 30-70%，开放式聊天接近 0%。
+3. **确定性函数的结果缓存** — 如果 LLM 输出 feeds into 下游 pipeline（比如分类、提取）且输入完全匹配，直接把输出存下来，key 用输入 hash。相同输入绝不调用第二次 LLM。
 
-GPTCache 值得细看。它的逻辑很简单：用小 embedding 模型编码用户查询，和缓存对比余弦相似度。如果相似度超阈值（通常 0.95），就返回缓存答案。阈值是关键参数。调高阈值减少误判，但命中率也会下降。比如，客服机器人回答常见问题，阈值设 0.92 可以省 50% 成本。但代码生成助手每个查询都独特，语义缓存基本没用。
+GPTCache 值得细看。模式：用小 embedding 模型嵌入每个用户查询，跟缓存比（cosine similarity），如果相似度 > 阈值（通常 0.95）就服缓存答案。阈值就是旋钮 — 越高假阳性越少但命中率越低。对于回答常见问题的客服机器人，0.92 阈值能带来 50% 成本降低；对于每个查询都独特的代码生成助手，语义缓存基本 ~没用。
 
-缓存组合效果显著。prompt 缓存降低单次调用成本，语义缓存减少调用次数。两者叠加优化效果翻倍。
-## 给 LLM 做 autoscaling
+可组合性很重要：Prompt 缓存降低 *每次* 调用的成本；语义缓存减少调用 *次数*。两者是相乘关系。
 
-![fig4: LLM 工作负载弹性扩缩容](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig4_autoscaling.png)
+## LLM 负载的自动扩容
 
-给 LLM 做自动扩缩容比无状态的 Web 服务难得多。原因有三点。
+![fig4: autoscaling LLM workloads](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig4_autoscaling.png)
 
-第一，模型加载太慢。一个 70B 参数的模型，新启动的 vLLM 实例需要 2 到 4 分钟加载权重并预热。如果流量高峰只持续 10 分钟，扩容根本来不及。
+LLM 的自动扩容比无状态 Web 服务器难得多。三个原因：
 
-第二，GPU 按小时计费。为 5 分钟的流量高峰启动新 GPU 实例，会浪费 55 分钟的资源。
+1. **加载模型需要几分钟**。带 70B 模型的新 vLLM  replica 需要 2-4 分钟加载权重和预热。如果流量峰值只持续 10 分钟，靠扩容响应太慢。
+2. **GPU 按小时计费，不是按请求**。为了 5 分钟的峰值启 fresh GPU 实例，会浪费 55 分钟的 GPU 钱。
+3. **Continuous batching 负载非线性**。50% 负载和 90% 负载的 vLLM 服务器延迟 profile 差别很大；安全操作点比 CPU 服务建议的低得多。
 
-第三，连续批处理的负载非线性。vLLM 在 50% 和 90% 负载下的延迟表现差异很大。安全运行点远低于传统 CPU 服务的建议值。
+实用模式：
 
-实际操作中，我总结了一些方法。
+- **定时预热**：如果流量在 9 点 predictable 峰值，8:50 提前扩容。
+- **保守扩容，激进缩容**：60% 利用率时扩容，30% 时缩容。（跟典型 Web 服务反过来。）
+- **缓冲降级**：自建满容量时，overflow 到托管 API。单位成本高但能吸收峰值而不浪费 provisioning。
+- **多模型保底**：即使流量低，每个模型也至少保持一个 replica 在线。冷启动成本太高。
+- **带背压的队列**：服务器过载时，用 per-user 公平调度器 queue 请求，返回带 `Retry-After` 头的 429，而不是让所有人的 latency 崩掉。
 
-定时预热。如果流量高峰通常在早上 9 点，提前在 8:50 扩容。
-
-保守扩容，积极缩容。利用率到 60% 时扩容，降到 30% 时缩容。这和 Web 服务的策略相反。
-
-备用回退方案。自托管服务达到容量上限时，把溢出请求转到托管 API。单价高一些，但能应对流量高峰，避免资源浪费。
-
-多模型保底。即使低流量时段，也要确保每个模型至少一个副本在线。冷启动成本太高，不能忽视。
-
-带背压的请求队列。服务器过载时，用公平调度器按用户排队处理请求。返回带 `Retry-After` 头的 429 状态码，而不是让所有用户延迟崩溃。
-
-vLLM 提供两个重要参数：`--max-num-seqs`（最大并发请求数）和 `--max-num-batched-tokens`（每步最大 token 吞吐量）。调整这些参数时，优先满足延迟目标，而不是追求吞吐量最大化。
+vLLM 支持 `--max-num-seqs`（最大并发请求数）和 `--max-num-batched-tokens`（每步最大 token 吞吐）。调优这些参数以匹配你的延迟目标，而不是最大化吞吐。
 ## 延迟预算拆解
 
-![fig2: 延迟预算拆解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig2_latency_breakdown.png)
+![fig2: latency budget breakdown](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig2_latency_breakdown.png)
 
-一个面向用户的聊天产品，延迟预算大致如下：
+面向用户的聊天产品，延迟预算大概长这样：
 
-| 组件 | 预算（ms） | 备注 |
+| Component | Budget (ms) | Notes |
 |---|---|---|
-| 网络输入 | 50 | 地理位置影响 |
-| API 网关 / 认证 | 10 | 要求快速响应 |
-| 应用服务器逻辑 | 50 | 包括 RAG embedding、工具调度 |
-| RAG 检索 | 100 | 向量数据库 + 重排序 |
-| LLM 网关开销 | 5 | 仅路由操作 |
-| LLM TTFT（队列 + 预填充） | 300 | 模型本身的处理时间 |
-| 网络输出 | 50 | 和输入一致 |
-| **首 token 总计** | **~565 ms** | 控制在 1 秒目标内 |
-| LLM ITL（解码） | 25 | 每个 token，支持 40 tok/s |
-| 网络缓冲 | 20 | 平滑输出 |
+| Network in | 50 | Geographic |
+| API gateway / auth | 10 | Should be fast |
+| App server logic | 50 | RAG embedding, tool dispatch |
+| RAG retrieval | 100 | Vector DB + reranker |
+| LLM gateway overhead | 5 | Just routing |
+| LLM TTFT (queue + prefill) | 300 | The model itself |
+| Network out | 50 | Same as in |
+| **Total to first token** | **~565 ms** | Below 1s target |
+| LLM ITL (decode) | 25 | Per-token, sustains 40 tok/s |
+| Network buffering | 20 | Smoothing |
 
-两个最关键的延迟指标是：**TTFT** 和 **ITL**。TTFT 决定用户是否觉得“有反应”。ITL 影响流式输出的持续速度。2026 年的行业经验如下：
+最关键的两个延迟指标：**TTFT**（Time To First Token）和 **ITL**（Inter-Token Latency）。TTFT 决定了用户感觉“有反应了吗？”；ITL 决定了 token 流式输出后的持续阅读速度。2026 年的行业经验值：
 
-- 聊天：TTFT < 800 ms 是“即时”，< 2 秒是“可接受”。
-- 语音：TTFT < 300 ms 才能自然对话。
-- 代码补全：TTFT > 200 ms 用户会放弃。
-- 批处理 / 智能体任务：TTFT 可放宽到 5-30 秒，用户通常能容忍。
+- 聊天：TTFT < 800 ms 算“即时”，< 2 s 算“可接受”
+- 语音：TTFT < 300 ms 才能实现自然对话
+- 代码补全：TTFT < 200 ms，否则用户直接放弃
+- 批量 / 代理任务：TTFT 可以放宽到 5-30 s；用户能容忍
 
-首 token 输出后，用户看到流式结果。5-10 秒内，40-60 tok/s 的速度可以接受。总响应时间取决于输出长度。比如 200 个 token，按 40 tok/s 计算，需要 5 秒。加上 600 ms 的 TTFT，端到端总共 5.6 秒。
+首 token 出来后，用户看到流式输出，通常能接受 5-10 秒内 ~40-60 tok/s 的速度。总响应时间取决于长度：200 tokens 按 40 tok/s 算 = 5s，加上 600 ms TTFT = 端到端 5.6 s。
 
-延迟预算应该花在哪里？
+延迟预算花在哪：
 
-- **重排序（Reranking）**：50-100 ms 值得投入（见第 8 篇）。
-- **推测解码（Speculative decoding）**：减少 50-100 ms 的 ITL（见第 5 篇），值得投资。
-- **工具调用（Tool calls）**：200 ms 的工具会阻塞模型。尽量并行化，或者积极缓存。
-- **推理 / 思考（Reasoning / Thinking）**：思考型模型会在输出首个可见 token 前增加 1-10 秒。只在必要时使用。
+- **Reranking**：花 50-100 ms 很值（第 8 章）。
+- **Speculative decoding**：ITL 降低 50 到 100 ms（第 5 章），好投资。
+- **Tool calls**：一个 200 ms 的工具调用会卡住模型。能并行就并行，缓存要激进。
+- **Reasoning / thinking**：思考型模型会在首 token 可见前增加 1-10 s。只留给需要深思的任务。
 
-对于延迟敏感的路径，实际测量时间花在哪。拆解结果往往出乎意料。我见过一个“慢”的功能，LLM 本身只用了 200 ms，但 RAG 的重排序花了 1.2 秒。另一个案例中，LLM 表现正常，但下游的 JSON 序列化拖了 800 ms。优化之前，先做好追踪分析。
-## 第一天就开始成本跟踪
+对于延迟敏感的路径，*得实测时间花在哪了*。实际情况往往跟你想的不一样。我见过一个“慢”功能，LLM 只花了 200 ms，但 RAG reranker 花了 1.2 s；还有一个 LLM 没问题，但下游 JSON 序列化花了 800 ms。先链路追踪，再优化。
 
-![fig3: 每请求成本拆解](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig3_cost_per_request.png)
+## 从第一天就开始跟踪成本
 
-每请求的成本核算，必不可少。没有它，我没法做到以下几点：
+![fig3: cost per request breakdown](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig3_cost_per_request.png)
 
-- 发现某个用户或功能导致的成本激增。
-- 对成本与质量的调整做 A/B 测试。
-- 提前预测账单支出。
-- 及时发现失控的 agent 循环，避免花掉 1000 美元。
+按请求核算成本是没得商量的底线。没这个，你没法：
 
-每个请求至少要记录这些信息：
+- 找出单个用户或功能导致的成本膨胀。
+- 做成本 vs 质量的 A/B 测试。
+- 在账单到来前预测支出。
+- 在失控的 Agent 循环花掉 1000 美元前抓住它。
+
+每个请求至少记录以下字段：
 
 ```python
 {
@@ -217,7 +211,7 @@ vLLM 提供两个重要参数：`--max-num-seqs`（最大并发请求数）和 `
     "endpoint": "/chat",
     "model": "claude-4-5-sonnet-20250901",
     "prompt_tokens": 4321,
-    "cached_tokens": 3000,    # 其中来自缓存的部分
+    "cached_tokens": 3000,    # of those, came from cache
     "completion_tokens": 215,
     "total_cost_usd": 0.0152,
     "latency_ms": {
@@ -229,172 +223,177 @@ vLLM 提供两个重要参数：`--max-num-seqs`（最大并发请求数）和 `
 }
 ```
 
-按用户、功能和模型聚合数据。触发告警的场景包括：
+按用户、功能、模型聚合数据。出现以下情况要报警：
 
-- 单用户 1 小时内花费超中位数 10 倍。
-- 某功能单次调用成本周环比翻倍。
-- 新模型在质量相当的情况下，对话解决成本高于旧模型。
+- 单个用户 1 小时内支出超过中位数的 10 倍。
+- 某功能的单次调用成本周环比翻倍。
+- 新模型的单次解决对话成本高于旧模型，尽管质量相当。
 
-举个算术练习。假设我的产品每天调用 LLM 1 万次，平均输入 4K token，输出 500 token，使用的是 Claude-4.5 Sonnet：
+算笔账很有必要。假设你的产品每天调用 1 万次 LLM，平均 4K 输入 + 500 输出 tokens，使用 Claude-4.5 Sonnet：
 
-- 每次调用：$4 \cdot 4 + 15 \cdot 0.5 = 16 + 7.5 = 23.5$ 千 tok 分 = $0.0235。
+- 单次调用：$4 \cdot 4 + 15 \cdot 0.5 = 16 + 7.5 = 23.5$ thousand-tok-cents = $0.0235。
 - 每天：$235。
 - 每月：$7050。
 
-加入 prompt 缓存（4K 输入中有 3K 被缓存）：
+现在加上提示词缓存（4K 输入中有 3K 命中缓存）：
 
-- 每次调用：$4 \cdot 1 + 0.30 \cdot 3 + 15 \cdot 0.5 = 4 + 0.9 + 7.5 = 12.4$ 千 tok 分 = $0.0124。
-- 每月：$3720，节省 $3330（47 %）。
+- 单次调用：$4 \cdot 1 + 0.30 \cdot 3 + 15 \cdot 0.5 = 4 + 0.9 + 7.5 = 12.4$ thousand-tok-cents = $0.0124。
+- 每月：$3720，节省 $3330 (47 %)。
 
-再加入 30 % 的语义缓存命中率：
+现在加上 30% 的语义缓存命中率：
 
-- 每月：$3720 \cdot 0.7 = $2604，总共节省 $4446（63 %）。
+- 每月：$3720 \cdot 0.7 = $2604，总节省 $4446 (63 %)。
 
-最后加入级联处理，其中 60 % 的查询由 Qwen3-32B 处理（自托管，输入 $0.10 + 输出 $0.30 每 Mtok）：
+现在加上级联路由，60% 的查询由 Qwen3-32B 处理（自托管，每 Mtok 输入 $0.10 + 输出 $0.30）：
 
-- 低成本路径每次调用：$0.10 \cdot 4 + 0.30 \cdot 0.5 = 0.55$ 千 tok 分 = $0.00055。
-- 混合每日成本：$0.6 \cdot 7000 \cdot 0.00055 + 0.4 \cdot 7000 \cdot 0.0124 = $2.31 + $34.72 = $37/天。乘以 30 天 = $1110/月，比基线便宜 84 %。
+- 便宜路径单次：$0.10 \cdot 4 + 0.30 \cdot 0.5 = 0.55$ thousand-tok-cents = $0.00055。
+- 混合每月：$0.6 \cdot 7000 \cdot 0.00055 + 0.4 \cdot 7000 \cdot 0.0124 = $2.31 + $34.72 ... 每天。乘以 30 天 = $1110/月，比基线便宜 84 %。
 
-这些节省是叠加的。没有显式成本跟踪，根本看不到这些优化效果。
-## 成本之外的可观测性
+这些节省是复利的。不显式跟踪成本，这些都看不见。
 
-![fig5: 可观测性仪表盘](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig5_observability_dashboard.png)
+## 超越成本的可观测性
 
-标准可观测性包括 trace、log 和 metric，再加上 LLM 专用指标：
+![fig5: observability dashboard](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig5_observability_dashboard.png)
 
-- 统计每个模型的延迟和错误率，按模型分开。
-- 自托管时关注每个副本的 token 吞吐量。吞吐量下降通常说明负载有问题。
-- 抽取 1% 的请求跑评估集评分流程，画出通过率随时间的变化曲线，观察质量漂移。
-- 检测 Prompt 注入，统计每个用户的注入尝试频率。
-- 记录模型拒绝的比例。拒绝率突然变化，可能是攻击或模型退化的信号。
-- 监控 prompt 缓存和语义缓存的命中率。命中率下降可能是因为模板改动或流量模式变化。
+标准可观测性（链路、日志、指标）加上 LLM 特有的：
 
-到 2026 年依然好用的工具：
+- **分模型延迟和错误率**，按模型细分。
+- **每副本 Token 吞吐量**，针对自托管（这里回退通常意味着模型负载问题）。
+- **质量漂移**：采样 1% 的请求，跑一遍评估集的 grading 流程，绘制随时间变化的通过率。
+- **提示词注入检测**：每用户检测到的注入尝试率。
+- **拒绝率**：模型拒绝的比例。突然变化意味着攻击或模型回退。
+- **缓存命中率**：提示词缓存、语义缓存。命中率下降意味着提示词模板变更破坏了缓存，或流量发生了偏移。
 
-- **Langfuse**（开源）。最适合 LLM 的 tracing 工具，免费版功能够用，自托管也很容易。
-- **Helicone**。托管式 LLM 可观测性工具，带成本跟踪，开箱即用。
-- **Phoenix（Arize）**。开源工具，专注于检索和 RAG 质量指标。
-- **OpenLLMetry**。基于 OpenTelemetry，能无缝接入 Datadog、Grafana、Honeycomb 等现有平台。
-- **Datadog + 自定义仪表盘**。如果你已经在用 Datadog，想统一界面查看数据，这是个不错的选择。
+2026 年好用的工具：
 
-最省钱的方案是记录每个请求的结构化日志，发送到 ClickHouse 或 Snowflake，再搭建一个仪表盘。不用买托管产品也能拿到 80% 的价值，但前提是坚持记录关键字段。
-## 能用的 on-call 模式
+- **Langfuse**（开源）— 最适合 LLM 特定链路追踪，免费额度大方，自托管容易。
+- **Helicone** — 托管型 LLM 可观测性，带成本跟踪；开箱即用性强。
+- **Phoenix (Arize)** — 开源 LLM 可观测性，专注检索/RAG 质量指标。
+- **OpenLLMetry** — 基于 OpenTelemetry，可插入现有可观测性栈（Datadog, Grafana, Honeycomb）。
+- **Datadog + 自定义仪表盘** — 如果你已有 Datadog 且想要单一视图，这个可行。
 
-![fig6: on-call 升级流程](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig6_oncall_escalation.png)
+最省钱且有效的方案：结构化记录每个请求，投喂到 ClickHouse 或 Snowflake，建个仪表盘。不需要托管的可观测性产品也能拿到 80% 的价值，但得有纪律性去记录正确的字段。
 
-凌晨 3 点把我叫醒的问题，以及对应的处理步骤：
+## 行之有效的 On-call 模式
 
-**LLM 供应商 5xx 错误激增。** 先看供应商的状态页面。有备用供应商就切过去。主供应商 5 分钟内恢复就不管；超过 5 分钟，联系客户经理。记得检查备用供应商的成本，有时贵一倍。
+![fig6: on-call escalation flow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/12-production/fig6_oncall_escalation.png)
 
-**延迟 p99 > 30 秒。** 一般是工具调用失控或请求卡住。先查是不是某个用户或功能占了大头。杀掉卡住的请求，收紧超时限制，问题通常能解决。
+凌晨 3 点把我叫醒的事，以及对应的处理手册：
 
-**成本突然暴涨。** 每小时花费涨了 10 倍。查用户表，基本是一个用户的 agent 出问题。先限流，再找根本原因。最常见的问题是 agent 没设递归步数限制，导致无限循环调用自己。
+**LLM 提供商 5xx 激增。** 查提供商状态页。如果有备用提供商，切换过去。如果主提供商在 <5 分钟内恢复，无需进一步操作；如果更久，联系提供商客户经理。检查故障切换是否导致备用提供商成本激增（有时备用贵 2 倍）。
 
-**拒绝率突然上升。** 模型一夜之间多拒绝 30% 的请求。要么是模型更新出问题，要么有人搞协同攻击。先回滚模型，再调查。
+**延迟 p99 > 30s。** 通常是失控的工具调用或卡住的请求。检查是否单个用户/功能占主导。通常杀掉卡住的请求并添加更严格的超时就能解决。
 
-**RAG 质量下降。** faithfulness 分数掉了 10%。通常是 embedding 或 index 版本不匹配，或者新内容格式变了。检查数据摄入管道。
+**成本激增**：$/小时 突然增加 10 倍。查用户表——几乎总是一个用户有失控的 Agent。限流，查根因。经典案例是 Agent 递归调用自己且没有步数限制。
 
-**自托管 GPU 内存不足（OOM）。** KV 缓存耗尽了。要么加容量，要么降低 `max_tokens` 参数。别急着重启服务，下一批请求还是会 OOM。
+**拒绝率跳变**：模型一夜之间多拒绝了 30% 的请求。要么模型发布回退了，要么有协同攻击。回滚模型，调查。
 
-**供应商弃用通知。** 我们依赖的模型版本 90 天内会被移除。立刻安排迁移测试，针对新版本做至少 2 周 A/B 测试，记录差异。
+**RAG 质量下降**：faithfulness 分数下降 10%。通常是 embedding/index 版本不匹配，或新内容格式不同。检查 ingestion  pipeline。
 
-好的 runbook 能把平均恢复时间从 30 分钟缩短到 3 分钟。一定要在问题发生前写好。
-## 值得命名的常见失败模式
+**自托管 GPU OOM**：KV cache 耗尽。要么加容量，要么降低每请求 `max_tokens`。别盲目重启；下一批请求照样 OOM。
 
-以下是我见过或读到的一些生产事故，列个不完全清单：
+**提供商弃用通知**：我们依赖的模型版本将在 90 天内移除。立即安排针对推荐继任者的迁移测试，A/B 至少 2 周，记录差异。
 
-- **供应商区域故障。** 整个可用区（AZ）挂了。解决办法：网关层做多区域切换；托管 API 准备备用供应商。
-- **限流级联效应。** 供应商对某个客户限流，我的应用疯狂重试，耗光全局配额。解决办法：网关前加每用户限流；重试用带抖动的指数退避；每个供应商配熔断机制。
-- **Prompt 模板问题。** 改系统 Prompt 时以为“无害”，结果缓存失效（第 9 章），账单一夜翻三倍。解决办法：CI 加入缓存感知的差异检查；缓存命中率下降就告警。
-- **模型弃用意外。** OpenAI 宣布 gpt-4-turbo-0613 六十天后退役，但我没用替代模型跑过评估集。解决办法：订阅供应商的弃用通知；每季度演练迁移。
-- **静默质量下降。** 托管模型悄悄更新，特定场景性能变差。解决办法：每周用生产流量样本跑评估集；对比历史基线；质量下降超 5% 就告警。
-- **Agent 循环失控。** Agent 调工具出错，重试遇到新错误，模型开始自我争辩，最后花了 $500。解决办法：限制每次对话的步骤数和成本；单次会话超 $X 就告警。
+好的处理手册能把 MTTR 从 30 分钟降到 3 分钟。手册得在需要之前写好。
+
+## 值得命名的常见故障模式
+
+我在生产环境见过或听说过的事故清单，不全但典型：
+
+- **提供商区域宕机。** 整个 AZ 挂了。缓解：网关层多区域故障切换；对于托管 API，备用提供商待命。
+- **限流级联。** 提供商限流了你的一个客户；你的应用 aggressive 重试吃掉了全局配额。缓解：网关前每用户限流；重试带指数退避和抖动；每提供商熔断器。
+- **提示词模板回退。** 系统提示词“无害”变更导致提示词缓存失效（第 9 章），账单一夜翻三倍。缓解：CI 中感知缓存的 diff；缓存命中率下降报警。
+- **模型弃用 surprise。** OpenAI 宣布 gpt-4-turbo-0613 将在 60 天内退役；你的评估集从未在替代品上跑过。缓解：订阅提供商弃用源；每季度迁移演练。
+- **静默质量漂移。** 托管模型收到未文档化的更新，在你的特定用例上回退。缓解：每周用评估集跑生产流量样本；对比历史基线；下降 >5% 报警。
+- **Agent 循环失控。** Agent 调用工具，收到错误，重试，得到不同错误，重试时模型开始自我争论，累计花费 500 美元。缓解：每对话步数限制；每对话成本限制；每会话成本 > $X 报警。
+
 ## 迁移 playbook
 
-在生产环境里，模型迁移是个被严重低估的技能。分享一个我踩过的坑和总结的方法。
+模型迁移是被低估的生产技能。有效的模式：
 
-1. **影子流量跑 3-7 天。** 新模型接收所有请求的副本，输出只记录不返回。离线对比质量差异。
-2. **灰度发布 1%，持续 3-7 天。** 新模型处理 1% 的真实流量。监控延迟、错误率、成本、拒绝率和满意度。没问题就继续。
-3. **逐步放量：5% → 25% → 50% → 100%。** 整个过程 1-2 周。每一步都必须通过 SLA 验证。
-4. **切换后旧模型热备 30 天。** 回滚只需改一个配置。
-5. **确保 30 天无异常再下线旧模型。**
+1. **Shadow 流量 3-7 天。** 新模型接收每个请求的副本，但只记录输出，不返回。离线对比质量。
+2. **Canary 1% 持续 3-7 天。** 新模型服务 1% 的真实流量；监控延迟、错误率、成本、拒绝率、满意度。无回退 → 继续。
+3. **逐步放量 5 → 25 → 50 → 100%**，耗时 1-2 周。每步都卡在监控 SLA 上。
+4. **切换后保留旧模型热备 30 天。** 回滚开关只需改一个配置。
+5. **30 天 clean 运行后才下线。**
 
-跳过影子流量和灰度发布，最容易导致“上线新模型后客户投诉激增”。这是流程纪律问题，不是技术问题。
-## 按部署形态的成本（约值，2025 年底）
+跳过 shadow + canary 是“上新模型后客诉飙升”的最常见原因。这是流程纪律，不是技术问题。
 
-| 配置 | $/Mtok 输入 | $/Mtok 输出 | 备注 |
+## 不同部署形态的成本（2025 年末粗略数据）
+
+| Setup | $/Mtok input | $/Mtok output | Notes |
 |---|---|---|---|
-| Claude-4.5-Sonnet API | $3 | $15 | 质量优秀 |
-| GPT-4o API | $2.50 | $10 | 质量优秀 |
-| Qwen3-Max API | $1.40 | $5.60 | 质量好，价格低 |
-| Gemini-2.5-Pro API | $2.50 | $10 | 质量好，支持长上下文 |
-| DeepSeek-V3 API | $0.14 | $0.28 | 便宜，数学和代码能力强 |
-| 自托管 Qwen3-32B FP8（1xH100） | $0.10 | $0.30 | GPU 利用率 70% |
-| 自托管 LLaMA-3.3-70B FP8（2xH100） | $0.30 | $0.90 | GPU 利用率 70% |
-| 自托管 Qwen3-235B-A22B（8xH100） | $0.50 | $1.50 | GPU 利用率 70% |
-| Open-router 池化小模型 | $0.15 | $0.50 | 最便宜的选择 |
-| Anthropic Batch API（5 折） | $1.50 | $7.50 | 24 小时 SLA |
-| OpenAI Batch API（5 折） | $1.25 | $5 | 24 小时 SLA |
+| Claude-4.5-Sonnet API | $3 | $15 | Strong quality |
+| GPT-4o API | $2.50 | $10 | Strong quality |
+| Qwen3-Max API | $1.40 | $5.60 | Strong, cheaper |
+| Gemini-2.5-Pro API | $2.50 | $10 | Strong, long context |
+| DeepSeek-V3 API | $0.14 | $0.28 | Cheap, strong on math/code |
+| Self-host Qwen3-32B FP8 (1xH100) | $0.10 | $0.30 | At 70 % util |
+| Self-host LLaMA-3.3-70B FP8 (2xH100) | $0.30 | $0.90 | At 70 % util |
+| Self-host Qwen3-235B-A22B (8xH100) | $0.50 | $1.50 | At 70 % util |
+| Open-router pooled small models | $0.15 | $0.50 | Cheapest |
+| Anthropic Batch API (50 % discount) | $1.50 | $7.50 | 24h SLA |
+| OpenAI Batch API (50 % discount) | $1.25 | $5 | 24h SLA |
 
-输出成本一般是输入的 3 到 5 倍。原因很简单，输出是顺序解码，受内存限制。如果任务需要生成长内容，比如总结、报告或代码，换个输出成本低的模型，效果可能比优化模型本身更好。
+输出通常比输入贵 3-5 倍，因为输出是串行 decode（内存受限）。对于产生长输出的应用（摘要、报告、代码），切换到输出经济学更便宜的模型，往往比优化模型本身更有效。
 
-Batch API 的折扣是个被低估的省钱利器。工作负载接受 24 小时 SLA 的话，费用直接减半。典型场景包括隔夜报告、批量审核、评估集生成或数据标注。迁移也很简单，改一行 API 调用代码就行。
-## 性价比生产 LLM 产品的最终配方
+Batch API 折扣（24 小时 SLA  workload 打五折）是最被低估的省钱杠杆。如果你的 workload 能容忍次日完成（隔夜报告、批量内容审核、评估集、数据集标注）， batching 能把支出砍半。迁移通常只需改一行 API 代码。
+## 打造高性价比生产级 LLM 产品的最终方案
 
-如果我在 2026 年中启动一个生产级 LLM 产品，我会这么做：
+要是让我在 2026 年年中重新启动一个生产级的 LLM 产品，我会这么做：
 
-1. 前 6 到 12 个月直接用托管 API。根据延迟、质量和语言需求选一个合适的。
-2. 第一天就搭建 LLM 网关，哪怕只对接一个供应商。迟早会用到。
-3. 记录每次请求的成本，精确到小数点后两位（$0.0001 级别）。每周汇总一次。
-4. 先准备一个 200 道题的评估集，再优化提示词。
-5. 如果有外部知识库，加上检索和重排序（reranker）功能。
+1. **前 6-12 个月，默认直接用托管 API**。按你的延迟、质量和语言需求来选供应商。
+2. **从第一天起就构建 LLM Gateway**，哪怕它只是包了一层单一供应商。后面你一定会需要它。
+3. **精确追踪每次请求的成本**，保留两位小数（比如 $0.0001）。每周汇总一次。
+4. **在调整 Prompt 之前，先准备好包含 200 个问题的评估集**。
+5. **只要涉及外部知识库，就加上检索 + 重排序（reranker）层**。
+6. **缓存策略要激进**：供应商处的 Prompt 缓存、应用层针对重复问题的语义缓存、确定性流程的结果缓存。
+7. **单次 Prompt 搞不定用户真实需求时，就上工具调用（tool use）**。
+8. **60-80% 的简单查询路由到便宜模型**，难啃的骨头再交给前沿模型。
+9. **当月 token 用量突破 10 亿且流量稳定时，再考虑自建托管**。
+10. **H100 上用 FP8 量化**，A100/L40s 上用 AWQ-INT4。
+11. **任何能接受 24 小时 SLA 的任务，都用 Batch API**。
+12. **安全栈（safety stack）要提前部署**，别等出了事再加。
 
-6. 尽可能多地缓存。在供应商端缓存提示词。对应用内重复问题做语义缓存。对确定性流程的结果做缓存。
-7. 单次提示无法解决真实用户请求时，引入工具使用（tool use）。
-8. 简单查询交给便宜模型处理，覆盖 60%-80% 的流量。复杂查询交给高性能模型。
-9. 月均 token 超过 10 亿且流量稳定时，切换到自托管。
+做到这些，足够让你上线产品并持续增长，同时避开那些搞死大多数 LLM 产品的技术债。
 
-10. H100 上用 FP8 量化，A100 和 L40 上用 AWQ-INT4 量化。
-11. 对于能接受 24 小时 SLA 的任务，直接用批量 API（batch API）。
-12. 提前搭建安全栈，别等到出问题才动手。
+## 系列总结
 
-这套方案足够支撑产品上线和增长，同时避免了拖垮大多数 LLM 产品的技术债务。
-## 系列收尾
+这十二篇文章讲透了从头到尾构建现代 LLM 产品所需的一切：
 
-12 篇文章，讲透如何从零打造一个现代 LLM 产品：
+1. 架构
+2. 分词
+3. 预训练
+4. 后训练
+5. 推理优化
+6. 长上下文
+7. 函数调用
+8. RAG
+9. Prompting
+10. 评估
+11. 安全
+12. 生产落地
 
-1. 架构  
-2. Tokenization  
-3. 预训练  
-4. Post-training  
-5. 推理优化  
-6. 长上下文  
-7. Function calling  
-8. RAG  
-9. Prompting  
-10. 评估  
-11. 安全  
-12. 生产  
+如果只让你记住三件事：数据质量决定一切（第 3 & 4 章），分词和 KV cache 是成本大头（第 2 & 5 章），没有评估集和成本追踪就别想上线（第 10 & 12 章）。剩下的全是执行细节。
 
-记住三点就够了：数据质量是王道（第 3、4 篇）。Tokenization 和 KV cache 是命根子（第 2、5 篇）。没有 eval set 和成本跟踪，别提上线（第 10、12 篇）。其他全是执行细节。
+想深入阅读的话，[NLP 系列](/zh/nlp/) 会更深入地讲解基础，[Aliyun Bailian 系列](/zh/aliyun-bailian/) 展示了特定云平台上的相同模式，而 [Aliyun PAI 系列](/zh/aliyun-pai/) 则涵盖了阿里云上的训练 - 服务基础设施。
 
-想深入研究的话，[NLP 系列](/zh/nlp/) 讲基础理论更扎实。[阿里云百炼系列](/zh/aliyun-bailian/) 借助具体云平台展示这些模式。[阿里云 PAI 系列](/zh/aliyun-pai/) 聚焦阿里云的训练和服务基础设施。
+感谢读到这儿。去构建一些真正能跑起来的东西吧。
 
-感谢你读到这里。动手去建一个真正能用的东西吧。
-## 参考资料
+## 参考文献
 
-- Chen, L. 等（2023）。*FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance*。https://arxiv.org/abs/2305.05176
-- Hu, Q. 等（2024）。*RouteLLM: Learning to Route LLMs with Preference Data*。https://arxiv.org/abs/2406.18665
-- Bang, Y. 等（2023）。*GPTCache: An Open-Source Semantic Cache for LLM Applications*。NLP-OSS @ EMNLP 2023。https://arxiv.org/abs/2311.04205
-- Kwon, W. 等（2023）。*Efficient Memory Management for Large Language Model Serving with PagedAttention*（vLLM）。SOSP 2023。https://arxiv.org/abs/2309.06180
-- LiteLLM 项目。*LiteLLM: Call all LLM APIs using the OpenAI format*。https://github.com/BerriAI/litellm
-- Cloudflare（2024）。*Cloudflare AI Gateway*。https://developers.cloudflare.com/ai-gateway/
-- OpenRouter（2025）。*OpenRouter: A unified interface for LLMs*。https://openrouter.ai/
-- Langfuse 项目。*Langfuse: Open-source LLM engineering platform*。https://langfuse.com/
-- OpenLLMetry 项目。*OpenLLMetry: Open-source observability for LLM applications*。https://www.traceloop.com/openllmetry
-- Anthropic（2024）。*Message Batches API*。https://docs.anthropic.com/en/docs/build-with-claude/batch-processing
-- OpenAI（2024）。*Batch API*。https://platform.openai.com/docs/guides/batch
-- Anyscale（2023）。*Reproducing GPT-2 and Llama-2 inference cost analysis*。https://www.anyscale.com/blog/llm-inference-cost-analysis
-- Together AI（2024）。*Together Inference Engine performance and cost benchmarks*。https://www.together.ai/blog/together-inference-engine-2
-- Fireworks AI（2024）。*FireAttention serving stack*。https://fireworks.ai/blog/fire-attention-serving-stack
-- HuggingFace TGI 项目。*Text Generation Inference*。https://github.com/huggingface/text-generation-inference
+- Chen, L. et al. (2023). *FrugalGPT: How to Use Large Language Models While Reducing Cost and Improving Performance*. https://arxiv.org/abs/2305.05176
+- Hu, Q. et al. (2024). *RouteLLM: Learning to Route LLMs with Preference Data*. https://arxiv.org/abs/2406.18665
+- Bang, Y. et al. (2023). *GPTCache: An Open-Source Semantic Cache for LLM Applications*. NLP-OSS @ EMNLP 2023. https://arxiv.org/abs/2311.04205
+- Kwon, W. et al. (2023). *Efficient Memory Management for Large Language Model Serving with PagedAttention* (vLLM). SOSP 2023. https://arxiv.org/abs/2309.06180
+- LiteLLM project. *LiteLLM: Call all LLM APIs using the OpenAI format*. https://github.com/BerriAI/litellm
+- Cloudflare (2024). *Cloudflare AI Gateway*. https://developers.cloudflare.com/ai-gateway/
+- OpenRouter (2025). *OpenRouter: A unified interface for LLMs*. https://openrouter.ai/
+- Langfuse project. *Langfuse: Open-source LLM engineering platform*. https://langfuse.com/
+- OpenLLMetry project. *OpenLLMetry: Open-source observability for LLM applications*. https://www.traceloop.com/openllmetry
+- Anthropic (2024). *Message Batches API*. https://docs.anthropic.com/en/docs/build-with-claude/batch-processing
+- OpenAI (2024). *Batch API*. https://platform.openai.com/docs/guides/batch
+- Anyscale (2023). *Reproducing GPT-2 and Llama-2 inference cost analysis*. https://www.anyscale.com/blog/llm-inference-cost-analysis
+- Together AI (2024). *Together Inference Engine performance and cost benchmarks*. https://www.together.ai/blog/together-inference-engine-2
+- Fireworks AI (2024). *FireAttention serving stack*. https://fireworks.ai/blog/fire-attention-serving-stack
+- HuggingFace TGI project. *Text Generation Inference*. https://github.com/huggingface/text-generation-inference

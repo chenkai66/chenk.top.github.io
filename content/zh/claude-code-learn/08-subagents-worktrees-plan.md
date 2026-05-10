@@ -16,87 +16,92 @@ description: "三个改变 Claude Code 一次能扛多少事的特性：子 Agen
 disableNunjucks: true
 translationKey: "claude-code-learn-8"
 ---
-学完 hooks 之后，接下来影响 Claude Code 使用体验的就是**并发控制**。这里说的不是线程层面的并发，而是指“模型同时在帮我做几件事、隔离程度如何、我能掌控多少”这种意义上的并发。
+说完 hooks，接下来让 Claude Code 手感大变的就是*并发控制*了。这里说的并发不是线程层面的，而是指模型到底同时在帮你做多少事、隔离程度如何、你需要盯着多紧。
 
-三个功能特性，按信任需求从低到高排列。
-![Claude Code 实战入门（八）：子 Agent、worktree、计划模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
+三个功能，按所需信任度从低到高排列。
 
-## 计划模式——气闸
+![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_1.png)
 
-计划模式成本最低。按 `Shift+Tab`，直到指示器显示 **plan**。这时模型只会规划，不会执行任何操作：读取信息、思考、提出方案，然后停下来。我看完计划后，可以选择批准、修改或者直接放弃。只有在我确认之后，它才会开始执行。
+## Plan mode —— 气闸舱
 
-我一般在这些情况下使用计划模式：
+Plan mode 成本最低。按 `Shift+Tab` 直到指示器显示 **plan**。这时候模型只规划不行动。它会阅读、思考、提出方案，然后停住。你来看计划。要么 approve，要么 edit，要么直接 kill。只有这一步过了，它才会执行。
 
-- 开始任何非简单任务的前 30 秒。比如“实现 X 功能”，先让模型生成计划。几乎每次，计划都会暴露出模型对代码库的理解有偏差。
-- 涉及到鉴权、支付、schema 迁移或者生产环境配置的任务。花两秒钟看计划，能省下数小时的善后工作。
-- 在我不熟悉的代码仓库中工作时。计划本身就成了我的入门文档。
+我一般在这些时候用：
 
-常见错误：因为“任务很小”就跳过计划模式。实际上，小任务最容易出现“等等，这不是我想要的”这种情况。
-## 子 Agent——适合并行处理的任务
+- 任何非 trivial 任务的前 30 秒。比如“实现 X 功能”→ 先 plan。几乎每次，计划都会暴露模型误解了代码库。
+- 任何涉及 auth、支付、schema 迁移或生产配置的操作。花两秒扫一眼，能省下几小时收拾烂摊子的时间。
+- 在不熟悉的 repo 里干活。这份计划顺便就成了我的 onboarding 文档。
 
-子 Agent 是父 Agent 创建的一个 Claude Code 实例，专门用来完成某个特定范围的任务。它的经典定义文件存放在 `.claude/agents/<name>.md` 中：
+容易踩的坑：觉得“任务小”就跳过 plan mode。恰恰是小任务最容易冒出“等等，这不是我想要的”这种状况。
+
+## Sub-agents —— 适合并行跑的任务
+
+子代理是父 agent spawn 出来的一个 Claude Code 实例，用来处理 scoped task。经典写法放在 `.claude/agents/<name>.md`：
 
 ```markdown
 ---
 name: research
-description: 跨代码库阅读某个主题并生成报告。不进行任何编辑操作。
+description: Reads a topic across the codebase and reports findings. No edits.
 tools: Read, Grep, Glob, WebFetch
 ---
 
-你是一个调研子 Agent。你的任务如下：
-1. 在代码库中搜索目标主题。
-2. 阅读足够多的文件，深入理解这个主题。
-3. 返回一份结构化的报告，包含文件路径和关键引用。
+You are a research sub-agent. Your job:
+1. Search the codebase for the requested topic.
+2. Read enough files to understand it deeply.
+3. Return a structured report with file paths and quotes.
 
-不要修改文件。不要运行 shell 命令。保持专注。
+Do not edit. Do not run shell commands. Stay focused.
 ```
 
-在对话中可以这样用："研究一下鉴权是如何实现的，调用 research agent。"
+然后在对话里说：“research 一下认证怎么工作的 → 用 research agent。”
 
-使用子 Agent 的好处：
+这能换来什么：
 
-- **上下文隔离**：子 Agent 有自己的上下文窗口，不会干扰父 Agent 的上下文。
-- **工具限制**：research agent 根本无法修改文件。这种安全性是架构层面的设计，而不是靠人为约束。
-- **并行处理**：当任务相互独立时，可以同时启动三个子 Agent 来分头工作。
+- **上下文隔离。** 子代理有自己的 context window。父 agent 的保持干净。
+- **工具限制。** research agent  literally 无法编辑。这是架构级别的安全，不是靠自律。
+- **并行工作。** 任务独立时，你可以同时 fan out 给三个子代理。
 
-使用子 Agent 的代价：
+代价是什么：
 
-- Token 消耗：每个子 Agent 都有自己的系统提示、上下文以及交互过程。
-- 协调成本：父 Agent 需要合并各个子 Agent 的结果，这一步必须提前规划好。
+- Tokens。每个子代理都有自己的 system prompt、自己的上下文、自己的来回对话。
+- 协调。父 agent 得合并结果。这一步要显式规划好。
 
-什么时候不该用子 Agent：如果父 Agent 已经掌握了所需的上下文，就没必要再创建子 Agent。比如让子 Agent "去读一个文件然后汇报"，这就是一种昂贵的递归操作。
-## Worktrees — 并行分支不混乱
+什么时候不该用子代理：父 agent 已经拥有所需上下文的任何任务。spawn 一个子代理去“读这一个文件然后汇报”，纯粹的昂贵递归。
 
-![Claude Code 实战入门（八）：子 Agent、worktree、计划模式 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_2.png)
+## Worktrees —— 并行分支且不至于搞疯自己
 
-git worktree 是同一个仓库的第二个工作树，位于不同的分支和目录。Claude Code 支持这个功能：`EnterWorktree` 工具可以创建一个新分支和对应的工作树，并将当前会话切换过去。
+![Claude Code Hands-On (8): Sub-Agents, Worktrees, and Plan Mode — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/08-subagents-worktrees-plan/illustration_2.png)
 
-什么时候需要它：
+git worktree 是同一个 repo 的第二个 working tree，在不同分支，不同目录。Claude Code 认识这东西：`EnterWorktree` 工具会创建新分支 + worktree 并把 session 切换进去。
 
-- 我正在 `feat/x` 上开发功能，用户突然要求在 `main` 分支上修复一个无关的小问题。这时可以启动一个 worktree，完成修复后提交并退出。
-- 我想尝试两种不同的解决方案，但又不想让废弃的提交污染主分支。
-- 我需要把任务交给子代理（sub-agent），并且希望它与我的工作树完全隔离。
+这些场景很关键：
 
-如何理解它：worktree 是上下文隔离的**物理实现**。子代理负责隔离上下文，而 worktree 负责隔离文件系统。
+- 你正在 `feat/x` 上干活，用户突然要求在 `main` 上修个无关的 quick fix。Spawn 一个 worktree，修完，commit，退出。
+- 你想尝试同一问题的两种不同解法，又不想用废弃的 commit 弄脏主干。
+- 你委托给子代理，希望它在物理上跟你的 working tree 隔离。
 
-退出时的选择：
+心智模型：worktree 是上下文隔离的*物理*版本。子代理隔离上下文；worktree 隔离文件系统。
 
-- `keep` — worktree 保留在磁盘上。适合任务只完成了一部分、可能需要回头继续的情况。
-- `remove` — 彻底删除，连分支一起删掉。只有确定任务完全结束时才用。
+关于退出怎么想：
 
-如果 worktree 中有未提交的改动，删除操作会被拒绝，除非我明确设置 `discard_changes: true`。这是合理的。不要试图绕过这个限制。
-## 三者组合
+- `keep` — worktree 留在磁盘上。工作未完成或可能回来继续时用。
+- `remove` — 彻底删除，分支也删掉。只有确定不再需要时才用。
 
-我处理复杂任务时的套路：
+如果 worktree 里有未 commit 的变更，除非你确认 `discard_changes: true`，否则拒绝删除。这是对的。别想着绕过它。
 
-1. **计划模式**。我会问自己：“目标是这个，你会怎么下手？” 看一遍计划，调整一下。
-2. **worktree**。切到一个隔离分支，实验失败了也不会影响主干。
-3. 在 worktree 里分配子任务，交给不同的子 Agent。先调研，再实现，最后写测试，每个任务独立运行。
-4. 回到主分支，合并结果，提交代码，退出 worktree（如果任务暂停用 `keep`，完成就用 `remove`）。
+## 组合这三者
 
-三道信任关卡，三次逐步深入。等到模型真正开始修改文件时，我已经精准投入了任务所需的注意力。
+处理硬任务时我的模式：
+
+1. **Plan mode。** “我要做这个；你打算怎么做？”看计划。调整。
+2. **Worktree。** 进一个隔离分支，这样实验失败了也不至于弄脏主干。
+3. **Sub-agents** 处理 worktree 内的独立子任务。先 research，再 implementation，最后写 test —— 每个都在自己的上下文里。
+4. 回到父 agent，合并结果，commit，退出 worktree（工作暂停用 `keep`，完成了用 `remove`）。
+
+三层信任门，三级 escalation。等到模型开始改文件时，你投入的注意力刚好匹配任务所需的难度。
+
 ## 什么时候都不用
 
-大部分任务真的不用。80% 的场景就是“改函数、跑测试、提交”——普通模式，不开子 Agent，也不开 worktree。那些高级功能是留给那 20% 的大活儿的，比如改动大、不可逆或者需要分支的情况。
+大多数任务。说真的。80% 的情况就是“改这个函数，跑测试，发布”—— 普通模式，不要子代理，不要 worktrees。上面那些功能是为那 20% 庞大、不可逆或分支复杂的任务准备的。
 
-如果每个任务都想着用子 Agent 和 worktree，我建议先想想：**你的任务是不是拆得太粗了？**
+如果你发现自己每个任务都想掏子代理和 worktree，更有趣的问题是：你是不是把任务拆得太大了。

@@ -17,245 +17,225 @@ description: "Skill 不是 Prompt 模板——它是一套完整的 SOP，包括
 disableNunjucks: true
 translationKey: "openclaw-quickstart-6"
 ---
+走到第五篇，你的 OpenClaw 已经能跑起来，还能聊天了。从这里开始，它就不再是个 Demo 了。
 
-![技能系统架构示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
+![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png)
 
-## 从"能回答"到"能做事"
+## 我们要做什么
 
-大语言模型很聪明，但聪明不等于靠谱。你问它怎么写 SQL，它答得头头是道；让它连上数据库执行查询、格式化结果、发到钉钉群——这就是另一回事了。差距在哪？**缺少标准操作流程**。
+![Skill composition pipeline — from trigger to tool execution](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/fig_skills.png)
 
-OpenClaw 的技能系统填补这个缺口。一个 Skill 定义了做什么、什么时候做、用什么工具做、按什么步骤做。再配合 MCP 把外部能力统一接入，Agent 就从问答机器人变成了能干活的助手。
+做一个晨间简报 Agent：
 
+1. 每个工作日早 7 点自动运行
+2. 抓取 Hacker News 头条（通过 Playwright MCP server）
+3. 读取当天的日历安排（通过封装 `gcalcli` 的 Skill）
+4. 把两者总结成一段话，推送到我的 Telegram
 
-## Skill 的组成
+这才是真流程。做完这套，你就有了骨架，随时可以换自己的数据源。
 
-![技能组合流水线——从触发到工具执行的完整链路](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/fig_skills.png)
+## 第一步：写一个 Skill
 
-**Skill 不是 Prompt 模板**。模板只是带占位符的文本；Skill 是完整的执行规范——触发条件、工具权限、执行流程、输出格式，全部声明在一个 Markdown 文件里。
-
-文件位置：`~/.openclaw/skills/<name>/SKILL.md`，由 YAML Frontmatter（清单）和 Body（SOP 正文）两部分组成：
-
-```markdown
----
-name: daily-standup-prep
-description: "准备每日站会的汇报内容"
-trigger: "准备站会|standup prep|今天要汇报什么"
-tools_required: [git, calendar, file_read]
-model_override: null
-priority: 5
----
-
-# 每日站会准备
-## 步骤
-1. 读取昨天的 git log，总结完成的工作
-2. 检查日历，列出今天的会议和截止日期
-3. 生成站会汇报模板
-```
-
-**懒加载机制**：启动时只读 Frontmatter（几十字节）建立触发索引；匹配成功后才加载 Body 到上下文；执行完毕释放。你可以放心写几十个 Skill，不用担心 token 预算。
-
-## 动手写第一个 Skill
-
-完整的"每日站会准备"技能：
-
-```markdown
----
-name: daily-standup-prep
-description: "自动准备每日站会汇报材料：汇总昨日工作、今日计划、阻塞项"
-trigger: "准备站会|站会准备|standup|今天汇报什么|daily standup"
-tools_required: [git, calendar, file_read, file_write]
-priority: 5
-tags: [productivity, daily]
----
-
-# 每日站会准备
-
-你是团队协作助手。按以下步骤执行。
-
-## 第一步：收集昨日工作
-执行 git 命令获取最近 24 小时的提交记录：
-git log --since="24 hours ago" --oneline --author="$(git config user.name)"
-将结果整理为要点列表。
-
-## 第二步：检查今日日程
-调用 calendar 工具获取今天的事件。重点标注截止任务和协作会议。
-
-## 第三步：生成汇报
-按模板输出：
-### 昨日完成
-- [从 git log 整理]
-### 今日计划
-- [从日历整理]
-### 阻塞项
-- [有则列出，无则写"无"]
-```
-
-注册只需要把文件放对位置：
+Skill 存放在 `~/.openclaw/skills/<name>/SKILL.md`。我们先写一个负责"总结头条"的：
 
 ```bash
-mkdir -p ~/.openclaw/skills/daily-standup-prep
-# 写入 SKILL.md 后重启 Gateway
-openclaw gateway restart
+mkdir -p ~/.openclaw/skills/summarize-headlines
 ```
 
-在 TUI 中输入"帮我准备站会"即可触发。
-
-## 四种设计模式
-
-**模板型**：定义输出格式，Agent 填充内容。适合周报、邮件、commit message。
-
-**工作流型**：多步骤、有前后依赖。每步定义输入/操作/检查点：
+创建 `~/.openclaw/skills/summarize-headlines/SKILL.md`：
 
 ```markdown
-## 步骤 1：拉取变更
-操作：git pull origin {branch}
-检查点：确认无冲突
+---
+name: summarize-headlines
+description: Summarize a list of headlines into a one-paragraph briefing
+trigger: when user asks for a news briefing, headline summary, or daily news digest
+tools_required: [web_search]
+---
 
-## 步骤 2：运行测试
-操作：npm test
-检查点：全部通过
+# Summarize Headlines
+
+You have been given a list of headlines and source URLs.
+Produce a single paragraph summary.
+
+## Rules
+- Maximum 4 sentences.
+- Group related headlines into a single sentence.
+- If a headline is paywalled or the title is unclear, skip it.
+- Lead with the highest-signal item, not the chronological first.
+- Tone: dry, analytical. No "exciting!" or "breaking!".
+
+## Output template
+> [4 sentences max]
+>
+> _Sources: [domain1], [domain2], [domain3]_
 ```
 
-**守卫型**：在危险操作前做验证，拦截并确认。比如生产部署前检查分支、CI 状态、未合并的热修复。设 `priority: 10` 确保它优先于实际执行的 Skill 被触发。
+这里有两个设计点：
 
-**组合型**：一个 Skill 通过子 Agent 调用其他 Skill——先 `code-review`，再 `changelog-gen`，最后 `deploy-guard`，全部通过才执行部署。
+- **trigger** 字段是模型决定要不要调用这个 Skill 的依据。站在用户角度写，别管实现细节。
+- **body** 部分是 SOP。把它当成新员工入职文档来写——包含示例、边界情况、输出格式。越具体越好。
 
-## 触发条件最佳实践
-
-触发条件写得好不好，决定 Skill 能不能被正确激活。三个原则：
-
-**具体且不重叠**。`trigger: "帮我做一下"` 太模糊；`trigger: "准备站会|standup prep|daily standup"` 才是正确粒度。
-
-**用 priority 处理歧义**。多个 Skill 可能同时匹配时，数值高的优先。安全检查类设 10，实际执行类设 5。
-
-**主动测试**：
+重启网关，确认 Skill 加载成功：
 
 ```bash
-openclaw skill test-trigger "帮我准备明天的站会"
-# Matched: daily-standup-prep (score: 0.92)
-# Partial: meeting-prep (score: 0.45)
+openclaw skills list | grep summarize
+# summarize-headlines  (loaded)
 ```
 
-## 内置技能
+## 第二步：挂载 MCP server
 
-OpenClaw 预装四个通用技能：
+OpenClaw 不原生支持 MCP，我们用 `MCPorter` 做个 shim。先安装：
 
-| 技能名 | 功能 | 典型触发 |
-|--------|------|----------|
-| `web-research` | 搜索 + 摘要总结 | "帮我调研一下..." |
-| `code-review` | 分析 diff，指出问题 | "review 这个 PR" |
-| `file-organizer` | 按规则批量重命名/移动 | "整理这个目录" |
-| `email-draft` | 根据模板撰写邮件 | "帮我写一封..." |
-
-直接用，或者 fork 后改成你自己的版本。
-
-## MCP：统一的外部能力接入
-
-Skill 定义了"怎么做"，工具层回答"用什么做"。OpenClaw 的工具分两类：原生工具（git、file_read 等）和 MCP 工具（外部服务）。
-
-**MCP（Model Context Protocol）** 是一个开放标准，定义 LLM Agent 与外部工具的通信协议——"Agent 世界的 USB 接口"。工具声明用统一 JSON Schema，调用用标准请求/响应格式，错误处理有规范化的错误码。一个协议，成百上千的集成。
-
-![MCP 协议架构](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_2.png)
-
-在 `~/.openclaw/config.yaml` 添加 MCP Server：
-
-```yaml
-mcp_servers:
-  - name: playwright
-    command: npx
-    args: ["@anthropic/mcp-playwright"]
-    env:
-      DISPLAY: ":0"
-  - name: postgres
-    command: npx
-    args: ["@anthropic/mcp-postgres"]
-    env:
-      DATABASE_URL: "postgresql://user:pass@localhost:5432/mydb"
+```bash
+npm i -g mcporter
+curl -LsSf https://astral.sh/uv/install.sh | sh   # for uvx, used by some MCP servers
 ```
 
-重启 Gateway 后自动可用。Skill 的 `tools_required` 声明对应工具名即可调用。
+然后通过 MCPorter 添加 Playwright：
 
-## MCP 实战
+```bash
+mcporter add playwright npx @playwright/mcp@latest
+```
 
-**浏览器自动化**：配置 Playwright MCP 后，Skill 可以调用 `browser_navigate`、`browser_click`、`browser_snapshot` 等工具。实际场景：自动登录内网系统抓取报表、监控页面状态变化。
+在 `openclaw.json` 里告诉 OpenClaw 关于 MCPorter 的事：
 
-**数据库查询**：配置 PostgreSQL MCP，注意用只读账号——Agent 不应该有写库权限。让它查数据、生成报表，但不碰写操作。
-
-**自定义 MCP Server**——三步搞定：
-
-```typescript
-// 第一步：定义工具 Schema
-const tools = [{
-  name: "query_dingtalk_messages",
-  description: "查询钉钉群最近的消息",
-  inputSchema: {
-    type: "object",
-    properties: {
-      group_id: { type: "string", description: "钉钉群 ID" },
-      limit: { type: "number", default: 20 }
-    },
-    required: ["group_id"]
-  }
-}];
-
-// 第二步：实现工具逻辑
-async function handleToolCall(name: string, args: any) {
-  if (name === "query_dingtalk_messages") {
-    const messages = await dingtalkAPI.getMessages(args.group_id, args.limit);
-    return { content: [{ type: "text", text: JSON.stringify(messages) }] };
-  }
+```json
+"mcp": {
+  "porter_endpoint": "http://127.0.0.1:7890",
+  "servers": ["playwright"]
 }
 ```
 
-```yaml
-# 第三步：注册到 OpenClaw
-mcp_servers:
-  - name: dingtalk
-    command: node
-    args: ["/path/to/dingtalk-mcp/index.js"]
-    env:
-      DINGTALK_APP_KEY: "your-key"
-      DINGTALK_APP_SECRET: "your-secret"
+重启网关。Playwright MCP 会暴露浏览器自动化工具（`navigate`, `screenshot`, `click`, `extract_text`），Agent 现在可以调用它们了。
+
+在 TUI 里测试一下：
+
+```
+Use Playwright to fetch the top 5 stories from
+https://news.ycombinator.com and just give me the titles and URLs.
 ```
 
-同样的模式适用于飞书文档、企业微信、任何有 HTTP 接口的内部服务。
+如果 Agent 返回了一个列表，链路就通了。
 
-## MCP vs 原生工具
+## 第三步：封装 CLI 工具的 Skill
 
-| 维度 | 原生工具 | MCP 工具 |
-|------|----------|----------|
-| 集成深度 | 深，框架耦合 | 浅，协议解耦 |
-| 性能 | 快，进程内调用 | 略慢，跨进程通信 |
-| 类型安全 | 编译时检查 | 运行时 Schema 验证 |
-| 生态广度 | 有限 | 社区维护大量 Server |
-| 维护成本 | 自己维护 | 社区/第三方维护 |
-
-我的建议：核心操作（文件、git、shell）用原生工具；外部服务（数据库、浏览器、消息平台）用 MCP。如果某个 MCP Server 性能不够，再考虑封装为原生工具。
-
-## 调试技能
+我用 `gcalcli` 管理日历。写个 Skill：
 
 ```bash
-# 列出所有已注册技能
-openclaw skill list
-
-# 查看某个技能详情
-openclaw skill describe daily-standup-prep
-
-# 测试触发匹配
-openclaw skill test-trigger "你的输入"
+mkdir -p ~/.openclaw/skills/today-calendar
 ```
 
-常见问题：
+`~/.openclaw/skills/today-calendar/SKILL.md`：
 
-- **没触发**：`test-trigger` 检查匹配分数，低于 0.7 说明 trigger 需要调整
-- **触发错了**：多个 Skill trigger 重叠，调整 priority 或收窄关键词
-- **触发了但报错**：`openclaw tool list` 检查工具是否可用，`openclaw mcp status` 检查 MCP Server 进程状态
+```markdown
+---
+name: today-calendar
+description: Fetch today's Google Calendar events for the user
+trigger: when user asks for today's calendar, today's meetings, today's schedule
+tools_required: [exec]
+---
 
-## 小结
+# Today's Calendar
 
-- **Skill** 把"我想让 AI 帮我做 X"变成精确的、可复用的、可测试的执行规范
-- **MCP** 把外部能力通过标准协议接入，不管是浏览器、数据库还是钉钉消息
+Run the command `gcalcli agenda --tsv "$(date +%F) 00:00" "$(date +%F) 23:59"`.
 
-两者结合，Agent 获得的不只是更多知识，而是更大的**行动空间**——从"告诉你怎么做"到"直接帮你做"。
+Parse the TSV output (columns: start, end, title, location).
 
-下一篇讲 Context Management：对话越来越长时，怎么让 Agent 记住该记的、忘掉该忘的。
+Format as a markdown bullet list:
+- HH:MM–HH:MM **Title** (Location, if any)
+
+If there are no events, return "Nothing on the calendar today".
+```
+
+注意，这个 Skill 本质上是一份食谱（recipe），不是函数。模型是运行时，`exec` 工具是动词，Skill 则是把两者绑在一起的知识名词。
+
+## 第四步：组合 Skill
+
+![OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_2.png)
+
+现在写一个把上面两者用起来的 Skill：
+
+```bash
+mkdir -p ~/.openclaw/skills/morning-briefing
+```
+
+`~/.openclaw/skills/morning-briefing/SKILL.md`：
+
+```markdown
+---
+name: morning-briefing
+description: Generate the daily morning briefing
+trigger: when user asks for the morning briefing, daily briefing, or 7am report
+tools_required: [exec]
+skills_required: [today-calendar, summarize-headlines]
+---
+
+# Morning Briefing
+
+1. Use the `today-calendar` skill to get today's schedule.
+2. Use the Playwright MCP tools to fetch the top 5 stories from
+   https://news.ycombinator.com.
+3. Use the `summarize-headlines` skill on those stories.
+4. Compose the final message in this format:
+
+```
+## Morning Briefing — YYYY-MM-DD
+
+### Today
+[output of today-calendar]
+
+### News
+[output of summarize-headlines]
+```
+
+Send the result to the default channel.
+```
+
+`skills_required` 字段告诉 OpenClaw，当这个 Skill 触发时，要把那些 Skill 的内容预加载进来。不用重新 fetch，也没有额外延迟。
+
+## 第五步：Cron
+
+在 `openclaw.json` 里配置：
+
+```json
+"cron": {
+  "jobs": [
+    {
+      "name": "morning-briefing",
+      "schedule": "0 7 * * 1-5",
+      "skill": "morning-briefing",
+      "channel": "telegram"
+    }
+  ]
+}
+```
+
+`0 7 * * 1-5` 代表周一到周五早 7 点。重启网关。用以下命令验证：
+
+```bash
+openclaw cron list
+# morning-briefing | 0 7 * * 1-5 | next: tomorrow 07:00 | channel: telegram
+```
+
+第一次运行时，盯着网关日志看。你会看到 Agent 循环触发，Skill 加载，Playwright 工具调用滚屏，最后一条消息落进你的 Telegram。
+
+## 你现在拥有了什么
+
+- 一个长驻 Agent 连着真实的聊天平台
+- 把领域知识和 Agent 循环分离的 Skills
+- 一个提供 OpenClaw 原生没有的能力的 MCP server
+- 一个把"我得去问"变成"它自己来"的 Cron 任务
+
+这就是完整闭环。官方文档里的其他案例——第二大脑、内容 pipeline、DevOps 自动化——都是这五步的变体。换些 Skill，换些 MCPs，改几行 Cron 配置而已。
+
+## 接下来我会做什么
+
+按投入精力从小到大，三件事：
+
+1. **加个反馈循环。** 回复晨间简报进行纠正（比如"跳过 crypto 头条"）。写个 Skill 把这些纠正记入 `~/.openclaw/memory/feedback/morning-briefing.md`。第二天早上的简报会读取这些内容。
+2. **让新闻源可配置。** 写个 Skill 从 `~/openclaw-workspace/sources.yaml` 读取并遍历。这几乎等于免费得了个"Agent 版 RSS 阅读器"。
+3. **接第二个渠道。** 同一个 Agent，工作时间也推送到钉钉。Skill 不用改。
+
+QuickStart 就到这儿。官方文档的其余部分会深挖每一层，你现在有了地图，知道怎么 navigate 了。
+
+如果只记住一点，那就是：真正值钱的是那些无聊的层（Skills, memory, channels）。Agent 循环大家都一样。让你的安装变得有用的，是你建的 Skill 库和你投放的渠道。祝好运。

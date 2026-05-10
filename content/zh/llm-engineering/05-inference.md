@@ -18,314 +18,302 @@ disableNunjucks: true
 description: "KV cache 力学、paged attention、continuous batching、speculative decoding、INT8/INT4/AWQ/GPTQ 量化，以及 vLLM、SGLang、TensorRT-LLM 的取舍。"
 translationKey: "llm-engineering-5"
 ---
-钱都花在推理上。一个 70B 的模型，服务 1000 个用户，每秒处理 50 个 token，3 个月就烧光训练时的 GPU 预算。
+钱其实是花在推理上的。单个 70B 级别的模型，要是服务 1000 个并发用户，每秒生成 50 个 token，大概跑 3 个月就把训练这台模型的 GPU 预算烧光了。本章所有内容都围绕两个指标展开：首 token 延迟（TTFT）和 token 间延迟（ITL）。还有一个比率：每百万输出 token 消耗的 GPU 秒数。
 
-本章内容就盯住两个指标：首 token 时间（TTFT）和 token 延迟（ITL）。再加一个比例：每百万 token 耗多少 GPU 秒。
+训练是一次性资本支出——你把成本分摊到数百万次推理调用上。推理是持续的运营支出，而且不像训练那样能摊销。tokens-per-GPU-second 提升 0.5 倍，会在产品整个生命周期里每天复利累积。这就是为什么每个正经的 LLM 团队至少有一名全职工程师搞推理，也是为什么开源社区在五年内推出了四波不同的推理引擎（FasterTransformer → DeepSpeed-Inference → vLLM → SGLang/TensorRT-LLM/llama.cpp）。
 
-训练是一锤子买卖，成本分摊到百万次推理里。推理是日常开销，省不了。tokens-per-GPU-second 提升 0.5 倍，产品生命周期内每天都在赚。
+![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_1.png)
 
-每个正经 LLM 团队都有专人搞推理优化。开源社区五年出了四代推理引擎：FasterTransformer → DeepSpeed-Inference → vLLM → SGLang/TensorRT-LLM/llama.cpp。
-
-![大模型工程（五）：推理优化 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_1.png)
-## 两个特性完全不同的阶段
+## 两个特性截然不同的阶段
 
 ![fig1: prefill vs decode compute pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig1_prefill_vs_decode.png)
 
-每次 LLM 推理都分两个阶段。
+每次 LLM 推理调用都分两个阶段：
 
-1. **Prefill（处理提示）**：输入 token 并行跑模型，填充 KV 缓存。计算密集型。70B 模型跑 4K token 提示，大约需要 280 TFLOP。一张 H100 显卡 70 毫秒就能打满。
-2. **Decode（生成）**：每次生成一个 token，注意力操作依赖缓存的 K 和 V。内存带宽密集型。每步解码读取整个 KV 缓存（数 GB），只生成一个 token。
+1.  **Prefill（提示词处理）**：输入 token 并行跑过模型，填满 KV cache。这是计算密集型（Compute-bound）。70B 模型处理 4K token 的 prompt 大概需要 280 TFLOP——能把一张 H100 饱和运行约 70 ms。
+2.  **Decode（生成）**：一次生成一个 token，基于缓存的 key 和 value 做注意力。这是内存密集型（Memory-bound）。每个 decode 步都要读取整个 KV cache（几 GB 大小）才能产出一个 token。
 
-不对称性是关键。Prefill 能跨用户批量处理，用同一个内核跑不同序列。Decode 在朴素批处理下效果差，因为每个用户处于不同序列位置。主流推理引擎都围绕这种不对称性设计。
+这种不对称性就是一切。Prefill 可以在用户间很好地批处理（同一个 kernel，不同序列）。Decode 用 naive batching 效果很差，因为每个用户所处的序列位置都不一样。主流推理引擎全是围绕这种不对称性设计的。
 
-经验法则很简单。TTFT 主要由 prefill 决定，ITL 则看 decode 的内存带宽。想降低 TTFT，堆 FLOPs 就行，比如增加 SM 或用张量并行。想降低 ITL，提升内存带宽更有效，比如用 HBM3 替代 GDDR，或者通过量化减少参数。
+有个常用的经验法则：TTFT 主要由 prefill 主导，ITL 主要由 decode 的内存带宽主导。想降低 TTFT，就堆 FLOPs（更多 SMs，tensor parallelism）。想降低 ITL，就堆内存带宽（HBM3 胜过 GDDR，或者通过量化减少参数量）。
 
-算术强度让这一点更清楚。70B 模型跑 4K 提示的 prefill，模型权重（BF16 下 140 GB）加载一次，处理 4096 个 token。算术强度约 4096 FLOP/字节。同一模型单 token decode，权重加载一次，只处理 1 个 token。算术强度约 1 FLOP/字节。H100 在 BF16 下 989 TFLOPS，HBM 带宽 3.35 TB/s，ridge point 约 295 FLOP/字节。Prefill 的 4096 FLOP/字节远高于 ridge，属于计算受限。Decode 的 1 FLOP/字节低两个数量级，属于内存受限。这两个阶段需要不同硬件特性。服务栈如果不分开处理，性能会大打折扣。
+用算术强度来论证就更严谨了。70B 模型处理 4K prompt 的 prefill：模型权重（BF16 下 140 GB）加载一次，操作 4096 个 token。算术强度 ≈ 每读取一个参数字节对应 4096 FLOP。同样是这个模型，单 token 的 decode：权重加载一次，操作 1 个 token。算术强度 ≈ 每字节 1 FLOP。H100 在 BF16 下算力 989 TFLOPS，HBM 带宽 3.35 TB/s，平衡点大概在 ~295 FLOP/byte。Prefill 的 4096 FLOP/byte 远高于平衡点（计算密集型）。Decode 的 1 FLOP/byte 低于平衡点两个数量级（内存密集型）。这两个阶段需要的硬件特性不同， Serving 栈如果不把它们分开处理，性能就会躺在地板上起不来。
 
-下一节会具体讲如何优化这两个阶段的性能。
 ## KV cache：支撑长上下文的数据结构
 
 ![fig2: KV cache size growth](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig2_kv_cache_growth.png)
 
-KV cache 存储每一层每个历史 token 的 K 和 V 向量。以 70B GQA-8 模型为例，上下文长度为 32K：
+KV cache 存储了每一层中每个 prior token 的投影 K 和 V 向量。对于 70B 模型，GQA-8，32K 上下文（数据来自第一章）：
 
-$$\text{KV} = 2 \cdot 80 \cdot 2 \cdot 8 \cdot 128 \cdot 32{,}768 \cdot 2 \text{ 字节} = 8.6 \text{ GB}$$
+$$\text{KV} = 2 \cdot 80 \cdot 2 \cdot 8 \cdot 128 \cdot 32{,}768 \cdot 2 \text{ bytes} = 8.6 \text{ GB}$$
 
-每次请求都要这么多内存。50 个并发请求就是 430 GB。这比模型权重大多了。瓶颈在 KV cache，不在权重。
+这是单个请求的量。如果有 50 个并发请求，那就是 430 GB 的 KV cache——远超你的模型权重。瓶颈是 KV cache，不是权重。
 
-最简单的实现是为每个请求分配一块连续张量，大小为 `max_context`。但这种方法有两个问题：
+Naive 实现会为每个请求分配一个大小为 `max_context` 的连续 tensor。这有两个问题：
 
-1. **内部碎片**。即使只用 1K token，也得预留 32K 内存。
-2. **无法扩展**。超出 `max_context` 就会 OOM。
+1.  **内部碎片化。** 一个只用了 1K token 的请求依然预留了 32K 的内存。
+2.  **无法增长。** 超过 max_context，你在 decode 中途就会 OOM。
 
-负载下还有第三个问题：**外部碎片**。请求来来去去，空闲内存散落在不连续区域，没有一块够大。服务器运行几小时后，仅外部碎片就占掉 20-40% 的可用 KV 内存。这个问题和操作系统在 1960 年代遇到的分页问题一样，解法也类似。
+高负载下会出现第三个问题：**外部碎片化**。请求在不同时间到达和离开。空闲内存确实存在，但散落在不连续的区域，没有任何一块足够大给新请求。在可变负载下运行几小时的服务器，仅外部碎片化就会损失 20-40% 的可寻址 KV 内存。这和操作系统上世纪 60 年代用分页解决的问题一样，解决方案也一样。
+
 ## Paged attention
 
 ![fig3: paged attention block table](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig3_paged_attention.png)
 
-vLLM 的杀手级特性是 2023 年论文 [Kwon 等][kwon-vllm] 提出的 **paged attention**。KV 缓存按固定大小分配，每块通常是 16 个 token。每个请求用一个块表将逻辑位置映射到物理块。这和操作系统的虚拟内存类似。
+vLLM 的杀手锏，来自 2023 年的论文 [Kwon et al.][kwon-vllm]，就是 **paged attention**。KV cache 按固定大小的 **block** 分配（通常是 16 个 token 的量），每个请求通过 **block table** 映射逻辑位置到物理 block。就像操作系统的虚拟内存。
 
 ```
-请求 A：47 个 token 的 KV → 3 块（16+16+15）
-请求 B：200 个 token 的 KV → 13 块
-A 的块表：[0x47, 0x12, 0x3a]
-B 的块表：[0x05, 0x09, 0x21, ...]
+Request A: needs 47 tokens of KV → 3 blocks (16+16+15)
+Request B: needs 200 tokens of KV → 13 blocks
+Block table for A: [0x47, 0x12, 0x3a]
+Block table for B: [0x05, 0x09, 0x21, ...]
 ```
 
 好处很明显：
 
-- 几乎零浪费。每个请求只有最后一块可能有碎片，最多 15 个 token。
-- 支持内存共享。前缀相同的请求（如系统提示、few-shot 示例）可以共用物理块。这就是 prompt 缓存的来源。
-- 抢占方便。内存不足时，把请求的块换到 CPU；空闲时再拉回来。
+-   **几乎零浪费**：每个请求只有最后一个 block 有内部碎片，而且最多也就 15 个 token。
+-   **内存共享**：前缀共享的请求（系统 prompt、few-shot 示例、工具定义）可以共享相同的物理 block。这就是 prompt caching 的来源。
+-   **易于抢占**：内存压力下，把请求的 block  swap 到 CPU；有空闲再搬回来。
 
-vLLM 在 LLaMA-13B 上的吞吐量比朴素的 Hugging Face Transformers 循环快了 14 到 24 倍（基于原论文基准）。这个数字至今有效，但实际生产中的差距取决于负载。单流服务提升约 2 倍；高并发混合流量提升 5 到 10 倍；14 到 24 倍是对完全没有批处理的 HF 代码的对比结果。重点不是倍数，而是 paged attention 让 KV 内存从硬约束变成了可控资源。
+原论文基准测试中，vLLM 在 LLaMA-13B 上的服务吞吐量比 naive 的 Hugging Face Transformers 循环提高了 14-24 倍。这些数据至今依然成立——虽然实际生产环境的差距高度依赖工作负载混合。对于 batch-1 单流服务，提升接近 2 倍；对于高并发混合长度流量，5-10 倍是常态；14-24 倍这个数字是在对比 *真正* naive 的 HF 代码（完全不做 batching）时出现的。重点不在于具体的倍数，而是 paged attention 让 KV 内存变成了可管理的资源，而不是硬约束。
 
-最简用法如下：
+一个最小化用法：
 
 ```python
 from vllm import LLM, SamplingParams
 
 llm = LLM(model="Qwen/Qwen3-7B", gpu_memory_utilization=0.9,
           max_model_len=32768, enable_prefix_caching=True)
-prompts = ["用一段话讲 MoE。",
-           "用一段话讲 GQA。"]
+prompts = ["Explain MoE in one paragraph.",
+           "Explain GQA in one paragraph."]
 out = llm.generate(prompts, SamplingParams(max_tokens=200, temperature=0.7))
 ```
 
-`enable_prefix_caching=True` 自动启用重复 prompt 前缀的块共享。如果一个系统提示在 1000 个请求中复用，这些请求的 prefill 速度能提高 5 到 50 倍。
+`enable_prefix_caching=True` 启用了针对重复 prompt 前缀的自动 block 共享。如果系统 prompt 在 1000 个请求中重复，这对那些请求来说是 5-50 倍的 prefill 加速。
 
-### Block manager：分页如何工作
+### Block Manager：分页到底怎么运作
 
-Block manager 是 paged-attention 引擎的核心。它管理一个物理 KV 块池，每块大小通常是 16 个 token × 2(KV) × 层数 × 头数 × head_dim 字节。它维护空闲列表，并为新请求分配块。当请求需要扩展（下一个解码步骤），manager 弹出一个空闲块，将其地址追加到请求的块表，然后返回。
+Block Manager 位于每个分页注意力引擎的核心。它拥有一池物理 KV block（通常每个 block 大小为 16 tokens × 2 (KV) × num_layers × num_heads × head_dim bytes），维护空闲列表，并为 incoming 请求原子性地分配 block。当请求需要增长（下一个 decode 步）时，manager 弹出一个空闲 block，将其物理地址追加到请求的 block table，然后返回。在 copy-on-write 语义下，前缀共享的 block 是引用计数的：fork 一个序列（例如为了并行采样、beam search 或 speculation rollback）会增加 refcount；释放则减少；只有当 refcount 归零时才释放物理内存。
 
-在 copy-on-write 语义下，前缀共享的块使用引用计数。fork 序列（如并行采样、beam search 或推测回滚）会增加引用计数；释放时减少引用计数；引用计数归零时，才真正释放物理内存。
+生产环境中，“驱逐到 CPU"这条路径很重要。当 GPU 空闲 block 用完但新请求在排队时，调度器会选一个受害者请求（通常是 FIFO 或运行时间最长的），通过 PCIe 将其 block 复制到 pinned host 内存，然后释放 GPU block。当内存可用时，请求再被搬回。驱逐开销是实打实的（Gen5 ×16 的 PCIe 带宽 64 GB/s，意味着驱逐和重载一个 8 GB 请求需要 100 ms），但这让系统能够通过不直接拒绝请求来遵守延迟 SLO。
 
-"换出到 CPU" 路径在生产环境中很重要。GPU 没有空闲块但仍有新请求排队时，调度器会选择一个受害请求（通常是 FIFO 或运行时间最长的）。通过 PCIe 将其块拷贝到 pinned host memory，然后释放 GPU 块。内存可用时，再把请求拉回来。
-
-换出开销确实存在。PCIe Gen5 ×16 速率为 64 GB/s，换出和重新加载一个 8 GB 请求需要 100 毫秒。但它让系统能在不拒绝请求的情况下满足延迟 SLO。
 ## Continuous batching
 
 ![fig4: continuous vs static batching](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig4_batching_timeline.png)
 
-静态批处理有个大问题：它要等最慢的序列跑完，才开始下一批。输出长度不固定时，GPU 会浪费大量时间空转。
+另一场革命。Static batching 会等待 batch 中最慢的序列完成后再开始下一个 batch。面对变长输出（这总是常态），你会浪费大量 GPU 时间空闲等待。
 
-**连续批处理**（[Yu 等，Orca，OSDI 2022][yu-orca]，vLLM 推广）解决了这个问题。每次解码时，踢掉已完成的序列，加入等待的序列。只要任务队列不空，GPU 始终跑满 `max_batch_size` 条序列。
+**Continuous batching**（[Yu et al., Orca, OSDI 2022][yu-orca]，由 vLLM 普及）：每个 decode 步，驱逐完成的序列并接纳等待的序列。只要有工作在排队，GPU 运行的序列数永远不会低于 `max_batch_size`。
 
-假设我有 1000 个提示，输出长度从 50 到 2000 不等：
+对于 1000 个 prompt，输出长度从 50 到 2000 token 不等：
 
-- 静态批处理：总耗时接近 2000 token 的输出时间。
-- 连续批处理：总耗时接近所有输出的平均值。
+-   Static batching：总墙钟时间 ≈ 2000 token 输出的时间（最坏情况主导）。
+-   Continuous batching：总墙钟时间 ≈ 所有输出的平均值。
 
-结合分页注意力机制，效果更明显。中途加入新序列只需分配新的 KV 块，不用重新分配整个张量。
+吞吐量提升会与 paged attention 产生复利效应，因为在 batch 中途接纳新序列只是分配新的 KV block——不需要重新分配整个 tensor。
 
 ### Orca 的迭代级调度
 
-Orca 论文提出两个机制，到 2026 年依然流行。第一个是**迭代级调度**，把批处理边界和请求边界分开。每个 Transformer 迭代独立调度，一个请求在第 500 步完成，不会拖累需要 1500 步的请求。
+Orca 论文引入了两种机制，在 2026 年的引擎中依然无处不在。**迭代级调度**将 batching 边界与请求边界解耦：每个 transformer 迭代独立调度，所以一个在第 500 步完成的请求不会阻塞一个需要 1500 步的请求。**选择性 batching** 通过允许注意力算子按每序列形状操作，而线性层（不关心位置）一起 batching，来处理 prefill/decode 不匹配的问题。现代引擎进一步融合了这一点：vLLM 和 SGLang 都运行 "chunked prefill"，其中一次 forward  pass 中一个请求的 prefill 与其他请求的 decode 交错进行，即使 decode 队列稀疏也能保持 GPU 利用率在 90% 以上。
 
-第二个是**选择性批处理**，解决预填充和解码不匹配的问题。注意力算子按序列形状操作，线性层则一起批处理。现代引擎更进一步，比如 vLLM 和 SGLang 都支持“分块预填充”。一个请求的预填充可以和其他请求的解码交错进行，即使解码队列稀疏，GPU 利用率也能保持在 90% 以上。
-
-调度决策很关键：什么时候接受新请求？简单点，直接接受。但 32K token 的预填充和解码一起跑，每步延迟会飙升。预填充的 FLOPS 是单步解码的约 100 倍。生产环境的做法是设一个“预算”上限，把长预填充切分成小块，和解码步骤交错执行。这个隐藏旋钮决定了负载下 TTFT p99 是 500 毫秒还是 5 秒。
+调度器的决策至关重要：你什么时候在 batch 中途接纳新请求？Naive 的做法是立即接纳。但在 ongoing decode 旁边接纳一个 32K token 的 prompt 进行 prefill 会 dramatically  spike 每次迭代的延迟（32K 的 prefill FLOPS 大约是单个 decode 步的 100 倍）。生产调度器会限制每次迭代的“预算”，并将长 prefill 拆分成 chunk，与 decode 步交错执行。这是一个隐藏的权衡旋钮，决定了你的 TTFT p99 在负载下是 500 ms 还是 5 秒。
 ## Speculative decoding
 
-![大模型工程（五）：推理优化 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_2.png)
+![LLM Engineering (5): Inference Optimization — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/illustration_2.png)
 
 
 ![fig5: speculative decoding tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/05-inference/fig5_speculative_tree.png)
 
-这个想法很聪明，现在已经是标配了。解码是内存瓶颈：每生成一个 token，都要读取整个模型权重。如果能一次验证 N 个 token 呢？
 
-Speculative decoding（[Leviathan 等，2023][leviathan-spec]）用一个小而快的 **draft 模型**（比如 1B 参数）提议 $k$ 个 token。目标模型（比如 70B 参数的大模型）在一次前向传递中验证这些 token。它会看提议的前缀，并行计算 $k+1$ 个位置的概率。匹配的 token 留下，第一个不匹配的 token 和后续的全丢掉，然后重新采样。
+这是个巧点子，现在已经是标配了。Decode 阶段通常是 memory-bound 的：每一步都得读遍整个模型权重才能吐出一个 token。要是能一次性验证 *N* 个 token 会怎样？
 
-数学上，假设 draft 模型正确率是 $\alpha$，解码是内存瓶颈（$k+1$ 个 token 的前向传递成本和单 token 差不多），那么加速比是 $(1 - \alpha^{k+1})/(1 - \alpha)$。当 $\alpha=0.7$、$k=4$ 时，加速比是 2.5 倍。
+Speculative decoding ([Leviathan et al., 2023][leviathan-spec]) 的核心思路是用一个 **draft model**（小模型，速度快——比如 1B 模型）先 proposes $k$ 个 token。目标模型（也就是你真正要服务的 70B 模型）在单次 forward pass 里验证它们：它看到提出的前缀，并行计算 $k+1$ 个位置的概率。跟目标模型 argmax 匹配的 token 保留；第一个不匹配的 token 及其后面的全部丢弃；从这里重新 sample。
 
-实际中，draft 模型通常从目标模型蒸馏而来。目前主流方法有三种：
+数学上：如果 draft 模型有 $\alpha$ 的概率猜对，且 decode 是 memory-bound 的（所以 $k+1$ 个 token 的 forward pass 成本跟 1 个 token 差不多），期望加速比是 $(1 - \alpha^{k+1})/(1 - \alpha)$。对于 $\alpha=0.7$，$k=4$：加速 2.5 倍。
 
-- **Draft-target 双模型对**：小蒸馏模型提议，目标模型验证。质量高，但维护两个同步检查点很麻烦。
-- **Medusa**（[Cai 等，2024][cai-medusa]）：在目标模型上加 4-5 个预测头。每个头从相同的 backbone 激活预测 $t+1, t+2, t+3, ...$。不需要独立 draft 模型。加速比 2-3 倍，质量无损；在基础模型上训练只需几天 GPU 时间。
-- **EAGLE / EAGLE-2**（[Li 等，2024][li-eagle]）：基于倒数第二层隐藏状态和前一个 token 的自回归头。EAGLE-2 引入动态树验证，每步探索多个 draft 分支。大多数任务能加速 3-4 倍，是当前 SOTA 方法。
+实践中，draft 模型通常是从目标模型蒸馏出来的。主要有三派竞争：
+
+- **Draft-target two-model pairs**，Leviathan 最初的 formulation：小蒸馏模型提出，目标模型验证。质量高，但维护两个同步的 checkpoint 是运维噩梦。
+- **Medusa** ([Cai et al., 2024][cai-medusa])：给目标模型本身加 4-5 个额外的预测头。每个头从相同的 backbone activations 预测位置 $t+1, t+2, t+3, ...$。不需要单独的 draft 模型。加速 2-3 倍且无质量损失；在 base 模型上训几个 GPU-days 就行。
+- **EAGLE / EAGLE-2** ([Li et al., 2024][li-eagle])：一个 autoregressive head，基于倒数第二层的 hidden state 加上前一个 token 进行预测。EAGLE-2 引入了基于动态树的 verification，每一步探索多个 draft 分支。在大多数 workload 上能达到 3-4 倍加速；目前是 autoregressive speculation 的 SOTA。
 
 ```python
-# vLLM 的 speculative decoding
+# vLLM speculative decoding
 llm = LLM(model="Qwen/Qwen3-32B",
           speculative_model="Qwen/Qwen3-1.7B",
           num_speculative_tokens=5)
 ```
 
-推测解码只在目标 GPU 是内存瓶颈时有用。如果是 FLOPs 瓶颈，就没啥帮助。大 batch 通常是 FLOPs 瓶颈（权重加载一次后分摊到所有序列），推测解码帮不上忙。单流低延迟服务是内存瓶颈，收益很大。
+有个坑：只有当目标 GPU 是 memory-bound 而不是 FLOPs-bound 时，speculation 才有用。大 batch 是 FLOPs-bound 的（权重加载一次，摊销到 batch 里所有 sequence 上）；spec decoding 帮不上忙。单 stream 低延迟 serving 是 memory-bound 的，收益巨大。
 
-关于正确性有个细节：验证步骤对目标分布做拒绝采样。如果 draft 模型对 token $t$ 的概率是 $p_d(t)$，目标模型是 $p_t(t)$，接受概率是 $\min(1, p_t(t)/p_d(t))$。拒绝时，从修正分布 $\propto \max(0, p_t(t) - p_d(t))$ 重新采样。这保证输出分布完全等同目标模型，与 draft 质量无关。推测解码是无损的：draft 差只会降低接受率，不会影响输出质量。这也是为什么团队上线时不用测质量——因为质量不会退化。
-## 量化：INT8、INT4、FP8
+correctness 上有个细节：验证步骤其实是针对目标分布做 *rejection sample*。如果 token $t$ 的 draft 概率是 $p_d(t)$，目标概率是 $p_t(t)$，接受概率为 $\min(1, p_t(t)/p_d(t))$；拒绝时，从正比于 $\max(0, p_t(t) - p_d(t))$ 的修正分布中 sample。这保证输出分布 *exactly* 是目标模型的分布，不管 draft 质量如何。Spec decoding 是无损的：draft 差只意味着接受率低，不会导致输出变差。这也是为什么团队上线不用做质量回归测试——根本没质量可回归。
 
-推理时，把 bf16 转成 INT8/INT4/FP8，能省内存和带宽。一般只量化权重，有时也量化激活。
+## Quantization: INT8, INT4, FP8
 
-### INT8 仅权重量化
+推理量化就是把 bf16 转成 INT8 / INT4 / FP8，为了省显存和带宽。通常量化模型权重；有时候也量化 activations。
 
-最简单。按通道量化每个权重矩阵：$w_q = \text{round}(w / s)$，其中 $s$ 是每输出通道的缩放因子。推理时，实时反量化回 bf16 再做矩阵乘法。
+### INT8 weight-only quantization
 
-内存：权重从 16 位降到 8 位，减半。质量：困惑度损失通常小于 0.5%，不用校准。纯赚。
+最简单。按通道量化每个权重矩阵：$w_q = \text{round}(w / s)$，其中 $s$ 是每个输出通道的 scale。推理时，在 matmul 之前即时反量化成 bf16。
 
-### INT4：GPTQ vs AWQ
+显存：权重减半（16-bit → 8-bit）。质量：通常 perplexity 损失 <0.5 %，无需 calibration。白捡的便宜。
 
-INT4 难得多。直接四舍五入会丢 2-5% 的困惑度。目前有两种靠谱算法：
+### INT4: GPTQ vs AWQ
 
-**GPTQ**（[Frantar 等，2022][frantar-gptq]）：OBQ 的改进版，适合大模型。逐列量化权重矩阵，每列后用 Cholesky 分解的 Hessian 逆更新未量化的列，补偿误差。数学上就是每列做一次结构化最小二乘求解。计算成本：单 A100 处理 70B 参数要几小时，峰值内存约等于一层激活（典型值是 128 样本 × 2048 token 的小校准集）。
+INT4 就难多了。Naive 的 round-to-nearest 会丢 2-5 % perplexity。能用的算法 mainly 两个：
 
-**AWQ**（[Lin 等，2023][lin-awq]）：发现 1% 的权重是“显著”的（穿过它们的激活值较大）。用每通道缩放因子 $s$ 保护这些权重——相当于量化前将输入激活乘以 $s$，权重除以 $s$。全精度下这是恒等变换，但改变了量化分布。然后均匀量化。比 GPTQ 快（不用解 Hessian，只需搜索缩放因子），多数模型质量略好，对 MoE 更友好。
+**GPTQ** ([Frantar et al., 2022][frantar-gptq])：OBQ (Optimal Brain Quantization) 的扩展，让它在十亿参数模型上可行。逐列量化权重矩阵；每量化一列后，更新剩余未量化列以补偿引入的误差，使用 Cholesky 分解的 Hessian 逆矩阵。数学上本质是每列做一次结构化 least-squares 求解。计算成本：单张 A100 上 70B 模型需要几小时，峰值显存大约等于小 calibration 集上一层的 activations（通常 128 samples × 2048 tokens）。
 
-**SmoothQuant**（[Xiao 等，2022][xiao-smoothquant]）：与 GPTQ 和 AWQ 正交，解决激活量化问题。难点是激活中有异常通道（少数通道幅值是其他通道的 100 倍），会破坏 INT8 激活量化。SmoothQuant 把激活幅值迁移到权重中，通过每通道缩放让两边都能量化到 INT8。作为 INT8 W8A8 量化前的预处理步骤。
+**AWQ** ([Lin et al., 2023][lin-awq])：观察到 1 % 的权重是 "salient" 的（大 activations 穿过它们）。应用 per-channel scaling $s$ 保护 salient 权重免受量化噪声影响——等价于量化前将输入 activations 乘以 $s$，权重除以 $s$。全精度下这在数学上是 no-op，但重塑了量化 landscape。然后均匀量化。比 GPTQ 快（不用解 Hessian，只需搜索 scaling 因子），大多数模型上质量略好，对 MoE 更友好。
 
-对 LLaMA 类模型，GPTQ 和 AWQ 在 INT4 仅权重量化时，困惑度损失都小于 1%。MoE 中路由复杂化了校准——不同专家看到的激活分布差异很大，统一缩放因子保护不了少用的专家。当前最佳实践是每个专家单独用 AWQ。
+**SmoothQuant** ([Xiao et al., 2022][xiao-smoothquant])：正交于 GPTQ/AWQ —— 解决 *activation* 量化。挑战在于 activations 有 outlier 通道（少数通道量级是其他的 100 倍），这会毁掉 INT8 activation 量化。SmoothQuant 通过 per-channel scaling 把 activation 量级迁移到权重上，让两边都能量化到 INT8。用作 INT8 W8A8 量化前的预处理步骤。
+
+GPTQ 和 AWQ 都能在 LLaMA 类模型上实现 INT4 weight-only 且 perplexity 损失 <1 %。对于 MoE，路由让 calibration 变复杂了——不同 expert 看到的 activation 分布差异很大，统一 scaling 因子会保护不足那些 rarely-used 的 experts。Per-expert AWQ 是目前的最佳实践。
 
 ```python
-# vLLM 加载 AWQ 量化模型
+# Loading an AWQ-quantized model with vLLM
 llm = LLM(model="Qwen/Qwen3-32B-AWQ", quantization="awq",
           dtype="float16", max_model_len=32768)
 ```
 
-### FP8（以及 H100/H200 硬件路径）
+### FP8 (and the H100/H200 hardware path)
 
-H100 及更新 GPU 支持 FP8 tensor core，吞吐量是 BF16 的两倍。FP8 推理是现代路径：权重存 FP8，激活在计算时转 FP8，累积用 FP32。质量损失可忽略（<0.1%），因为 FP8 动态范围比 INT8 大。
+H100 及更新的 GPU 有 FP8 tensor cores，吞吐量是 BF16 的 2 倍。FP8 推理是现代路径：权重存 FP8，计算时 activations 转 FP8，累加用 FP32。质量损失忽略不计（<0.1 %），因为 FP8 比 INT8 动态范围更大。
 
-FP8 有两种格式：E4M3（4 位指数、3 位尾数）用于激活和权重——范围小、精度高；E5M2（5 位指数、2 位尾数）用于梯度和 KV 缓存——范围大、精度低。硬件把反量化缩放融合到矩阵乘法中，没有“INT4 反量化开销”。FP8 是 H100/H200 上的速度上限。
+FP8 有两种格式：E4M3（4 位 exponent，3 位 mantissa）用于 activations 和权重——范围小，精度高；E5M2（5 位 exp，2 位 mantissa）用于 gradients 和 KV cache——范围大，精度低。硬件把反量化 scaling 融合进 matmul，所以没有 "INT4 反量化开销" 成本；FP8 是 H100/H200 上的光速路径。
 
-校准对 FP8 很重要，尽管困惑度损失很小。标准方法是在 128-512 个校准样本上收集激活统计，计算每张量或每 token 的缩放因子，存到检查点里。运行时从实际批次计算每 token 的激活缩放因子，能在小延迟开销下获得最佳质量。NVIDIA TransformerEngine 和 vLLM `--quantization fp8` 都实现了这一点。
+校准对 FP8 很重要，尽管 perplexity 损失很小。标准 recipe：收集 128-512 个 calibration 样本上的 activation 统计信息，计算 per-tensor 或 per-token scales，作为 checkpoint 的一部分存储。Per-token activation scales（在运行时从实际 batch 计算）能以微小的延迟成本换取最佳质量。NVIDIA 的 TransformerEngine 和 vLLM 的 `--quantization fp8` 都实现了这个。
 
-FP8 需要硬件支持。INT4/INT8 在任何 GPU 上都能跑，FP8 只限 H100/H200/B200。如果用 A100 部署，只能选 INT8/INT4。
+坑在于：FP8 需要硬件支持。INT4/INT8 在任何 GPU 上都能跑。FP8 仅限 H100/H200/B200。如果你在 A100 上部署，INT8/INT4 是你的选项。
 
-### KV 缓存量化
+### KV cache quantization
 
-KV 缓存压缩是内存优化的另一半。压到 INT8（节省一半内存），或者 INT4（1-2% 质量损失，需仔细校准）。vLLM 和 SGLang 都支持 FP8 KV 缓存；INT4 KV 缓存还在研究阶段，FlashInfer 提供了相关内核。
+显存账单的另一半。压缩 KV cache 到 INT8（省 2 倍），或 INT4（仔细做 per-token calibration 损失 1-2 % 质量）。vLLM 和 SGLang 都支持 FP8 KV cache；INT4 KV 还是 research-grade，但 FlashInfer 有 kernels。
 
-预计 2026 年，FP8 会成为主力。它能把内存减半（同 GPU 上并发请求翻倍），质量损失小于 0.1%。每 token 缩放因子几乎免费，因为是在线计算的。INT4 KV 缓存需要更多注意——AWQ 用于权重的每通道显著性结构不直接适用于 KV（KV 是数据，不是参数）。当前最佳实践是每 token 每头缩放加异常值保留：保留约 1% 的通道在高精度，其余部分激进量化。
-## SGLang 与 RadixAttention
+FP8 KV cache 是 2026 年的主力。它以 <0.1 % 的质量损失将显存减半（所以同一 GPU 上并发请求翻倍）。Per-token scaling 几乎是免费的，因为 scales 是 inline 计算的。INT4 KV 需要更多操心——AWQ 利用权重的 per-channel salience 结构并不直接适用于 KV（这是数据，不是参数）。目前的最佳实践是 per-token-per-head scaling 加 outlier  preservation：保留约 1 % 的通道用更高精度，其余激进量化。
 
-vLLM 的前缀缓存会在前缀相同的请求间共享块。SGLang（[Zheng 等，2024][zheng-sglang]）更进一步，用 **RadixAttention** 扩展了这个思路。它把所有活跃的 KV 块组织成一棵 radix 树。树中每条从根到叶的路径表示一个 token 序列。新请求来了，先在树里找最长匹配前缀，共享这些块，只计算后缀。
+## SGLang and RadixAttention
 
-为什么这比 vLLM 的精确前缀缓存更有用？因为 agent 负载会分支。比如，ReAct agent 可能发出 5 个工具调用子查询。每个子查询的系统提示、工具和对话历史都一样，但后缀不同。线性前缀缓存只能让子查询匹配共享根，无法让子查询之间共享状态。RadixAttention 却能做到。
+vLLM 的前缀缓存是在具有相同前缀的请求间共享 blocks。SGLang ([Zheng et al., 2024][zheng-sglang]) 用 **RadixAttention**  generalized 了这个：所有活跃 KV blocks 的 radix 树，其中从根到叶的每条路径代表一个 token 序列。新请求在树中查找最长匹配前缀，共享那些 blocks，只计算 suffix。
 
-SGLang 论文提到，在 agent 和结构化输出负载上，RadixAttention 的吞吐量是 vLLM 等价前缀缓存的 5 倍。简单聊天任务上也有约 1.5 倍提升。如果流量不共享前缀，优势会缩小。
+为什么这比 vLLM 的 exact-prefix 缓存更重要：agent  workload 会分支。ReAct  agent 可能发出 5 个 tool-calling 子查询，每个都有相同的 system prompt + tools + conversation history，但 suffix 不同。线性前缀缓存能让每个子查询匹配共享的根，但帮不了子查询之间共享状态。RadixAttention 可以。
 
-实现方法很简单。维护一棵以 token ID 为键的 radix 树，节点保存 KV 块引用。新请求来了，尽量深地匹配输入前缀。匹配到的节点引用计数加一。未匹配的后缀分配新块。完成后减少引用计数。内存压力大时，用 LRU 算法驱逐子树。数据结构开销很小，远低于节省的资源。
-## TensorRT-LLM 细节
+SGLang 论文里报告的提升：相比 vLLM 等价的前缀缓存，agent 和 structured-output  workload 吞吐量提升 5 倍，简单 chat 提升约 1.5 倍。对于不共享前缀的流量，收益会缩小。
 
-NVIDIA 的 TensorRT-LLM 是第三大引擎。它的特点很鲜明。
+实现大致是：维护一个以 token IDs 为 key 的 radix 树，节点持有 KV block 引用。新请求到来时，尽可能深地遍历树匹配输入前缀；增加所有触及节点的 refcount；为未匹配的 suffix 分配新 blocks；完成后减少 refcounts；显存压力升高时 LRU-evict 子树。数据结构成本相比节省的资源微不足道。
 
-- **编译内核**：每个模型会针对特定 GPU、批处理大小和序列长度编译成 TensorRT 引擎。编译耗时 10 到 30 分钟。生成的引擎在支持的工作负载上，比 vLLM 的运行时编译快 1.1 到 1.3 倍。
-- **插件模型**：attention（FMHA、paged FMHA、FlashAttention-3 路径）、MoE 路由和量化用自定义内核实现，以插件形式提供。灵活性不如 vLLM，但融合更激进。
-- **飞行批处理**：类似连续批处理，调度器经过 NVIDIA 优化。
-- **FP8 深度集成**：TransformerEngine FP8 是首选。在 H100 上用 FP8 时，TensorRT-LLM 吞吐量通常领先 5% 到 15%。
-- **转换麻烦**：每种新模型架构都需要一个自定义 Python 构建脚本。新模型支持比 vLLM 滞后几周到几个月。
+## TensorRT-LLM specifics
 
-如果我在 NVIDIA 硬件上大规模运行固定的一组成熟模型，并且有足够工程资源，我会选 TensorRT-LLM。否则，vLLM 的操作简便性几乎总是更优。
+NVIDIA 的 TensorRT-LLM 是第三大引擎。它的差异化特点：
+
+- **Compiled kernels**：每个模型都针对特定 GPU、batch size  profile 和 sequence lengths 编译成 TensorRT 引擎。编译耗时 10-30 分钟； resulting 引擎在支持的 workload 上比 vLLM 的 runtime-compiled  equivalents 快 1.1-1.3 倍。
+- **Plugin model**：attention 的自定义 kernels（FMHA, paged FMHA, FlashAttention-3 路径）、MoE 路由和量化作为插件暴露。插件模型比 vLLM 的灵活性更脆弱，但允许激进融合。
+- **In-flight batching**：相当于 continuous batching 的 TensorRT-LLM 版本，带有 NVIDIA 调优的 schedulers。
+- **Tight FP8 integration**：TransformerEngine FP8 是一等公民。在 H100 上用 FP8，TensorRT-LLM 通常是以 5-15 % 的优势领跑吞吐量。
+- **Painful conversion**：每个新模型架构都需要自定义 Python builder 脚本。新模型支持比 vLLM 滞后数周到数月。
+
+如果你在 NVIDIA 硬件上高规模服务固定的一组知名模型，且有工程带宽，选 TensorRT-LLM。否则，vLLM 的运维 simplicity 几乎总是胜出。
 ## 2026 年的服务框架选型
 
-三个主要选项：
+主要就三个选择：
 
-- **vLLM**——事实上的开源标准。社区最活跃，支持新模型和功能最快。Paged attention、连续批处理、推测解码、前缀缓存开箱即用。默认配置就够用。*除非有特殊原因，直接选它。*
-- **SGLang**——2024 年推出，适合结构化生成（约束 JSON、正则表达式）、前端缓存（RadixAttention 用于 prompt 树共享）和高扇出 agent 场景。共享前缀负载的 TTFT 更低。
-- **TensorRT-LLM**——NVIDIA 的框架。H100 上支持的模型吞吐量最高（编译内核、融合 FlashAttention 路径）。但转换麻烦，新增模型支持慢。*如果有 NVIDIA 支持，又想榨干每秒 token，就选它。*
+- **vLLM** —— 事实上的开放标准。社区最活跃，支持新模型和新特性最快。Paged attention、continuous batching、speculative decoding、prefix caching 全部开箱即用。默认配置就很香。*除非你有特殊理由，否则选它准没错。*
+- **SGLang** —— 新秀（2024 年），在 **结构化生成**（受限 JSON、regex）、**前端缓存**（用于 prompt 树共享的 RadixAttention）以及高分支 agent 场景下表现更好。对于共享 prefix 的负载，TTFT 更低。
+- **TensorRT-LLM** —— NVIDIA 亲儿子。在它支持的模型上，H100 的裸吞吐量最高（编译内核、 fused FlashAttention 路径），但模型转换过程挺折磨人，支持新模型的速度也慢。*如果你有 NVIDIA 支持且需要榨干每一个 token/s，选这个。*
 
-vLLM 0.6+ 和 SGLang 都支持推测解码、FP8、AWQ/GPTQ、MoE、multi-LoRA、函数调用约束解码。差距越来越小。默认用 vLLM，工作负载涉及结构化输出或大量 agent 时，换成 SGLang。
+vLLM 0.6+ 和 SGLang 都支持大部分特性：speculative decoding、FP8、AWQ/GPTQ、MoE、multi-LoRA、function-call 受限解码。差距正在缩小。默认选 vLLM，如果你的负载是结构化输出或重度 agent 场景，再换 SGLang。
 
-Qwen3-32B 在 FP8 单 H100 上的吞吐数据（我的基准测试，2025 年底）：
+下面是我在 2025 年末测的纯吞吐量数据，单卡 H100 跑 FP8 精度的 Qwen3-32B：
 
-| 引擎 | 吞吐（tok/s） | TTFT p50 (ms) | ITL p50 (ms) |
+| Engine | Throughput (tok/s) | TTFT p50 (ms) | ITL p50 (ms) |
 |---|---|---|---|
 | vLLM 0.6 | 7400 | 95 | 13 |
 | SGLang 0.4 | 7800 | 72 | 14 |
 | TensorRT-LLM | 8900 | 88 | 11 |
 
-对大多数负载来说，这些差异可以忽略。按开发体验选就行。
-## 服务并行模式
+对大多数业务来说，这点差别纯属噪声。选哪个主要看开发体验。
 
-70B 模型用 BF16 精度，内存需求超过 140 GB。单张 H100（80 GB）搞不定。解决办法分三路：张量并行（TP）、流水线并行（PP）、序列并行（SP）。组合方式和训练时不一样（第 4 章）。
+## 服务端的并行模式
 
----
+跑一个 BF16 精度的 70B 全量模型，你需要 >140 GB 显存。单卡 H100（80 GB）塞不下。选项分支为三个正交维度——tensor parallelism (TP)、pipeline parallelism (PP) 和 sequence parallelism (SP)——它们的组合方式与训练场景（第 4 章）不同。
 
-### 张量并行（TP）
+### Tensor parallelism (TP)
 
-把权重矩阵分到多张 GPU 上。经典方法是 Megatron-LM 分解（[Shoeybi 等，2019][shoeybi-megatron]）。QKV 投影按列切分，每张卡负责一部分注意力头。注意力输出投影按行切分，后面加 all-reduce。FFN 的两个矩阵乘法分别按列和按行切分。每个 transformer 层需要两次 all-reduce。
+把权重矩阵切分 across GPUs。经典的 Megatron-LM [Shoeybi et al., 2019][shoeybi-megatron] 分解法：QKV 投影做列并行（每张卡拿一部分 attention heads），attention 输出投影做行并行（之后做 all-reduce），然后两个 FFN matmul 分别做列并行和行并行。每个 transformer 层两次 all-reduce。
 
-节点内 TP 没问题，NVLink 带宽 600-900 GB/s。跨节点 TP 就不行了，InfiniBand 每条链路只有 50 GB/s，all-reduce 延迟太高。通常 TP 不超过 8，限制在一节点内。
+对于服务来说，节点内 TP（NVLink，双向 ~600-900 GB/s）没问题；跨节点 TP（InfiniBand，每链路 ~50 GB/s）会给 all-reduce 带来无法接受的延迟。通常上限是 TP ≤ 8（单节点内）。
 
-- 两张 H100（同一节点，NVLink 连接），吞吐量是单卡的 1.7 到 1.9 倍。不是 2 倍，因为有通信开销。
-- 长上下文可以用 TP=4，KV 缓存也会切分。
-- INT4 量化，单卡搞定。吞吐量比 TP=2 低，但成本更便宜。
+- TP=2 张 H100（同节点，NVLink）。吞吐量大概是单卡的 1.7-1.9 倍（不是 2 倍——TP 引入了 all-reduce 通信）。
+- 如果需要长 context，用 TP=4（KV cache 也会随 TP 切分）。
+- INT4 量化，单卡 H100。吞吐量不如 TP=2，但胜在便宜。
 
-`vllm serve Qwen/Qwen3-72B --tensor-parallel-size 2`，一行命令就行。
+`vllm serve Qwen/Qwen3-72B --tensor-parallel-size 2` 这一条命令就能搞定。
 
----
+### Pipeline parallelism (PP)
 
-### 流水线并行（PP）
+把层切分 across GPUs。GPU 0 持第 0-19 层，GPU 1 持第 20-39 层，以此类推。激活值在流水线中流动。经典问题是 **pipeline 气泡**：流水线末端的 GPU 空闲等待起点，反之亦然。对于服务，PP 会引入与流水线深度 × 每层时间成正比的 TTFT 延迟（GPipe / Megatron-LM 分析）；现代引擎通过 **微批次**（micro-batching，把 batch 切分成更小的微批次背靠背流过流水线）来摊销这个开销。
 
-把模型层分到多张 GPU 上。比如 GPU 0 负责层 0-19，GPU 1 负责层 20-39。激活值在流水线里流动。经典问题是 **流水线气泡**：前端空闲等后端，或者反过来。推理任务中，PP 会引入 TTFT 延迟，延迟和流水线深度 × 每层时间成正比。现代引擎用 **微批处理**摊销延迟，把批次拆成小块连续流过流水线。
+PP 是跨节点并行的首选方案。节点内 TP，跨节点 PP 是 200B+ 部署的标准配置。大多数团队对延迟敏感的业务会卡在单节点内——PP 气泡是真实存在的。
 
-PP 是跨节点并行的主力。节点内用 TP，跨节点用 PP，这是 200B+ 模型的标准部署。延迟敏感的任务，多数团队只用一个节点——流水线气泡确实是个坑。
+### Sequence parallelism (SP)
 
----
+序列特别长时，激活值本身塞不进单卡。Sequence parallelism 沿 token 维度切分，attention all-reduce 使用 ring 或 all-to-all 通信。对于推理，SP 出现在 512K+ context 场景，此时即使做了 TP，每层激活缓冲也超出 GPU 内存。大多数生产服务用不到它。
 
-### 序列并行（SP）
+### 数学：什么时候哪种并行模式划算？
 
-超长序列时，激活值可能装不下。SP 沿 token 维度切分，用环形或全对全通信做注意力 all-reduce。推理任务中，上下文长度超过 512K，且每层激活缓冲区在 TP 后仍超出 GPU 内存时，才会用到 SP。大多数生产环境用不上。
+粗略来说，TP 每层成本是 $2 \cdot \text{params}/\text{TP} / \text{HBM-BW} + 2 \cdot \text{batch} \cdot \text{seq} \cdot \text{hidden} / \text{NVLink-BW}$。第一项随 TP 线性减小；第二项增大。有个甜蜜点，通常在 H100 上是 TP=2 到 TP=4。超过 TP=8，all-reduce 占主导，你就亏了。对于 70B 模型，TP=2 吞吐量约 ~1.85 倍；TP=4 约 ~3.2 倍；TP=8 约 ~5.5 倍。边际递减效应是真实的。
 
----
+PP 延迟成本对于单 batch 查询大约是 $\text{depth} \cdot \text{time-per-layer}$。有了微批次和稳态队列，吞吐量接近 $\text{batch} / (\text{time-per-stage})$。PP 对吞吐量友好，对延迟不友好。
 
-### 数学：每种并行模式何时划算？
+## 我自己会怎么部署
 
-粗略估算，TP 每层成本为 $2 \cdot \text{params}/\text{TP} / \text{HBM-BW} + 2 \cdot \text{batch} \cdot \text{seq} \cdot \text{hidden} / \text{NVLink-BW}$。第一项随 TP 减少，第二项增加。H100 上 TP=2 到 TP=4 是甜点。超过 TP=8，all-reduce 占主导，性能下降。
+7B 级别模型：单卡 L40S 或 4090，FP8，vLLM，16K context，80% 利用率下每百万 token 服务成本 $0.10-$0.15。
 
-70B 模型，TP=2 吞吐量约 1.85 倍，TP=4 约 3.2 倍，TP=8 约 5.5 倍。边际递减很明显。
+32B 级别模型：单卡 H100 跑 AWQ INT4 *或者* 双卡 L40S 跑 FP8。两者都行。H100 单 token 更快；L40S 每小时更便宜。看 $/Mtok 决定。
 
-PP 单批次查询延迟约为 $\text{深度} \cdot \text{每层时间}$。微批处理加稳态队列时，吞吐量接近 $\text{batch} / (\text{每阶段时间})$。PP 提升吞吐量，但延迟高。
+70B 级别模型：双卡 H100 跑 FP8。INT4 能省 30% 成本但损失 ~1% 质量，生产环境往往接受不了。
 
-下一节会聊具体踩过的坑和血泪经验。
-## 我会真正部署什么
+200B+ MoE：这是个独立的优化问题（第 12 章）。
 
-7B 级模型，单张 L40S 或 4090。用 FP8，跑 vLLM，上下文长度 16K。80% 利用率时，每百万 token 成本 0.10-0.15 美元。
+## 可观测性：到底该监控什么
 
-32B 级模型，两种选择。单 H100 配 AWQ INT4，或者双 L40S（TP=2）用 FP8。H100 单 token 处理更快，L40S 每小时更便宜。按 $/Mtok 决定。
+生产环境中，重要的指标不是 "tokens/sec"——那是单 batch 数据。真正的指标是负载下的分位数延迟。最小化看板配置：
 
-70B 级模型，双 H100（TP=2），FP8。INT4 能省 30% 成本，但质量损失约 1%，生产环境通常不划算。
+- **TTFT p50 / p95 / p99** (ms)：从收到请求到发出第一个 token 的时间。p99 是用户感受到的，p50 是你拿来吹牛的。
+- **ITL p50 / p95 / p99** (ms)：稳态下的 token 间延迟。这里出现尖峰意味着发生了抢占或内存压力。
+- **Throughput (tok/s)** 在不同并发级别：1, 8, 32, 128, 512。画成曲线；拐点就是你 saturating FLOPs 或内存带宽的地方。
+- **Queue depth** 和 **queue wait time**：请求是不是因为引擎跟不上而堆积了？
+- **KV cache utilization (%)**：是不是快要开始抢占了？
+- **Prefix cache hit rate (%)**：命中率低说明你的 prompt 工程团队生成的 prompt 无法共享。
+- **GPU SM utilization** 和 **HBM bandwidth utilization**：来自 `dcgm-exporter` 或 `nvidia-smi dmon`。如果两者都 <70%，你还有余量；如果 HBM 到了 95% 而 SM 只有 40%，你就是内存瓶颈，量化是解决方案。
 
-200B+ MoE 是另一类优化问题（第 12 章）。
-## 可观测性：实际要测什么
+明确设定 SLO。典型的生产目标：TTFT p95 < 500 ms，ITL p95 < 50 ms，错误率 < 0.1%。超过这个值就是事故。
 
-生产环境里，别盯着 "tok/s" 看。这只是单批次的数字，没太大意义。真正重要的是负载下的百分位延迟。
+## 成本算账
 
-看板至少得包含这些指标：
+关键数字是 **每百万输出 token 的成本** ($/Mtok-out)。对于自托管 vLLM 服务单卡 H100 跑 FP8 精度的 Qwen3-32B（按需 $2.50/hr，1 年预留 $1.20/hr，3 年预留或节省计划 $0.80/hr）：
 
-- **TTFT p50 / p95 / p99**（ms）：从收到请求到吐出第一个 token 的时间。p99 是用户的真实感受，p50 是他们会吹的数字。
-- **ITL p50 / p95 / p99**（ms）：稳态下 token 之间的延迟。如果这里出现尖峰，可能是抢占或者内存压力导致的。
-- **吞吐量（tok/s）**：测试不同并发数下的表现，比如 1、8、32、128、512。画成曲线后，拐点就是 FLOPs 或内存带宽的瓶颈位置。
-- **队列深度** 和 **队列等待时间**：请求堆积了？说明引擎处理不过来。
-- **KV 缓存利用率（%）**：快接近上限了吗？接近的话可能要开始抢占了。
-- **Prefix 缓存命中率（%）**：命中率低？说明你的 prompt 工程团队在生成不可复用的 prompt。
-- **GPU SM 利用率** 和 **HBM 带宽利用率**：用 `dcgm-exporter` 或 `nvidia-smi dmon` 查看。如果两者都低于 70%，还有优化空间；如果 HBM 达到 95%，而 SM 只有 40%，那就是内存瓶颈，量化能解决问题。
+- 并发 32 时的吞吐量：~7400 tok/s
+- 预留每小时成本：$1.20/hr = $0.00033/sec
+- $/Mtok-out = $0.00033 / 7400 \cdot 10^6 ≈ $0.045
 
-SLO 得明确写清楚。我的经验是，生产环境的目标通常是：TTFT p95 < 500 ms、ITL p95 < 50 ms、错误率 < 0.1%。超过这些值，基本就是起火了，赶紧救。
-## 成本算术
+对比 2026 年中的 API 定价：
+- Claude-4.5-Sonnet: $15/Mtok output
+- GPT-5: $12/Mtok output
+- DeepSeek-V3.2: $1.10/Mtok output
+- Qwen3-Max API: $0.80/Mtok output
 
-关键数字是 **每百万输出 token 的成本**（$/Mtok-out）。以自托管 vLLM 为例，用单块 H100 跑 Qwen3-32B FP8。H100 的价格如下：按需 $2.50/小时，1 年预留 $1.20/小时，3 年预留或 savings plan $0.80/小时。
+自托管开源权重与前沿 API 之间 30-300 倍的差价，就是团队选择自托管的全部理由。坑在于：月用量 <1 亿 token 时，工程成本压倒节省的费用。月用量 >10 亿 token 时，节省占主导，自托管显而易见。
 
-并发 32 时，吞吐量约 7400 tok/s。  
-预留成本是 $1.20/小时，换算成秒就是 $0.00033/秒。  
-计算一下，$/Mtok-out = $0.00033 / 7400 \cdot 10^6 ≈ $0.045。
+有个容易被忽视的细节：API 上 input token 通常比 output token 便宜 5-10 倍（因为它们 batching 更好且不需要 autoregress）。自托管时，它们确实更便宜但没那么夸张（3-5 倍），因为两个阶段都跑在你的硬件上。假设两者 parity 的成本模型会在两个方向上误导你。
 
-再看看 2026 年中期的 API 定价：  
-Claude-4.5-Sonnet：$15/Mtok 输出。  
-GPT-5：$12/Mtok 输出。  
-DeepSeek-V3.2：$1.10/Mtok 输出。  
-Qwen3-Max API：$0.80/Mtok 输出。
+## 总结与下一章
 
-自托管开源权重和前沿 API 的成本差距在 30 到 300 倍之间。这就是团队选择自托管的核心原因。每月处理少于 1 亿 token 时，工程成本会吃掉大部分节省。但每月超过 10 亿 token 时，节省就非常明显了，自托管几乎是唯一选择。
+推理分两个不对称阶段（prefill, decode），现代服务栈——paged attention + continuous batching + speculation + quantization + FP8 硬件——存在的目的就是让这两个阶段最糟糕的部分变得可容忍。vLLM 是正确的默认选择。量化（INT8 永远上，预算紧用 INT4，H100+ 用 FP8）基本等于免费。Spec decoding 对于低 batch 低延迟服务是 2-3 倍的增益，对于高吞吐量则是噪声。2026 年的成本算账强烈支持大规模自托管开源权重。
 
-还有一个坑容易被忽略：API 上输入 token 比输出 token 便宜 5 到 10 倍，因为输入可以批量处理且不需要自回归。自托管时，输入 token 仍然更便宜，但差距缩小到 3 到 5 倍，毕竟两个阶段都跑在你的硬件上。如果假设输入和输出 token 价格相同，成本模型就会误导你。
-## 小结与下一篇
+下一章：**长 context**。RoPE scaling、YaRN、NTK-aware interpolation、ALiBi、attention sinks，以及为什么大多数 "1M context" 宣称在实际检索任务中会崩盘。
 
-推理分两个不对称阶段：prefill 和 decode。现代服务栈用 paged attention、continuous batching、speculation、量化和 FP8 硬件，目标是让这两个阶段的最差表现也能接受。vLLM 是首选，默认没错。量化基本无成本，INT8 通用，预算紧选 INT4，H100+ 用 FP8。Spec decoding 在低 batch、低延迟场景下能提升 2-3 倍性能，但高吞吐量时效果不明显。到 2026 年，大规模自托管开源权重的成本优势会非常明显。
-
-下一篇聊**长上下文**。RoPE 缩放、YaRN、NTK-aware 插值、ALiBi、attention sinks 都会提到。还会分析为什么大多数 "1M 上下文" 的说法在实际检索任务中站不住脚。
-## 参考文献
+## References
 
 - [Kwon et al., "Efficient Memory Management for Large Language Model Serving with PagedAttention," SOSP 2023.][kwon-vllm] The original vLLM paper.
 - [Yu et al., "Orca: A Distributed Serving System for Transformer-Based Generative Models," OSDI 2022.][yu-orca] Continuous batching + iteration-level scheduling.

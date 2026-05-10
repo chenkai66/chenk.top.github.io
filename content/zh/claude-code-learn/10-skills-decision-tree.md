@@ -16,95 +16,103 @@ description: "Claude Code 现在有四种扩展机制：斜杠命令、MCP serve
 disableNunjucks: true
 translationKey: "claude-code-learn-10"
 ---
-Claude Code 目前支持四种扩展机制：斜杠命令、MCP 服务器、Hooks 和 Skills。这些机制之间存在功能重叠。当我第一次想到“Claude 应该学会做 X”时，第一个问题就是：这四种机制中，我该选哪一个？
+Claude Code 现在有四种扩展机制：slash commands、MCP servers、hooks 和 Skills。功能上有重叠。当你冒出"Claude 应该知道怎么做 X"的念头时，关键问题是*选哪一个*。
 
-这是本系列的最后一篇文章。接下来，我会详细展开决策树。
-![Claude Code 实战入门（十）：Skills，以及四种扩展机制各自该用在哪儿 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/10-skills-decision-tree/illustration_1.png)
+这是系列的最后一章。直接上决策树。
+
+![Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/10-skills-decision-tree/illustration_1.png)
 
 ## Skill 到底是什么
 
-Skill 是存放在 `~/.claude/skills/<name>/`（用户级）或者 `<repo>/.claude/skills/<name>/`（项目级）下的一个文件夹，至少要包含一个 `SKILL.md` 文件：
+Skill 就是一个文件夹，位置在 `~/.claude/skills/<name>/`（用户级）或 `<repo>/.claude/skills/<name>/`（项目级）。里面至少得有个 `SKILL.md`：
 
 ```markdown
 ---
 name: chenk-blog-write
-description: 为 chenk.top 撰写新内容时使用——双语 EN/ZH 文章、系列、教程。包括 front matter、语气风格、matplotlib 图表、封面生成、部署。
+description: Use when writing new content for chenk.top — bilingual EN/ZH posts, series, tutorials. Covers front matter, voice, matplotlib figures, cover generation, deploy.
 ---
 
-# 语气
-- 第一人称，简洁克制。不要用 "let's"，也不要加感叹号。
-- 一个观点配一个例子。如果没有例子，就删掉这个观点。
+# Voice
+- First person, dry, restrained. No "let's", no exclamations.
+- One claim, one example. If the claim has no example, cut the claim.
 
 # Front matter
-[具体 schema 放在这里]
+[exact schema goes here]
 
-# 流程
-1. 阅读源材料
-2. 写英文内容
-3. 转换为中文（不是直译）
-4. 生成封面
-5. 构建并部署
+# Workflow
+1. Read source
+2. Write EN
+3. Adapt to ZH (not translate)
+4. Generate covers
+5. Build + deploy
 ```
 
-每次会话开始时，Claude 会读取所有可用 Skill 的 **description**。如果你的提问匹配到某个 Skill，Claude 就会加载它的主体内容。这部分内容会直接加入当轮的 system prompt。
+会话开始时，Claude 会读取所有可用 skill 的 *descriptions*。当你问的东西匹配上了，Claude 才加载 skill 正文。正文会成为那一轮 system prompt 的一部分。
 
-这里有两点需要注意：
+两点要注意：
 
-- **description 很关键**。如果它没写清楚什么时候用这个 Skill，那这个 Skill 就不会被触发。
-- **主体内容可以很长**。它是按需加载的，只有在触发时才会占用 token，平时不用担心长度问题。
-## 技能与其他三种机制的区别
+- `description` 是承重墙。如果没写清楚什么时候用，skill 就不会被触发。
+- 正文可以很长。因为是按需加载，除非触发，否则啰嗦点也不消耗 context。
 
-| 机制 | 存储位置 | 加载时机 | 最适合的场景 |
+## Skill 和其他三者的区别
+
+| 机制 | 位置 | 加载时机 | 适合场景 |
 |---|---|---|---|
-| 斜杠命令 | `<repo>/.claude/commands/<name>.md` | 用户输入 `/<name>` | 只需 1-2 行描述的重复工作流 |
-| MCP server | `mcp.json` 配置文件 | 始终加载 | 跨越文件系统边界（如浏览器、数据库、第三方 API） |
-| Hook | `settings.json` 引用的脚本 | 工具调用前后触发 | 策略执行、编辑或写入时的附加操作 |
-| Skill | `.claude/skills/<name>/SKILL.md` | 描述匹配用户提示时 | 领域知识、语气风格、多步骤流程 |
+| Slash command | `<repo>/.claude/commands/<name>.md` | 用户输入 `/<name>` | 1-2 行就能说清的重复工作流 |
+| MCP server | `mcp.json` 配置 | 一直可用 | 伸手到文件系统之外（浏览器、DB、第三方 API） |
+| Hook | `settings.json` 引用的脚本 | 工具调用前后 | 策略 enforcement，edit/write 的副作用 |
+| Skill | `.claude/skills/<name>/SKILL.md` | Description 匹配 prompt | 领域知识、风格、多步骤流程 |
 
-最明显的区别在于：**斜杠命令是操作指令，而技能是知识库。** 斜杠命令的意思是“执行这个具体的操作”，而技能则是“这是我解决这类问题的思路，只要相关就尽管用”。
-## 什么时候该用哪个
+最核心的界限：**slash commands 是指令，skills 是知识**。Slash command 是"做这件具体的事"。Skill 是"这类问题我是这么想的，碰到了就用"。
 
-![Claude Code 实战入门（十）：Skills，以及四种扩展机制各自该用在哪儿 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/10-skills-decision-tree/illustration_2.png)
+## 什么时候用哪个
+
+![Claude Code Hands-On (10): Skills, and When to Reach for Each Extension Mechanism — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/10-skills-decision-tree/illustration_2.png)
 
 按顺序过一遍：
 
-**1. 这个任务需要一个还没出现的工具吗？** 比如浏览器自动化、查询真实数据库、调用内部 API。  
-→ 写一个 **MCP server**。其他方法没法提供新能力。
+**1. 任务需要尚不存在的工具吗？**（浏览器自动化、查真实数据库、调内部 API。）
+→ 建一个 **MCP server**。其他机制给不了新能力。
 
-**2. 需不需要在工具调用时自动做点什么？** 比如拦截、校验、记录日志或者格式化。  
-→ 写一个 **hook**。这是唯一一种模型不主动调用也会执行的机制。
+**2. 工具调用前后需要自动发生点什么吗？**（拦截、验证、日志、格式化？）
+→ 写一个 **hook**。这是唯一不需要模型决定调用就能运行的机制。
 
-**3. 是不是一个用户会明确调用的小功能？** 比如 `/commit`、`/deploy-staging`、`/make-changelog`。  
-→ 写一个 **斜杠命令**。命令就是那种你喊名字才会跑的东西。
+**3. 这是个紧凑的流程，用户会显式调用吗？**（`/commit`, `/deploy-staging`, `/make-changelog`）
+→ 写一个 **slash command**。命令是用来点名调用的。
 
-**4. 是不是一组领域知识？** 比如某种语气、一套流程或者一些约定，希望话题一提到就自动生效。  
-→ 写一个 **skill**。Skill 就是那些我希望 Claude 能自己 **认出来并应用** 的东西，不用我明说。
+**4. 这是一堆领域知识吗？**（风格、工作流、一套规范）
+→ 写一个 **skill**。Skill 是用来让 Claude 自己*识别并应用*的，不用你特意喊它。
 
-如果一件事能归到两类，选简单的那个。Skill 调用斜杠命令没问题，但斜杠命令假装自己是 Skill 就容易出问题。
-## 我写过的三个 Skill
+如果一个东西 fit 两个框，选简单的那个。Skill 调 slash command 没问题。Slash command 装成 skill 会很脆。
 
-**1. `chenk-blog-write`** — 用来给本站写文章。包括 front matter、语气风格、中英文一致性、封面生成和部署。只要提到 chenk.top 或者说“写一篇”，就会触发。代码主体大约 600 行，每一行都值得。
+## 我实际写过的三个 skills
 
-**2. `update-config`** — 用来修改 `~/.claude/settings.json`。像“允许 X 命令”、“设置环境变量 Y”、“加个 hook”这样的请求会触发它。里面编码了权限优先级规则和常见模式，省得我每次都重新推导合并顺序。
+**1. `chenk-blog-write`** — 给这个站点写文章用的。覆盖 front matter、风格、EN/ZH parity、封面生成、部署。只要提到 chenk.top 或 "write a post" 就触发。正文大概 600 行。每一行都值。
 
-**3. `simplify`** — 用来审查我自己写的代码改动。如果问“有没有更简单的实现方式”，它就会触发。我的代码风格是这样的：优先用组合，删掉无用代码，命名要看它**是什么**，而不是看它**怎么实现的**。
+**2. `update-config`** — 用来改 `~/.claude/settings.json` 的。触发词是 "allow X command," "set env Y," "add a hook." 编码了上面的权限优先级规则和典型模式。省得我去推 merge order。
 
-这三个 Skill 都没法用斜杠命令调用。它们不是靠名字触发，而是靠**话题**触发。这就是典型的 skill 形状用例。
-## 技能何时不是正确答案
+**3. `simplify`** — 用来 review 我自己代码的。触发词是 "is there a simpler way to do this." 编码了我的品味：偏好组合，删死代码，命名看本质不看实现。
 
-一个触发过于频繁的技能，比没有技能更糟糕——它会干扰那些不需要它的任务。以下是三个常见问题：
+这几个都没法做成 slash command。不是靠名字调用，是靠*话题*调用。这才是 Skill 该用的地方。
 
-- **描述太模糊。** “适用于通用编程。” 什么都适用 = 什么都不适用。
-- **技能主体重复。** 两个技能都在“写代码”时触发 → 导致上下文混乱。选一个就行。
-- **本该用 Hook 却用了 Skill。** “做 Y 前必须完成 X” → 这是 Hook，不是 Skill。Skill 提供建议，Hook 强制执行。
-## 系列的尾声
+## 什么时候 Skill 不是正确答案
 
-十篇文章读完，你已经掌握了以下内容：
+触发太频繁的 skill 比没有更糟——它会污染那些不需要它的任务的 context。三个坑：
 
-- 配置好的 Claude Code，脑子里有了三层 settings 模型（第 1、9 篇）。
-- 熟练使用快捷键、模式和对话控制（第 2 篇）。
-- 四种扩展机制——斜杠命令、MCP、Hooks、Skills——以及如何选择它们的决策树（第 3、4、5、7、10 篇）。
-- 并发原语——子 Agent、worktree、计划模式——能够将单个会话扩展到更大规模任务的能力（第 8 篇）。
-- 可用的 SDK 和 GitHub 集成方案，把 Claude 嵌入 CI 流程（第 6 篇）。
+- **描述模糊。** "用于一般编程。" 用于一切 = 用于 nothing useful。
+- **正文重叠。** 两个 skill 都响应 "write code" → context 膨胀。选一个。
+- **本该是 Hook。** "总是在 Y 之前做 X" → 这是 hook，不是 skill。Skill 是建议，Hook 是强制。
 
-这些只是基础。真正有趣的部分不在 Claude Code 本身，而在于你能用它**创造什么**。去动手实践吧。
+## 系列结束
+
+十章下来，你有了：
+
+- 一个配置好的 Claude Code，脑子里有三层设置模型 (第 1、9 章)。
+- 熟练使用 shortcuts、modes 和对话控制 (第 2 章)。
+- 四种扩展机制 — slash commands, MCP, hooks, skills — 以及如何在它们之间选择的决策树 (第 3、4、5、7、10 章)。
+- 并发原语 — sub-agents, worktrees, plan mode — 把单个 session 扩展到更大的工作 (第 8 章)。
+- 一套能用的 SDK + GitHub 集成方案，把 Claude 放进 CI (第 6 章)。
+
+表面功夫就这些。后面真正有趣的工作，不再关于 Claude Code 本身——而是你用它*构建*什么。
+
+去构建吧。

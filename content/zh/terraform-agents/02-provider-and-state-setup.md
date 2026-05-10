@@ -16,20 +16,19 @@ description: "钉死 alicloud provider 版本，在 AK/SK、AssumeRole、ECS RAM
 disableNunjucks: true
 translationKey: "terraform-agents-2"
 ---
+读到这儿，把页面关了，打开终端吧。等会儿你回来时，手里应该已经有了：
 
-这一篇你不再是读，是开始动手敲代码。读完之后你会有：
+1. 安装好且版本锁定的 `alicloud` Terraform provider。
+2. 配置好的认证流程——用的是正确的方法，不是图省事的方法。
+3. 基于 OSS Bucket 和 Tablestore 锁定的远程状态存储。
+4. 三个工作空间（`dev`, `staging`, `prod`），共用后端但状态隔离。
+5. 能跑通的 `terraform plan`，哪怕配置还是空的。
 
-1. `alicloud` Terraform provider 装好且版本钉死
-2. 认证接好——用对的方式，不是方便的方式
-3. 远程状态文件放在 OSS，用 Tablestore 加锁
-4. 三个工作空间（`dev`、`staging`、`prod`），共用 backend、隔离状态
-5. 一个能跑通的 `terraform plan`（即使配置是空的）
+这儿还没开始部署 Agent。我们是在打地基，后面所有文章都假定这一步已经完成。要是跳过这步，想着等到第三篇再补，我保证你一周内就会遭遇状态文件损坏的事故。
 
-本篇还不会建出任何 Agent 资源。我们打的是后续每一篇都会假设的地基。如果你跳过这一步，直接奔第三篇硬上，一周之内必出一次状态文件被踩坏的事故。
+## Step 0: 安装 Terraform
 
-## 第 0 步：安装 Terraform
-
-不赘述——官方《Install Terraform》文档已经覆盖了所有操作系统。macOS 上：
+我不多废话安装过程，官方 `Install Terraform` 文档覆盖了所有系统。macOS 用户直接：
 
 ```bash
 brew tap hashicorp/tap
@@ -39,11 +38,11 @@ terraform version
 # on darwin_arm64
 ```
 
-钉到一个近期的稳定版。阿里云的文档基于 `>= 0.12` 测试，但新项目直接上 `>= 1.9`。新版本里 `for_each`、`optional()`、`moved` 块、声明式 `import` 块这些改进都很实用，本系列后面会全用到。
+锁定一个近期的稳定版。Aliyun 文档虽然测试过 `>= 0.12`，但新项目直接上 `>= 1.9`。新版本在体验上有实打实的改进——`for_each`、`optional()`、更精细的 `moved` 块、声明式的 `import` 块——这套系列文章里你都会用到。
 
-## 第 1 步：钉死 Provider 版本
+## Step 1: 锁定 Provider
 
-建一个项目目录，放一个 `versions.tf`：
+建个项目目录，写好 `versions.tf`：
 
 ```hcl
 # versions.tf
@@ -53,23 +52,23 @@ terraform {
   required_providers {
     alicloud = {
       source  = "aliyun/alicloud"
-      version = "~> 1.230"   # 允许 1.230.x，但拒绝 1.231.0
+      version = "~> 1.230"   # any 1.230.x — minor patches OK, no major bumps
     }
   }
 }
 ```
 
-`~> 1.230` 表示允许 `1.230.0` 到 `1.230.x` 的所有补丁版本，但拒绝 `1.231.0`。这是一个非常合理的默认值。你把 `.terraform.lock.hcl` 提交到 git 之后（这个文件在第一次 `terraform init` 时自动生成），不止 provider 版本被钉死，连校验和也一起钉死。同事再跑 `terraform init`，拿到的 provider 是字节级一致的。
+`~> 1.230` 这个约束允许 `1.230.0` 到 `1.230.x`，但会拦住 `1.231.0`。这是默认的最佳实践。一旦你把 `.terraform.lock.hcl` 提交到 git（`terraform init` 时 Terraform 会自动生成），你就锁死了 *确切* 的 provider 版本和校验和。队友 later 跑 `terraform init` 时，拿到的 provider 跟你比特级一致。
 
-尽早钉版本是最便宜的保险。alicloud provider 在小版本之间出过破坏性变更（1.220 附近 OSS Bucket schema 那次重构吃了我三个下午）。升级当然要做，但应该是有意识地做：发 PR、看 plan diff、合代码——而不是在某个同事晚上 11 点的笔记本上意外触发。
+早点锁定版本是廉价的保险。alicloud provider 在小版本之间也出过破坏性变更（1.220 左右那次 OSS bucket schema 重构坑了我三个下午）。你迟早得升级——但要刻意地升，提个 PR，看着 plan 输出的差异升，别等到半夜 11 点在队友电脑上 accidentally 升级了。
 
-## 第 2 步：认证——三种方式，按推荐度排序
+## Step 2: 认证——三种方案，按靠谱程度排个序
 
-provider 需要阿里云凭证。三种真正可选的方式，按专业可接受度从低到高：
+Provider 需要 Aliyun  credentials。真正可选的就三种，按专业程度递增：
 
-![三种 alicloud provider 认证方式](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig2_auth_methods.png)
+![Three ways to authenticate the alicloud provider](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig2_auth_methods.png)
 
-### 方案 A：静态 AK/SK（仅个人笔记本）
+### 方案 A: 静态 AK/SK（仅限个人笔记本）
 
 ```bash
 export ALICLOUD_ACCESS_KEY="LTAI5tXXXXXXXXXXXXXX"
@@ -77,13 +76,13 @@ export ALICLOUD_SECRET_KEY="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 export ALICLOUD_REGION="cn-shanghai"
 ```
 
-provider 会自动读取这些环境变量。任何情况下都不要把密钥写进 `.tf` 文件——状态文件不会存它，但 `provider {}` 块会，而这个块是要进 git 的。
+Provider 会自动发现这些环境变量。千万别——在任何情况下都别——把密钥写进 `.tf` 文件。状态文件不存这玩意儿，但 `provider {}` 块会，而那块代码是进 git 的。
 
-如果 AK/SK 是给一个 RAM 子账号用的，且权限只覆盖 Terraform 管理范围内的资源，那么个人项目这样用可以接受。一旦项目共享，直接跳到方案 B。
+如果这个 AK/SK 属于一个 RAM 子账号，且权限只 scoped 到 Terraform 管理的资源，那 solo 项目还能接受。只要是协作项目，直接看方案 B。
 
-### 方案 B：AssumeRole（CI runner）
+### 方案 B: AssumeRole（CI  runner）
 
-CI runner 不该持有长期 AK。给 runner 一个 AK，权限只有一个——对目标角色的 `sts:AssumeRole`，apply 的时候让 Terraform 去扮演那个角色：
+CI runner 不该持长期有效的 AK。给 runner 一个只有一种权限的 AK——针对目标角色的 `sts:AssumeRole`——让 Terraform 在 apply 时 assume 这个角色：
 
 ```hcl
 provider "alicloud" {
@@ -97,54 +96,54 @@ provider "alicloud" {
 }
 ```
 
-真正的写权限挂在角色上，AK 只有扮演权。STS 会话寿命短（默认 1 小时）、ActionTrail 全程审计、解开信任策略就立刻吊销。GitLab CI、GitHub Actions、Jenkins runner 都该用这个模式。
+角色才有实际的写权限；AK 只有 assume 它的权限。STS 会话是短命的（默认一小时），在 ActionTrail 里有审计日志，而且一旦剥离信任策略就能瞬间撤销。这是 GitLab CI、GitHub Actions 和 Jenkins runner 应该用的模型。
 
-### 方案 C：ECS RAM 角色（堡垒机 / IaC 服务 runner）
+### 方案 C: ECS RAM 角色（堡垒机 / IaC 服务 runner）
 
-如果 `terraform apply` 跑在阿里云 ECS 上——你团队的运维堡垒机，或者阿里云托管的 IaC 服务 runner——给实例绑一个 RAM 角色，provider 会自动从实例元数据拿凭证：
+如果 `terraform apply` 跑在 Aliyun ECS 实例上——团队的 ops 堡垒机或者 Aliyun 托管的 IaC Service runner——给实例绑定 RAM 角色，Provider 会自动从实例元数据抓取凭证：
 
 ```hcl
 provider "alicloud" {
   region = var.region
-  # 不需要 assume_role 块，也不需要环境变量，provider 会从下面这个地址读取：
+  # No assume_role block, no env vars — provider auto-detects from
   # http://100.100.100.200/latest/meta-data/ram/security-credentials/
 }
 ```
 
-任何配置、任何环境变量、任何文件里都没有密钥。轮转自动完成。这是黄金标准，我每带一个新团队，第一个月必把他们推到这条路上。
+配置里、环境变量里、文件里，零密钥。轮换是自动的。这是黄金标准，也是我 push 每个团队在第一个月内必须走的路径。
 
-> **实战提醒：** 不论选哪种方式，都要显式设 `ALICLOUD_REGION`（或 `provider { region = ... }`）。不设的话，provider 不会挑默认值，`terraform plan` 会甩出一个让人迷惑的 “Region must be specified”。这个坑我踩过不止一次。
+> **实战建议：** 不管选哪个，显式设置 `ALICLOUD_REGION`（或者 `provider { region = ... }`）。如果不设，Provider 不会选默认值——你会在 `terraform plan` 时得到一个让人困惑的 "Region must be specified" 错误，这坑我也踩过不止一次。
 
-## 第 3 步：状态文件——为什么本地 tfstate 是个雷
+## Step 3: 状态文件——为什么本地 tfstate 是隐患
 
-跑 `terraform apply` 时，Terraform 默认在当前目录写一个 `terraform.tfstate`。这个文件是“到底有哪些基础设施”的唯一真相源。本地存放有三个必出的问题：
+跑 `terraform apply` 时，默认 Terraform 会把 `terraform.tfstate` 写在当前目录。这文件是基础设施现状的唯一事实来源。三件事迟早会出错：
 
-1. **丢失。** 删掉目录，Terraform 就以为什么都不存在了，下次 `apply` 要么把所有资源重建一遍，要么因重名失败。
-2. **冲突。** 两位工程师同时 `apply`，状态文件分分钟被踩坏。
-3. **明文密钥。** 部分资源属性（RDS 密码、KMS 材料、生成的 token）会落到 tfstate。留在笔记本上已经够糟，提交到 git 更糟——而且真的有人这么干。
+1. **丢失。** 删了目录，Terraform 就觉得什么都不存在了。下次 `apply` 试图重建一切（或者因为重复资源失败）。
+2. **冲突。** 两个工程师同时跑 `apply` 会搞坏状态文件。
+3. **明文 secrets。** 有些资源属性（RDS 密码、KMS 材料、生成的 token）会落进 tfstate。把它扔在笔记本上已经很糟了——提交到 git 更糟，但真有人这么干。
 
 ### tfstate 里到底存了什么
 
-一个常见误解：tfstate 只存资源 ID。错。状态文件存的是 Terraform 知道的每一个资源的每一个属性——包括计算属性，比如 RDS 的连接串、自动生成的密码、KMS 密钥材料、被标 `sensitive` 的变量。
+有个常见误区：tfstate 只存资源 ID。错。状态文件包含 Terraform 知道的每个资源的每个属性——包括计算出来的值，比如 RDS 连接串、生成的密码、KMS 密钥材料，还有 `sensitive` 变量。
 
-在任何一个稍有规模的项目里跑这条命令看看：
+随便找个非 trivial 的状态文件跑一下这个命令看看输出：
 
 ```bash
 terraform show -json | jq '.values.root_module.resources[] | select(.values | tostring | test("password|secret|key"; "i"))'
 ```
 
-你会看到密码、API key，可能还有整段 JSON 凭据。这是设计使然——Terraform 算 diff 和 apply 都要这些值。
+你会看到密码。你会看到 API key。你可能看到整块整块的 credential JSON blob。这是设计使然——Terraform 需要这些值来做 diff 和 apply。
 
-正因为本地 tfstate 撑不过第一天，正确做法是远程状态加上状态锁。阿里云上的标准方案是 OSS + Tablestore：
+这正是本地 tfstate 过不了第一天就必须换掉的原因。解法是 **远程状态** 加 **状态锁定**。在 Aliyun 上，标准做法是 OSS + Tablestore：
 
-![OSS 上的远程状态 + Tablestore 加锁](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig1_state_backend.png)
+![Remote state on OSS with Tablestore locking](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig1_state_backend.png)
 
-OSS 存真正的 `terraform.tfstate`（开版本控制，万一被踩坏一条 CLI 就能恢复）。Tablestore 存一行小小的“锁”记录，Terraform 在 apply 之前写进去，结束后删掉。第二个 `apply` 想在第一个还持锁的时候启动，要么排队，要么直接失败——绝不会两个一起跑。
+OSS 存实际的 `terraform.tfstate` 文件（开启版本控制——万一损坏了，一条 CLI 命令就能恢复）。Tablestore 存一行小小的 "lock" 记录，Terraform 在 apply 前写入，结束后删除。如果第一个 apply 还持着锁时第二个启动了，第二个会等待或者失败——绝不可能两个同时跑。
 
-由 tfstate 的内容直接推出两条不可妥协的要求：
+基于 tfstate 的内容，有两条不可妥协的原则：
 
-- 存放状态文件的 OSS bucket 必须开 KMS 加密。第 4 步里我们会打开。跳过的话，任何拿到 `oss:GetObject` 权限的人都能直接读到你的密钥。
-- 敏感变量必须标 `sensitive = true`，避免 plan/apply 输出泄漏到 CI 日志：
+- **存状态的 OSS bucket 必须开启 KMS 加密。** 我们在 step 4 会打开这个开关。要是跳过这步，任何有 bucket `oss:GetObject` 权限的人都能读你的 secrets。
+- **把敏感变量标记为 `sensitive = true`**，防止 plan/apply 输出把它们泄露到 CI 日志里：
 
 ```hcl
 variable "rds_admin_password" {
@@ -153,14 +152,14 @@ variable "rds_admin_password" {
 }
 ```
 
-值还是会在 tfstate 里（加密存的），但至少你的 GitHub Actions 日志不会把密码贴给全世界看。
+值依然会在 tfstate 里（加密的），但至少你的 GitHub Actions 日志不会把密码 paste 给全世界看。
 
-## 第 4 步：bootstrap backend（先有鸡还是先有蛋）
+## Step 4: 引导后端（先有鸡还是先有蛋）
 
-承载 backend 的 OSS bucket 和 Tablestore……得先于 backend 存在。诚实的做法是用一个单独的 `bootstrap/` 目录，用本地状态文件把它们建出来，然后再也不动它。
+ holding 我们后端的 OSS bucket 和 Tablestore... 得在后端能用它们之前就存在。诚实的工作流是：用一个 *本地* 状态文件，在小小的一次性 `bootstrap/` 目录里 provision 它们，然后再也不碰它。
 
 ```hcl
-# bootstrap/main.tf —— 跑一次，只在这个目录里留 local tfstate
+# bootstrap/main.tf — run once, store local tfstate in this directory only
 provider "alicloud" {
   region = "cn-shanghai"
 }
@@ -178,7 +177,7 @@ resource "alicloud_oss_bucket" "tfstate" {
   }
 
   lifecycle {
-    prevent_destroy = true   # 永远别让 terraform destroy 掉这个 bucket
+    prevent_destroy = true   # never let terraform destroy this bucket
   }
 }
 
@@ -200,11 +199,11 @@ resource "alicloud_ots_table" "tflock" {
 }
 ```
 
-进 `bootstrap/`，`terraform init && terraform apply`。约 30 秒。然后把本地 tfstate 归档（我塞 1Password 里做最后一道兜底），从此不再从这个目录跑 Terraform。在你忘记之前，把 `bootstrap/terraform.tfstate*` 加进 `.gitignore`。
+在 `bootstrap/` 里面跑 `terraform init && terraform apply`。大概 30 秒。然后把本地 tfstate 归档到某个地方（我把它存在 1Password 里做个 sanity backup），再也别从这个目录跑命令。在你忘记之前，先把 `bootstrap/terraform.tfstate*` 加进 `.gitignore`。
 
-## 第 5 步：配置 backend
+## Step 5: 配置后端
 
-回到正式项目里，加上：
+回到你的真实项目，加上：
 
 ```hcl
 # backend.tf
@@ -221,9 +220,9 @@ terraform {
 }
 ```
 
-`prefix` 让你在一个 bucket 里塞多个状态文件——后面把基础设施拆成多个 Terraform 项目时很有用。`encrypt = true` 启用 OSS 端的加密（虽然 bucket 级 KMS 已经开了，但纵深防御没坏处）。
+`prefix` 让你能在一个 bucket 里塞多个状态文件——以后把 infra 拆成多个 Terraform 项目时会很方便。`encrypt = true` 开启 OSS 侧加密（我们已经在 bucket 级别开了 KMS 规则，但纵深防御总没坏处）。
 
-跑：
+跑一下：
 
 ```bash
 terraform init
@@ -233,7 +232,7 @@ terraform init
 # - Installing aliyun/alicloud v1.230.x...
 ```
 
-如果报 `AccessDenied`，说明你认证用的角色对 bucket 没有 `oss:GetObject`/`PutObject` 权限。最小策略如下：
+如果报 `AccessDenied`，说明你的 auth role 在 bucket 上没有 `oss:GetObject`/`PutObject` 权限。最小角色策略是：
 
 ```json
 {
@@ -253,11 +252,10 @@ terraform init
 }
 ```
 
-把这条策略挂到你认证用的角色上。别图省事给 `oss:*`——最小权限对 backend 角色尤其重要，因为这个角色就在 CI runner 里，CI 那边一旦泄一把 AK，你所有状态文件全裸了。
+把这个策略绑到你用来认证的角色上。别给 `oss:*`——哪怕对后端角色，最小权限原则也至关重要，因为这角色就在你的 CI runner 里，一旦那里泄露了 AK，你所有的状态文件就都被人读了。
+## Step 6: 用 workspace 隔离环境
 
-## 第 6 步：用工作空间隔离环境
-
-工作空间就是同一个 backend 下的多个独立状态文件。默认工作空间名字很贴心，叫 `default`。按需创建其他几个：
+workspace 其实就是同一个 backend 里的独立状态文件。默认那个很有用，就叫 `default`。你需要其他环境就自己建：
 
 ```bash
 terraform workspace new dev
@@ -273,7 +271,7 @@ terraform workspace list
 terraform workspace select dev
 ```
 
-HCL 里 `terraform.workspace` 解析为当前工作空间名，可以用来参数化资源规格：
+在 HCL 里，`terraform.workspace` 会解析成当前的 workspace 名字，这样你就能根据环境参数化资源大小：
 
 ```hcl
 locals {
@@ -285,59 +283,59 @@ locals {
 }
 ```
 
-另一种干净的玩法是每个环境一份 `*.tfvars`：
+还有个干净的做法是每个环境配一个 `*.tfvars` 文件：
 
 ```bash
 terraform plan -var-file=env/dev.tfvars
 terraform plan -var-file=env/prod.tfvars
 ```
 
-我个人的分工是：`tfvars` 管那些“一眼就知道环境之间会变”的配置（CIDR、region、实例数），`terraform.workspace` 只用来跑 `is_prod` 这种条件开关。两种混用没问题——只要每个项目里挑一种当主轴就行。
+我一般用 `tfvars` 文件处理那些“显而易见的差异”（比如 CIDR 块、region、实例数量），而 `terraform.workspace` 只用来做 `is_prod` 这种条件开关。混着用没问题——每个项目选一个作为主要机制就行。
 
-### 工作空间还是独立状态文件：真正要做的判断
+### Workspace 还是独立状态文件：真正的抉择
 
-上面用的是 `terraform workspace new dev/staging/prod`，简单方案，对大多数团队够用。但这背后藏着一个真正的架构选择，应该有意识地做，而不是默认按下不表。
+文章到现在展示的都是 `terraform workspace new dev/staging/prod`。这是简单答案，对大多数团队都管用。但这背后藏着一个真正的架构选择，你应该 deliberate 地做决定，而不是无脑默认。
 
-**工作空间（一个项目，N 个状态）：** 一个 backend，按工作空间名分前缀（`agents/env:dev/terraform.tfstate`）；一套 HCL，靠 `terraform.workspace` 参数化。优点：dev 和 prod 的差异一眼可见——同样的代码、不同的变量。缺点：`count` 表达式里一个错字能影响所有工作空间；一个 PR 没法做到“只改 prod”。
+**Workspaces（单项目，N 个状态）：** 一个 backend，前缀按 workspace 名字拆分（`agents/env:dev/terraform.tfstate`）；一套 HCL 文件，靠 `terraform.workspace` 参数化。优点：dev 和 prod 的差异肉眼可见——代码一样，变量不同。缺点：`count` 表达式写错一个字母可能影响所有 workspace；一次 PR 没法隔离“只改 prod"。
 
-**独立状态文件（每个环境一个项目）：** 按目录分 `envs/dev/`、`envs/staging/`、`envs/prod/`；每个环境有自己的 `backend.tf`、`main.tf`，调用共享模块。优点：prod 有自己的 PR 评审、自己的 apply、自己的 RAM 权限。缺点：代码重复；升模块版本要改 N 处；难以强制“所有环境跑同一份代码”。
+**独立状态文件（每环境单项目）：**  separate 目录 `envs/dev/`、`envs/staging/`、`envs/prod/`；每个环境有自己的 `backend.tf`、`main.tf` 调用共享模块。优点：prod 有独立的 PR  review、独立的 apply、独立的 RAM 权限。缺点：代码重复；升级模块版本需要改 N 处；更难强制“所有环境跑同一份代码”。
 
-我的经验法则：5 个工程师以下用工作空间，5 个工程师以上分独立状态。人少的时候简洁性占优。人多以后爆炸半径很重要——你想要的是“只动 `envs/prod/`、由值班审核”的 prod PR，而不是一个 `dev.tfvars` 改动顺带波及生产。
+我的经验法则：**5 个工程师以下用 workspace，5 个以上拆状态文件。** 5 人以下，简单至上。5 人以上，爆炸半径 matters——你想要一个只动 `envs/prod/` 且由 on-call 轮值批准的 prod PR，而不是一个 `dev.tfvars` 变更意外 cascades 到生产。
 
-本系列用工作空间，因为我们瞄准的是单人或小团队场景。万一以后规模上来，迁移路径并不痛：从工作空间 `terraform state pull`，往新项目 `terraform state push`，把工作空间退役。痛苦只有一次。
+这个系列用 workspace 是因为重点在单兵或小团队。万一以后规模大了，升级路径也是通的：从 workspace `terraform state pull`，`terraform state push` 到新项目，退役 workspace。也就疼这一次。
 
-> **实战提醒：** 工作空间名本质上就是一个字符串。CI 里用 `TF_WORKSPACE=prod terraform plan` 显式指定，可以彻底消灭“忘了切工作空间”这一类事故。再配合分支保护，prod 工作空间只允许从 `main` 分支 apply。
+> **实战建议：** workspace 名字 *就是个字符串*。在 CI 里用 `TF_WORKSPACE=prod terraform plan` 设置，避免“忘了切换 workspace"这类事故。配合分支保护，确保 prod workspace 只能从 `main` 分支 apply。
 
-## 第 7 步：五条命令的循环
+## Step 7: 五命令循环
 
-日常 Terraform 就是五条命令：
+日常玩 Terraform 其实就这五个命令：
 
-![你会反复执行数百次的五条命令循环](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig3_init_apply_loop.png)
+![The five-command loop you'll run hundreds of times](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/terraform-agents/02-provider-and-state-setup/fig3_init_apply_loop.png)
 
 ```bash
-terraform fmt        # 格式化缩进，挂 pre-commit hook
-terraform validate   # 静态校验配置结构，1 秒内
-terraform plan       # diff 期望与实际，认真看
-terraform apply      # 真正发 API 调用
-terraform show       # 看当前状态
+terraform fmt        # 标准化缩进；预提交 hook
+terraform validate   # 静态 schema 检查；1 秒内跑完
+terraform plan       # 对比期望 vs 现实；这步得仔细看
+terraform apply      # 发送 API 调用
+terraform show       # 检查当前状态
 ```
 
-三条铁律：
+三条规矩：
 
-1. apply 前必须读 plan 输出。它会明确告诉你即将发生什么——哪些资源新建（`+`）、原地更新（`~`）、强制替换（`-/+`）、销毁（`-`）。尤其是“原地更新但实际重建”的箭头，背后藏的就是停机。
-2. CI 里 plan 和 apply 必须分两步。先 `terraform plan -out=tfplan`，把 plan 输出贴到 PR 让人审，合并后再跑 `terraform apply tfplan`。永远不要 push 触发自动 apply。
-3. 别跳过 `state` 命令。`terraform state list` 列出当前管理的所有资源；`terraform state show <addr>` 看某个资源的完整属性。排查诡异漂移问题，第一步就是这个。
+1. **Apply 之前必须读 plan 输出。** 它会告诉你到底要发生什么——哪些资源要创建（`+`）、原地更新（`~`）、强制替换（`-/+`）或者销毁（`-`）。特别是原地替换箭头，背后藏着停机时间。
+2. **在 CI 里把 `plan` 和 `apply` 分成两步。** 跑 `terraform plan -out=tfplan`，把 plan 输出贴到 PR 里，拿到人工批准，合并后再 `terraform apply tfplan`。千万别 push 了就自动 apply。
+3. **别跳过 `state`。** `terraform state list` 显示你现在管理的所有东西；`terraform state show <addr>` 显示单个资源的全部属性。调试奇怪的 drift 时，从这儿入手。
 
-## 第 8 步：状态手术——`apply` 救不了的那 5%
+## Step 8: 状态手术，解决那 5% `apply` 搞不定的日子
 
-五条命令的循环覆盖 95% 的日子。剩下 5% 是状态文件本身出了问题，正确解法是直接对状态做手术，而不是慌不择路地 `terraform destroy && apply`。下面四种操作我经常用，按胆战心惊程度从低到高排：
+五命令循环覆盖 95% 的日子。剩下 5% 是状态文件本身出了问题，这时候正确的 fix 是直接手术——而不是 panicked 地 `terraform destroy && apply`。下面是我常用的四个操作，按紧张程度递增。
 
-### `terraform import`——把控制台手建的资源纳入管理
+### `terraform import` —— 纳管手动创建的资源
 
-半年前你在控制台手建了一个 VPC，现在想交给 Terraform 管。错误做法是写好 HCL 然后 `apply`——Terraform 会再建一个新 VPC。正确做法是 `import`：
+你六个月前在控制台创建了一个 VPC。现在想让 Terraform 管理它。错误的做法是写好 HCL 然后 `apply` —— Terraform 会试图 *创建第二个 VPC*。正确的做法是 `import`：
 
 ```bash
-# 先写 HCL 占位，确保资源地址写对
+# 先写 HCL  stub，地址要对
 cat > vpc.tf <<EOF
 resource "alicloud_vpc" "legacy" {
   vpc_name   = "legacy-prod"
@@ -345,16 +343,16 @@ resource "alicloud_vpc" "legacy" {
 }
 EOF
 
-# 把现有资源导入到 state 中的对应地址
+# 把现有资源 import 到该地址的状态里
 terraform import alicloud_vpc.legacy vpc-uf6abc123def456
 
-# 看 diff，HCL 大概率跟实际不完全一致
+# 现在 diff。HCL 几乎肯定跟现实还不匹配。
 terraform plan
 # Plan: 0 to add, 1 to change, 0 to destroy.
-#   ~ tags = { ... }   # 控制台设的 tag，Terraform 还不知道
+#   ~ tags = { ... }   # 控制台设置的标签 Terraform 还不知道
 ```
 
-然后反复调 HCL，直到 `terraform plan` 显示无变更。这是把控制台手建的基础设施安全纳管的唯一办法。Terraform `>= 1.5` 支持声明式 `import` 块，这是我现在的首选：
+然后迭代 HCL 直到 `terraform plan` 显示无变更。这是把控制台建的基建纳入管理的唯一安全方式。Terraform `>= 1.5` 支持声明式的 `import` block，这是我现在的首选：
 
 ```hcl
 import {
@@ -363,22 +361,22 @@ import {
 }
 ```
 
-### `terraform state rm`——让 Terraform 忘掉某个资源
+### `terraform state rm` —— 让 Terraform 忘记某个资源
 
-import 的反向操作。你决定把某个资源转到另一个栈管理，或者交还给运维。你不想销毁它，只想让 Terraform 不再追踪：
+import 的反面。你决定在另一个 stack 里管理某个资源，或者把它交还给 ops 团队。你不想 *销毁* 它，只想让 Terraform 停止追踪：
 
 ```bash
 terraform state rm alicloud_oss_bucket.legacy_archive
 # Removed alicloud_oss_bucket.legacy_archive
 ```
 
-OSS 里的 bucket ��在，Terraform 的状态不再引用它。后续 `plan` 不会尝试销毁（因为已经不在 state 里），也不会尝试创建（因为同一个 PR 里把 HCL 也删了）。
+Bucket 还在 OSS 里。Terraform 的状态不再引用它。后续的 `plan` 不会试图销毁它（因为不在状态里），也不会试图创建它（因为 HCL 也没了——同一个 PR 里把 HCL 块删掉）。
 
-我经常用这招处理前面那个 `bootstrap/` 目录。把 OSS+Tablestore 收回主栈管理之后，`terraform state rm` 把它们从 bootstrap 状态里移掉，整个 bootstrap 目录也一起删掉。
+我用这个处理鸡生蛋蛋生鸡的 `bootstrap/` 目录。一旦 OSS+Tablestore 管理折叠进主 stack，我就从 bootstrap 状态里 `terraform state rm` 它们，然后彻底删除 bootstrap 目录。
 
-### `terraform state mv`——重命名或重构
+### `terraform state mv` —— 重命名或重构
 
-要把资源从一个模块路径搬到另一个路径——比如 `alicloud_vpc.this` 搬到 `module.vpc.alicloud_vpc.this`。不用 `mv` 的话，Terraform 会理解成“销毁旧的、创建新的”，真的会把生产 VPC 删了重建。用 `mv`：
+你想把资源从一个 module 路径移到另一个——比如 `alicloud_vpc.this` → `module.vpc.alicloud_vpc.this`。不用 `mv` 的话，Terraform 会看成“销毁旧的，创建新的”，真会把你的生产 VPC 删了重建。用了 `mv`：
 
 ```bash
 terraform state mv alicloud_vpc.this module.vpc.alicloud_vpc.this
@@ -386,9 +384,9 @@ terraform state mv alicloud_vpc.this module.vpc.alicloud_vpc.this
 # Successfully moved 1 object(s).
 ```
 
-状态文件会认为这个资源一直就在新地址。下一次 `plan` 显示无变更。所有“零停机重构 Terraform 仓库”靠的都是这一步。
+现在状态认为资源一直都在新地址。下次 `plan` 显示无变更。这就是所有 Terraform  repo 重构而不停机的做法。
 
-Terraform `>= 1.1` 提供了 `moved` 块，是声明式版本：
+现代 Terraform（`>= 1.1`）给了你 `moved` block，这是声明式版本：
 
 ```hcl
 moved {
@@ -397,38 +395,38 @@ moved {
 }
 ```
 
-`moved` 永远优于 `state mv`——它进 git，能在 PR 里评审，团队所有人都不需要手动跑命令就能生效。
+永远优先用 `moved` 而不是 `state mv` —— 它能进 git，能在 PR 里 review，团队里每个人都能用，不用谁再去跑手动命令。
 
-### `terraform apply -replace`——强制重建单个资源
+### `terraform apply -replace` —— 强制重建单个资源
 
-某台 ECS 进了奇怪状态——磁盘满、内核 panic、谁知道。你想让 Terraform 只销毁并重建这一台，不动其他资源：
+某个 ECS 实例状态诡异——磁盘满、kernel panic，谁知道呢。你想让 Terraform 只销毁重建这一个实例，不动别的：
 
 ```bash
 terraform apply -replace=alicloud_instance.agent[1]
 # Plan: 1 to add, 0 to change, 1 to destroy.
 ```
 
-老的 `terraform taint` 命令做的是同一件事，但已废弃。`-replace` 是当前的拼法。我一年用三四次，基本都是 ECS 进了不可恢复状态、stop/start 也救不回来的时候。
+老的 `terraform taint` 做同样的事但已经 deprecated 了。`-replace` 是现在的写法。我大概每季度用一次，当某个 ECS 实例进入不可恢复状态且 stop/start 没用时。
 
-> **实战提醒：** 任何状态手术之前，先 `terraform state pull > backup.tfstate` 留底。状态手术是少数几个一个错字能让你赔进去几小时的操作，留底能把恢复时间压到 10 秒（`terraform state push backup.tfstate`）。
+> **实战建议：** 任何状态手术前，先 `terraform state pull > backup.tfstate` 留个已知好的副本。状态手术是少数几个敲错字就能让你损失几小时的地方；有了备份，恢复只要 10 秒（`terraform state push backup.tfstate`）。
 
-## 第一天必踩的八个坑
+## 第一天就会遇到的八种报错
 
-按它们坑到我的顺序：
+按我遇到的顺序排列：
 
-1. **`terraform init` 报 `Error: Failed to query available provider packages`。** GFW。设 `HTTPS_PROXY`，或用阿里云镜像 `https://mirrors.aliyun.com/terraform/`。
-2. **`Error: state lock`。** 上次 apply 时按了 Ctrl-C，锁残留。跑 `terraform force-unlock <LOCK_ID>`（错误信息里有 ID）。先确认确实没在跑别的。
-3. **`Error: Region must be specified`。** 设 `ALICLOUD_REGION` 环境变量，或者在 `provider` 块里写 `region`。
-4. **backend init 报 `AccessDenied`。** OSS bucket 前缀的 RAM 权限。回去重看第 5 步的策略。
-5. **Tablestore 报 `InvalidParameter.NotFound`。** bootstrap 时选错了 region。Tablestore endpoint 必须和 OSS bucket 同 region。
-6. **`Provider produced inconsistent result after apply`。** 几乎一定是升级 provider 后 `.terraform/` 缓存没清。`rm -rf .terraform .terraform.lock.hcl && terraform init`。
-7. **`Resource already exists`。** 你在控制台手建了一份。要么删掉，要么 import（见第 8 步）。
-8. **刚 apply 完立刻 `terraform plan` 出现非预期 diff。** 漂移。要么有人在控制台动了，要么 provider 的 read 逻辑跟 create 不一致。看 diff 里具体是哪些属性，通常解法是把那个属性显式写进 HCL，让 Terraform 不再“看到”差异。
+1. **`Error: Failed to query available provider packages` on `terraform init`.** GFW 问题。设 `HTTPS_PROXY` 或者用阿里镜像：`https://mirrors.aliyun.com/terraform/`。
+2. **`Error: state lock`.** 上次 apply 时按了 Ctrl-C，锁僵死了。跑 `terraform force-unlock <LOCK_ID>`（ID 在报错里）。先确认真没人在跑。
+3. **`Error: Region must be specified`.** 设 `ALICLOUD_REGION` 环境变量或者在 `provider` 块里设 `region`。
+4. **`AccessDenied` on backend init.** OSS bucket 前缀的 RAM 权限。复查 Step 5 的 policy。
+5. **`InvalidParameter.NotFound` on Tablestore.** bootstrap 错了 region。Tablestore endpoint 和 OSS bucket region 必须一致。
+6. **`Provider produced inconsistent result after apply`.** 几乎是 provider 版本升级后 `.terraform/` 缓存僵了。`rm -rf .terraform .terraform.lock.hcl && terraform init`。
+7. **`Resource already exists`.** 你在控制台手建了资源。要么删了它，要么 import 它（见 Step 8）。
+8. **刚 apply 完的资源 `terraform plan` 又有意外 diff。** Drift。要么有人在控制台动了资源，要么 provider 的 read 逻辑跟 create 不一样。看 diff 里的具体属性；通常 fix 是显式设置该属性，让 Terraform 别再“注意到”差异。
 
-> **实战提醒：** 每次 `apply` 之后立刻再跑一次 `terraform plan`，哪怕没改东西。plan 应该是空的。如果不是，就有漂移。漂移留得越久，后面想对回去越难。
+> **实战建议：** 每次 `apply` 后立即跑 `terraform plan`，哪怕没变更。plan 应该是空的。如果不是，你就有 drift 了，drift 留得越久越难 reconcile。
 
 ## 接下来
 
-如果这一篇你跑通了，现在你应该可以依次执行 `terraform init`、`terraform workspace select dev`、`terraform plan`，看到 “No changes.”——这就是地基，后面所有内容都堆在它上面。
+如果这篇文章从头到尾跑通了，你现在应该能跑 `terraform init`，`terraform workspace select dev`，`terraform plan` 然后看到 "No changes."。这是地基。其他东西都堆在这上面。
 
-第三篇要建第一块真正的基础设施：可复用的 `vpc-baseline` 模块。VPC、跨三可用区的三个 vSwitch、NAT 网关、EIP、安全组基线、KMS 密钥。后续每一篇都会用它，是我所有 Agent 栈里被复制粘贴最多的模块。
+文章 3 会构建第一个真正的基建组件：一个可复用的 `vpc-baseline` 模块。VPC、三个可用区的三个 vSwitch、NAT 网关、EIP、安全组基线、KMS 密钥。后续每篇文章都会用它——这是我 agent 栈里被复制粘贴最多的模块。

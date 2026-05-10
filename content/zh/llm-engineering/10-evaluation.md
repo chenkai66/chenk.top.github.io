@@ -17,110 +17,113 @@ disableNunjucks: true
 description: "为什么 MMLU 坏了、污染问题、LLM-as-judge 偏置、位置偏置缓解、校准、生产里真正能在客户之前抓到回归的 A/B 测试模式。"
 translationKey: "llm-engineering-10"
 ---
-评估是 LLM 技术栈里最让人头疼的部分。人人都有意见，但没人真有信心。排行榜被刷分，公开基准测试数据集被污染。我加入过的很多团队，压根没有评估集。
+评估是大模型栈里大家意见最多、心里最没底的一环。榜单被刷，公开基准被污染，我加入过的团队里大多数连个评估集都没有。这一章咱们聊聊评估到底能告诉你什么，基准藏了什么，没人修的 LLM-as-judge 偏差，大多数团队跳过的校准指标，以及在客户发现之前就能抓住回归的生产模式。
 
-这一章聊聊评估到底能看出什么。基准测试藏着哪些坑？为什么没人解决 LLM 作为评判者的偏差？为什么大多数团队跳过校准指标？生产环境里怎么赶在用户之前发现模型退化？
+这一章味道跟系列里其他章节不太一样。大多数评估问题不是技术问题——是*认知*问题。"模型 A 是不是比模型 B 强"是个假设检验问题，但这领域做干净实验的记录很差。下面引用的文献不是榜单；是一堆失败模式论文，应该让任何从业者更谨慎。
 
-这一章风格和其他章节有点不同。评估的问题大多不是技术问题，而是认识论问题。“模型 A 是否比模型 B 更好”是个假设检验问题。可惜，整个领域在设计干净实验上的表现很糟糕。
+![LLM Engineering (10): Evaluation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_1.png)
 
-我引用的文献不是排行榜，而是一些失败模式的论文。这些内容应该让每个从业者都更谨慎。
-
-![大模型工程（十）：评估 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_1.png)
-## 为什么公开 benchmark 撒谎
+## 为什么公开基准在撒谎
 
 ![fig1: benchmark contamination over time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig1_benchmark_contamination.png)
 
-标准基准测试套件（MMLU、GSM8K、HumanEval 等）问题不少。下面挨个聊聊。
 
-**数据污染。** 大多数公开 benchmark 都能通过爬虫抓到。用 CommonCrawl 训练的模型，基本都见过题目，甚至答案。Phi-3 更是被发现训练数据里直接有 MMLU 原题。其他实验室的数据干净吗？我持怀疑态度。Zhou 等人 2023 年的论文《*Don't Make Your LLM an Evaluation Benchmark Cheater*》测了下影响——哪怕只有一点点泄露，分数也能涨 10-30 个百分点。这种提升和真实能力改进几乎分不出来。更扎心的是，随机抽 CommonCrawl 数据时，已经有 5-10% 的流行 benchmark 题目混进去了。想避免污染，得主动过滤。但大多数实验室只是嘴上说说，真正记录下来的很少。
+标准基准套件（MMLU, GSM8K, HumanEval, ARC, HellaSwag 等）的问题清单：
 
-Sainz 等人 2023 年的论文《*NLP Evaluation in trouble*》调查了 250 多个近期发布的 benchmark。结果发现，约 40% 的测试在至少一个主流基础模型的训练语料里有泄露。泄露率还随着预训练语料规模的增长而上升。
+**污染。** 大部分公开基准都能通过网页爬取拿到。用 CommonCrawl 训练的模型见过题目，往往也见过答案。Phi-3 被抓包训练数据里 literally 有 MMLU 题；很难相信其他实验室更干净。Zhou et al. (2023, *Don't Make Your LLM an Evaluation Benchmark Cheater*) 系统测了影响——哪怕少量测试集泄露也能带来 10-30 个百分点的提升，跟"合法"的能力提升分不清。这篇论文最让人难受的发现：随机子采样 CommonCrawl 已经包含了 5-10% 的热门基准题。避免污染需要主动过滤，大多数实验室嘴上说有，文档里没见着。
 
-**饱和效应。** MMLU 最初设计是为了难倒 2020 年的模型。到了 2026 年，顶级模型得分已经飙到 88-92%。它们其实在噪声范围内竞争了。MMLU 上涨 1.5 个百分点，可能是能力进步，也可能是采样方差。毕竟，从边界案例中抽 50 道题，波动很正常。简单算一下：14K 道题，模型准确率 90%，分数的标准误差大约是 $\sqrt{0.9 \cdot 0.1 / 14000} \approx 0.25$ 个百分点。如果某个声称的 1 点提升没超过 ~0.7 点，那基本就是噪声。
+另一篇相关论文，Sainz et al. (2023, *NLP Evaluation in trouble*)，survey 了 250+ 近期发布的基准，发现 ~40% 在至少一个主流基础模型的训练语料里有可检测的泄露。泄露率大致随预训练语料规模增长。
 
-**多选题偏差。** MMLU 是四选一的多选题。一个永远选 "B" 的模型能得 25% 的分数。那些在多选题数据上大量训练的模型，具备一种无法转移到自由形式输出的优势。更糟糕的是，多选题提示中的位置偏差确实存在。Wang 等人 2023 年的论文《*Large Language Models are not Fair Evaluators*》证明，打乱答案选项的位置会让大多数模型的准确率波动 2-8 个百分点。
+**饱和。** MMLU 当初设计是给 2020 年模型难的。2026 年的顶尖模型跑 88-92%——它们在噪声带里竞争。MMLU 上 1.5 分的提升可能是真提升，也可能是边界案例上 50 题抽样的采样方差。这基准几年前就分不清能力了。简单的统计论证：14K 题，模型准确率 90%，分数的标准误大约是 $\sqrt{0.9 \cdot 0.1 / 14000} \approx 0.25$ 个百分点；不到 ~0.7 分的 1 分宣称都在噪声里。
 
-**仅限英文。** MMLU、GSM8K、HumanEval 全部是英文测试。中文或法语表现出色的模型，在权威排行榜上可能得分平平，但在实际部署中却表现优异。
+**选择题偏差。** MMLU 是 4 选 1 选择题。模型全选"B"也能拿 25%。 heavily trained on multi-choice 数据的模型有优势，但这泛化不到自由生成输出。更糟的是多选题 prompt 内的位置偏差是真实的——Wang et al. (2023, *Large Language Models are not Fair Evaluators*) 展示了 shuffle 答案位置能在大多数模型上改变 2-8 分的准确率。
 
-**格式依赖。** GSM8K 的答案提取依赖正则表达式匹配 "the answer is X"。如果模型没按这个格式输出，即使答案正确也会被判错。HuggingFace 评估团队在 2024 年的一项审计中估计，GSM8K 中 5-15% 的“错误”答案实际上是内容正确但格式不符合规范的结果。
+**仅英语。** MMLU, GSM8K, HumanEval 都是英文。中文或法文强的模型在标准榜单上分数一般，但在实际部署中赢了。
 
-2024-2026 年的新一代 benchmark（MMLU-Pro、GPQA、BIG-Bench Hard 等）试图解决这些问题。但每个测试发布几个月内都会出现新的刷分漏洞。
-## MMLU 实际还在测什么
+**格式耦合。** GSM8K 答案通过 regex 抓 "the answer is X" 提取。不遵循确切格式就算错，哪怕内容正确。HuggingFace 评估团队 2024 年审计估计 GSM8K 上 5-15% 的"错"答案是内容正确但格式非标准。
 
-批评很多，但 MMLU 并非没用。它测的是模型预训练时有没有见过大量大学水平的知识，并记住了多少。这和通用能力有点关系。得分 50 的模型确实不如 80 的。88 到 92 的差距？基本是噪声。
+2024-2026 这一代基准（MMLU-Pro, GPQA, BIG-Bench Hard, RULER, SWE-bench, LiveBench, ArenaHard, IFEval）试图解决这些问题，但每个发布几个月内都有自己的刷榜问题。
 
-MMLU 可以当粗筛工具，判断“这模型是不是在对的范围”。别用它比较 85 分以上的模型。
-## Benchmark 动物园：什么时候用什么
+## MMLU 到底测的是什么（至今为止）
 
-一份实用指南，告诉你每个 benchmark 能回答什么问题。
+尽管被批评，MMLU 不是没用。它测的是东西—— broadly, "预训练时模型有没有看到并记住大量大学级别知识？" 这和通用能力 loosely 相关。MMLU 跑 50 分的模型确实比跑 80 分的差；但 88 到 92 的差距 mostly 是噪声。
 
-- **通用知识 / 粗略能力**：MMLU 只用来筛选，MMLU-Pro 在前沿领域仍有意义。  
-- **不确定性推理**：GPQA Diamond（Rein 等，2023），研究生级别的科学问题，专门防 LLM 取巧。顶级模型得分 60-75%，博士生约 65%。这玩意真难。  
-- **数学，简单**：GSM8K（Cobbe 等，2021），8.5K 道小学应用题。前沿模型接近满分（>95%），小模型还能用它测。  
-- **数学，困难**：MATH（Hendrycks 等，2021），12.5K 道 AMC/AIME 级竞赛题。顶级模型得分 85-92%。2025 年被 AIME-2025 和 Putnam-2025 替代，更严格。  
+把 MMLU 当粗过滤器（"这模型在不在那个区间？"）。别用它比 85+ 的两个模型。
 
-- **代码，封闭场景**：HumanEval（Chen 等，2021），164 道手写 Python 题。前沿模型已经饱和。MBPP（Austin 等，2021）类似，但范围稍广。  
-- **代码，真实场景**：SWE-bench（Jimenez 等，2023），来自 12 个流行 Python 仓库的真实 GitHub 问题。模型需要修改代码库，涉及多文件操作。2026 年顶级模型在 Verified 上得分 50-60%。  
-- **代码，广泛场景**：BigCodeBench（Zhuo 等，2024），1140 个任务，涵盖 723 函数和 139 库。避免了 HumanEval 克隆版的 GitHub 数据污染问题。  
+## 基准动物园：什么时候用什么
 
-- **指令遵循**：IFEval（Zhou 等，2023），验证模型是否满足明确约束，比如“恰好用 3 段回答”。程序化验证，歧义性低。  
-- **长上下文**：RULER（Hsieh 等，2024），多难度“大海捞针”测试，最长支持 128K token。号称支持“1M 上下文”的模型，测到 32K 就崩了。  
-- **幻觉检测**：SimpleQA（OpenAI，2024），4326 道简短事实问题，专门揭露胡编乱造。前沿模型得分 30-55%，低端模型仅 10%。  
-- **成对人类偏好**：Chatbot Arena / ArenaHard（lmsys），百万级众包 A vs B 投票，基于真实聊天交互。  
+实用指南，哪个基准回答哪个问题：
 
-实际生产中，很少有人关心“哪个模型在 MMLU 上表现最好”。大家真正想知道的是，“哪个模型在我的工作负载上更强”。Benchmark 动物园的主要作用是帮我在花钱做定制评估之前，快速淘汰明显不合格的候选模型。
-## LiveBench、ArenaHard 和动态基准
+- **通用知识 / 粗能力**：MMLU（仅当过滤器用），MMLU-Pro（在前沿仍有意义）。
+- **不确定性下的推理**：GPQA Diamond (Rein et al., 2023) —— 研究生级别科学题，设计用来抵抗 LLM 友好技巧。2026 顶尖模型跑 60-75%；相关领域 PhD 人类跑 ~65%。这基准是真的难。
+- **数学，较易**：GSM8K (Cobbe et al., 2021, *Training Verifiers to Solve Math Word Problems*) —— 8.5K 小学应用题。前沿模型饱和了 (>95%) 但对小模型仍有用。
+- **数学，较难**：MATH (Hendrycks et al., 2021, *Measuring Mathematical Problem Solving*) —— 12.5K 竞赛题，AMC/AIME 级别。前沿仍有区分度（顶尖模型 85-92%）。2025 年被 AIME-2025 和 Putnam-2025 取代以获得真正的竞赛严谨性。
+- **代码，封闭**：HumanEval (Chen et al., 2021, *Evaluating Large Language Models Trained on Code*) —— 164 手写 Python 题。饱和。MBPP (Austin et al., 2021) 类似但稍广。
+- **代码，真实**：SWE-bench (Jimenez et al., 2023) —— 来自 12 个热门 Python  repo 的真实 GitHub issue，模型必须通过编辑 repo 解决。多文件，需要理解现有代码。2026 顶尖模型在 SWE-bench Verified 上跑 50-60%。
+- **代码，广泛**：BigCodeBench (Zhuo et al., 2024) —— 723 个函数和 139 个库 across 1140 任务。抵抗影响 HumanEval 克隆的 GitHub 污染。
+- **指令遵循**：IFEval (Zhou et al., 2023) —— 验证模型是否满足显式约束（" exactly 3 段回复，每段以问题开头"）。程序化验证，低歧义。
+- **长上下文**：RULER (Hsieh et al., 2024) —— 多种难度下的 needle-in-haystack，高达 128K tokens。大多数"1M 上下文"宣称在这里 32K 就崩了。
+- **幻觉**：SimpleQA (OpenAI, 2024) —— 4326 短答案事实题，设计用来暴露 confabulation。前沿模型跑 30-55%；低阶模型接近 10%。
+- **成对人类偏好**：Chatbot Arena / ArenaHard (lmsys) —— 真实聊天交互上数百万 crowdsourced A-vs-B 投票。
 
-2024 到 2025 年，业界针对数据污染问题提出了动态基准的解法。每月生成或筛选一批全新题目，测试前从未公开。
+生产环境里，相关问题很少是"谁赢了 MMLU"，几乎是"谁在我的负载上赢了"。基准动物园 mainly 用于花钱做定制评估前 *剔除明显糟糕的候选者*。
 
-- **LiveBench**（2024 年底发布，每月更新）：题目涵盖数学、编程、推理、语言理解和指令跟随，全部来自 cutoff 后的论文和竞赛。实时更新，污染难度大。
-- **ArenaHard / Chatbot Arena**（lmsys）：基于真实聊天流量中的人类两两偏好数据。更新慢，但抗刷分能力强。不过，排行榜有个问题——很多用户更看重风格而非正确性。语气友好、格式工整的答案往往排名更高，哪怕内容啰嗦甚至不够准确。
-- **SimpleQA**（OpenAI，2024）：专注于简短明确的事实性问题，专门用来检测模型幻觉。胡编乱造的模型在这里无处藏身。
+## LiveBench, ArenaHard 和动态基准
 
-这些基准在 2026 年比 MMLU 更有参考价值，但问题也不少。ArenaHard 偏向“格式美观”和“语气友好”，容易脱离正确性。LiveBench 的策展标准一旦被摸透，也可能被针对性优化。一句话总结：**没有一个公开基准能扛住持续优化的压力**。
-## 防污染：留出评测
+2024-2025 对污染的回应是 **动态基准**：每月新鲜生成或 curated 问题，测试前从未发布。
 
-生产环境里，别用公开 benchmark 做评估。自己建一个 eval set。
+- **LiveBench**（2024 年底发布，每月刷新）：数学、编码、推理、语言、指令遵循题， sourced from 近期（post-cutoff）论文和竞赛。难污染。
+- **ArenaHard / Chatbot Arena** (lmsys)：真实聊天流量的人类成对偏好。更新慢但抗刷榜因为人类选择。Arena 的公开榜单有个不同的 bug — *风格偏好* 压倒 *正确性偏好* 对许多用户，所以排名奖励温暖、格式好、稍啰嗦的回答，而不是正确但简洁的。
+- **SimpleQA** (OpenAI, 2024)：事实题，短特定答案。设计用来暴露幻觉——模型 confabulates 就输。
 
-1. 从真实生产流量（或合成但接近真实的场景）抽 100 到 500 条代表性输入。  
-2. 手动写答案，或者精心整理出标准输出。  
-3. 这个集合不能公开，也不能放进调外部 API 的 prompt，防止厂商学走你的数据。  
-4. 每次模型改了，都用这个集合重新跑一遍评估。
+2026 年这些信号比 MMLU 好，但仍有问题。ArenaHard 权重用户觉得舒服的（" nice formatting", "warmth"），这可能跟正确性脱钩。LiveBench 的选题过程本身如果你知道 curated 标准也可被游戏。*没有公开基准能在持续优化压力下存活*。
 
-投入是实打实的。标注 200 道题要花 1 到 2 人天。但它第一次帮你抓到公开 benchmark 发现不了的性能回退时，你就赚了。
+## 防污染防御：Hold-out 评估集
 
-还有一个关键点：**怎么划分 eval set 和内容本身一样重要**。常见错误是从生产流量均匀采样 200 道题。但生产流量往往是 80% 简单，20% 困难。简单问题太多，每个模型都能拿 95% 的分，eval 就没意义了。正确做法是分层设计：简单、中等、困难各占 30%-40%。困难部分直接从错误日志里挑。困难问题才是区分模型能力的关键。
-## LLM-as-judge：主流方法和它的坑
+生产环境里，你不应该在公开基准上评估。建自己的 eval 集：
 
-![大模型工程（十）：评估 — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_2.png)
+1. 从真实（或合成但逼真）生产流量采样 100-500 代表输入。
+2. 手写或手 curate 金标输出。
+3. 绝不公开这个集。绝不放进任何 hitting 外部 API 的 prompt（供应商可能从你的流量学习）。
+4. 每次模型变更都重测这个集。
+
+投入是实的（200 题手标集要 1-2 人天），但第一次抓住公开基准没发现的回归时就回本了。
+
+微妙点：**怎么切分 eval 集和集里有什么一样重要**。常见错误是从生产流量均匀采样 200 题，但生产流量 80% 简单 20% 困难。你的 eval 被简单题主导，每个模型都跑 95%。分层：目标 30-40% 简单，30-40% 中等，30-40% 困难，其中"困难" sourced from 你的错误日志。困难切片才是区分模型的部分。
+## LLM-as-judge：主流模式与它的失效模式
+
+![LLM Engineering (10): Evaluation — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/illustration_2.png)
+
 
 ![fig5: human vs auto-eval correlation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig5_human_vs_auto.png)
 
+
 ![fig2: LLM-judge position bias](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig2_judge_position_bias.png)
 
-自由格式输出没法用精确匹配来评估。我得想办法判断“这个答案好不好”。目前最常用的方法是 **LLM-as-judge**（Zheng 等，2023，*Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena*）。简单说，就是用一个强模型给被测模型的输出打分。
 
-代码实现如下：
+面对自由生成的输出（大多数生产任务都是这类），exact match 根本行不通。你得有个办法给“这回答好不好”打分。目前主流的做法是 **LLM-as-judge**（Zheng et al., 2023, *Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena*）：用一个强模型给被测模型的输出打分。
+
+基本模式如下：
 
 ```python
-JUDGE_PROMPT = """你在评估 AI 助手的回答。
+JUDGE_PROMPT = """You are evaluating an AI assistant's response.
 
-问题：{question}
+Question: {question}
 
-参考答案（仅用于评分参考；助手未见过）：
+Reference answer (for grading reference; the assistant did not see this):
 {reference}
 
-助手的回答：
+Assistant's answer:
 {candidate}
 
-请按 1-5 分为助手的回答评分：
-1 = 事实错误或跑题
-2 = 部分正确但缺少关键信息
-3 = 正确但解释不清
-4 = 正确且解释清晰
-5 = 正确、解释清晰，并补充了相关有用信息
+Rate the assistant's answer on a 1-5 scale:
+1 = factually wrong or off-topic
+2 = partially correct but missing key information
+3 = correct but poorly explained
+4 = correct and well explained
+5 = correct, well explained, and adds useful related information
 
-只输出整数分数。"""
+Output only the integer score."""
 
 def judge(question, reference, candidate, model="claude-4-5-sonnet-20250901"):
     score = client.messages.create(
@@ -130,173 +133,174 @@ def judge(question, reference, candidate, model="claude-4-5-sonnet-20250901"):
     return int(score.content[0].text.strip())
 ```
 
-LLM-as-judge 和人类判断的相关性在 70%-85% 之间，具体看任务类型。它比人工评估便宜得多，每天能处理上千个样本。但它有不少偏见，Zheng 的论文列了一些，后续研究又补充了不少。
+LLM-as-judge 与人类判断的相关性在 70-85% 之间，具体取决于任务。它比人工评估便宜得多，而且能扩展到每天处理成千上万个样本。但 Zheng 那篇论文列举了它的一些偏见，后续工作又进一步细化了这些问题：
 
-- **位置偏见**：比较两个答案时，模型倾向于选先出现的答案（有些模型偏好后出现的）。Zheng 测试发现，GPT-4-as-judge 在交换顺序后，30%-65% 的判断会翻转——远高于随机概率。解决办法：同时呈现两种顺序，取平均值。
-- **长度偏见**：更长的答案得分更高，即使短答案可能更好。Dubois 等（2024，*Length-Controlled AlpacaEval*）发现，仅将答案长度加倍，就能提升 3-7 分。解决办法：告诉模型“除非内容有用，否则别奖励长度”，或者用长度控制评分。
-- **自我偏好**：GPT-4 偏好 GPT-4 的输出，Claude 偏好 Claude 的输出。Panickssery 等（2024，*LLM Evaluators Recognize and Favor Their Own Generations*）证明这是自我识别现象——模型能认出自己的输出并给高分。解决办法：换不同家族的判别模型，或者用多模型评审团投票。
-- **格式偏见**：结构化输出（如 Markdown、标题）比同等质量的散文得分更高。解决办法：评分前统一格式。
-- **谄媚效应 / 冗长即严谨**：模型有时偏向更自信或更详细的答案，即使这些答案是错的。解决办法：提供参考答案，告诉模型优先考虑正确性。
+- **Position bias**：比较两个答案时，judge 倾向于选排在前面那个（有些模型则是第二个）。Zheng 测过，在 GPT-4-as-judge 上，交换顺序会导致 30-65% 的 pairwise 判断结果翻转——这远高于随机概率。解决办法：两种顺序都跑一遍，取平均。
+- **Length bias**：答案越长得分越高，哪怕短一点更好。Dubois et al. (2024, *Length-Controlled AlpacaEval*) 测过，仅仅把答案长度加倍而不改变质量，分数就能涨 3-7 分。解决办法：明确告诉 judge“除非有用，否则不要奖励长度”，或者用长度控制的评分（减去长度项，或针对长度匹配的基线做归一化）。
+- **Self-preference**：GPT-4 当 judge 偏爱 GPT-4 的输出；Claude 偏爱 Claude。Panickssery et al. (2024, *LLM Evaluators Recognize and Favor Their Own Generations*) 表明这是一种自我识别现象——judge 模型能认出自己的输出并给高分。解决办法：用与被测模型不同家族的模型当 judge，或者用不同家族的 judge 组成评审团，多数投票。
+- **Format bias**：结构化输出（Markdown、标题）比同等质量的纯文本得分高。解决办法：评分前先归一化格式。
+- **Sycophancy / verbosity-as-rigor**：judge 有时会偏向那个看起来更自信或更详尽的答案，哪怕它是错的。解决办法：尽可能提供参考答案，并告诉 judge 权重应放在正确性而非展示上。
 
-两两比较（模型 A 和模型 B）时，纠正偏见的方法如下：
+对于 pairwise 比较（模型 A vs 模型 B），修正偏见的做法是：
 
 ```python
 def pairwise_judge(question, answer_a, answer_b, judge_model):
-    # 第一种顺序：A 在前
+    # First order: A first
     score_ab = judge(question, answer_a, answer_b, judge_model)
-    # 反序：B 在前
+    # Reverse order: B first
     score_ba = judge(question, answer_b, answer_a, judge_model)
+    # Reverse the second score and combine
     if score_ab == "A" and score_ba == "B": return "A"
     if score_ab == "B" and score_ba == "A": return "B"
     return "tie"
 ```
 
-Zheng 等人指出，顺序一致的判断与人类评分的相关性约为 85%；顺序不一致的基本是噪声。直接丢弃这些噪声是最简单的修正方法。
+Zheng et al. 表明，交换顺序后一致的判断与人类的相关性约为 85%；不一致的基本上就是噪声。直接丢弃这些不一致的结果是最简单的修正方法。
 
-**Pointwise 和 Pairwise**。这两种评分方式各有优劣。Pointwise 成本低，但容易受评分漂移和隐式锚定的影响。Pairwise 每次比较更可靠，但复杂度随模型数量平方增长。实际生产中，我通常用 Pointwise 初筛（过滤掉明显差的候选），再用 Pairwise 对最后 2-3 个重要候选做最终评估。
-## 代码和数学：基于程序的评估
+**Pointwise vs pairwise。** 这两种评判范式有不同的失效模式。Pointwise（独立给每个答案打 1-5 分）更便宜，但 suffers from rating drift across batches，而且 judge 容易隐式地锚定在最近看到的例子上。Pairwise（哪个更好，A 还是 B？）每次比较更可靠，但模型数量多了之后复杂度是二次方的。生产环境的标准折衷方案：用 pointwise 做初筛（过滤掉明显差的候选），对最后剩下的 2-3 个关键候选用 pairwise。
 
-在可验证领域，直接跳过人工评判。
+## 代码与数学：基于程序的评估
 
-- **代码**：用测试套件跑候选代码。HumanEval、MBPP、SWE-bench 都这么做。Pass@k 衡量 $k$ 个样本中通过测试的比例。
-- **数学**：提取最终数值答案，和标准答案对比。
-- **JSON 输出**：校验是否符合 schema，检查关键字段是否存在。
-- **工具调用**：模拟工具行为，验证调用结果。
+对于可验证的领域，跳过 judge：
 
-基于程序的评估无偏见，计算成本低，响应速度快。能用就尽量用。前沿推理模型（o 系列、Qwen3-Reasoning、DeepSeek-R1）在 RLVR（第 4 章）中都把基于程序的评估作为主要信号。
+- **代码**：拿候选答案跑测试套件。HumanEval、MBPP、SWE-bench 都是这么做的。Pass@k 衡量 $k$ 个样本中通过的比例。
+- **数学**：提取最终数值答案，与 ground truth 对比。
+- **JSON 输出**：针对 schema 验证，检查 key 是否存在。
+- **工具调用**：模拟工具，检查调用的效果。
 
-一个有用的视角：任何能用程序验证的领域，都可以转化为 RLVR 的训练信号。模型能力提升速度取决于验证器质量。数学和代码进步比自然语言快，因为验证方法更可靠。如果你为某个可验证任务构建内部基准测试集，不只是在测量性能，还在创造潜在训练信号。开源社区迟早会因此回馈你。
-## 生产 A/B 测试
+基于程序的评估没有偏见，计算免费，而且 instant。能用就用，别犹豫。前沿的 reasoning 模型（o-series, Qwen3-Reasoning, DeepSeek-R1）在 RLVR 期间（第 4 章）都主要用基于程序的评估作为信号。
+
+有个很有用的视角：每个允许程序化验证的领域，在 RLVR 中都会变成一种 *训练信号*，这意味着模型在该领域的能力大致会随着验证器的质量增长。数学和代码比 prose 增长得快，就是因为它们有更好的验证器。如果你在为可验证任务构建内部基准，你不仅仅是在测量——你是在生产一个潜在的训练信号，开源社区迟早会为此回馈你。
+
+## 生产环境的 A/B 测试
 
 ![fig4: A/B test power calculation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig4_ab_power.png)
 
-Eval 集能提前发现模型退化问题。A/B 测试则用来捕捉 Eval 集漏掉的问题。
 
-生产环境的 A/B 测试很简单：把 5%-10% 的流量切给新模型变体，对比结果指标就行。
+评估集能在部署前拦住回归问题。A/B 测试则能抓住评估集漏掉的东西。
 
-- **用户互动**：用户是否继续对话？  
-- **问题解决**：用户是否标记对话已解决？  
-- **响应延迟**：p50 或 p95 延迟有没有变差？  
-- **成本**：每轮对话用多少 token？每次解决问题花多少钱？  
-- **满意度**：用户点赞还是点踩？  
-- **升级需求**：用户是否要求转接人工客服？
+生产环境 A/B：把 5-10% 的流量路由到新模型 variant，对比结果指标：
 
-“用户互动”这种表面指标容易误导人。一个跑题但有趣的模型可能增加对话轮次，却解决不了实际问题。我会结合对话轮次和问题解决率一起看。
+- **Engagement**：用户继续对话了吗？
+- **Resolution**：用户标记对话已解决了吗？
+- **Latency**：p50/p95 变差了吗？
+- **Cost**：每 turn 的 tokens，每个已解决请求的 $。
+- **Satisfaction**：点赞/点踩率。
+- **Escalation**：用户要求转人工了吗？
 
-统计显著性怎么算？如果要在 95% 置信水平下检测二元指标 2% 的变化，1 万流量就够了。公式如下：
+像"engagement"这样的表面指标可能会误导——一个模型如果有趣地跑题，可能会带来更多 turns，但解决的问题更少。要把 turn count 和 resolution rate 结合起来看。
+
+为了统计显著性：10K 流量足以在 95% 置信度下检测到二元指标 2% 的偏移。相关的 power calculation 如下：
 
 $$n \approx \frac{16 \cdot p (1-p)}{\delta^2}$$
 
-$p$ 是基线比例，$\delta$ 是最小可检测效应。比如 $p = 0.5$、$\delta = 0.02$，每组需要约 1 万样本；如果 $\delta = 0.005$（检测 0.5% 的变化），就需要约 16 万样本。实验至少跑 7 天，避免星期周期影响。如果流量来源复杂（免费 vs 付费、移动端 vs 桌面端、不同语言），我会按流量分层分析。
+其中 $p$ 是基线率，$\delta$ 是最小可检测效应。对于 $p = 0.5$，$\delta = 0.02$，那就是每臂 $n \approx 10{,}000$；对于 $\delta = 0.005$（捕捉半个百分点的偏移），$n \approx 160{,}000$。实验至少跑 7 天以消除星期几的影响。如果流量 heterogeneous（免费 vs 付费，移动 vs 桌面，语言），要按流量 segment 分层。
 
-再分享两个踩过的坑，值得记住：
+有两个生产模式值得了解：
 
-- **延迟敏感的质量指标**。新模型准确率提高 1%，但响应时间慢了 200 毫秒，最终效果可能是负面的。用户流失率会随着延迟上升而增加。判定胜者之前，我会把质量和延迟整合成一个目标，比如 `quality - $\alpha$ · latency_seconds`，其中 $\alpha$ 根据历史流失曲线校准。
-- **带早停机制的序列 A/B 测试**。传统 t 检验假设样本量固定。如果中途偷看数据并提前停止实验，假阳性率会升高。为了快速决策又控制假阳性率，我用序列检验方法，比如 mSPRT，或者简单对偷看次数做 Bonferroni 校正。
-## Eval set 维护
+- **感知延迟的质量指标**。一个新模型准确率高 1% 但慢 200 ms，净效果可能是负的，因为用户流失率随延迟缩放。在宣布赢家之前，把质量和延迟合并为单一目标（例如 quality - $\alpha$ · latency_seconds，其中 $\alpha$ 根据历史流失曲线校准）。
+- **带早停的 Sequential A/B**。Frequentist t-tests 假设固定样本量；如果你中途 peek 并早停，假阳性率会膨胀。用 sequential test（mSPRT，或者简单地对 peek 次数做 Bonferroni 校正）来保持假阳性率诚实，同时还能快速决策。
 
-Eval set 不会一劳永逸。生产流量会变，客户需求会变，模型的失败模式也会变。半年后，你今天的 eval set 很可能就过时了。
+## 评估集的维护
 
-我的维护流程是这样的：
+你今天建的评估集，半年后就废了。生产流量在变，客户用例在演化，你模型的失效模式也不是下个季度模型的失效模式。
 
-- **每周**：抽 50 条生产调用记录，标记异常，把有意思的失败加到 eval set。
-- **每月**：用所有生产 prompt 跑一遍 eval set，画出质量趋势图。
-- **每季度**：删掉所有模型都能 100% 通过的测试项，补充最近踩坑发现的新问题。
-- **每次模型更新**：必须重新评估整个 eval set。如果太慢，就自动化并行处理。
+行之有效的维护 routine：
 
-一个简单判断标准：eval set 上模型准确率的 *四分位距* 不能为零。如果每个模型在每道题上都达到 99%，说明题目太简单了，eval set 失去了意义。这时要删掉容易的题，补充更难的案例。
+- **每周**：采样 50 个生产调用，标记异常，把有趣的失败案例加入评估集。
+- **每月**：针对评估集重跑所有生产 prompt，绘制质量趋势。
+- **每季度**：淘汰所有当前模型都能 100% 通过的评估项（不再具有信息量）。从最近的失效模式中添加新项。
+- **每次模型变更**：全量重评估，绝无例外。如果评估跑得太慢，就自动化并并行化。
 
-下一节我会聊聊我在生产环境里踩过的几个大坑。
-## Calibration：人们跳过的指标
+一个有用的不变量：你评估集上模型准确率的 *interquartile range* 不应坍缩为零。如果每个模型在每个问题上都得 99%，说明你过度饱和了，评估不再起作用。砍掉简单问题， sourcing 新的难题。
+
+## 校准：一个常被忽略的指标
 
 ![fig3: calibration plot (ECE)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/10-evaluation/fig3_calibration.png)
 
-模型 **校准** 的意思是，置信度要和实际准确率一致。如果模型说“我有 90% 的把握”，那它就应该在 90% 的情况下是对的。但大多数 LLM 都过于自信。嘴上说“我很确定”，结果 30% 的时候是错的。
 
-医疗、法律、金融这些高风险场景中，校准的重要性不亚于准确率。衡量校准程度可以用 Expected Calibration Error（Guo 等，2017，《On Calibration of Modern Neural Networks》）：
+如果一个模型陈述的置信度与实际准确率匹配，它就是 **calibrated**。一个说“我有 90% 把握”的模型，应该 90% 的时候是对的。大多数 LLM 都系统性地过度自信——它们会说“我确定”，然后 30% 的时候是错的。
+
+对于高风险部署（医疗、法律、金融），校准和准确率一样重要。用 Expected Calibration Error 测量（Guo et al., 2017, *On Calibration of Modern Neural Networks*）：
 
 $$\text{ECE} = \sum_{m=1}^{M} \frac{|B_m|}{n} |\text{acc}(B_m) - \text{conf}(B_m)|$$
 
-把预测按置信度分成 $M$ 个区间，每个区间计算 |准确率 - 平均置信度|，再按区间大小加权求和。可靠性图把准确率画在 y 轴，置信度画在 x 轴。完美校准的模型会落在对角线上。
+按置信度将预测分箱到 $M$ 个 bucket，计算每个 bucket 的 |accuracy - average confidence|，按 bucket 大小加权。reliability diagram 在 y 轴 plot 准确率，x 轴 plot 置信度；完美校准的模型落在对角线上。
 
-Guo 的论文指出，提升准确率往往会牺牲校准效果。深度网络、label smoothing、temperature scaling 这些技术能提高分类任务的准确率，但如果不特别调整，通常会让校准变差。这个结论同样适用于 LLM。RLHF 和 DPO 这些后训练方法会让校准变得更糟，因为奖励模型更倾向于奖励听起来自信的答案，而不是模棱两可的回答。
+Guo 那篇论文表明 *准确率的提升往往以牺牲校准为代价*——那些在分类基准上提升准确率的技术（deep networks, label smoothing, temperature scaling）除非明确修正，否则往往会损害校准。同样的教训也适用于 LLM：post-training（RLHF, DPO）会可靠地 degrade 校准，因为 reward model 奖励听起来自信的答案多于那些留有余地的答案。
 
-到了 2026 年，前沿模型的 ECE 仍然在 5%-15% 之间。这说明它们还是过于自信。RLHF 甚至会让校准变得更差，因为模型学会了用自信的回答换取更高的奖励。如果部署场景要求模型知道自己不知道的东西，可以试试以下方法：
+2026 年的前沿模型 ECE 仍在 5-15% 范围内——这意味着显著的过度自信。RLHF 倾向于 *恶化* 校准（模型学到听起来自信的答案能获得更高奖励）。对于需要模型知道自己不知道什么的部署，你可能需要：
 
-通过 SFT 撤回一些后训练带来的过度自信。用那些基模型不确定但后训练模型变得自信的案例，训练模型回答“我不知道”。
+1. **通过 SFT 撤销部分 post-training 的断言性**，使用来自基座模型不确定但 post-trained 模型变得自信的案例中的 "I don't know" 样本。
+2. **在推理时对 logprobs 使用 temperature scaling**。在 held-out 集上校准 temperature；这很便宜，通常能把 ECE 减半。
+3. **采样多个 completions 并用答案的 entropy 作为置信度代理。** 一个问题上 $N=10$ 的 self-consistency——如果 9/10 一致，高置信度；如果 5/10/0/0 等分散，低置信度。
+4. **拟合一个校准模型**，基于 (model_logprob, prompt_features) →  labeled sample 上的 empirical_correctness。
 
-推理时对 logprobs 使用 temperature scaling。在验证集上调校温度参数，这种方法成本低，通常能把 ECE 减少一半。
+对于 RAG 系统，*retrieval confidence*（top-k 相似度分数，reranker 分数）是比 LLM 自己生成的 tokens 更诚实的置信度信号。把它传进去。
+## 长文本评估：基准测试遗漏了什么
 
-采样多个补全结果，用答案的熵作为置信度的代理。比如对一个问题采样 $N=10$ 次，如果 9 次答案一致，那就认为置信度高；如果答案分布是 5/10 或 0/0 这种分散的情况，那就认为置信度低。
+公共基准测试大多盯着短回答测。可真正落到生产环境，往往是长文本生成（比如总结、草稿、500 行以上的代码块）。专门针对这块的基准测试有：
 
-拟合一个校准模型。基于（model_logprob、prompt_features）→ 实际正确性，在标注数据上训练。
+- **AlpacaEval / AlpacaEval 2** (Li et al., 2023): 805 条指令；用 LLM-as-judge 对比参考答案（最早是 text-davinci-003，后来换成 GPT-4）。Length-controlled 版本 (Dubois et al., 2024) 修正了上面提到的长度偏差问题。
+- **MT-Bench** (Zheng et al., 2023): 8 个类别共 80 轮多轮对话；LLM-as-judge 打分前会先生成 chain-of-thought 理由。
+- **Arena Hard** (lmsys, 2024): 从真实 Chatbot Arena 流量中蒸馏出的 500 个硬问题；LLM-as-judge 打分，与人类 Arena 排名强相关。
 
-对于 RAG 系统来说，*检索置信度*（比如 top-k 相似度得分、reranker 得分）比 LLM 自己生成的 token 更能反映真实的置信度。把这个信号接入管道里就好。
-## 长格式评估：benchmark 漏的
+内部搞长文本评估，一套实用的打法是：
 
-大多数公开 benchmark 只测短答案。但实际生产中，长格式生成更常见，比如总结、草稿、500 行以上的代码块。
+1. 精选 50-200 个 prompt，覆盖你的真实 workload。
+2. 定义一个 5-10 维度的评分标准（准确性、完整性、格式合规、语气、幻觉率等）。
+3. 找个强的 judge 模型给每个维度单独打分，并附带一行理由。
+4. 聚合出综合分数，但决定发版前，务必看分项 breakdown。
 
-几个针对长格式的 benchmark 值得关注：
+分项视角至关重要。如果一个模型完整性加了 5 分，幻觉却多了 3 分，这算不上严格的改进；发不发版，得看哪个维度对你的产品更关键。
 
-- **AlpacaEval / AlpacaEval 2**（Li 等，2023）：805 条指令，用 LLM-as-judge 对比参考模型（最初是 text-davinci-003，后来换成 GPT-4）。Length-controlled 版本（Dubois 等，2024）解决了长度偏差问题。
-- **MT-Bench**（Zheng 等，2023）：80 组多轮对话，覆盖 8 类任务。LLM-as-judge 在评分前会给出 chain-of-thought 的理由。
-- **Arena Hard**（lmsys，2024）：从 Chatbot Arena 的真实流量中提炼出 500 道难题。LLM-as-judge 的结果和人类排名高度一致。
+## 把评估流水线写成代码
 
-内部做长格式评估时，我的实践经验是这样的：
-
-1. 收集 50 到 200 个提示词，覆盖实际工作负载。
-2. 设计评分标准，包含 5 到 10 个维度，比如准确性、完整性、格式合规性、语气、幻觉率等。
-3. 用一个强评判模型对每个维度单独打分，并附一句简短理由。
-4. 汇总成综合分数，但决定是否上线时，必须看每个维度的详细表现。
-
-按维度拆解很关键。一个模型在完整性上提高 5 分，但在幻觉问题上下降 3 分，这不一定算改进。最终是否上线，取决于哪个维度对你的产品更重要。
-## Eval pipeline as code
-
-成熟的评估系统，运维规范要像 CI 流水线一样清晰：
+成熟的评估系统，运维 hygiene 得跟 CI 流水线一个级别：
 
 ```
-[eval_set.jsonl 放在版本控制中]
+[eval_set.jsonl in version control]
      ↓
-[runner：对 N 个候选模型 × M 道题目并行处理]
+[runner: parallelize across N candidates × M questions]
      ↓
-[grader：程序打分 + LLM-as-judge + 可选人工抽查]
+[grader: program-based + LLM-as-judge + optional human spot-check]
      ↓
-[结果存储：每次运行的分数，按题目和维度细分]
+[result store: per-run scores, broken down by question and dimension]
      ↓
-[diff 视图：对比候选模型和基线，突出回归问题]
+[diff view: candidate vs baseline, highlight regressions]
      ↓
-[gate：回归超过阈值，阻止部署]
+[gate: block deployment if regression > threshold]
 ```
 
-2026 年能用的工具有这些：**Promptfoo**，简单易用，YAML 驱动，适合本地迭代。**Inspect AI**，英国 AISI 的框架，专攻安全评估。还有 **OpenAI evals** 和 **DeepEval**。如果喜欢折腾，可以用 pytest 自己搭一个。有没有框架不重要，重要的是得有一个。最糟糕的做法是写个 notebook，等有人想起来才跑一次评估。这种踩过的坑，真在生产里跑过就知道多耽误事。
-## 小结与下一篇
+2026 年还能打的工具：**Promptfoo**（简单的 YAML 驱动，适合本地迭代）、**Inspect AI**（UK AISI 的框架，常用于安全评估）、**OpenAI evals**、**DeepEval**，或者如果你偏好 DIY，直接用 pytest 写一套也行。框架选哪个没那么重要，重要的是你得有一个。最糟糕的模式是弄个 notebook，想起来才跑一次评估。
 
-公开 benchmark 超过 80 分的，基本都是噪声，很多还被污染了。我建议从真实流量里手工整理一个评估集，按难度分层，像维护核心代码一样维护它。用 LLM-as-judge 时，记得校正偏差。可以调整顺序、控制长度、换 judge 家族，或者用多模型投票。任务能验证的话，优先用程序化评估方法。线下评估漏掉的部分，靠生产环境的 A/B 测试补上。如果需要提前看结果，记得用序列检验。评估集要持续更新，移除过时或太简单的问题。
+## 总结与下一章
 
-别忘了校准。实际部署中，置信度和准确率一样重要。Post-training 往往会让置信度下降。长文本生成任务先按维度评分，再综合打分。
+公共基准测试分数过了 80 分大半都是噪音，还有不少被污染了。基于真实流量建一套手工 curated 的评估集，按难度分层，把它当成承重代码来维护。LLM-as-judge 能用，但得做偏差校正（交换顺序、控制长度、换裁判模型家族、面板投票）。任务可验证时，优先用 program-based eval。离线评估覆盖不到的场景，上线做 A/B 测试，peek 的时候用 sequential tests。持续维护评估集，剔除饱和的问题。别忘了校准——在很多部署场景里，置信度和准确率一样重要，而 post-training 往往会 reliably degrade 它。长文本方面，先按维度打分，再合成总分。
 
-下一篇：**安全与对齐**。拒绝行为、RLHF 目标、谄媚问题、红队测试方法、幻觉指标以及 constitutional AI。
-## 参考资料
+下一章：**安全与对齐**。涵盖拒绝行为、RLHF 目标、sycophancy、红队测试方法论、幻觉指标，以及 constitutional AI。
 
-- Zheng, L. 等（2023）。*Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena*。NeurIPS 2023。https://arxiv.org/abs/2306.05685
-- Zhou, K. 等（2023）。*Don't Make Your LLM an Evaluation Benchmark Cheater*。https://arxiv.org/abs/2311.01964
-- Sainz, O. 等（2023）。*NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for each Benchmark*。EMNLP 2023 Findings。https://arxiv.org/abs/2310.18018
-- Guo, C. 等（2017）。*On Calibration of Modern Neural Networks*。ICML 2017。https://arxiv.org/abs/1706.04599
-- Cobbe, K. 等（2021）。*Training Verifiers to Solve Math Word Problems*。https://arxiv.org/abs/2110.14168
-- Hendrycks, D. 等（2021）。*Measuring Mathematical Problem Solving With the MATH Dataset*。NeurIPS 2021 Datasets。https://arxiv.org/abs/2103.03874
-- Hendrycks, D. 等（2020）。*Measuring Massive Multitask Language Understanding*（MMLU）。ICLR 2021。https://arxiv.org/abs/2009.03300
-- Chen, M. 等（2021）。*Evaluating Large Language Models Trained on Code*（HumanEval）。https://arxiv.org/abs/2107.03374
-- Austin, J. 等（2021）。*Program Synthesis with Large Language Models*（MBPP）。https://arxiv.org/abs/2108.07732
-- Jimenez, C. 等（2023）。*SWE-bench: Can Language Models Resolve Real-World GitHub Issues?* https://arxiv.org/abs/2310.06770
-- Zhuo, T. Y. 等（2024）。*BigCodeBench*。https://arxiv.org/abs/2406.15877
-- Rein, D. 等（2023）。*GPQA: A Graduate-Level Google-Proof Q&A Benchmark*。https://arxiv.org/abs/2311.12022
-- Hsieh, C.-P. 等（2024）。*RULER: What's the Real Context Size of Your Long-Context Language Models?* https://arxiv.org/abs/2404.06654
-- Zhou, J. 等（2023）。*Instruction-Following Evaluation for Large Language Models*（IFEval）。https://arxiv.org/abs/2311.07911
-- Li, X. 等（2023）。*AlpacaEval*。https://github.com/tatsu-lab/alpaca_eval
-- Dubois, Y. 等（2024）。*Length-Controlled AlpacaEval*。https://arxiv.org/abs/2404.04475
-- Wang, P. 等（2023）。*Large Language Models are not Fair Evaluators*。ACL 2024。https://arxiv.org/abs/2305.17926
-- Panickssery, A. 等（2024）。*LLM Evaluators Recognize and Favor Their Own Generations*。https://arxiv.org/abs/2404.13076
-- OpenAI（2024）。*Introducing SimpleQA*。https://openai.com/index/introducing-simpleqa/
-- LMSYS（2024）。*Chatbot Arena*。https://arxiv.org/abs/2403.04132
-- White, J. 等（2024）。*LiveBench*。https://livebench.ai/
-- UK AISI（2024）。*Inspect: An OSS framework for large language model evaluations*。https://inspect.ai-safety-institute.org.uk/
+## References
+
+- Zheng, L. et al. (2023). *Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena*. NeurIPS 2023. https://arxiv.org/abs/2306.05685
+- Zhou, K. et al. (2023). *Don't Make Your LLM an Evaluation Benchmark Cheater*. https://arxiv.org/abs/2311.01964
+- Sainz, O. et al. (2023). *NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for each Benchmark*. EMNLP 2023 Findings. https://arxiv.org/abs/2310.18018
+- Guo, C. et al. (2017). *On Calibration of Modern Neural Networks*. ICML 2017. https://arxiv.org/abs/1706.04599
+- Cobbe, K. et al. (2021). *Training Verifiers to Solve Math Word Problems*. https://arxiv.org/abs/2110.14168
+- Hendrycks, D. et al. (2021). *Measuring Mathematical Problem Solving With the MATH Dataset*. NeurIPS 2021 Datasets. https://arxiv.org/abs/2103.03874
+- Hendrycks, D. et al. (2020). *Measuring Massive Multitask Language Understanding* (MMLU). ICLR 2021. https://arxiv.org/abs/2009.03300
+- Chen, M. et al. (2021). *Evaluating Large Language Models Trained on Code* (HumanEval). https://arxiv.org/abs/2107.03374
+- Austin, J. et al. (2021). *Program Synthesis with Large Language Models* (MBPP). https://arxiv.org/abs/2108.07732
+- Jimenez, C. et al. (2023). *SWE-bench: Can Language Models Resolve Real-World GitHub Issues?* https://arxiv.org/abs/2310.06770
+- Zhuo, T. Y. et al. (2024). *BigCodeBench: Benchmarking Code Generation with Diverse Function Calls and Complex Instructions*. https://arxiv.org/abs/2406.15877
+- Rein, D. et al. (2023). *GPQA: A Graduate-Level Google-Proof Q&A Benchmark*. https://arxiv.org/abs/2311.12022
+- Hsieh, C.-P. et al. (2024). *RULER: What's the Real Context Size of Your Long-Context Language Models?* https://arxiv.org/abs/2404.06654
+- Zhou, J. et al. (2023). *Instruction-Following Evaluation for Large Language Models* (IFEval). https://arxiv.org/abs/2311.07911
+- Li, X. et al. (2023). *AlpacaEval: An Automatic Evaluator of Instruction-following Models*. https://github.com/tatsu-lab/alpaca_eval
+- Dubois, Y. et al. (2024). *Length-Controlled AlpacaEval: A Simple Way to Debias Automatic Evaluators*. https://arxiv.org/abs/2404.04475
+- Wang, P. et al. (2023). *Large Language Models are not Fair Evaluators*. ACL 2024. https://arxiv.org/abs/2305.17926
+- Panickssery, A. et al. (2024). *LLM Evaluators Recognize and Favor Their Own Generations*. https://arxiv.org/abs/2404.13076
+- OpenAI (2024). *Introducing SimpleQA*. https://openai.com/index/introducing-simpleqa/
+- LMSYS (2024). *Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference*. https://arxiv.org/abs/2403.04132
+- White, J. et al. (2024). *LiveBench: A Challenging, Contamination-Free LLM Benchmark*. https://livebench.ai/
+- UK AISI (2024). *Inspect: An OSS framework for large language model evaluations*. https://inspect.ai-safety-institute.org.uk/
