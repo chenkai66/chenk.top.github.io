@@ -20,35 +20,9 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>OpenClaw 从零实战</a>
 · 第 6 篇</div><h1>OpenClaw 快速上手（六）：技能系统与 MCP——让 Agent 学会做事</h1><p class=deck>Skill 不是 Prompt 模板——它是一套完整的 SOP，包括触发条件、工具权限和执行流程。再加上 MCP 把外部能力接入 Agent，从浏览器自动化到数据库查询，一个配置文件搞定。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-08>April 8, 2026</time> · 12 分钟 · 2750 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/openclaw/ class=tag>#openclaw</a><a href=/zh/tags/skills/ class=tag>#skills</a><a href=/zh/tags/mcp/ class=tag>#mcp</a><a href=/zh/tags/playwright/ class=tag>#playwright</a><a href=/zh/tags/cron/ class=tag>#cron</a></div><a class="pill pill-outline" href=/en/openclaw-quickstart/06-skills-and-mcp/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png alt=技能系统架构示意图 loading=lazy decoding=async class=content-image></figure></p><h2 id=从能回答到能做事>从"能回答"到"能做事"</h2><p>大语言模型很聪明，但聪明不等于靠谱。你问它怎么写 SQL，它答得头头是道；让它连上数据库执行查询、格式化结果、发到钉钉群——这就是另一回事了。差距在哪？<strong>缺少标准操作流程</strong>。</p><p>OpenClaw 的技能系统填补这个缺口。一个 Skill 定义了做什么、什么时候做、用什么工具做、按什么步骤做。再配合 MCP 把外部能力统一接入，Agent 就从问答机器人变成了能干活的助手。</p><h2 id=skill-的组成>Skill 的组成</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/fig_skills.png alt=技能组合流水线——从触发到工具执行的完整链路 loading=lazy decoding=async class=content-image></figure></p><p><strong>Skill 不是 Prompt 模板</strong>。模板只是带占位符的文本；Skill 是完整的执行规范——触发条件、工具权限、执行流程、输出格式，全部声明在一个 Markdown 文件里。</p><p>文件位置：<code>~/.openclaw/skills/&lt;name>/SKILL.md</code>，由 YAML Frontmatter（清单）和 Body（SOP 正文）两部分组成：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>---
-</span></span><span class=line><span class=cl>name: daily-standup-prep
-</span></span><span class=line><span class=cl>description: &#34;准备每日站会的汇报内容&#34;
-</span></span><span class=line><span class=cl>trigger: &#34;准备站会|standup prep|今天要汇报什么&#34;
-</span></span><span class=line><span class=cl>tools_required: [git, calendar, file_read]
-</span></span><span class=line><span class=cl>model_override: null
-</span></span><span class=line><span class=cl>priority: 5
-</span></span><span class=line><span class=cl>---
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=gh># 每日站会准备
-</span></span></span><span class=line><span class=cl><span class=gh></span><span class=gu>## 步骤
-</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>1.</span> 读取昨天的 git log，总结完成的工作
-</span></span><span class=line><span class=cl><span class=k>2.</span> 检查日历，列出今天的会议和截止日期
-</span></span><span class=line><span class=cl><span class=k>3.</span> 生成站会汇报模板
-</span></span></code></pre></td></tr></table></div></div><p><strong>懒加载机制</strong>：启动时只读 Frontmatter（几十字节）建立触发索引；匹配成功后才加载 Body 到上下文；执行完毕释放。你可以放心写几十个 Skill，不用担心 token 预算。</p><h2 id=动手写第一个-skill>动手写第一个 Skill</h2><p>完整的"每日站会准备"技能：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-04-08>April 8, 2026</time> · 8 分钟 · 1891 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/openclaw/ class=tag>#openclaw</a><a href=/zh/tags/skills/ class=tag>#skills</a><a href=/zh/tags/mcp/ class=tag>#mcp</a><a href=/zh/tags/playwright/ class=tag>#playwright</a><a href=/zh/tags/cron/ class=tag>#cron</a></div><a class="pill pill-outline" href=/en/openclaw-quickstart/06-skills-and-mcp/>Read in English →</a></div></header><div class=prose><p>走到第五篇，你的 OpenClaw 已经能跑起来，还能聊天了。从这里开始，它就不再是个 Demo 了。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_1.png alt="OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=我们要做什么>我们要做什么</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/fig_skills.png alt="Skill composition pipeline — from trigger to tool execution" loading=lazy decoding=async class=content-image></figure></p><p>做一个晨间简报 Agent：</p><ol><li>每个工作日早 7 点自动运行</li><li>抓取 Hacker News 头条（通过 Playwright MCP server）</li><li>读取当天的日历安排（通过封装 <code>gcalcli</code> 的 Skill）</li><li>把两者总结成一段话，推送到我的 Telegram</li></ol><p>这才是真流程。做完这套，你就有了骨架，随时可以换自己的数据源。</p><h2 id=第一步写一个-skill>第一步：写一个 Skill</h2><p>Skill 存放在 <code>~/.openclaw/skills/&lt;name>/SKILL.md</code>。我们先写一个负责"总结头条"的：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>mkdir -p ~/.openclaw/skills/summarize-headlines
+</span></span></code></pre></td></tr></table></div></div><p>创建 <code>~/.openclaw/skills/summarize-headlines/SKILL.md</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -71,90 +45,52 @@
 </span><span class=lnt>21
 </span><span class=lnt>22
 </span><span class=lnt>23
-</span><span class=lnt>24
-</span><span class=lnt>25
-</span><span class=lnt>26
-</span><span class=lnt>27
-</span><span class=lnt>28
-</span><span class=lnt>29
 </span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>---
-</span></span><span class=line><span class=cl>name: daily-standup-prep
-</span></span><span class=line><span class=cl>description: &#34;自动准备每日站会汇报材料：汇总昨日工作、今日计划、阻塞项&#34;
-</span></span><span class=line><span class=cl>trigger: &#34;准备站会|站会准备|standup|今天汇报什么|daily standup&#34;
-</span></span><span class=line><span class=cl>tools_required: [git, calendar, file_read, file_write]
-</span></span><span class=line><span class=cl>priority: 5
-</span></span><span class=line><span class=cl>tags: [productivity, daily]
+</span></span><span class=line><span class=cl>name: summarize-headlines
+</span></span><span class=line><span class=cl>description: Summarize a list of headlines into a one-paragraph briefing
+</span></span><span class=line><span class=cl>trigger: when user asks for a news briefing, headline summary, or daily news digest
+</span></span><span class=line><span class=cl>tools_required: [web_search]
 </span></span><span class=line><span class=cl>---
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=gh># 每日站会准备
+</span></span><span class=line><span class=cl><span class=gh># Summarize Headlines
 </span></span></span><span class=line><span class=cl><span class=gh></span>
-</span></span><span class=line><span class=cl>你是团队协作助手。按以下步骤执行。
+</span></span><span class=line><span class=cl>You have been given a list of headlines and source URLs.
+</span></span><span class=line><span class=cl>Produce a single paragraph summary.
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=gu>## 第一步：收集昨日工作
-</span></span></span><span class=line><span class=cl><span class=gu></span>执行 git 命令获取最近 24 小时的提交记录：
-</span></span><span class=line><span class=cl>git log --since=&#34;24 hours ago&#34; --oneline --author=&#34;$(git config user.name)&#34;
-</span></span><span class=line><span class=cl>将结果整理为要点列表。
+</span></span><span class=line><span class=cl><span class=gu>## Rules
+</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> Maximum 4 sentences.
+</span></span><span class=line><span class=cl><span class=k>-</span> Group related headlines into a single sentence.
+</span></span><span class=line><span class=cl><span class=k>-</span> If a headline is paywalled or the title is unclear, skip it.
+</span></span><span class=line><span class=cl><span class=k>-</span> Lead with the highest-signal item, not the chronological first.
+</span></span><span class=line><span class=cl><span class=k>-</span> Tone: dry, analytical. No &#34;exciting!&#34; or &#34;breaking!&#34;.
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=gu>## 第二步：检查今日日程
-</span></span></span><span class=line><span class=cl><span class=gu></span>调用 calendar 工具获取今天的事件。重点标注截止任务和协作会议。
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=gu>## 第三步：生成汇报
-</span></span></span><span class=line><span class=cl><span class=gu></span>按模板输出：
-</span></span><span class=line><span class=cl><span class=gu>### 昨日完成
-</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> [从 git log 整理]
-</span></span><span class=line><span class=cl><span class=gu>### 今日计划
-</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> [从日历整理]
-</span></span><span class=line><span class=cl><span class=gu>### 阻塞项
-</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> [有则列出，无则写&#34;无&#34;]
-</span></span></code></pre></td></tr></table></div></div><p>注册只需要把文件放对位置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span><span class=line><span class=cl><span class=gu>## Output template
+</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>&gt; </span><span class=ge>[4 sentences max]
+</span></span></span><span class=line><span class=cl><span class=ge></span><span class=k>&gt;
+</span></span></span><span class=line><span class=cl><span class=k></span><span class=ge>&gt; _Sources: [domain1], [domain2], [domain3]_
+</span></span></span></code></pre></td></tr></table></div></div><p>这里有两个设计点：</p><ul><li><strong>trigger</strong> 字段是模型决定要不要调用这个 Skill 的依据。站在用户角度写，别管实现细节。</li><li><strong>body</strong> 部分是 SOP。把它当成新员工入职文档来写——包含示例、边界情况、输出格式。越具体越好。</li></ul><p>重启网关，确认 Skill 加载成功：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
-</span><span class=lnt>3
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>mkdir -p ~/.openclaw/skills/daily-standup-prep
-</span></span><span class=line><span class=cl><span class=c1># 写入 SKILL.md 后重启 Gateway</span>
-</span></span><span class=line><span class=cl>openclaw gateway restart
-</span></span></code></pre></td></tr></table></div></div><p>在 TUI 中输入"帮我准备站会"即可触发。</p><h2 id=四种设计模式>四种设计模式</h2><p><strong>模板型</strong>：定义输出格式，Agent 填充内容。适合周报、邮件、commit message。</p><p><strong>工作流型</strong>：多步骤、有前后依赖。每步定义输入/操作/检查点：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw skills list <span class=p>|</span> grep summarize
+</span></span><span class=line><span class=cl><span class=c1># summarize-headlines  (loaded)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=第二步挂载-mcp-server>第二步：挂载 MCP server</h2><p>OpenClaw 不原生支持 MCP，我们用 <code>MCPorter</code> 做个 shim。先安装：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>npm i -g mcporter
+</span></span><span class=line><span class=cl>curl -LsSf https://astral.sh/uv/install.sh <span class=p>|</span> sh   <span class=c1># for uvx, used by some MCP servers</span>
+</span></span></code></pre></td></tr></table></div></div><p>然后通过 MCPorter 添加 Playwright：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>mcporter add playwright npx @playwright/mcp@latest
+</span></span></code></pre></td></tr></table></div></div><p>在 <code>openclaw.json</code> 里告诉 OpenClaw 关于 MCPorter 的事：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
 </span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=gu>## 步骤 1：拉取变更
-</span></span></span><span class=line><span class=cl><span class=gu></span>操作：git pull origin {branch}
-</span></span><span class=line><span class=cl>检查点：确认无冲突
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=gu>## 步骤 2：运行测试
-</span></span></span><span class=line><span class=cl><span class=gu></span>操作：npm test
-</span></span><span class=line><span class=cl>检查点：全部通过
-</span></span></code></pre></td></tr></table></div></div><p><strong>守卫型</strong>：在危险操作前做验证，拦截并确认。比如生产部署前检查分支、CI 状态、未合并的热修复。设 <code>priority: 10</code> 确保它优先于实际执行的 Skill 被触发。</p><p><strong>组合型</strong>：一个 Skill 通过子 Agent 调用其他 Skill——先 <code>code-review</code>，再 <code>changelog-gen</code>，最后 <code>deploy-guard</code>，全部通过才执行部署。</p><h2 id=触发条件最佳实践>触发条件最佳实践</h2><p>触发条件写得好不好，决定 Skill 能不能被正确激活。三个原则：</p><p><strong>具体且不重叠</strong>。<code>trigger: "帮我做一下"</code> 太模糊；<code>trigger: "准备站会|standup prep|daily standup"</code> 才是正确粒度。</p><p><strong>用 priority 处理歧义</strong>。多个 Skill 可能同时匹配时，数值高的优先。安全检查类设 10，实际执行类设 5。</p><p><strong>主动测试</strong>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw skill test-trigger <span class=s2>&#34;帮我准备明天的站会&#34;</span>
-</span></span><span class=line><span class=cl><span class=c1># Matched: daily-standup-prep (score: 0.92)</span>
-</span></span><span class=line><span class=cl><span class=c1># Partial: meeting-prep (score: 0.45)</span>
-</span></span></code></pre></td></tr></table></div></div><h2 id=内置技能>内置技能</h2><p>OpenClaw 预装四个通用技能：</p><table><thead><tr><th>技能名</th><th>功能</th><th>典型触发</th></tr></thead><tbody><tr><td><code>web-research</code></td><td>搜索 + 摘要总结</td><td>&ldquo;帮我调研一下&mldr;&rdquo;</td></tr><tr><td><code>code-review</code></td><td>分析 diff，指出问题</td><td>&ldquo;review 这个 PR&rdquo;</td></tr><tr><td><code>file-organizer</code></td><td>按规则批量重命名/移动</td><td>&ldquo;整理这个目录&rdquo;</td></tr><tr><td><code>email-draft</code></td><td>根据模板撰写邮件</td><td>&ldquo;帮我写一封&mldr;&rdquo;</td></tr></tbody></table><p>直接用，或者 fork 后改成你自己的版本。</p><h2 id=mcp统一的外部能力接入>MCP：统一的外部能力接入</h2><p>Skill 定义了"怎么做"，工具层回答"用什么做"。OpenClaw 的工具分两类：原生工具（git、file_read 等）和 MCP 工具（外部服务）。</p><p><strong>MCP（Model Context Protocol）</strong> 是一个开放标准，定义 LLM Agent 与外部工具的通信协议——&ldquo;Agent 世界的 USB 接口&rdquo;。工具声明用统一 JSON Schema，调用用标准请求/响应格式，错误处理有规范化的错误码。一个协议，成百上千的集成。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_2.png alt="MCP 协议架构" loading=lazy decoding=async class=content-image></figure></p><p>在 <code>~/.openclaw/config.yaml</code> 添加 MCP Server：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>mcp_servers</span><span class=p>:</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>playwright</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>command</span><span class=p>:</span><span class=w> </span><span class=l>npx</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>args</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&#34;@anthropic/mcp-playwright&#34;</span><span class=p>]</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>env</span><span class=p>:</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>DISPLAY</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;:0&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>postgres</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>command</span><span class=p>:</span><span class=w> </span><span class=l>npx</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>args</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&#34;@anthropic/mcp-postgres&#34;</span><span class=p>]</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>env</span><span class=p>:</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>DATABASE_URL</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;postgresql://user:pass@localhost:5432/mydb&#34;</span><span class=w>
-</span></span></span></code></pre></td></tr></table></div></div><p>重启 Gateway 后自动可用。Skill 的 <code>tools_required</code> 声明对应工具名即可调用。</p><h2 id=mcp-实战>MCP 实战</h2><p><strong>浏览器自动化</strong>：配置 Playwright MCP 后，Skill 可以调用 <code>browser_navigate</code>、<code>browser_click</code>、<code>browser_snapshot</code> 等工具。实际场景：自动登录内网系统抓取报表、监控页面状态变化。</p><p><strong>数据库查询</strong>：配置 PostgreSQL MCP，注意用只读账号——Agent 不应该有写库权限。让它查数据、生成报表，但不碰写操作。</p><p><strong>自定义 MCP Server</strong>——三步搞定：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;mcp&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;porter_endpoint&#34;</span><span class=p>:</span> <span class=s2>&#34;http://127.0.0.1:7890&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;servers&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;playwright&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>重启网关。Playwright MCP 会暴露浏览器自动化工具（<code>navigate</code>, <code>screenshot</code>, <code>click</code>, <code>extract_text</code>），Agent 现在可以调用它们了。</p><p>在 TUI 里测试一下：</p><pre tabindex=0><code>Use Playwright to fetch the top 5 stories from
+https://news.ycombinator.com and just give me the titles and URLs.
+</code></pre><p>如果 Agent 返回了一个列表，链路就通了。</p><h2 id=第三步封装-cli-工具的-skill>第三步：封装 CLI 工具的 Skill</h2><p>我用 <code>gcalcli</code> 管理日历。写个 Skill：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>mkdir -p ~/.openclaw/skills/today-calendar
+</span></span></code></pre></td></tr></table></div></div><p><code>~/.openclaw/skills/today-calendar/SKILL.md</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -171,64 +107,82 @@
 </span><span class=lnt>15
 </span><span class=lnt>16
 </span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-typescript data-lang=typescript><span class=line><span class=cl><span class=c1>// 第一步：定义工具 Schema
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>const</span> <span class=nx>tools</span> <span class=o>=</span> <span class=p>[{</span>
-</span></span><span class=line><span class=cl>  <span class=nx>name</span><span class=o>:</span> <span class=s2>&#34;query_dingtalk_messages&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nx>description</span><span class=o>:</span> <span class=s2>&#34;查询钉钉群最近的消息&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nx>inputSchema</span><span class=o>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=kr>type</span><span class=o>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nx>properties</span><span class=o>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=nx>group_id</span><span class=o>:</span> <span class=p>{</span> <span class=kr>type</span><span class=o>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span> <span class=nx>description</span><span class=o>:</span> <span class=s2>&#34;钉钉群 ID&#34;</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>      <span class=nx>limit</span><span class=o>:</span> <span class=p>{</span> <span class=kr>type</span><span class=o>:</span> <span class=s2>&#34;number&#34;</span><span class=p>,</span> <span class=k>default</span><span class=o>:</span> <span class=mi>20</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl>    <span class=p>},</span>
-</span></span><span class=line><span class=cl>    <span class=nx>required</span><span class=o>:</span> <span class=p>[</span><span class=s2>&#34;group_id&#34;</span><span class=p>]</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}];</span>
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>name: today-calendar
+</span></span><span class=line><span class=cl>description: Fetch today&#39;s Google Calendar events for the user
+</span></span><span class=line><span class=cl>trigger: when user asks for today&#39;s calendar, today&#39;s meetings, today&#39;s schedule
+</span></span><span class=line><span class=cl>tools_required: [exec]
+</span></span><span class=line><span class=cl>---
 </span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1>// 第二步：实现工具逻辑
-</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kr>async</span> <span class=kd>function</span> <span class=nx>handleToolCall</span><span class=p>(</span><span class=nx>name</span>: <span class=kt>string</span><span class=p>,</span> <span class=nx>args</span>: <span class=kt>any</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=k>if</span> <span class=p>(</span><span class=nx>name</span> <span class=o>===</span> <span class=s2>&#34;query_dingtalk_messages&#34;</span><span class=p>)</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=kr>const</span> <span class=nx>messages</span> <span class=o>=</span> <span class=k>await</span> <span class=nx>dingtalkAPI</span><span class=p>.</span><span class=nx>getMessages</span><span class=p>(</span><span class=nx>args</span><span class=p>.</span><span class=nx>group_id</span><span class=p>,</span> <span class=nx>args</span><span class=p>.</span><span class=nx>limit</span><span class=p>);</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span> <span class=nx>content</span><span class=o>:</span> <span class=p>[{</span> <span class=kr>type</span><span class=o>:</span> <span class=s2>&#34;text&#34;</span><span class=p>,</span> <span class=nx>text</span>: <span class=kt>JSON.stringify</span><span class=p>(</span><span class=nx>messages</span><span class=p>)</span> <span class=p>}]</span> <span class=p>};</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=gh># Today&#39;s Calendar
+</span></span></span><span class=line><span class=cl><span class=gh></span>
+</span></span><span class=line><span class=cl>Run the command <span class=sb>`gcalcli agenda --tsv &#34;$(date +%F) 00:00&#34; &#34;$(date +%F) 23:59&#34;`</span>.
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Parse the TSV output (columns: start, end, title, location).
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Format as a markdown bullet list:
+</span></span><span class=line><span class=cl><span class=k>-</span> HH:MM–HH:MM <span class=gs>**Title**</span> (Location, if any)
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>If there are no events, return &#34;Nothing on the calendar today&#34;.
+</span></span></code></pre></td></tr></table></div></div><p>注意，这个 Skill 本质上是一份食谱（recipe），不是函数。模型是运行时，<code>exec</code> 工具是动词，Skill 则是把两者绑在一起的知识名词。</p><h2 id=第四步组合-skill>第四步：组合 Skill</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/06-skills-and-mcp/illustration_2.png alt="OpenClaw QuickStart (6): Skills, MCP, and Shipping Something Real — visual" loading=lazy decoding=async class=content-image></figure></p><p>现在写一个把上面两者用起来的 Skill：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>mkdir -p ~/.openclaw/skills/morning-briefing
+</span></span></code></pre></td></tr></table></div></div><p><code>~/.openclaw/skills/morning-briefing/SKILL.md</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>name: morning-briefing
+</span></span><span class=line><span class=cl>description: Generate the daily morning briefing
+</span></span><span class=line><span class=cl>trigger: when user asks for the morning briefing, daily briefing, or 7am report
+</span></span><span class=line><span class=cl>tools_required: [exec]
+</span></span><span class=line><span class=cl>skills_required: [today-calendar, summarize-headlines]
+</span></span><span class=line><span class=cl>---
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=gh># Morning Briefing
+</span></span></span><span class=line><span class=cl><span class=gh></span>
+</span></span><span class=line><span class=cl><span class=k>1.</span> Use the <span class=sb>`today-calendar`</span> skill to get today&#39;s schedule.
+</span></span><span class=line><span class=cl><span class=k>2.</span> Use the Playwright MCP tools to fetch the top 5 stories from
+</span></span><span class=line><span class=cl>   https://news.ycombinator.com.
+</span></span><span class=line><span class=cl><span class=k>3.</span> Use the <span class=sb>`summarize-headlines`</span> skill on those stories.
+</span></span><span class=line><span class=cl><span class=k>4.</span> Compose the final message in this format:
+</span></span></code></pre></td></tr></table></div></div><h2 id=morning-briefing--yyyy-mm-dd>Morning Briefing — YYYY-MM-DD</h2><h3 id=today>Today</h3><p>[output of today-calendar]</p><h3 id=news>News</h3><p>[output of summarize-headlines]</p><pre tabindex=0><code>
+Send the result to the default channel.
+</code></pre><p><code>skills_required</code> 字段告诉 OpenClaw，当这个 Skill 触发时，要把那些 Skill 的内容预加载进来。不用重新 fetch，也没有额外延迟。</p><h2 id=第五步cron>第五步：Cron</h2><p>在 <code>openclaw.json</code> 里配置：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;cron&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;jobs&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;morning-briefing&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;schedule&#34;</span><span class=p>:</span> <span class=s2>&#34;0 7 * * 1-5&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;skill&#34;</span><span class=p>:</span> <span class=s2>&#34;morning-briefing&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;channel&#34;</span><span class=p>:</span> <span class=s2>&#34;telegram&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></span></code></pre></td></tr></table></div></div><p><code>0 7 * * 1-5</code> 代表周一到周五早 7 点。重启网关。用以下命令验证：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=c># 第三步：注册到 OpenClaw</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>mcp_servers</span><span class=p>:</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>  </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>dingtalk</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>command</span><span class=p>:</span><span class=w> </span><span class=l>node</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>args</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&#34;/path/to/dingtalk-mcp/index.js&#34;</span><span class=p>]</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>env</span><span class=p>:</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>DINGTALK_APP_KEY</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;your-key&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>DINGTALK_APP_SECRET</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;your-secret&#34;</span><span class=w>
-</span></span></span></code></pre></td></tr></table></div></div><p>同样的模式适用于飞书文档、企业微信、任何有 HTTP 接口的内部服务。</p><h2 id=mcp-vs-原生工具>MCP vs 原生工具</h2><table><thead><tr><th>维度</th><th>原生工具</th><th>MCP 工具</th></tr></thead><tbody><tr><td>集成深度</td><td>深，框架耦合</td><td>浅，协议解耦</td></tr><tr><td>性能</td><td>快，进程内调用</td><td>略慢，跨进程通信</td></tr><tr><td>类型安全</td><td>编译时检查</td><td>运行时 Schema 验证</td></tr><tr><td>生态广度</td><td>有限</td><td>社区维护大量 Server</td></tr><tr><td>维护成本</td><td>自己维护</td><td>社区/第三方维护</td></tr></tbody></table><p>我的建议：核心操作（文件、git、shell）用原生工具；外部服务（数据库、浏览器、消息平台）用 MCP。如果某个 MCP Server 性能不够，再考虑封装为原生工具。</p><h2 id=调试技能>调试技能</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 列出所有已注册技能</span>
-</span></span><span class=line><span class=cl>openclaw skill list
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 查看某个技能详情</span>
-</span></span><span class=line><span class=cl>openclaw skill describe daily-standup-prep
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 测试触发匹配</span>
-</span></span><span class=line><span class=cl>openclaw skill test-trigger <span class=s2>&#34;你的输入&#34;</span>
-</span></span></code></pre></td></tr></table></div></div><p>常见问题：</p><ul><li><strong>没触发</strong>：<code>test-trigger</code> 检查匹配分数，低于 0.7 说明 trigger 需要调整</li><li><strong>触发错了</strong>：多个 Skill trigger 重叠，调整 priority 或收窄关键词</li><li><strong>触发了但报错</strong>：<code>openclaw tool list</code> 检查工具是否可用，<code>openclaw mcp status</code> 检查 MCP Server 进程状态</li></ul><h2 id=小结>小结</h2><ul><li><strong>Skill</strong> 把"我想让 AI 帮我做 X"变成精确的、可复用的、可测试的执行规范</li><li><strong>MCP</strong> 把外部能力通过标准协议接入，不管是浏览器、数据库还是钉钉消息</li></ul><p>两者结合，Agent 获得的不只是更多知识，而是更大的<strong>行动空间</strong>——从"告诉你怎么做"到"直接帮你做"。</p><p>下一篇讲 Context Management：对话越来越长时，怎么让 Agent 记住该记的、忘掉该忘的。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/openclaw-quickstart/05-channels/><span class=title>OpenClaw 快速上手（五）：接入聊天渠道——Telegram、钉钉和微信的第一步</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/openclaw-quickstart/07-memory-system/><span class=title>OpenClaw 快速上手（七）：记忆系统——别指望魔法</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=series-nav-num>01</span>
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw cron list
+</span></span><span class=line><span class=cl><span class=c1># morning-briefing | 0 7 * * 1-5 | next: tomorrow 07:00 | channel: telegram</span>
+</span></span></code></pre></td></tr></table></div></div><p>第一次运行时，盯着网关日志看。你会看到 Agent 循环触发，Skill 加载，Playwright 工具调用滚屏，最后一条消息落进你的 Telegram。</p><h2 id=你现在拥有了什么>你现在拥有了什么</h2><ul><li>一个长驻 Agent 连着真实的聊天平台</li><li>把领域知识和 Agent 循环分离的 Skills</li><li>一个提供 OpenClaw 原生没有的能力的 MCP server</li><li>一个把"我得去问"变成"它自己来"的 Cron 任务</li></ul><p>这就是完整闭环。官方文档里的其他案例——第二大脑、内容 pipeline、DevOps 自动化——都是这五步的变体。换些 Skill，换些 MCPs，改几行 Cron 配置而已。</p><h2 id=接下来我会做什么>接下来我会做什么</h2><p>按投入精力从小到大，三件事：</p><ol><li><strong>加个反馈循环。</strong> 回复晨间简报进行纠正（比如"跳过 crypto 头条"）。写个 Skill 把这些纠正记入 <code>~/.openclaw/memory/feedback/morning-briefing.md</code>。第二天早上的简报会读取这些内容。</li><li><strong>让新闻源可配置。</strong> 写个 Skill 从 <code>~/openclaw-workspace/sources.yaml</code> 读取并遍历。这几乎等于免费得了个"Agent 版 RSS 阅读器"。</li><li><strong>接第二个渠道。</strong> 同一个 Agent，工作时间也推送到钉钉。Skill 不用改。</li></ol><p>QuickStart 就到这儿。官方文档的其余部分会深挖每一层，你现在有了地图，知道怎么 navigate 了。</p><p>如果只记住一点，那就是：真正值钱的是那些无聊的层（Skills, memory, channels）。Agent 循环大家都一样。让你的安装变得有用的，是你建的 Skill 库和你投放的渠道。祝好运。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/openclaw-quickstart/05-channels/><span class=title>OpenClaw 快速上手（五）：接入聊天渠道——Telegram、钉钉和微信的第一步</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/openclaw-quickstart/07-memory-system/><span class=title>OpenClaw 快速上手（七）：记忆系统——别指望魔法</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=series-nav-num>01</span>
 <span class=series-nav-title>OpenClaw 快速上手（一）：这玩意到底是什么</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/02-install-and-first-chat/><span class=series-nav-num>02</span>
 <span class=series-nav-title>OpenClaw 快速上手（二）：安装到第一次对话，十分钟搞定</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=series-nav-num>03</span>
 <span class=series-nav-title>OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/04-configuration/><span class=series-nav-num>04</span>
@@ -239,7 +193,7 @@
 <span class=series-nav-title>OpenClaw 快速上手（七）：记忆系统——别指望魔法</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=series-nav-num>08</span>
 <span class=series-nav-title>OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/09-china-channels/><span class=series-nav-num>09</span>
 <span class=series-nav-title>OpenClaw 快速上手（九）：国内 IM 渠道选型——说点掏心窝的</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/10-production-deploy/><span class=series-nav-num>10</span>
-<span class=series-nav-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#从能回答到能做事>从"能回答"到"能做事"</a></li><li><a href=#skill-的组成>Skill 的组成</a></li><li><a href=#动手写第一个-skill>动手写第一个 Skill</a></li><li><a href=#四种设计模式>四种设计模式</a></li><li><a href=#触发条件最佳实践>触发条件最佳实践</a></li><li><a href=#内置技能>内置技能</a></li><li><a href=#mcp统一的外部能力接入>MCP：统一的外部能力接入</a></li><li><a href=#mcp-实战>MCP 实战</a></li><li><a href=#mcp-vs-原生工具>MCP vs 原生工具</a></li><li><a href=#调试技能>调试技能</a></li><li><a href=#小结>小结</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/openclaw-quickstart/ class=series-name>OpenClaw 从零实战</a>
+<span class=series-nav-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#我们要做什么>我们要做什么</a></li><li><a href=#第一步写一个-skill>第一步：写一个 Skill</a></li><li><a href=#第二步挂载-mcp-server>第二步：挂载 MCP server</a></li><li><a href=#第三步封装-cli-工具的-skill>第三步：封装 CLI 工具的 Skill</a></li><li><a href=#第四步组合-skill>第四步：组合 Skill</a></li><li><a href=#morning-briefing--yyyy-mm-dd>Morning Briefing — YYYY-MM-DD</a><ul><li><a href=#today>Today</a></li><li><a href=#news>News</a></li></ul></li><li><a href=#第五步cron>第五步：Cron</a></li><li><a href=#你现在拥有了什么>你现在拥有了什么</a></li><li><a href=#接下来我会做什么>接下来我会做什么</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/openclaw-quickstart/ class=series-name>OpenClaw 从零实战</a>
 <span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=chapter-num>01</span>
 <span class=chapter-title>OpenClaw 快速上手（一）：这玩意到底是什么</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/02-install-and-first-chat/><span class=chapter-num>02</span>
 <span class=chapter-title>OpenClaw 快速上手（二）：安装到第一次对话，十分钟搞定</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=chapter-num>03</span>
@@ -250,5 +204,5 @@
 <span class=chapter-title>OpenClaw 快速上手（七）：记忆系统——别指望魔法</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=chapter-num>08</span>
 <span class=chapter-title>OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/09-china-channels/><span class=chapter-num>09</span>
 <span class=chapter-title>OpenClaw 快速上手（九）：国内 IM 渠道选型——说点掏心窝的</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/10-production-deploy/><span class=chapter-num>10</span>
-<span class=chapter-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>12 min</strong></div><div class=row><span>字数</span><strong>2750</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战手册</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>阿里云 PAI</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>8 min</strong></div><div class=row><span>字数</span><strong>1891</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战手册</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>阿里云 PAI</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

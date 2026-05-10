@@ -20,199 +20,7 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>OpenClaw 从零实战</a>
 · 第 4 篇</div><h1>OpenClaw 快速上手（四）：配置文件、模型选择与百炼 Coding Plan 的窍门</h1><p class=deck>openclaw.json 完全解析：什么时候该用哪个模型服务商，以及为什么阿里云百炼 Coding Plan 是在国内跑重度 Agent 工作负载最划算的方式——每月 200 元，8 个模型任用包括 Claude。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-06>April 6, 2026</time> · 12 分钟 · 2588 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/openclaw/ class=tag>#openclaw</a><a href=/zh/tags/configuration/ class=tag>#configuration</a><a href=/zh/tags/bailian/ class=tag>#bailian</a><a href=/zh/tags/coding-plan/ class=tag>#coding-plan</a></div><a class="pill pill-outline" href=/en/openclaw-quickstart/04-configuration/>Read in English →</a></div></header><div class=prose><p>上一篇我们把 OpenClaw 跑起来了。但真正让 Agent 好用的关键不在代码，而在配置。今天把 <code>openclaw.json</code> 从头到尾拆一遍——模型怎么选、钱怎么省、安全边界怎么画。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_1.png alt="OpenClaw 配置文件结构概览" loading=lazy decoding=async class=content-image></figure></p><h2 id=最小可用配置>最小可用配置</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/fig_config.png alt="配置层级与 Provider 解析顺序" loading=lazy decoding=async class=content-image></figure></p><p>只是试试效果的话，这 25 行就够了：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;agent&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;my-agent&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;default_model&#34;</span><span class=p>:</span> <span class=s2>&#34;qwen-plus&#34;</span>
-</span></span><span class=line><span class=cl>  <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;providers&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;dashscope&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;${DASHSCOPE_API_KEY}&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>      <span class=nt>&#34;base_url&#34;</span><span class=p>:</span> <span class=s2>&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;tools&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;exec&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;web_search&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span> <span class=nt>&#34;engine&#34;</span><span class=p>:</span> <span class=s2>&#34;quark&#34;</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;memory&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;max_tokens_per_turn&#34;</span><span class=p>:</span> <span class=mi>2000</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;security&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;allowed_paths&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;./&#34;</span><span class=p>]</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>走阿里云 DashScope 接口，国内零延迟、无需代理，新账号有免费额度。</p><h2 id=完整配置参考>完整配置参考</h2><p><code>openclaw.json</code> 有 9 个顶层字段（<code>agent</code> 和 <code>providers</code> 必填）：</p><table><thead><tr><th>字段</th><th>用途</th><th>必填</th></tr></thead><tbody><tr><td><code>agent</code></td><td>Agent 名称与默认模型</td><td>是</td></tr><tr><td><code>providers</code></td><td>模型服务商配置</td><td>是</td></tr><tr><td><code>tools</code></td><td>工具权限与参数</td><td>推荐</td></tr><tr><td><code>memory</code></td><td>记忆管理策略</td><td>推荐</td></tr><tr><td><code>channels</code></td><td>接入渠道（钉钉等）</td><td>否</td></tr><tr><td><code>cron</code></td><td>定时任务</td><td>否</td></tr><tr><td><code>mcp</code></td><td>MCP 服务器连接</td><td>否</td></tr><tr><td><code>hooks</code></td><td>生命周期钩子</td><td>否</td></tr><tr><td><code>security</code></td><td>安全约束</td><td>强烈推荐</td></tr></tbody></table><h2 id=agent-部分>agent 部分</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;agent&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;code-helper&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;default_model&#34;</span><span class=p>:</span> <span class=s2>&#34;qwen-plus&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;system_prompt_file&#34;</span><span class=p>:</span> <span class=s2>&#34;./prompts/system.md&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;max_turns&#34;</span><span class=p>:</span> <span class=mi>50</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>关键原则：<strong>不要把最贵的模型放在 default_model 上</strong>。Agent 绝大多数 turn 是常规对话和工具调用确认，qwen-plus（0.004 元/千 token）足够。强推理场景通过 model_override 在特定 skill 指定。我见过有人把 Claude 放 default_model 跑了一晚上定时任务，第二天账单 80 美元。</p><h2 id=providers-部分>providers 部分</h2><p>OpenClaw 支持四种 provider，按国内优先级：</p><h3 id=dashscope国内首选>DashScope（国内首选）</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;dashscope&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;dashscope&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;${DASHSCOPE_API_KEY}&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;base_url&#34;</span><span class=p>:</span> <span class=s2>&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;default_model&#34;</span><span class=p>:</span> <span class=s2>&#34;qwen-plus&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;timeout&#34;</span><span class=p>:</span> <span class=mi>120</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>qwen-plus 0.004 元/千 token，qwen-turbo 0.002 元/千，qwen3-coder-plus 0.008 元/千（代码专用）。新开通有 100 万 token 免费额度。国内直连延迟低（北京区域 50ms 首包），推荐做 default。</p><h3 id=anthropic需代理或香港服务器>Anthropic（需代理或香港服务器）</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;anthropic&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;anthropic&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;${ANTHROPIC_API_KEY}&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;base_url&#34;</span><span class=p>:</span> <span class=s2>&#34;https://api.anthropic.com&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;default_model&#34;</span><span class=p>:</span> <span class=s2>&#34;claude-sonnet-4-5&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;proxy&#34;</span><span class=p>:</span> <span class=s2>&#34;${HTTPS_PROXY}&#34;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>Claude Sonnet 4.5 复杂编程仍是第一梯队。$3/百万 token（约 0.022 元/千），加上汇率和代理实际约 qwen-plus 的 7-8 倍。适合跨文件复杂 bug、架构重构；简单 CRUD、文档润色不值得用。</p><h3 id=openai>OpenAI</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;openai&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;openai&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;${OPENAI_API_KEY}&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;base_url&#34;</span><span class=p>:</span> <span class=s2>&#34;https://api.openai.com/v1&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;default_model&#34;</span><span class=p>:</span> <span class=s2>&#34;gpt-5.4&#34;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>GPT-5.4 多语言翻译、结构化数据抽取有优势，纯代码不如 Claude。价格相当，网络问题也一样。有现成 key 和代理就配上，从零开始不推荐首选。</p><h3 id=compatible本地模型>compatible（本地模型）</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;local&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;compatible&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;base_url&#34;</span><span class=p>:</span> <span class=s2>&#34;http://localhost:11434/v1&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;not-needed&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;default_model&#34;</span><span class=p>:</span> <span class=s2>&#34;qwen3:32b&#34;</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>兼容所有 OpenAI API 格式的服务（Ollama、vLLM、内部模型服务）。零成本、数据不出内网，但能力天花板低，需要 GPU。</p><h2 id=模型路由让对的模型做对的事>模型路由：让对的模型做对的事</h2><p>skill 级别 <code>model_override</code> 让不同任务选最合适的模型：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;skills&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;planning&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;model_override&#34;</span><span class=p>:</span> <span class=s2>&#34;dashscope/qwen-plus&#34;</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;code_generation&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;model_override&#34;</span><span class=p>:</span> <span class=s2>&#34;dashscope/qwen3-coder-plus&#34;</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;reasoning&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;model_override&#34;</span><span class=p>:</span> <span class=s2>&#34;anthropic/claude-sonnet-4-5&#34;</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;bulk_processing&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;model_override&#34;</span><span class=p>:</span> <span class=s2>&#34;dashscope/qwen-turbo&#34;</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>任务类型</th><th>模型</th><th>单价</th><th>理由</th></tr></thead><tbody><tr><td>规划/分解</td><td>qwen-plus</td><td>0.004 元/千</td><td>够用就行</td></tr><tr><td>代码生成</td><td>qwen3-coder-plus</td><td>0.008 元/千</td><td>代码专用，性价比最高</td></tr><tr><td>复杂推理</td><td>claude-sonnet-4-5</td><td>0.022 元/千</td><td>只在真正需要时调用</td></tr><tr><td>批量处理</td><td>qwen-turbo</td><td>0.002 元/千</td><td>量大、质量要求不高</td></tr></tbody></table><p>这个路由策略让我月均 token 费用从 300+ 元降到 60-80 元。</p><h2 id=百炼-coding-plan重度用户的最优解>百炼 Coding Plan：重度用户的最优解</h2><p>每天都用 OpenClaw 的话按量付费不划算。百炼 Coding Plan：<strong>200 元/月，8 个模型无限调用</strong>——qwen-plus、turbo、qwen3-coder-plus、qwen-max、qwen-long、qwen-vl-plus，以及通过百炼网关转发的 Claude Sonnet 4.5。没看错，200 元/月包含 Claude。阿里云和 Anthropic 合作，不需要自己的 Anthropic key，不需要代理，国内直连。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
-</span><span class=lnt> 2
-</span><span class=lnt> 3
-</span><span class=lnt> 4
-</span><span class=lnt> 5
-</span><span class=lnt> 6
-</span><span class=lnt> 7
-</span><span class=lnt> 8
-</span><span class=lnt> 9
-</span><span class=lnt>10
-</span><span class=lnt>11
-</span><span class=lnt>12
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;dashscope&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;dashscope&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;${DASHSCOPE_API_KEY}&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;base_url&#34;</span><span class=p>:</span> <span class=s2>&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;plan&#34;</span><span class=p>:</span> <span class=s2>&#34;coding&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;models&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;claude-sonnet-4-5&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>      <span class=nt>&#34;model_id&#34;</span><span class=p>:</span> <span class=s2>&#34;claude-sonnet-4-5-20260301&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>      <span class=nt>&#34;via_gateway&#34;</span><span class=p>:</span> <span class=kc>true</span>
-</span></span><span class=line><span class=cl>    <span class=p>}</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>开通：百炼控制台 -> 资源包管理 -> 购买 Coding Plan，即时生效。<strong>该开</strong>：月费超 150 元、需频繁用 Claude、团队共用实例。<strong>不该开</strong>：月费低于 50 元、只跑 turbo 批量任务、需要 GPT-5.4（不包含 OpenAI）。</p><h2 id=tools-部分>tools 部分</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;tools&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;exec&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span> <span class=nt>&#34;trusted_patterns&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;npm *&#34;</span><span class=p>,</span> <span class=s2>&#34;git *&#34;</span><span class=p>,</span> <span class=s2>&#34;python *&#34;</span><span class=p>,</span> <span class=s2>&#34;node *&#34;</span><span class=p>],</span> <span class=nt>&#34;timeout&#34;</span><span class=p>:</span> <span class=mi>30</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;web_search&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span> <span class=nt>&#34;engine&#34;</span><span class=p>:</span> <span class=s2>&#34;quark&#34;</span><span class=p>,</span> <span class=nt>&#34;max_results&#34;</span><span class=p>:</span> <span class=mi>5</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;read&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span> <span class=nt>&#34;max_bytes&#34;</span><span class=p>:</span> <span class=mi>102400</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;write&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span> <span class=nt>&#34;allowed_paths&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;./src&#34;</span><span class=p>,</span> <span class=s2>&#34;./docs&#34;</span><span class=p>,</span> <span class=s2>&#34;./tests&#34;</span><span class=p>]</span> <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><ul><li><code>exec.trusted_patterns</code>：匹配的命令自动执行。加 npm/git/python/node，绝不加 rm/curl/sudo。</li><li><code>web_search.engine</code>：国内推荐 <code>quark</code>，<code>bing</code>/<code>google</code> 需代理。</li><li><code>read.max_bytes</code>：单次读取上限，100KB 够用。</li><li><code>write.allowed_paths</code>：Agent 只能写入这些路径。</li></ul><h2 id=memory-部分>memory 部分</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;memory&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;max_tokens_per_turn&#34;</span><span class=p>:</span> <span class=mi>2000</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;auto_write&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;storage&#34;</span><span class=p>:</span> <span class=s2>&#34;local&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;summarize_after&#34;</span><span class=p>:</span> <span class=mi>20</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p><code>max_tokens_per_turn</code> 设太大浪费 token，太小 Agent &ldquo;失忆&rdquo;，2000 是平衡点。<code>auto_write</code> 建议开，每轮自动写入关键信息。<code>summarize_after</code> 超 20 轮自动压缩早期对话防溢出。</p><h2 id=security-部分>security 部分</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;security&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;allowed_paths&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;/home/user/projects/my-app&#34;</span><span class=p>,</span> <span class=s2>&#34;/tmp/openclaw&#34;</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;blocked_commands&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;rm -rf&#34;</span><span class=p>,</span> <span class=s2>&#34;sudo&#34;</span><span class=p>,</span> <span class=s2>&#34;curl|bash&#34;</span><span class=p>,</span> <span class=s2>&#34;wget|sh&#34;</span><span class=p>,</span> <span class=s2>&#34;chmod 777&#34;</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;require_confirmation&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;git push&#34;</span><span class=p>,</span> <span class=s2>&#34;npm publish&#34;</span><span class=p>,</span> <span class=s2>&#34;docker run&#34;</span><span class=p>],</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;network_allowlist&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;*.aliyuncs.com&#34;</span><span class=p>,</span> <span class=s2>&#34;registry.npmmirror.com&#34;</span><span class=p>,</span> <span class=s2>&#34;github.com&#34;</span><span class=p>]</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><ul><li><code>allowed_paths</code>：<strong>永远不要设成 <code>/</code></strong>。</li><li><code>blocked_commands</code>：<code>rm -rf</code>、<code>sudo</code>、<code>curl|bash</code> 必须 block。</li><li><code>require_confirmation</code>：有副作用的操作放这里，执行前等人工确认。</li><li><code>network_allowlist</code>：国内 <code>*.aliyuncs.com</code> + <code>registry.npmmirror.com</code> 够日常开发。</li></ul><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_2.png alt=安全配置与模型路由的关系 loading=lazy decoding=async class=content-image></figure></p><h2 id=channels-部分预告>channels 部分（预告）</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;channels&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;dingtalk&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;app_key&#34;</span><span class=p>:</span> <span class=s2>&#34;${DINGTALK_APP_KEY}&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;app_secret&#34;</span><span class=p>:</span> <span class=s2>&#34;${DINGTALK_APP_SECRET}&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;mode&#34;</span><span class=p>:</span> <span class=s2>&#34;stream&#34;</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>让 Agent 通过钉钉、飞书、企业微信对外服务。下一篇专门讲。</p><h2 id=cron-部分>cron 部分</h2><p>定时任务让 Agent 无人值守自动执行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+<span class=meta-line><time datetime=2026-04-06>April 6, 2026</time> · 16 分钟 · 3694 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/openclaw/ class=tag>#openclaw</a><a href=/zh/tags/configuration/ class=tag>#configuration</a><a href=/zh/tags/bailian/ class=tag>#bailian</a><a href=/zh/tags/coding-plan/ class=tag>#coding-plan</a></div><a class="pill pill-outline" href=/en/openclaw-quickstart/04-configuration/>Read in English →</a></div></header><div class=prose><p>要是整个 OpenClaw 你只打算动一个文件，那必须是它。</p><p><code>~/.openclaw/openclaw.json</code> 管着模型、工具、渠道、记忆、定时任务和技能加载。初始化向导会给你生成个默认值，咱们这篇直接过一遍你真正需要上手改的部分。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_1.png alt="OpenClaw QuickStart (4): Configuration, Model Providers, and the Coding Plan Trick — visual" loading=lazy decoding=async class=content-image></figure></p><h2 id=最小可用配置>最小可用配置</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/fig_config.png alt="Configuration hierarchy and provider resolution order" loading=lazy decoding=async class=content-image></figure></p><p>去掉注释和默认集，一个能跑起来的配置大概就 25 行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -231,33 +39,232 @@
 </span><span class=lnt>17
 </span><span class=lnt>18
 </span><span class=lnt>19
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;cron&#34;</span><span class=err>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;weekly_report&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;schedule&#34;</span><span class=p>:</span> <span class=s2>&#34;0 9 * * 1&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;skill&#34;</span><span class=p>:</span> <span class=s2>&#34;generate_report&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;params&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;weekly&#34;</span><span class=p>,</span> <span class=nt>&#34;output&#34;</span><span class=p>:</span> <span class=s2>&#34;./reports/&#34;</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;model_override&#34;</span><span class=p>:</span> <span class=s2>&#34;dashscope/qwen-plus&#34;</span>
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;agent&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;Lobster&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;default_model&#34;</span><span class=p>:</span> <span class=s2>&#34;qwen-plus&#34;</span>
 </span></span><span class=line><span class=cl>  <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;competitor_monitor&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;schedule&#34;</span><span class=p>:</span> <span class=s2>&#34;0 8 * * *&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;skill&#34;</span><span class=p>:</span> <span class=s2>&#34;monitor_competitors&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;params&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;targets&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;competitor-a.com&#34;</span><span class=p>],</span> <span class=nt>&#34;notify&#34;</span><span class=p>:</span> <span class=s2>&#34;dingtalk&#34;</span> <span class=p>},</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;model_override&#34;</span><span class=p>:</span> <span class=s2>&#34;dashscope/qwen-turbo&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;providers&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;dashscope&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;sk-...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;models&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;qwen-turbo&#34;</span><span class=p>,</span> <span class=s2>&#34;qwen-plus&#34;</span><span class=p>,</span> <span class=s2>&#34;qwen3-max&#34;</span><span class=p>,</span> <span class=s2>&#34;qwen3-coder-plus&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
 </span></span><span class=line><span class=cl>  <span class=p>},</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;dependency_audit&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;schedule&#34;</span><span class=p>:</span> <span class=s2>&#34;0 3 * * 0&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;skill&#34;</span><span class=p>:</span> <span class=s2>&#34;audit_dependencies&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;model_override&#34;</span><span class=p>:</span> <span class=s2>&#34;dashscope/qwen-plus&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;tools&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;exec&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;trusted_patterns&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;^ls &#34;</span><span class=p>,</span> <span class=s2>&#34;^cat &#34;</span><span class=p>,</span> <span class=s2>&#34;^echo &#34;</span><span class=p>]</span> <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;web_search&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;engine&#34;</span><span class=p>:</span> <span class=s2>&#34;bing&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>},</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;memory&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;engine&#34;</span><span class=p>:</span> <span class=s2>&#34;semantic&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;max_tokens_per_turn&#34;</span><span class=p>:</span> <span class=mi>2000</span>
 </span></span><span class=line><span class=cl>  <span class=p>}</span>
 </span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><p>周一早 9 点生成周报、每天早 8 点竞品监控推钉钉、周日凌晨依赖安全审计。cron 任务用 qwen-plus/turbo 就够。</p><h2 id=环境变量>环境变量</h2><p>敏感信息用 <code>${VAR_NAME}</code> 引用，不要写死在配置里：</p><table><thead><tr><th>环境变量</th><th>用途</th><th>在哪里设置</th></tr></thead><tbody><tr><td><code>DASHSCOPE_API_KEY</code></td><td>百炼 API Key</td><td>百炼控制台</td></tr><tr><td><code>ANTHROPIC_API_KEY</code></td><td>Anthropic API Key</td><td>console.anthropic.com</td></tr><tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI API Key</td><td>platform.openai.com</td></tr><tr><td><code>HTTPS_PROXY</code></td><td>代理地址</td><td>你的代理服务</td></tr><tr><td><code>OPENCLAW_HOME</code></td><td>数据目录（默认 <code>~/.openclaw</code>）</td><td>自行设置</td></tr><tr><td><code>OPENCLAW_LOG_LEVEL</code></td><td>日志级别</td><td>debug/info/warn/error</td></tr></tbody></table><p>写在 <code>.env</code> 文件并加入 <code>.gitignore</code>。</p><h2 id=配置校验>配置校验</h2><p>用 <code>openclaw config validate</code> 检查配置。三个常见错误：</p><p><strong>1. 模型 ID 不存在</strong> — DashScope 不带 <code>-latest</code> 后缀，直接 <code>qwen-plus</code>。<strong>2. model_override 格式错</strong> — 必须 <code>provider名/模型ID</code>（如 <code>anthropic/claude-sonnet-4-5</code>），不能只写模型名。<strong>3. 相对路径缺基准目录</strong> — <code>allowed_paths</code> 用 <code>./</code> 需设 <code>agent.project_root</code>，否则用绝对路径。</p><h2 id=热重载与重启>热重载与重启</h2><p><strong>热重载（立即生效）：</strong> <code>memory</code>、<code>tools</code> 参数调整、<code>cron</code> 时间表、<code>security</code> 列表。</p><p><strong>需重启：</strong> <code>agent.default_model</code>、<code>providers</code> 增删、<code>channels</code>、<code>mcp</code> 配置。</p><p>启动时输出配置摘要：</p><pre tabindex=0><code>$ openclaw start
-[INFO] Agent: code-helper | Model: dashscope/qwen-plus
-[INFO] Providers: dashscope, anthropic | Tools: exec, web_search, read, write
-[INFO] Cron: 3 jobs | Security: 2 paths, 6 blocked cmds
-</code></pre><h2 id=配置策略总结>配置策略总结</h2><ol><li><strong>default_model 用 qwen-plus</strong> — 便宜、快、直连</li><li><strong>Coding Plan 开着</strong> — 200 元/月包 Claude</li><li><strong>model_override 精细控制</strong> — 只有需要 Claude 的 skill 才走 Claude</li><li><strong>security 从严</strong> — 先锁死，需要时再放开</li><li><strong>npmmirror 加到 allowlist</strong> — 国内装包必须走镜像</li></ol><p>下一篇讲 Channels——让 Agent 在钉钉群里随叫随到。</p><hr><p><strong>本系列：</strong> <a href=/zh/openclaw-quickstart/01-what-is-openclaw/>1. 什么是 OpenClaw</a>
-| <a href=/zh/openclaw-quickstart/02-install-and-first-chat/>2. 安装</a>
-| <a href=/zh/openclaw-quickstart/03-architecture/>3. 架构</a>
-| <strong>4. 配置（本文）</strong> | <a href=/zh/openclaw-quickstart/05-channels/>5. 渠道接入</a></p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=title>OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/openclaw-quickstart/05-channels/><span class=title>OpenClaw 快速上手（五）：接入聊天渠道——Telegram、钉钉和微信的第一步</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=series-nav-num>01</span>
+</span></span></code></pre></td></tr></table></div></div><p>一共五个板块。咱们按顺序过一遍。</p><h2 id=完整配置参考>完整配置参考</h2><p>深入细节之前，先看一眼 <code>openclaw.json</code> 支持的所有顶层 key：</p><table><thead><tr><th>Key</th><th>用途</th></tr></thead><tbody><tr><td><code>agent</code></td><td>Agent 身份、默认模型、规划循环设置</td></tr><tr><td><code>providers</code></td><td>LLM 提供商端点和凭证（DashScope、Anthropic、OpenAI、百炼、自定义）</td></tr><tr><td><code>tools</code></td><td>内置工具配置（exec、web_search、read、write 等）</td></tr><tr><td><code>memory</code></td><td>记忆引擎、token 预算、自动写入行为、记忆类型</td></tr><tr><td><code>channels</code></td><td>外部接口（Telegram、微信、钉钉、Web UI）</td></tr><tr><td><code>cron</code></td><td>按计划间隔触发技能的定时任务</td></tr><tr><td><code>mcp</code></td><td>第三方工具的 Model Context Protocol 服务器注册</td></tr><tr><td><code>hooks</code></td><td>在特定 Agent 动作前后运行的自定义脚本</td></tr><tr><td><code>security</code></td><td>文件系统限制、 blocked 命令、确认要求</td></tr></tbody></table><p>大多数新用户最先动的是 <code>agent</code>、<code>providers</code> 和 <code>tools</code>。高阶玩家才会去配 <code>cron</code>、<code>security</code> 和 <code>mcp</code>。</p><h2 id=agent--名字和默认模型><code>agent</code> — 名字和默认模型</h2><p>两个字段最关键：名字（用户看到的）和默认模型。默认模型是 Agent 跑规划循环时用的，除非工具或技能显式覆盖。</p><p>很多人容易犯的错是把最贵的模型填在这儿，觉得“稳妥”。别这么做。规划循环每轮都要跑。在这儿填 <code>qwen-plus</code>，只在那些真正需要推理的特定技能里覆盖成 <code>qwen3-max</code>。</p><h2 id=providers--模型在哪><code>providers</code> — 模型在哪</h2><p>你可以配多个提供商，然后按技能挑选。四个常用选项：</p><table><thead><tr><th>Provider</th><th>适用场景</th></tr></thead><tbody><tr><td><code>dashscope</code></td><td>国内托管、便宜、Qwen 系列。我的默认选择。</td></tr><tr><td><code>anthropic</code></td><td>想要 Claude 的推理质量，且不在乎成本。</td></tr><tr><td><code>openai</code></td><td>specifically 需要 GPT-4 或 GPT-5.4。</td></tr><tr><td><code>bailian-coding-plan</code></td><td>想要一个订阅包揽 Claude + Qwen + DeepSeek + GLM。</td></tr></tbody></table><p>实际配置长这样。</p><h3 id=dashscope默认>DashScope（默认）</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;providers&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;dashscope&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;sk-...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;endpoint&#34;</span><span class=p>:</span> <span class=s2>&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;models&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;qwen-turbo&#34;</span><span class=p>,</span> <span class=s2>&#34;qwen-plus&#34;</span><span class=p>,</span> <span class=s2>&#34;qwen3-max&#34;</span><span class=p>,</span> <span class=s2>&#34;qwen3-coder-plus&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这是国内负载的合理默认值。DashScope 免费版每月给 100 万 token 用于 <code>qwen-turbo</code>；付费 token 很便宜（<code>qwen-plus</code> 输入 0.004 元/1K）。</p><h3 id=anthropic>Anthropic</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;providers&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;anthropic&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;sk-ant-...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;models&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;claude-sonnet-4-5&#34;</span><span class=p>,</span> <span class=s2>&#34;claude-opus-4&#34;</span><span class=p>,</span> <span class=s2>&#34;claude-haiku-4&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Claude Sonnet 4.5 是 OpenClaw 目前推理最强的模型。如果你的任务需要深度的多步逻辑（代码生成、研究规划、法律分析），用这个。价格是 3 美元/百万输入 token —— 比 <code>qwen-plus</code> 贵大概 750 倍 —— 所以路由要小心。</p><h3 id=openai>OpenAI</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;providers&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;openai&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;sk-proj-...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;models&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;gpt-4o&#34;</span><span class=p>,</span> <span class=s2>&#34;gpt-5.4&#34;</span><span class=p>,</span> <span class=s2>&#34;o1-preview&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>OpenAI 模型主要在两种情况下有用：(1) 你 specifically 需要 GPT-5.4，或者 (2) 你的技能是基于 OpenAI 原型的，不想重写。否则我避开它们 —— 推理 Claude 更强， bulk 工作 Qwen 更便宜。</p><h3 id=compatible-提供商类型><code>compatible</code> 提供商类型</h3><p>任何讲 OpenAI 兼容 API 格式的服务（Ollama、vLLM、LiteLLM、LM Studio、Together AI）都可以作为 <code>compatible</code> 提供商添加：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;providers&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;ollama-local&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;compatible&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;endpoint&#34;</span><span class=p>:</span> <span class=s2>&#34;http://localhost:11434/v1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;models&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;llama3.2:8b&#34;</span><span class=p>,</span> <span class=s2>&#34;qwen2.5:14b&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>如果端点在本地，不需要 API key。这就是你完全离线运行 OpenClaw 的方法 —— 把 <code>agent.default_model</code> 指向 <code>ollama-local/llama3.2:8b</code>，所有规划都在你机器上跑。</p><p>对于托管的兼容端点（比如 Together、Groq），加一个 <code>api_key</code> 字段就行。</p><h3 id=模型路由>模型路由</h3><p><code>agent.default_model</code> 是你的基线，但单个技能可以通过技能 manifest 里的 <code>skill.model_override</code> 覆盖它：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;legal-contract-review&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;model_override&#34;</span><span class=p>:</span> <span class=s2>&#34;claude-sonnet-4-5&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;...&#34;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这让你能在便宜 token 上跑规划循环，只在需要的地方切换到昂贵的推理模型。一个典型模式：</p><ul><li><strong>规划循环</strong>：<code>qwen-plus</code>（快、便宜）</li><li><strong>代码生成技能</strong>：<code>qwen3-coder-plus</code>（专为代码优化）</li><li><strong>深度推理技能</strong>：<code>claude-sonnet-4-5</code>（逻辑最强）</li><li><strong>批量总结</strong>：<code>qwen-turbo</code>（每 token 最便宜）</li></ul><p>你也可以在运行时通过给 CLI 传 <code>--model</code> 来覆盖，但技能级别的覆盖才是把成本纪律 built into 你的 Agent 的方法。</p><h2 id=coding-plan-技巧>Coding Plan 技巧</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/04-configuration/illustration_2.png alt="OpenClaw QuickStart (4): Configuration, Model Providers, and the Coding Plan Trick — visual" loading=lazy decoding=async class=content-image></figure></p><p>阿里云百炼有个 &ldquo;Coding Plan&rdquo; 订阅：每月 200 元拿到八个模型 —— Claude Sonnet 4.5、Qwen3-Max、Qwen3-Coder-Plus、DeepSeek V3.1、GLM-4.6 等等 —— 工作时间用量不限。对于一个每天循环几百次的 Agent 来说，这价格低得离谱。</p><p>提供商配置就是一个块：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;bailian-coding-plan&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;endpoint&#34;</span><span class=p>:</span> <span class=s2>&#34;https://dashscope.aliyuncs.com/coding-plan/v1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;api_key&#34;</span><span class=p>:</span> <span class=s2>&#34;sk-...&#34;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>然后在 <code>agent.default_model</code> 里，直接指向该计划暴露的某个模型 ID（<code>claude-sonnet-4-5</code>、<code>qwen3-max</code> 等），请求就会算在你的订阅里。</p><p>如果你只是在单台笔记本上个人使用 OpenClaw，我不推荐 Coding Plan —— DashScope 的免费额度够了。但如果你要跑 cron 任务或多渠道，我绝对推荐。</p><h2 id=tools--启用危险工具><code>tools</code> —— 启用危险工具</h2><p>有两个工具配置值得调优：</p><p><strong><code>exec.trusted_patterns</code></strong> —— 绕过每次调用确认的正则。我保持得很窄：只读命令如 <code>ls</code>、<code>cat</code>、<code>git status</code>。任何修改文件系统的操作都保持 gated。</p><p><strong><code>web_search.engine</code></strong> —— <code>bing</code>（便宜、还行）、<code>serper</code>（质量更好、收费）、或 <code>tavily</code>（最适合 Agent 搜索、更贵）。我默认用 <code>bing</code>，让 Agent 需要更好的时候再问。</p><p>还有 24 个其他工具。大多数默认值都合理。我改过的几个：</p><ul><li><code>read.max_bytes</code> —— 从 50KB 调到 500KB，这样 Agent 能吞下配置文件。</li><li><code>write.allowed_paths</code> —— 限制在 <code>~/openclaw-workspace/</code> 和 <code>~/Documents/</code>。这是最有用的安全设置。</li></ul><h2 id=memory--agent-怎么记事儿><code>memory</code> —— Agent 怎么记事儿</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;memory&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;engine&#34;</span><span class=p>:</span> <span class=s2>&#34;semantic&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;max_tokens_per_turn&#34;</span><span class=p>:</span> <span class=mi>2000</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;auto_write&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;types&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;project&#34;</span><span class=p>,</span> <span class=s2>&#34;reference&#34;</span><span class=p>,</span> <span class=s2>&#34;feedback&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>max_tokens_per_turn</code> 是每个 prompt 里记忆片段的预算。默认是 1000。我调到 2000，因为技能已经吃掉不少 token；如果记忆太小，Agent 会忘事。</p><p><code>auto_write</code> 让 Agent 自己决定什么时候提交内容到记忆。关掉这个，你得显式说“记住我更喜欢 Python 而不是 Node"。开着的话，Agent 会推断。我留着它开，接受偶尔的误记。</p><h2 id=security--agent-不能碰什么><code>security</code> —— Agent 不能碰什么</h2><p>安全配置是可选的，但如果你的 Agent 无人值守运行（cron 任务）或暴露给其他用户（共享 Telegram 机器人），强烈推荐。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;security&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;allowed_paths&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;~/openclaw-workspace/&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;~/Documents/&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;~/Desktop/temp/&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>],</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;blocked_commands&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;rm -rf&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;sudo&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;curl.*bash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;wget.*\\|.*sh&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>],</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;require_confirmation&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;git push&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;npm publish&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;docker rm&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong><code>allowed_paths</code></strong> 限制文件系统写入。任何 <code>write</code>、<code>edit</code> 或 <code>exec</code> 调用如果触碰列表外的路径，会被拒绝。这是最大的安全杠杆 —— 它防止意外的“删除我家目录”级联发生。</p><p><strong><code>blocked_commands</code></strong> 是针对 <code>exec</code> 工具调用的正则匹配。如果命令匹配，直接拒绝 —— 没有确认 prompt。用来禁止那些永远不该跑的命令（<code>rm -rf /</code>、把 <code>curl</code> 管道进 <code>bash</code>、提权）。</p><p><strong><code>require_confirmation</code></strong> 即使命令匹配了 <code>trusted_pattern</code>，也强制用户确认。我用它在不可逆操作上，比如 <code>git push --force</code>、发布包、或删除云资源。</p><p>没有这些，开了 <code>exec</code> 的 Agent 能做任何你能做的事。有了它们，你才有护栏。</p><h2 id=channels--稍后连接><code>channels</code> —— 稍后连接</h2><p>默认是空的。本系列下一篇会加 Telegram。骨架长这样：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;channels&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;telegram&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;bot_token&#34;</span><span class=p>:</span> <span class=s2>&#34;...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;allowed_user_ids&#34;</span><span class=p>:</span> <span class=p>[</span><span class=mi>123456789</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>allowed_user_ids</code> 字段精神上是非可选的 —— 没有它，你的机器人会回答任何找到它的人。别不带它就上线。</p><h2 id=cron--定时任务><code>cron</code> —— 定时任务</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=s2>&#34;cron&#34;</span><span class=err>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;jobs&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;daily-briefing&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;schedule&#34;</span><span class=p>:</span> <span class=s2>&#34;0 7 * * *&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;skill&#34;</span><span class=p>:</span> <span class=s2>&#34;daily-briefing&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>这个功能把 OpenClaw 从“聊天机器人”变成“默默帮你干活的东西”。cron 条目触发一个技能；技能产生输出；输出发送到默认渠道（或技能指定的渠道）。晨间简报案例就是基于这个建的。</p><h3 id=更多-cron-示例>更多 cron 示例</h3><p><strong>每周项目报告</strong> —— 每周一早上发送提交、关闭 issue 和合并 PR 的总结：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;weekly-project-report&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;schedule&#34;</span><span class=p>:</span> <span class=s2>&#34;0 9 * * 1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;skill&#34;</span><span class=p>:</span> <span class=s2>&#34;summarize-github-activity&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;channel&#34;</span><span class=p>:</span> <span class=s2>&#34;telegram&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;params&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;repo&#34;</span><span class=p>:</span> <span class=s2>&#34;org/project&#34;</span><span class=p>,</span> <span class=nt>&#34;days&#34;</span><span class=p>:</span> <span class=mi>7</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>竞争对手监控</strong> —— 每天早上检查竞争对手博客和产品页面，展示新发布：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;competitor-monitor&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;schedule&#34;</span><span class=p>:</span> <span class=s2>&#34;30 8 * * *&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;skill&#34;</span><span class=p>:</span> <span class=s2>&#34;web-scrape-and-diff&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;channel&#34;</span><span class=p>:</span> <span class=s2>&#34;dingtalk&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;params&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;urls&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;https://competitor.com/blog&#34;</span><span class=p>,</span> <span class=s2>&#34;https://competitor.com/pricing&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;notify_on_change&#34;</span><span class=p>:</span> <span class=kc>true</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>依赖安全审计</strong> —— 每周日运行 <code>npm audit</code> 或 <code>pip-audit</code>，如果发现漏洞发送报告：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;dependency-audit&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;schedule&#34;</span><span class=p>:</span> <span class=s2>&#34;0 10 * * 0&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;skill&#34;</span><span class=p>:</span> <span class=s2>&#34;run-security-audit&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;channel&#34;</span><span class=p>:</span> <span class=s2>&#34;wechat-workbuddy&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;params&#34;</span><span class=p>:</span> <span class=p>{</span> <span class=nt>&#34;project_path&#34;</span><span class=p>:</span> <span class=s2>&#34;~/code/myapp&#34;</span><span class=p>,</span> <span class=nt>&#34;severity_threshold&#34;</span><span class=p>:</span> <span class=s2>&#34;high&#34;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>schedule</code> 字段使用标准 cron 语法：<code>minute hour day-of-month month day-of-week</code>。所有时间都是服务器本地时间，除非你在环境变量里设置 <code>TZ</code>。</p><h2 id=环境变量>环境变量</h2><p>有些配置项可以直接用环境变量覆盖。特别是跑 Docker 的时候，你肯定不想把 API Key 明文写进配置文件里提交到仓库：</p><table><thead><tr><th>配置路径</th><th>环境变量</th></tr></thead><tbody><tr><td><code>providers.dashscope.api_key</code></td><td><code>DASHSCOPE_API_KEY</code></td></tr><tr><td><code>providers.anthropic.api_key</code></td><td><code>ANTHROPIC_API_KEY</code></td></tr><tr><td><code>providers.openai.api_key</code></td><td><code>OPENAI_API_KEY</code></td></tr><tr><td><code>channels.telegram.bot_token</code></td><td><code>TELEGRAM_BOT_TOKEN</code></td></tr><tr><td><code>memory.max_tokens_per_turn</code></td><td><code>OPENCLAW_MEMORY_TOKENS</code></td></tr><tr><td><code>agent.default_model</code></td><td><code>OPENCLAW_DEFAULT_MODEL</code></td></tr></tbody></table><p>优先级顺序很简单：环境变量 > <code>openclaw.json</code> > 内置默认值。</p><p>敏感信息一律走环境变量，其他配置留在文件里就好，毕竟文件能版本控制，审计起来也方便。</p><h2 id=配置校验>配置校验</h2><p>改完配置重启网关前，先跑一遍这个：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw config validate
+</span></span></code></pre></td></tr></table></div></div><p>它能帮你揪出这些问题：</p><ul><li><strong>必填字段缺失</strong> — 比如 <code>providers.dashscope.api_key</code> 是空的</li><li><strong>模型 ID 无效</strong> — 比如 <code>agent.default_model</code> 设了一个任何 provider 都没注册的模型</li><li><strong>JSON 格式错误</strong> — 多余的逗号、缺了括号</li><li><strong>Cron 表达式写错了</strong> — 比如 <code>schedule: "0 25 * * *"</code>（哪有 25 点）</li><li><strong>路径冲突</strong> — 比如 <code>security.allowed_paths</code> 里填了个不存在的路径</li></ul><p>我经常见到的几个坑：</p><ol><li><strong>模型名忘了加引号</strong> — 得是 <code>"qwen-plus"</code>，不能是 <code>qwen-plus</code>。</li><li><strong>JSON 末尾多逗号</strong> — 对象或数组的最后一项后面不能带逗号，JSON 比 JavaScript 严得多。</li><li><strong>Provider 不匹配</strong> — <code>agent.default_model: "claude-sonnet-4-5"</code> 但根本没配 <code>anthropic</code>。校验器会直接告诉你缺了哪个 provider。</li></ol><p>校验失败的话，错误信息会带上行号和字段路径。改好再验一遍，没问题了再重启：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw gateway restart
+</span></span></code></pre></td></tr></table></div></div><h2 id=编辑后重载>编辑后重载</h2><p><code>openclaw.json</code> 大部分配置改完保存就自动热重载了。例外的是渠道注册和 provider 密钥——这两类改完得重启网关：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw gateway restart
+</span></span></code></pre></td></tr></table></div></div><p>要是改完配置看到 &ldquo;tool not registered&rdquo; 或者 &ldquo;provider not found&rdquo; 这类报错，就知道该重启了。</p><h2 id=如果今天我来改你的配置>如果今天我来改你的配置</h2><p>如果你是用向导初始化的，之后一直没动过配置文件：</p><ol><li>把 <code>security.allowed_paths</code> 设得明确点。默认是你家目录，范围太大了。</li><li><code>memory.max_tokens_per_turn</code> 设成 2000。</li><li>在 <code>security.blocked_commands</code> 里加上 <code>rm -rf</code>、<code>sudo</code> 和 <code>curl.*bash</code>。</li><li>要是 token 花费接近 200 元/月，直接换百炼 Coding 计划。</li><li>每次编辑完都跑一遍 <code>openclaw config validate</code>。别让错误把 agent 搞挂。</li></ol><p>下一篇讲渠道。先接 Telegram，因为这事儿不折腾；然后单独截个图过一遍企业微信助手，这服务值得单独花篇博客讲。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=title>OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/openclaw-quickstart/05-channels/><span class=title>OpenClaw 快速上手（五）：接入聊天渠道——Telegram、钉钉和微信的第一步</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=series-nav-num>01</span>
 <span class=series-nav-title>OpenClaw 快速上手（一）：这玩意到底是什么</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/02-install-and-first-chat/><span class=series-nav-num>02</span>
 <span class=series-nav-title>OpenClaw 快速上手（二）：安装到第一次对话，十分钟搞定</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=series-nav-num>03</span>
 <span class=series-nav-title>OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层</span></a></li><li class="series-nav-item is-current"><span class=series-nav-num>04</span>
@@ -268,7 +275,7 @@
 <span class=series-nav-title>OpenClaw 快速上手（七）：记忆系统——别指望魔法</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=series-nav-num>08</span>
 <span class=series-nav-title>OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/09-china-channels/><span class=series-nav-num>09</span>
 <span class=series-nav-title>OpenClaw 快速上手（九）：国内 IM 渠道选型——说点掏心窝的</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/10-production-deploy/><span class=series-nav-num>10</span>
-<span class=series-nav-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#最小可用配置>最小可用配置</a></li><li><a href=#完整配置参考>完整配置参考</a></li><li><a href=#agent-部分>agent 部分</a></li><li><a href=#providers-部分>providers 部分</a><ul><li><a href=#dashscope国内首选>DashScope（国内首选）</a></li><li><a href=#anthropic需代理或香港服务器>Anthropic（需代理或香港服务器）</a></li><li><a href=#openai>OpenAI</a></li><li><a href=#compatible本地模型>compatible（本地模型）</a></li></ul></li><li><a href=#模型路由让对的模型做对的事>模型路由：让对的模型做对的事</a></li><li><a href=#百炼-coding-plan重度用户的最优解>百炼 Coding Plan：重度用户的最优解</a></li><li><a href=#tools-部分>tools 部分</a></li><li><a href=#memory-部分>memory 部分</a></li><li><a href=#security-部分>security 部分</a></li><li><a href=#channels-部分预告>channels 部分（预告）</a></li><li><a href=#cron-部分>cron 部分</a></li><li><a href=#环境变量>环境变量</a></li><li><a href=#配置校验>配置校验</a></li><li><a href=#热重载与重启>热重载与重启</a></li><li><a href=#配置策略总结>配置策略总结</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/openclaw-quickstart/ class=series-name>OpenClaw 从零实战</a>
+<span class=series-nav-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#最小可用配置>最小可用配置</a></li><li><a href=#完整配置参考>完整配置参考</a></li><li><a href=#agent--名字和默认模型><code>agent</code> — 名字和默认模型</a></li><li><a href=#providers--模型在哪><code>providers</code> — 模型在哪</a><ul><li><a href=#dashscope默认>DashScope（默认）</a></li><li><a href=#anthropic>Anthropic</a></li><li><a href=#openai>OpenAI</a></li><li><a href=#compatible-提供商类型><code>compatible</code> 提供商类型</a></li><li><a href=#模型路由>模型路由</a></li></ul></li><li><a href=#coding-plan-技巧>Coding Plan 技巧</a></li><li><a href=#tools--启用危险工具><code>tools</code> —— 启用危险工具</a></li><li><a href=#memory--agent-怎么记事儿><code>memory</code> —— Agent 怎么记事儿</a></li><li><a href=#security--agent-不能碰什么><code>security</code> —— Agent 不能碰什么</a></li><li><a href=#channels--稍后连接><code>channels</code> —— 稍后连接</a></li><li><a href=#cron--定时任务><code>cron</code> —— 定时任务</a><ul><li><a href=#更多-cron-示例>更多 cron 示例</a></li></ul></li><li><a href=#环境变量>环境变量</a></li><li><a href=#配置校验>配置校验</a></li><li><a href=#编辑后重载>编辑后重载</a></li><li><a href=#如果今天我来改你的配置>如果今天我来改你的配置</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/openclaw-quickstart/ class=series-name>OpenClaw 从零实战</a>
 <span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=chapter-num>01</span>
 <span class=chapter-title>OpenClaw 快速上手（一）：这玩意到底是什么</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/02-install-and-first-chat/><span class=chapter-num>02</span>
 <span class=chapter-title>OpenClaw 快速上手（二）：安装到第一次对话，十分钟搞定</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=chapter-num>03</span>
@@ -279,5 +286,5 @@
 <span class=chapter-title>OpenClaw 快速上手（七）：记忆系统——别指望魔法</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=chapter-num>08</span>
 <span class=chapter-title>OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/09-china-channels/><span class=chapter-num>09</span>
 <span class=chapter-title>OpenClaw 快速上手（九）：国内 IM 渠道选型——说点掏心窝的</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/10-production-deploy/><span class=chapter-num>10</span>
-<span class=chapter-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>12 min</strong></div><div class=row><span>字数</span><strong>2588</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战手册</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>阿里云 PAI</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>16 min</strong></div><div class=row><span>字数</span><strong>3694</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战手册</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>阿里云 PAI</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>

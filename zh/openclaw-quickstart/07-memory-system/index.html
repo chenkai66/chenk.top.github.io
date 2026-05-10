@@ -20,73 +20,27 @@
 <input type=search placeholder=搜索 aria-label=搜索 autocomplete=off spellcheck=false>
 <span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜索</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>OpenClaw 从零实战</a>
 · 第 7 篇</div><h1>OpenClaw 快速上手（七）：记忆系统——别指望魔法</h1><p class=deck>MEMORY.md 索引、memoryFlush、bge-m3 语义搜索，以及 ContextEngine 的工作原理。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
-<span class=meta-line><time datetime=2026-04-09>April 9, 2026</time> · 12 分钟 · 2572 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/openclaw/ class=tag>#openclaw</a><a href=/zh/tags/memory/ class=tag>#memory</a><a href=/zh/tags/context-engine/ class=tag>#context-engine</a><a href=/zh/tags/bge-m3/ class=tag>#bge-m3</a></div><a class="pill pill-outline" href=/en/openclaw-quickstart/07-memory-system/>Read in English →</a></div></header><div class=prose><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/illustration_1.png alt=记忆系统架构概览 loading=lazy decoding=async class=content-image></figure></p><h2 id=记忆是第一个翻车的地方>记忆是第一个翻车的地方</h2><p>装完 OpenClaw 的人，十个有八个第一天就在记忆系统上栽跟头。不是配置难——配置反而简单——而是对"记忆"这个词的预期完全错了。</p><p>你以为装上就是 Jarvis，什么都记得住。实际情况是：Agent 昨天还知道你的 API Key 放在哪，今天又问你一遍。你告诉它三次"别用 gpt-4o，用 qwen-plus"，第四次它又犯。</p><p>这不是 bug，这是设计。Agent 的上下文窗口是有限的，记忆系统的本质是一套<strong>决定什么该出现在上下文里</strong>的工程。本篇把这套工程拆开讲。</p><h2 id=workspace-目录结构>Workspace 目录结构</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/fig_memory.png alt=记忆系统四层架构——热、温、冷、归档层 loading=lazy decoding=async class=content-image></figure></p><p>OpenClaw 的记忆全部落盘在 <code>~/.openclaw/workspace/</code> 下，没有数据库，纯文件：</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/fig_memory_decision_zh.png alt=记忆类型分类决策 loading=lazy decoding=async class=content-image></figure></p><h2 id=contextengine-v202637从工具变成生命周期>ContextEngine v2026.3.7：从工具变成生命周期</h2><p>在 v2026.3.7 之前，记忆是一个"工具"——Agent 决定什么时候调用 <code>memoryWrite</code>、什么时候调用 <code>memorySearch</code>。问题很明显：Agent 经常忘记写、忘记搜，或者在不该写的时候乱写。</p><p>v2026.3.7 引入了 ContextEngine，把记忆从 Agent 可调用的工具变成了 <strong>harness 生命周期的一部分</strong>。Agent 不再决定"要不要记"，系统在每个阶段自动处理：</p><table><thead><tr><th>阶段</th><th>名称</th><th>动作</th></tr></thead><tbody><tr><td>1</td><td>bootstrap</td><td>加载 MEMORY.md，注入身份和索引</td></tr><tr><td>2</td><td>ingest</td><td>解析用户消息，识别潜在记忆条目</td></tr><tr><td>3</td><td>assemble</td><td>根据当前话题执行 memorySearch，拼装上下文</td></tr><tr><td>4</td><td>compact</td><td>对话过长时 flush + 压缩</td></tr><tr><td>5</td><td>afterTurn</td><td>每轮结束后，写入新产生的记忆</td></tr></tbody></table><p>这个转变的意义在于：<strong>记忆的可靠性不再依赖 Agent 的"自觉性"。</strong> 你不需要在 prompt 里写"记得保存重要信息"这种无效指令了。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/illustration_2.png alt="ContextEngine 生命周期" loading=lazy decoding=async class=content-image></figure></p><p>升级到 v2026.3.7 后，如果你之前有自定义的 <code>memoryWrite</code> 工具配置，需要迁移到 ContextEngine 格式：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+<span class=meta-line><time datetime=2026-04-09>April 9, 2026</time> · 16 分钟 · 3626 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/openclaw/ class=tag>#openclaw</a><a href=/zh/tags/memory/ class=tag>#memory</a><a href=/zh/tags/context-engine/ class=tag>#context-engine</a><a href=/zh/tags/bge-m3/ class=tag>#bge-m3</a></div><a class="pill pill-outline" href=/en/openclaw-quickstart/07-memory-system/>Read in English →</a></div></header><div class=prose><p>前六篇让大家跑起了一个能用的 OpenClaw，有了渠道也有了技能。这一篇聊聊那个初次安装时最容易搞砸的部分：记忆系统。</p><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/illustration_1.png alt="OpenClaw 快速入门 (7)：记忆系统，去掉魔法 — 示意图" loading=lazy decoding=async class=content-image></figure></p><h2 id=工作区的样子>工作区的样子</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/fig_memory.png alt="记忆系统四层架构 — 热、温、冷和归档层" loading=lazy decoding=async class=content-image></figure></p><p>打开 <code>~/.openclaw/workspace/</code>。你应该能看到这样的结构：</p><pre tabindex=0><code>~/.openclaw/workspace/
+├── MEMORY.md              # 索引 — 控制在 40 行以内
+├── HEARTBEAT.md           # 代理按 cron 周期重读的规则
+└── memory/
+    ├── projects.md        # 当前项目状态
+    ├── lessons.md         # 踩过的坑，不想再犯的错
+    ├── 2026-04-14.md      # 原始日报日志
+    └── archive/           # 超过 30 天的内容
+</code></pre><p>最关键的是两个文件。<code>MEMORY.md</code> 是索引——代理每轮对话都会读它，所以必须短。<code>lessons.md</code> 存放长尾知识，比如“我们试过那个，因为 Y 原因挂了”。日报日志写多读少，代理通常只通过搜索去调取。</p><p>我头两个月踩的坑：恨不得把所有东西都塞进 <code>MEMORY.md</code>。等它涨到 200 行时，每轮对话光加载索引就要消耗 ~3k tokens，代理还是找不到需要的信息。索引不是归档。</p><h2 id=四层思维模型>四层思维模型</h2><p>决定某件事该放哪儿时，我脑子里始终装着这张表：</p><table><thead><tr><th>Tier</th><th>Lifespan</th><th>Goes in</th></tr></thead><tbody><tr><td>Identity</td><td>forever</td><td><code>MEMORY.md</code> (name, voice, role)</td></tr><tr><td>Decision</td><td>months</td><td><code>projects.md</code></td></tr><tr><td>Lesson</td><td>years</td><td><code>lessons.md</code></td></tr><tr><td>Trace</td><td>days</td><td><code>memory/YYYY-MM-DD.md</code></td></tr></tbody></table><p>fitting 不进这四类的，大概率是噪音。直接丢掉。</p><h2 id=写好记忆条目>写好记忆条目</h2><p>存什么比存多少更重要。每条记忆都应该让代理能直接做决策，而不需要再问你。</p><p><strong>糟糕的条目</strong> — 模糊、没日期、不可执行：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span><span class=lnt>9
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
-</span></span><span class=line><span class=cl>  <span class=nt>&#34;contextEngine&#34;</span><span class=p>:</span> <span class=p>{</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;version&#34;</span><span class=p>:</span> <span class=s2>&#34;v2&#34;</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;memoryBudgetTokens&#34;</span><span class=p>:</span> <span class=mi>2000</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;autoWrite&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
-</span></span><span class=line><span class=cl>    <span class=nt>&#34;autoSearch&#34;</span><span class=p>:</span> <span class=kc>true</span>
-</span></span><span class=line><span class=cl>  <span class=p>}</span>
-</span></span><span class=line><span class=cl><span class=p>}</span>
-</span></span></code></pre></td></tr></table></div></div><h2 id=记忆预算的数学>记忆预算的数学</h2><p>这是很多人不算的一笔账：</p><ul><li>MEMORY.md 40 行，约 600 tokens</li><li>每条 memorySearch 结果，200-500 tokens</li><li>默认 <code>memoryBudgetTokens: 2000</code></li><li>2000 tokens 的预算，减去 600（MEMORY.md），剩 1400</li><li>1400 / 350（平均每条结果）= 4 条搜索结果</li></ul><p>也就是说，每轮对话中，系统最多能注入 MEMORY.md + 3~4 条相关记忆文件的片段。</p><p><strong>为什么不把 budget 调到 4000 甚至更高？</strong></p><ul><li>每增加 1000 tokens 的记忆注入，Agent 的有效推理空间就少 1000 tokens</li><li>超过 4000 tokens 的记忆注入，实测会导致 Agent 对当前任务的注意力下降</li><li>信息越多，Agent 越容易"选择性忽略"其中一部分</li><li>多数场景下，2000 tokens 的预算（索引 + 3 条精准搜索结果）完全够用</li></ul><p>经验法则：<strong>除非你的项目有超过 50 个活跃记忆条目且高度互相关联，否则不要碰默认值。</strong></p><h2 id=auto_write-的取舍>auto_write 的取舍</h2><p>ContextEngine 的 <code>autoWrite: true</code> 意味着系统自动判断哪些对话内容值得记录，不需要用户手动触发。这在个人使用时很方便，但有场景需要关掉：</p><p><strong>适合开 autoWrite 的场景：</strong></p><ul><li>单人使用，你是唯一与 Agent 交互的人</li><li>日常开发，信息变化频繁需要实时记录</li><li>懒得手动管理记忆（大多数人）</li></ul><p><strong>需要关 autoWrite 的场景：</strong></p><ul><li>共享 Bot（多人使用同一个 Agent 实例）——不同人的偏好会互相覆盖</li><li>演示/教学场景——不希望临时对话污染长期记忆</li><li>安全敏感环境——不想 API Key 之类的内容被自动记录</li></ul><p>关掉 autoWrite 后，你仍然可以手动触发记忆写入：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw memory write <span class=s2>&#34;DashScope endpoint 已迁移到 /compatible-mode/v1&#34;</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>审查 autoWrite 的写入记录：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=k>-</span> We use some API for search
+</span></span><span class=line><span class=cl><span class=k>-</span> The deploy was broken last time
+</span></span><span class=line><span class=cl><span class=k>-</span> User prefers short responses
+</span></span></code></pre></td></tr></table></div></div><p>这对代理几乎没用。哪个 API？什么时候挂的？“短”是多短？</p><p><strong>好的条目</strong> — 具体、可执行、带日期：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
 </span><span class=lnt>2
 </span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 查看最近 7 天的自动写入</span>
-</span></span><span class=line><span class=cl>openclaw memory log --since 7d
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 输出示例：</span>
-</span></span><span class=line><span class=cl><span class=c1># 2026-04-08 14:32  [auto] project: 新增 Aidge 文档项目配置</span>
-</span></span><span class=line><span class=cl><span class=c1># 2026-04-08 15:01  [auto] reference: DashScope qwen-plus endpoint 变更</span>
-</span></span><span class=line><span class=cl><span class=c1># 2026-04-07 09:15  [auto] feedback: 不用 emoji</span>
-</span></span><span class=line><span class=cl><span class=c1># 2026-04-06 16:44  [auto] lesson: SSH 在沙箱中被阻断</span>
-</span></span></code></pre></td></tr></table></div></div><p>建议每周花 2 分钟扫一遍，删掉不准确的条目。</p><h2 id=跨机器迁移记忆>跨机器迁移记忆</h2><p>换电脑、换 Agent 框架、或者想在两台机器上同步记忆，操作如下：</p><p><strong>同框架迁移（OpenClaw -> OpenClaw）：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span><span class=lnt>6
-</span><span class=lnt>7
-</span><span class=lnt>8
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 源机器：打包 workspace</span>
-</span></span><span class=line><span class=cl>tar -czf openclaw-memory-backup.tar.gz ~/.openclaw/workspace/
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 目标机器：解压</span>
-</span></span><span class=line><span class=cl>tar -xzf openclaw-memory-backup.tar.gz -C ~/
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 重建向量索引（因为 index.bin 是机器相关的）</span>
-</span></span><span class=line><span class=cl>openclaw memory reindex
-</span></span></code></pre></td></tr></table></div></div><p><strong>跨框架迁移（导出为通用格式）：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span><span class=lnt>3
-</span><span class=lnt>4
-</span><span class=lnt>5
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 导出所有记忆为 JSON</span>
-</span></span><span class=line><span class=cl>openclaw memory <span class=nb>export</span> --format json &gt; memory-export.json
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 在新框架中导入</span>
-</span></span><span class=line><span class=cl><span class=c1># 具体命令取决于目标框架，但 JSON 格式是通用的</span>
-</span></span></code></pre></td></tr></table></div></div><p><strong>关于 embeddings/index.bin：</strong></p><ul><li>这个文件<strong>不需要迁移</strong>，在目标机器上 <code>reindex</code> 即可重建</li><li>它是 bge-m3 对所有记忆文件的向量缓存</li><li>重建时间取决于记忆量，通常几百条记忆 &lt; 30 秒</li></ul><p><strong>session 导出（保留完整对话历史）：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
-</span><span class=lnt>2
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 导出最近 30 天的对话 session</span>
-</span></span><span class=line><span class=cl>openclaw session <span class=nb>export</span> --since 30d --output sessions-backup/
-</span></span></code></pre></td></tr></table></div></div><p>session 不属于记忆系统，但迁移时一起带上可以保留完整的上下文恢复能力。</p><h2 id=还在漏的地方>还在漏的地方</h2><p>记忆系统不是万能的，以下是当前版本（v2026.3.7）已知的短板：</p><p><strong>1. 群聊场景不读 MEMORY.md</strong></p><p>如果你在群聊中 @Agent，当前实现不会加载 MEMORY.md。Agent 在群里就是一个"失忆"状态。Workaround：在群聊的 system prompt 里手动注入关键信息。</p><p><strong>2. Embedding 漂移</strong></p><p>bge-m3 的向量表示是静态的——同一句话永远得到同一个向量。但你的用词习惯会变化。半年前你说"部署"，现在你说"发布"，语义搜索可能匹配不上旧记忆。</p><p>Workaround：每季度跑一次 <code>openclaw memory audit</code>，把过时的表述更新一下。</p><p><strong>3. 40 行纪律没有强制执行</strong></p><p>系统不会阻止你把 MEMORY.md 写到 200 行。它只会在超过 60 行时输出一条 warning，但不会拒绝加载。自律是唯一的防线。</p><p><strong>4. 跨 Agent 实例不同步</strong></p><p>如果你同时开着两个 OpenClaw session，它们的 memory 写入可能冲突。目前没有锁机制，后写入的会覆盖先写入的。最佳实践：同一时间只开一个 session。</p><p><strong>5. 无法从记忆中"遗忘"</strong></p><p>删除记忆文件后，对应的 embedding 不会自动清理。需要手动 <code>openclaw memory reindex</code> 才能彻底移除。</p><h2 id=每周健康检查>每周健康检查</h2><p>建议每周日花 5 分钟做一次记忆系统体检：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=k>-</span> [2026-03-22] Search API: SiliconFlow bge-m3, free tier, 1000 req/day limit
+</span></span><span class=line><span class=cl><span class=k>-</span> [2026-04-01] Deploy: nginx proxy_pass must include trailing slash or 404 on /api routes
+</span></span><span class=line><span class=cl><span class=k>-</span> User prefers responses under 3 sentences for status updates; full detail for technical questions
+</span></span></code></pre></td></tr></table></div></div><p>现在代理不用猜了。它知道提供商、约束条件和具体的行为规则。</p><p>这是一个结构良好的 <code>MEMORY.md</code> 示例——对大多数 solo 用户来说足够了：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
 </span><span class=lnt> 2
 </span><span class=lnt> 3
 </span><span class=lnt> 4
@@ -99,40 +53,133 @@
 </span><span class=lnt>11
 </span><span class=lnt>12
 </span><span class=lnt>13
-</span><span class=lnt>14
-</span><span class=lnt>15
-</span><span class=lnt>16
-</span><span class=lnt>17
-</span><span class=lnt>18
-</span><span class=lnt>19
-</span><span class=lnt>20
-</span><span class=lnt>21
-</span><span class=lnt>22
-</span><span class=lnt>23
-</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 1. 检查 MEMORY.md 行数（应该 &lt; 40）</span>
-</span></span><span class=line><span class=cl>wc -l ~/.openclaw/workspace/MEMORY.md
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 2. 检查记忆总量</span>
-</span></span><span class=line><span class=cl>openclaw memory stats
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 输出示例：</span>
-</span></span><span class=line><span class=cl><span class=c1># Total entries: 147</span>
-</span></span><span class=line><span class=cl><span class=c1># MEMORY.md: 38 lines (950 tokens)</span>
-</span></span><span class=line><span class=cl><span class=c1># Active projects: 3</span>
-</span></span><span class=line><span class=cl><span class=c1># Lessons: 12</span>
-</span></span><span class=line><span class=cl><span class=c1># Daily logs (14d): 14 files</span>
-</span></span><span class=line><span class=cl><span class=c1># Archive: 89 files</span>
-</span></span><span class=line><span class=cl><span class=c1># Index health: OK (last rebuilt 2d ago)</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 3. 检查过时条目</span>
-</span></span><span class=line><span class=cl>openclaw memory audit --stale 30d
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 4. 查看自动写入质量</span>
-</span></span><span class=line><span class=cl>openclaw memory log --since 7d --type auto
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=c1># 5. 清理归档（可选，超过 90 天的日志）</span>
-</span></span><span class=line><span class=cl>openclaw memory archive --older-than 90d
-</span></span></code></pre></td></tr></table></div></div><p>整个流程 5 分钟。一周一次，记忆系统就能保持健康状态。</p><h2 id=总结>总结</h2><p>记忆系统的核心认知：</p><ol><li><strong>MEMORY.md 是索引，不是数据库。</strong> 40 行以内，只放指针和身份信息。</li><li><strong>第一天就开 memoryFlush。</strong> 不开等于没有持久记忆，Agent 的"记忆力"和金鱼一样。</li><li><strong>v2026.3.7 之后让 ContextEngine 接管。</strong> 不要再手动管 memoryWrite 调用时机，系统比 Agent 更可靠。</li><li><strong>语义搜索需要数据积累。</strong> 先写两周再开 memorySearch，否则搜出来全是噪音。</li><li><strong>记忆预算是有限的。</strong> 2000 tokens 默认值别乱改，信息过载比信息不足更致命。</li><li><strong>每周 5 分钟维护。</strong> 不维护的记忆系统会在一个月后变成垃圾场。</li></ol><p>记忆系统不是魔法。它是一套文件管理 + 向量检索 + 生命周期钩子的工程方案。期望越准确，失望越少。</p></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/openclaw-quickstart/06-skills-and-mcp/><span class=title>OpenClaw 快速上手（六）：技能系统与 MCP——让 Agent 学会做事</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=title>OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=series-nav-num>01</span>
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-markdown data-lang=markdown><span class=line><span class=cl><span class=gh># Memory
+</span></span></span><span class=line><span class=cl><span class=gh></span><span class=gu>## Identity
+</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> Name: Kai. Role: Backend engineer. Voice: direct, no filler.
+</span></span><span class=line><span class=cl><span class=gu>## Active Projects
+</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> [<span class=nt>ticket-kb</span>](<span class=na>memory/projects.md</span>) — ECS ticket classification, due 2026-05-15
+</span></span><span class=line><span class=cl><span class=k>-</span> [<span class=nt>blog</span>](<span class=na>memory/projects.md</span>) — Hugo site, deploy via OSS
+</span></span><span class=line><span class=cl><span class=gu>## Key References
+</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> [<span class=nt>Server registry</span>](<span class=na>memory/ref_servers.md</span>) — 3 ECS instances
+</span></span><span class=line><span class=cl><span class=k>-</span> [<span class=nt>API keys</span>](<span class=na>memory/ref_apis.md</span>) — providers, rate limits
+</span></span><span class=line><span class=cl><span class=gu>## Lessons (top 3)
+</span></span></span><span class=line><span class=cl><span class=gu></span><span class=k>-</span> Never SSH from sandbox; use ecs-run wrapper
+</span></span><span class=line><span class=cl><span class=k>-</span> Wechaty banned; WeChat automation = account freeze
+</span></span><span class=line><span class=cl><span class=k>-</span> memoryFlush on before any long session
+</span></span></code></pre></td></tr></table></div></div><p>十行。加载消耗不到 200 tokens。代理知道你是谁、在做什么、去哪找资料、什么不能做。其他内容都在引用文件里，通过搜索拉取。</p><h2 id=记忆类型深挖>记忆类型深挖</h2><p>OpenClaw 内部识别五种记忆类型。你不必全用，但理解分类有助于正确路由新信息。</p><p><strong>1. 用户记忆</strong> — 关于人的事实。名字、偏好、风格、时区。放在 <code>MEMORY.md</code> 的 Identity 下。很少变。</p><p><strong>2. 项目记忆</strong> — 当前工作状态。已完成、被阻塞、下一步。放在 <code>projects.md</code>。每周变。</p><p><strong>3. 反馈记忆</strong> — 纠正。“不是那样，是这样。”放在 <code>lessons.md</code> 并带日期。</p><p><strong>4. 参考记忆</strong> — 稳定事实。服务器 IP、端点、配置。放在独立的 <code>ref_*.md</code> 文件。很少变。</p><p><strong>5. 教训记忆</strong> — 从失败中泛化的洞察。“如果 X，则 Y 会挂。”放在 <code>lessons.md</code>。保质期长。</p><p>我用的决策流程图：用户纠正你了？那是反馈，带日期进 <code>lessons.md</code>。是关于用户本人的事实？用户记忆，进 <code>MEMORY.md</code>。关于当前任务状态？项目记忆，进 <code>projects.md</code>。像 IP 或端点这样的稳定参考？参考记忆，进 <code>memory/ref_*.md</code>。从失败中得出的泛化洞察？教训，进 <code>lessons.md</code>。都不沾边？大概率是噪音——写进日报或丢弃。</p><p>拿不准的时候，先写进日报。如果后来发现自己经常搜它，再提升到对应的层级。</p><h2 id=memoryflush--我唯一必改的配置>memoryFlush — 我唯一必改的配置</h2><p>长对话在上下文窗口紧张时会自动压缩。默认情况下，代理会丢掉那些没写下来的内容。<code>memoryFlush</code> 会在压缩<em>之前</em>运行一次“保存重要内容”的操作：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;agents&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;defaults&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;compaction&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;reserveTokensFloor&#34;</span><span class=p>:</span> <span class=mi>20000</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;memoryFlush&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;softThresholdTokens&#34;</span><span class=p>:</span> <span class=mi>4000</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>softThresholdTokens</code> 是 flush 操作本身能占用的空间。4000 足够做个有用的摘要；除非你做超长会话，否则 8000 就是浪费。</p><h3 id=没开这功能会发生什么>没开这功能会发生什么</h3><p>这是我开启该功能前的真实场景。我在一个调试会话里到了第 80 轮。大概在第 20 轮时，我提到因为速率限制把 embedding 提供商从 OpenAI 换到了 SiliconFlow。代理确认了，我们继续。</p><p>到了第 60 轮，上下文紧了。压缩操作剪掉了中间部分（第 15-45 轮）。提供商切换的信息就在那儿。没了。第 70 轮，我让代理重新索引。它调用了 OpenAI。失败。十分钟浪费在了本该是永久知识的事情上。</p><p>开启 <code>memoryFlush</code> 后，flush pass 会先触发——在修剪前把"Embedding 提供商已改为 SiliconFlow，OpenAI 已弃用”写进 <code>projects.md</code>。压缩后，代理重载并读取到这条信息。</p><ul><li><strong>Without memoryFlush:</strong> 压缩静默删除。代理回退到过时的假设。</li><li><strong>With memoryFlush:</strong> 压缩先触发写入 pass。关键事实持久化。</li></ul><p>如果你只改一个默认配置，改这个。</p><h2 id=memorysearch--以及为什么-bge-m3-够用了>memorySearch — 以及为什么 bge-m3 够用了</h2><p>你可以对记忆文件运行语义搜索。你需要一个 embedding API。便宜的路子是 SiliconFlow 的 <code>BAAI/bge-m3</code>，免费且够用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;tools&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;memorySearch&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;embedding&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;provider&#34;</span><span class=p>:</span> <span class=s2>&#34;openai-compatible&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;baseUrl&#34;</span><span class=p>:</span> <span class=s2>&#34;https://api.siliconflow.cn/v1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;apiKey&#34;</span><span class=p>:</span> <span class=s2>&#34;...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;model&#34;</span><span class=p>:</span> <span class=s2>&#34;BAAI/bge-m3&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>大概用了一周后你才会看到效果。在此之前没什么可搜的。</p><h2 id=记忆预算算笔账>记忆预算算笔账</h2><p>花在记忆上的每个 token 都是不能用于对话的 token。算笔账。</p><p><code>MEMORY.md</code> 40 行大约消耗 600 tokens — 这是你每轮的固定开销。<code>memorySearch</code> 返回的每个文件块消耗 200-500 tokens。默认检索预算是 2000 tokens，意味着每轮 3-4 个块。</p><p>每轮总开销：600 + 2000 = 2600 tokens。在 128k 模型上，大约 2%。可以接受。</p><p>用 <code>max_memory_tokens_per_turn</code> 调整：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;agents&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;defaults&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;context_engine&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;max_memory_tokens_per_turn&#34;</span><span class=p>:</span> <span class=mi>2000</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>为什么不拉到 4000 或更高？因为记忆会和对话竞争资源。到了 4000，你花在开销上的 token 就是 4600 个。在多轮对话中，如果回复预算是 6000 tokens，近一半被检索吃掉了。代理的回复会被挤压。</p><p>最佳甜蜜点：快速任务（&lt; 10 轮）用 1000，标准会话（默认）用 2000，长研究用 3000。绝不超过 4000 — 它会挤占对话空间。如果代理在 2000 时错过了上下文，解决办法是写好记忆条目，而不是加大预算。</p><h2 id=contextengine--v202637-的变动>ContextEngine — v2026.3.7 的变动</h2><p><figure class=article-figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/openclaw-quickstart/07-memory-system/illustration_2.png alt="OpenClaw 快速入门 (7)：记忆系统，去掉魔法 — 示意图" loading=lazy decoding=async class=content-image></figure></p><p>在 v2026.3.6 之前，记忆是代理必须显式调用的工具。如果它忘了，就在没有上下文的情况下运行。从 v2026.3.7 开始，记忆移到了 harness 围绕代理运行的 hooks 生命周期中：</p><pre tabindex=0><code>bootstrap   → load priors before turn 1
+ingest      → soak up new facts as they appear
+assemble    → build the final prompt slice
+compact     → trim under budget
+afterTurn   → write back what changed
+</code></pre><p>代理不再决定<em>何时</em>记忆。harness 来决定。这听起来很小；其实不然。这是“代理记得要去记”和“系统会记，没得商量”之间的区别。</p><p>默认 ContextEngine 对大多数人够用。如果你想换进 RAG 风格的检索器或知识图谱后端，也可以——代理配置不变，只换引擎。</p><h2 id=自动写入的争议>自动写入的争议</h2><p>ContextEngine 默认引入了 <code>auto_write: true</code>。代理不经询问直接写入记忆文件——每个纠正、新事实或项目更新都会进去。</p><p>对于带个人助理的 solo 用户，这很棒。你从不说“记住那个”。代理一周内就能捕捉到模式。</p><p>对于共享机器人——比如五个人的团队房间——自动写入就是灾难。A 说“永远用 TypeScript。”B 说“我们是 Python 店。”两者都被写入，没有归属。记忆变得矛盾。</p><p>配置如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;agents&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;defaults&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;context_engine&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;auto_write&#34;</span><span class=p>:</span> <span class=kc>true</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>共享机器人设为 <code>false</code>。代理仍然读记忆，但除非被要求否则不写。审计最近的写入：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw memory log --since 7d
+</span></span></code></pre></td></tr></table></div></div><p>这会打印过去 7 天内的每次记忆写入——文件、行、内容以及触发的轮次。我每周跑一次。偶尔代理会写错东西（归因错了偏好，或者把一次性事件记成了永久规则），早点 catching 成本很低。</p><p>我的经验法则：</p><ul><li><strong>Solo 用户，个人助理：</strong> <code>auto_write: true</code>。每周审查。</li><li><strong>共享机器人，团队房间：</strong> <code>auto_write: false</code>。仅使用显式记忆命令。</li><li><strong>混合模式：</strong> <code>auto_write: true</code> 配合审查 cron，标记非主用户条目。</li></ul><h2 id=在-agent-之间迁移记忆>在 Agent 之间迁移记忆</h2><p>迟早你会创建第二个 Agent，或者换了机器、升级了环境，想要重新开始但又不想丢掉上下文。记忆迁移其实不难，但有些坑得注意。</p><p><strong>复制工作区</strong></p><p>最简单的迁移方案：直接把 <code>~/.openclaw/workspace/</code> 拷贝到新位置。全是 Markdown，便携性没问题。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>tar -czf openclaw-memory-backup.tar.gz ~/.openclaw/workspace/
+</span></span><span class=line><span class=cl><span class=c1># On new machine:</span>
+</span></span><span class=line><span class=cl>tar -xzf openclaw-memory-backup.tar.gz -C ~/
+</span></span></code></pre></td></tr></table></div></div><p>如果在同一台机器上创建第二个 Agent，拷贝完记得修剪一下。项目 Agent 不需要你的身份板块；个人助理也不需要别的项目的参考资料。</p><p><strong>重新索引 Embedding</strong></p><p><code>~/.openclaw/index/</code> 里的向量索引跨模型不通用。新机器上是同一个模型？直接拷过去。换了模型？删掉重建：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>rm -rf ~/.openclaw/index/
+</span></span><span class=line><span class=cl>openclaw memory reindex
+</span></span></code></pre></td></tr></table></div></div><p>一般工作区（20-30 个文件）重新索引不到一分钟。</p><p><strong>会话导出到记忆</strong></p><p>聊得挺嗨，关键决策却忘了持久化？事后也能补救：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>openclaw memory <span class=nb>export</span> --session &lt;session-id&gt; --type decisions
+</span></span></code></pre></td></tr></table></div></div><p>这会让 Agent 跑一遍会话记录，把决策、偏好和经验教训抽出来放到 <code>memory/staged.md</code> 里供你 review。它可能会过度提取，别盲目信任——但总比重读 200 轮会话要强。</p><p><strong>别迁移这些</strong></p><p><code>memory/archive/</code>、会话 <code>.jsonl</code> 文件（除非你要从中导出），还有换了 Embedding 提供商时的 <code>index/</code> 目录，这些都跳过。过期的向量比没有更糟——它们会自信地返回错误结果。</p><h2 id=哪里还会漏>哪里还会漏</h2><p>有三件事还是会坑到我：</p><ol><li><strong>群聊和子 Agent 默认不读 <code>MEMORY.md</code>。</strong> 这是故意的（沙箱隔离），但如果你忘了，就会奇怪为什么团队机器人不知道你的名字。</li><li><strong>Embedding 漂移。</strong> 换了模型，旧向量就废了。要么重新索引，要么忍受召回率下降。</li><li><strong>40 行纪律。</strong> 没人强制约束。设个每周 cron，如果 <code>wc -l MEMORY.md</code> 超过 40 行就报错。</li></ol><p>我每周日都会跑个快速健康检查：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>wc -l ~/.openclaw/workspace/MEMORY.md       <span class=c1># &lt; 40</span>
+</span></span><span class=line><span class=cl>ls -lt ~/.openclaw/workspace/memory/*.md <span class=p>|</span> head
+</span></span><span class=line><span class=cl>ls ~/.openclaw/agents/main/sessions/*.jsonl <span class=p>|</span> wc -l
+</span></span></code></pre></td></tr></table></div></div><p>如果 <code>MEMORY.md</code> 悄悄超过 40 行，说明有些内容该移到 <code>projects.md</code> 或 <code>lessons.md</code> 里了。如果会话文件堆了几百个，赶紧归档——启动速度会变慢。</p><h2 id=重点总结>重点总结</h2><ul><li><code>MEMORY.md</code> 是索引，不是数据库。</li><li>第一天就打开 <code>memoryFlush</code>。</li><li>等有值得搜索的内容后再加 <code>memorySearch</code>。</li><li>v2026.3.7 之后，别再让 Agent 去记东西；让引擎来做。</li><li>记忆决定了 Agent 像个工具还是像个同事。这份纪律值得遵守。</li></ul></div><section class=series-nav-block aria-label=本系列><div class=series-nav-head><div class=label>本系列</div><h3><a href=/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a> <span class=count>10 篇</span></h3></div><div class=series-nav-prev-next><div class="nav-item prev-item"><div class=label>← 上一篇</div><a href=https://www.chenk.top/zh/openclaw-quickstart/06-skills-and-mcp/><span class=title>OpenClaw 快速上手（六）：技能系统与 MCP——让 Agent 学会做事</span></a></div><div class="nav-item next-item"><div class=label>下一篇 →</div><a href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=title>OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒</span></a></div></div><ol class=series-nav-all><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=series-nav-num>01</span>
 <span class=series-nav-title>OpenClaw 快速上手（一）：这玩意到底是什么</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/02-install-and-first-chat/><span class=series-nav-num>02</span>
 <span class=series-nav-title>OpenClaw 快速上手（二）：安装到第一次对话，十分钟搞定</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=series-nav-num>03</span>
 <span class=series-nav-title>OpenClaw 快速上手（三）：让 Agent 循环跑起来的六个层</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/04-configuration/><span class=series-nav-num>04</span>
@@ -143,7 +190,7 @@
 <span class=series-nav-here>当前</span></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=series-nav-num>08</span>
 <span class=series-nav-title>OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/09-china-channels/><span class=series-nav-num>09</span>
 <span class=series-nav-title>OpenClaw 快速上手（九）：国内 IM 渠道选型——说点掏心窝的</span></a></li><li class=series-nav-item><a href=https://www.chenk.top/zh/openclaw-quickstart/10-production-deploy/><span class=series-nav-num>10</span>
-<span class=series-nav-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#记忆是第一个翻车的地方>记忆是第一个翻车的地方</a></li><li><a href=#workspace-目录结构>Workspace 目录结构</a></li><li><a href=#contextengine-v202637从工具变成生命周期>ContextEngine v2026.3.7：从工具变成生命周期</a></li><li><a href=#记忆预算的数学>记忆预算的数学</a></li><li><a href=#auto_write-的取舍>auto_write 的取舍</a></li><li><a href=#跨机器迁移记忆>跨机器迁移记忆</a></li><li><a href=#还在漏的地方>还在漏的地方</a></li><li><a href=#每周健康检查>每周健康检查</a></li><li><a href=#总结>总结</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/openclaw-quickstart/ class=series-name>OpenClaw 从零实战</a>
+<span class=series-nav-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></section><div class=article-end><h4>读有所得？</h4><p>GitHub 关注我 → 新文周更</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>目录</div><nav id=TableOfContents><ul><li><a href=#工作区的样子>工作区的样子</a></li><li><a href=#四层思维模型>四层思维模型</a></li><li><a href=#写好记忆条目>写好记忆条目</a></li><li><a href=#记忆类型深挖>记忆类型深挖</a></li><li><a href=#memoryflush--我唯一必改的配置>memoryFlush — 我唯一必改的配置</a><ul><li><a href=#没开这功能会发生什么>没开这功能会发生什么</a></li></ul></li><li><a href=#memorysearch--以及为什么-bge-m3-够用了>memorySearch — 以及为什么 bge-m3 够用了</a></li><li><a href=#记忆预算算笔账>记忆预算算笔账</a></li><li><a href=#contextengine--v202637-的变动>ContextEngine — v2026.3.7 的变动</a></li><li><a href=#自动写入的争议>自动写入的争议</a></li><li><a href=#在-agent-之间迁移记忆>在 Agent 之间迁移记忆</a></li><li><a href=#哪里还会漏>哪里还会漏</a></li><li><a href=#重点总结>重点总结</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=所属系列><div class=label><a href=/zh/series/openclaw-quickstart/ class=series-name>OpenClaw 从零实战</a>
 <span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=chapter-num>01</span>
 <span class=chapter-title>OpenClaw 快速上手（一）：这玩意到底是什么</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/02-install-and-first-chat/><span class=chapter-num>02</span>
 <span class=chapter-title>OpenClaw 快速上手（二）：安装到第一次对话，十分钟搞定</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=chapter-num>03</span>
@@ -154,5 +201,5 @@
 <span class=chapter-title>OpenClaw 快速上手（七）：记忆系统——别指望魔法</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=chapter-num>08</span>
 <span class=chapter-title>OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/09-china-channels/><span class=chapter-num>09</span>
 <span class=chapter-title>OpenClaw 快速上手（九）：国内 IM 渠道选型——说点掏心窝的</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/10-production-deploy/><span class=chapter-num>10</span>
-<span class=chapter-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>12 min</strong></div><div class=row><span>字数</span><strong>2572</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战手册</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>阿里云 PAI</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
+<span class=chapter-title>OpenClaw 快速上手（十）：生产部署与没人提前告诉你的故障模式</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>阅读</span><strong>16 min</strong></div><div class=row><span>字数</span><strong>3626</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h3 class=footer-col-title>系列</h3><ul><li><a href=https://www.chenk.top/zh/series/llm-engineering/>大模型工程</a></li><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude Code 实战手册</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>OpenClaw 从零实战</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>阿里云 PAI</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>探索</h3><ul><li><a href=/zh/archives/>全部文章</a></li><li><a href=/zh/tags/>标签</a></li><li><a href=/zh/categories/>分类</a></li><li><a href=/zh/about/>关于</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>项目</h3><ul><li><a href=https://llm4marketing.com target=_blank rel=noopener>AI4Marketing</a></li><li><a href=https://llm4science.top target=_blank rel=noopener>AI4Science</a></li><li><a href=https://company-skill.com target=_blank rel=noopener>DaaS</a></li></ul></div><div class=footer-col><h3 class=footer-col-title>其他</h3><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴</span>
 <span class=signature>杭州</span></div></div></footer></body></html>
