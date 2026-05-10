@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（三）：VPC、SLB 构建网络基石"
-date: 2026-05-12 09:00:00
+date: 2026-04-22 09:00:00
 tags:
   - Alibaba Cloud
   - VPC
@@ -8,7 +8,7 @@ tags:
   - Networking
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

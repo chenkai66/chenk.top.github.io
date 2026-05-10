@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（八）：Serverless 与事件驱动"
-date: 2026-05-22 09:00:00
+date: 2026-05-02 09:00:00
 tags:
   - Alibaba Cloud
   - Function Compute
@@ -8,7 +8,7 @@ tags:
   - Serverless
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（五）：RDS 与 PolarDB 数据基石"
-date: 2026-05-16 09:00:00
+date: 2026-04-26 09:00:00
 tags:
   - Alibaba Cloud
   - RDS
@@ -9,7 +9,7 @@ tags:
   - Database
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

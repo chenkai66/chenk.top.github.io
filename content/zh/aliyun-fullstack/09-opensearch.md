@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（九）：OpenSearch 与 AI 搜索"
-date: 2026-05-24 09:00:00
+date: 2026-05-04 09:00:00
 tags:
   - Alibaba Cloud
   - OpenSearch
@@ -9,7 +9,7 @@ tags:
   - AI Search
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

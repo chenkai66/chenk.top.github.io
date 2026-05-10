@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (11): PAI — The ML Platform"
-date: 2026-05-28 09:00:00
+date: 2026-05-08 09:00:00
 tags:
   - Alibaba Cloud
   - PAI

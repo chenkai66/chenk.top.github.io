@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (9): OpenSearch and AI Search"
-date: 2026-05-24 09:00:00
+date: 2026-05-04 09:00:00
 tags:
   - Alibaba Cloud
   - OpenSearch

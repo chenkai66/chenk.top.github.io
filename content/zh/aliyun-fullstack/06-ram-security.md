@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（六）：RAM、KMS 筑牢云安全"
-date: 2026-05-18 09:00:00
+date: 2026-04-28 09:00:00
 tags:
   - Alibaba Cloud
   - RAM
@@ -9,7 +9,7 @@ tags:
   - IAM
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

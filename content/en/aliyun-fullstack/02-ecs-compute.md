@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (2): ECS — Compute That Actually Makes Sense"
-date: 2026-05-10 09:00:00
+date: 2026-04-20 09:00:00
 tags:
   - Alibaba Cloud
   - ECS

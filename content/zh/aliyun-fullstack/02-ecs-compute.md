@@ -1,13 +1,13 @@
 ---
 title: "阿里云全栈实战（二）：ECS——让计算回归本质"
-date: 2026-05-10 09:00:00
+date: 2026-04-20 09:00:00
 tags:
   - Alibaba Cloud
   - ECS
   - Compute
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

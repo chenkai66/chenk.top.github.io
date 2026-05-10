@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（四）：OSS——对象存储最佳实践"
-date: 2026-05-14 09:00:00
+date: 2026-04-24 09:00:00
 tags:
   - Alibaba Cloud
   - OSS
@@ -8,7 +8,7 @@ tags:
   - CDN
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（十二）：Terraform 全栈统一交付"
-date: 2026-05-30 09:00:00
+date: 2026-05-10 09:00:00
 tags:
   - Alibaba Cloud
   - Terraform
@@ -8,7 +8,7 @@ tags:
   - CI/CD
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

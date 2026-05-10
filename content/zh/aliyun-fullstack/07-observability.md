@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（七）：SLS 打造可观测性体系"
-date: 2026-05-20 09:00:00
+date: 2026-04-30 09:00:00
 tags:
   - Alibaba Cloud
   - SLS
@@ -9,7 +9,7 @@ tags:
   - Observability
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

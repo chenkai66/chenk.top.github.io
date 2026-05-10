@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（十一）：PAI 打造机器学习平台"
-date: 2026-05-28 09:00:00
+date: 2026-05-08 09:00:00
 tags:
   - Alibaba Cloud
   - PAI
@@ -9,7 +9,7 @@ tags:
   - EAS
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

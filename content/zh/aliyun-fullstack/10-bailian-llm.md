@@ -1,6 +1,6 @@
 ---
 title: "阿里云全栈实战（十）：DashScope 与大模型层"
-date: 2026-05-26 09:00:00
+date: 2026-05-06 09:00:00
 tags:
   - Alibaba Cloud
   - Bailian
@@ -9,7 +9,7 @@ tags:
   - LLM
   - Cloud Computing
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

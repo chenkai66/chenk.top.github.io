@@ -1,13 +1,13 @@
 ---
 title: "阿里云全栈实战（一）：生态全景图——阿里云到底是什么"
-date: 2026-05-08 09:00:00
+date: 2026-04-18 09:00:00
 tags:
   - Alibaba Cloud
   - Cloud Computing
   - ECS
   - Getting Started
 categories: Cloud Computing
-lang: en
+lang: zh
 mathjax: false
 series: aliyun-fullstack
 series_title: "Alibaba Cloud Full Stack"

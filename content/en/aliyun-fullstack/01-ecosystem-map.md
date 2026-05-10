@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (1): The Ecosystem Map — What Alibaba Cloud Actually Is"
-date: 2026-05-08 09:00:00
+date: 2026-04-18 09:00:00
 tags:
   - Alibaba Cloud
   - Cloud Computing

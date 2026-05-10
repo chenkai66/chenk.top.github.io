@@ -1,6 +1,6 @@
 ---
 title: "Alibaba Cloud Full Stack (8): Serverless — Function Compute and EventBridge"
-date: 2026-05-22 09:00:00
+date: 2026-05-02 09:00:00
 tags:
   - Alibaba Cloud
   - Function Compute
