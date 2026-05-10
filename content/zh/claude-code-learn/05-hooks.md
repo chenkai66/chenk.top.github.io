@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战入门（五）：Hooks，让你不再担心 Yolo 模式"
+title: "Claude Code 实战（五）：Hooks——Yolo 模式的安全网"
 date: 2026-04-20 09:00:00
 tags:
   - claude-code

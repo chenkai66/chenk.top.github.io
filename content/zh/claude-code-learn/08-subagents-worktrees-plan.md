@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战入门（八）：子 Agent、worktree、计划模式"
+title: "Claude Code 实战（八）：子 Agent、Worktree 与计划模式"
 date: 2026-04-23 09:00:00
 tags:
   - claude-code

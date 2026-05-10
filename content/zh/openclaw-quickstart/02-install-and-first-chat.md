@@ -1,5 +1,5 @@
 ---
-title: "OpenClaw 快速上手（二）：安装到第一次对话，十分钟搞定"
+title: "OpenClaw 上手（二）：十分钟跑通第一个对话"
 date: 2026-04-04 09:00:00
 tags:
   - openclaw

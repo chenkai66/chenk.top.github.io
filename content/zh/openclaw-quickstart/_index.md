@@ -1,3 +1,3 @@
 ---
-title: "OpenClaw 快速上手"
+title: "OpenClaw 上手"
 ---

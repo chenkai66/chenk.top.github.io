@@ -1,5 +1,5 @@
 ---
-title: "大模型工程（六）：长上下文 —— RoPE、YaRN、Attention Sinks"
+title: "大模型工程（六）：把上下文拉长十倍"
 date: 2026-05-01 09:00:00
 tags:
   - LLM

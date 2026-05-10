@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战入门（二）：快捷键、四态切换、Thinking Mode"
+title: "Claude Code 实战（二）：快捷键、模式切换与深度思考"
 date: 2026-04-17 09:00:00
 tags:
   - claude-code

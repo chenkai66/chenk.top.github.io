@@ -1,5 +1,5 @@
 ---
-title: "大模型工程（九）：生产规模的 Prompting"
+title: "大模型工程（九）：Prompt 工程的工业化"
 date: 2026-05-04 09:00:00
 tags:
   - LLM

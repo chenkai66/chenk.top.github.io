@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战入门（九）：settings.json、三层权限模型、env"
+title: "Claude Code 实战（九）：权限模型与环境变量"
 date: 2026-04-24 09:00:00
 tags:
   - claude-code

@@ -1,5 +1,5 @@
 ---
-title: "阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法"
+title: "百炼实战（二）：Qwen 文本模型的生产用法"
 date: 2026-02-26 09:00:00
 tags:
   - Aliyun Bailian

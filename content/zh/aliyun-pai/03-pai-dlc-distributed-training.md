@@ -1,5 +1,5 @@
 ---
-title: "阿里云 PAI 实战（三）：PAI-DLC——不用通宵刨坑的分布式训练"
+title: "PAI 实战（三）：DLC——分布式训练不踩坑"
 date: 2026-03-07 09:00:00
 tags:
   - Aliyun PAI

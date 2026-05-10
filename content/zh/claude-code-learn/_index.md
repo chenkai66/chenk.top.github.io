@@ -1,3 +1,3 @@
 ---
-title: "Claude Code 实战入门"
+title: "Claude Code 实战"
 ---

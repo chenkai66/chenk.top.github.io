@@ -1,5 +1,5 @@
 ---
-title: "用 Terraform 给 AI Agent 上云（七）：可观测、SLS 看板与成本告警"
+title: "Terraform x AI Agent（七）：可观测与成本告警"
 date: 2026-03-24 09:00:00
 tags:
   - Terraform

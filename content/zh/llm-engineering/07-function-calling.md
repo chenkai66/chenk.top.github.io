@@ -1,5 +1,5 @@
 ---
-title: "大模型工程（七）：Function Calling 与工具使用"
+title: "大模型工程（七）：Function Calling，让模型调工具"
 date: 2026-05-02 09:00:00
 tags:
   - LLM

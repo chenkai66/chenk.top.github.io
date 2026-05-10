@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战入门（一）：安装、三层配置、以及 # @ /init 这一组"
+title: "Claude Code 实战（一）：安装与三层配置体系"
 date: 2026-04-16 09:00:00
 tags:
   - claude-code

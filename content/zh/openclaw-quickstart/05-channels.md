@@ -1,5 +1,5 @@
 ---
-title: "OpenClaw 快速上手（五）：接入聊天渠道——Telegram、钉钉和微信的第一步"
+title: "OpenClaw 上手（五）：接入 Telegram、钉钉和微信"
 date: 2026-04-07 09:00:00
 tags:
   - openclaw

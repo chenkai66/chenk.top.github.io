@@ -1,3 +1,3 @@
 ---
-title: "Terraform for AI Agents"
+title: "Terraform x AI Agent"
 ---

@@ -1,5 +1,5 @@
 ---
-title: "OpenClaw 快速上手（六）：技能系统与 MCP——让 Agent 学会做事"
+title: "OpenClaw 上手（六）：技能系统与 MCP"
 date: 2026-04-08 09:00:00
 tags:
   - openclaw

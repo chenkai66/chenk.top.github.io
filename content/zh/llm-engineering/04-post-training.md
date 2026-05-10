@@ -1,5 +1,5 @@
 ---
-title: "大模型工程（四）：Post-training —— SFT、DPO、RLHF、RLAIF"
+title: "大模型工程（四）：后训练全流程——SFT、DPO 到 RLHF"
 date: 2026-04-29 09:00:00
 tags:
   - LLM

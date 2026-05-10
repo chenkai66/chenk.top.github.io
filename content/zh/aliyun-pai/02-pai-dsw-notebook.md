@@ -1,5 +1,5 @@
 ---
-title: "阿里云 PAI 实战（二）：PAI-DSW——不会吃掉你权重的 Notebook"
+title: "PAI 实战（二）：DSW——好用的 GPU Notebook"
 date: 2026-03-06 09:00:00
 tags:
   - Aliyun PAI

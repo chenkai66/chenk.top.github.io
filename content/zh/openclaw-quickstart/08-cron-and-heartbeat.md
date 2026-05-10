@@ -1,5 +1,5 @@
 ---
-title: "OpenClaw 快速上手（八）：心跳巡逻、定时任务，以及早上七点被戳醒"
+title: "OpenClaw 上手（八）：心跳、定时任务与自动巡逻"
 date: 2026-04-10 09:00:00
 tags:
   - openclaw

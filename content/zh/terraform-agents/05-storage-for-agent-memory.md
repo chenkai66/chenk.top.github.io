@@ -1,5 +1,5 @@
 ---
-title: "用 Terraform 给 AI Agent 上云（五）：存储层——向量、关系、对象记忆"
+title: "Terraform x AI Agent（五）：存储层——向量库、RDS 与 OSS"
 date: 2026-03-20 09:00:00
 tags:
   - Terraform
