@@ -1,5 +1,5 @@
 ---
-title: "OpenClaw 上手（五）：接入 Telegram、钉钉和微信"
+title: "OpenClaw 指南（五）：对接 Telegram、钉钉与微信"
 date: 2026-04-07 09:00:00
 tags:
   - openclaw

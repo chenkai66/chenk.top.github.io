@@ -1,5 +1,5 @@
 ---
-title: "PAI 实战（二）：DSW——好用的 GPU Notebook"
+title: "阿里云 PAI（二）：DSW Notebook 避坑指南"
 date: 2026-03-06 09:00:00
 tags:
   - Aliyun PAI

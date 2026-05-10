@@ -1,5 +1,5 @@
 ---
-title: "Terraform x AI Agent（一）：为什么 IaC 是唯一正经的部署方式"
+title: "Terraform 实战（一）：为何 IaC 是唯一出路"
 date: 2026-03-12 09:00:00
 tags:
   - Terraform

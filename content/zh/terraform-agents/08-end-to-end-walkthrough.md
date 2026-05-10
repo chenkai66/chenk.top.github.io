@@ -1,5 +1,5 @@
 ---
-title: "Terraform x AI Agent（八）：一条命令拉起全栈"
+title: "Terraform 实战（八）：一条命令拉起全栈"
 date: 2026-03-26 09:00:00
 tags:
   - Terraform

@@ -1,5 +1,5 @@
 ---
-title: "百炼实战（三）：Qwen-Omni 多模态理解"
+title: "阿里云百炼（三）：Qwen-Omni 多模态理解"
 date: 2026-02-27 09:00:00
 tags:
   - Aliyun Bailian

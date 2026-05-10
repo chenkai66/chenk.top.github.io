@@ -1,5 +1,5 @@
 ---
-title: "OpenClaw 上手（八）：心跳、定时任务与自动巡逻"
+title: "OpenClaw 指南（八）：心跳巡逻与定时任务"
 date: 2026-04-10 09:00:00
 tags:
   - openclaw

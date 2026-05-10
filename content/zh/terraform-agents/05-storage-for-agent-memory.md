@@ -1,5 +1,5 @@
 ---
-title: "Terraform x AI Agent（五）：存储层——向量库、RDS 与 OSS"
+title: "Terraform 实战（五）：向量库、RDS 与对象存储"
 date: 2026-03-20 09:00:00
 tags:
   - Terraform

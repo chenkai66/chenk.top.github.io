@@ -1,5 +1,5 @@
 ---
-title: "大模型工程（一）：架构演进，从 Transformer 到 MoE"
+title: "大模型工程（一）：Transformer 到 MoE"
 date: 2026-04-26 09:00:00
 tags:
   - LLM

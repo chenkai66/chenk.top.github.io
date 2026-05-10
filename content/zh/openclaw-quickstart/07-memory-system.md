@@ -1,5 +1,5 @@
 ---
-title: "OpenClaw 上手（七）：记忆系统——别指望魔法"
+title: "OpenClaw 指南（七）：记忆系统去魔法化"
 date: 2026-04-09 09:00:00
 tags:
   - openclaw

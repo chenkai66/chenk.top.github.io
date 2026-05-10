@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战（七）：十个日常 Hooks 配方"
+title: "Claude Code 实战（七）：十个实用 Hooks 配方"
 date: 2026-04-22 09:00:00
 tags:
   - claude-code

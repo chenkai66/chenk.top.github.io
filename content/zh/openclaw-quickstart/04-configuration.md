@@ -1,5 +1,5 @@
 ---
-title: "OpenClaw 上手（四）：配置与模型选型"
+title: "OpenClaw 指南（四）：配置与模型选型"
 date: 2026-04-06 09:00:00
 tags:
   - openclaw

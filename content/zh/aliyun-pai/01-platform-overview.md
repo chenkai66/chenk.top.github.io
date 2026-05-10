@@ -1,5 +1,5 @@
 ---
-title: "PAI 实战（一）：平台全景与产品地图"
+title: "阿里云 PAI（一）：平台概览与产品地图"
 date: 2026-03-05 09:00:00
 tags:
   - Aliyun PAI

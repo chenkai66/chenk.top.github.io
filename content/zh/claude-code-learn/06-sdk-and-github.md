@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战（六）：SDK、GitHub 与 CI 集成"
+title: "Claude Code 实战（六）：SDK 与 GitHub CI"
 date: 2026-04-21 09:00:00
 tags:
   - claude-code

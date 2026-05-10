@@ -1,5 +1,5 @@
 ---
-title: "百炼实战（二）：Qwen 文本模型的生产用法"
+title: "阿里云百炼（二）：Qwen API 生产接入"
 date: 2026-02-26 09:00:00
 tags:
   - Aliyun Bailian

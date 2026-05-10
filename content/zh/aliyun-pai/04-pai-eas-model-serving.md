@@ -1,5 +1,5 @@
 ---
-title: "PAI 实战（四）：EAS——模型上线与冷启动真相"
+title: "阿里云 PAI（四）：EAS 部署与冷启动真相"
 date: 2026-03-08 09:00:00
 tags:
   - Aliyun PAI

@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战入门（十）：Skills，以及四种扩展机制各自该用在哪儿"
+title: "Claude Code 实战（十）：Skills 与四种扩展机制"
 date: 2026-04-25 09:00:00
 tags:
   - claude-code

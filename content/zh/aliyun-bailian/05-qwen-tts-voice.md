@@ -1,5 +1,5 @@
 ---
-title: "百炼实战（五）：Qwen-TTS 语音合成"
+title: "阿里云百炼（五）：Qwen-TTS 语音合成"
 date: 2026-03-01 09:00:00
 tags:
   - Aliyun Bailian

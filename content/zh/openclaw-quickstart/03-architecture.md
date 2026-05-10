@@ -1,5 +1,5 @@
 ---
-title: "OpenClaw 上手（三）：Agent 循环的六层架构"
+title: "OpenClaw 指南（三）：Agent Loop 六层架构"
 date: 2026-04-05 09:00:00
 tags:
   - openclaw

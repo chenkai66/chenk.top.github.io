@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战（三）：自定义斜杠命令"
+title: "Claude Code 实战（三）：自定义 Slash 命令"
 date: 2026-04-18 09:00:00
 tags:
   - claude-code

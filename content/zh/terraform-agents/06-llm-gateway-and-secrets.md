@@ -1,5 +1,5 @@
 ---
-title: "Terraform x AI Agent（六）：LLM 网关与密钥管理"
+title: "Terraform 实战（六）：LLM Gateway 与密钥管理"
 date: 2026-03-22 09:00:00
 tags:
   - Terraform

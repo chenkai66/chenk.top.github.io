@@ -1,5 +1,5 @@
 ---
-title: "PAI 实战（五）：Designer vs Gallery——GUI 什么时候值"
+title: "阿里云 PAI（五）：Designer vs Model Gallery"
 date: 2026-03-09 09:00:00
 tags:
   - Aliyun PAI
