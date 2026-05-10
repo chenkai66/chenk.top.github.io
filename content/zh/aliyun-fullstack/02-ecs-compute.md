@@ -599,7 +599,7 @@ scp -o ProxyJump=bastion localfile.tar.gz app-internal:/opt/app/
 4. 从 `authorized_keys` 移除旧公钥。
 5. 从 ECS 删除旧密钥对。
 
-对于大批量机器，通过 cloud-init 或 Ansible playbook 管理 SSH 密钥——别手动去改 20 台实例的 `authorized_keys`。
+对于大批量机器，通过 cloud-init 或 Ansible 实战手册 管理 SSH 密钥——别手动去改 20 台实例的 `authorized_keys`。
 
 ## 磁盘与存储
 

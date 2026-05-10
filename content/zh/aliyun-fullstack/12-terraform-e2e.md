@@ -43,7 +43,7 @@ translationKey: "aliyun-fullstack-12"
 
 ### 五大支柱
 
-基础设施即代码提供了手动 provisioning 无法给出的五样东西：
+基础设施即代码提供了手动 部署 无法给出的五样东西：
 
 | Pillar | What it means | Why it matters |
 |---|---|---|

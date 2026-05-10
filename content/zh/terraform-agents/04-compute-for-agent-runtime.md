@@ -242,7 +242,7 @@ resource "alicloud_cs_kubernetes_node_pool" "agents" {
 - **`ack.pro.small`** 是托管控制平面 SKU。阿里云跑 master 节点；你只为 worker ECS 付费——控制平面每月约¥350，不含节点成本。除非有强理由，别选非托管 SKU。
 - **`pod_vswitch_ids`** 是给 Terway 用的，阿里云原生 CNI。每个 Pod 拿到真实 VPC IP——没有 overlay 网络，安全组直接生效。这是默认正解；Flannel 会让网络调试变成噩梦。
 - **`delete_protection = true`** 顾名思义——`terraform destroy` 杀不掉集群。每个生产集群都要设这个。
-- **`addons` 块** 启用 ARMS Prometheus（第 7 篇）和 SLS 日志收集器。通过 Terraform  provisioning 意味着新集群自带监控 instrumentation。
+- **`addons` 块** 启用 ARMS Prometheus（第 7 篇）和 SLS 日志收集器。通过 Terraform  部署 意味着新集群自带监控 instrumentation。
 
 真正的 Agent Pod 来自 Kubernetes Deployment manifest——通常由单独的 `kubectl` 步骤或 `kubernetes` Terraform provider 应用。我把集群放在这个 `terraform` 项目里，工作负载放在单独的 Helm chart 里，因为它们发布节奏不同。集群一季度变一次；Agent 镜像一天变十次。
 ## Pattern 3: Function Compute for event-driven agents
@@ -367,7 +367,7 @@ resource "alicloud_eci_container_group" "research_batch" {
 -   **`EmptyDirVolume` 是容器组级别的临时存储**，跟 Kubernetes 的 emptyDir 一样。别在这存不可复现的东西——输出写 OSS 或 RDS。
 -   **`ram_role_name`** 让容器能从实例元数据获取凭证，跟 ECS 模式一样。环境变量里别放 AK/SK。
 
-`alicloud_eci_container_group` 资源有个烦人的毛病：改 `containers[*]` 不一定触发干净的重建，因为 API 部分是 merge 机制。生产环境的批量任务，我用 Terraform  provisioning 一次容器组，运行时规格用 `ignore_changes` 忽略，然后由 orchestrator 直接调 ECI API 触发新运行，复用 Terraform 配好的 role 和 SG。**把 Terraform 这边当作*模板*，而不是*执行器*。**
+`alicloud_eci_container_group` 资源有个烦人的毛病：改 `containers[*]` 不一定触发干净的重建，因为 API 部分是 merge 机制。生产环境的批量任务，我用 Terraform  部署 一次容器组，运行时规格用 `ignore_changes` 忽略，然后由 orchestrator 直接调 ECI API 触发新运行，复用 Terraform 配好的 role 和 SG。**把 Terraform 这边当作*模板*，而不是*执行器*。**
 
 成本粗算：4 vCPU / 16 GB 的 ECI 大概 0.96 元/小时，按秒计费，最低 1 分钟。跑 8 分钟的研究任务大概 0.13 元。每天 100 次 = 13 元/天 = 390 元/月。同样的负载要是跑在常驻 ECS 上，闲置也得 250-400 元/月。**利用率低于 50% 选 ECI；高于这个数，ECS 或 ACK 更划算。**
 
@@ -448,6 +448,6 @@ resource "alicloud_ros_stack" "eas_serving" {
 
 ## What's next
 
-第 5 篇文章补充存储层——向量库、关系型数据库、对象存储、备份——也就是我们刚才 provisioning 的所有东西需要连接的地方。ECS 实例、ACK Pod、FC 函数和 ECI 容器，直到有了存放记忆的地方，否则都是无用之功。
+第 5 篇文章补充存储层——向量库、关系型数据库、对象存储、备份——也就是我们刚才 部署 的所有东西需要连接的地方。ECS 实例、ACK Pod、FC 函数和 ECI 容器，直到有了存放记忆的地方，否则都是无用之功。
 
 然后第 6 篇在所有计算资源前构建 LLM 网关，第 7 篇接入可观测性和成本告警，第 8 篇把所有东西缝合成一个 `terraform apply`。

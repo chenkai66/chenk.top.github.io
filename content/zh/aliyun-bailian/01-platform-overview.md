@@ -11,7 +11,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"
 series_order: 1
-description: "一个工程师视角的阿里云百炼（DashScope）导览——模型目录里真正能用的那几个、两种 endpoint 形态、异步任务模式，外加一个 hello-world 请求把后续文章的基础铺好。"
+description: "一个工程师视角的阿里云百炼（DashScope）导览——模型目录里真正能用的那几个、两种 endpoint 形态、异步任务模式，外加一个 入门示例 请求把后续文章的基础铺好。"
 disableNunjucks: true
 translationKey: "aliyun-bailian-1"
 ---

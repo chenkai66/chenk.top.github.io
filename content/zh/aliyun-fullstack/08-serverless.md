@@ -221,7 +221,7 @@ resources:
     component: fc3
     props:
       region: cn-beijing
-      functionName: hello-world
+      functionName: 入门示例
       description: "Simple hello world function"
       runtime: python3.10
       handler: index.handler
@@ -253,7 +253,7 @@ s invoke -e '{"name": "Alibaba Cloud"}'
 
 # Get the HTTP trigger URL
 s info
-# Output includes: url: https://hello-world-xxxx.cn-beijing.fcapp.run
+# Output includes: url: https://入门示例-xxxx.cn-beijing.fcapp.run
 ```
 
 用 curl 测一下：
@@ -261,7 +261,7 @@ s info
 ```bash
 # Test the deployed function
 curl -X POST \
-  https://hello-world-xxxx.cn-beijing.fcapp.run \
+  https://入门示例-xxxx.cn-beijing.fcapp.run \
   -H "Content-Type: application/json" \
   -d '{"name": "Serverless"}'
 

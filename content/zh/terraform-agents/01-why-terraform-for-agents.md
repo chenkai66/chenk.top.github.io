@@ -20,7 +20,7 @@ translationKey: "terraform-agents-1"
 
 第四个是从 `terraform apply` 开始的。它是唯一一个没让我牺牲周末的系统。
 
-这个系列就是为第四种模式准备的实战指南：如何用 Terraform  provisioning AI Agent 系统在阿里云上真正需要的基础设施。这不是 Terraform 教程——网上有很好的教程，官方 `Get Started` 文档也覆盖了基础。这是针对“我跑 Agent"和“我在阿里云上跑”这两个交集的高级工程师 playbook。
+这个系列就是为第四种模式准备的实战指南：如何用 Terraform  部署 AI Agent 系统在阿里云上真正需要的基础设施。这不是 Terraform 教程——网上有很好的教程，官方 `快速入门` 文档也覆盖了基础。这是针对“我跑 Agent"和“我在阿里云上跑”这两个交集的高级工程师 实战手册。
 
 八篇文章。最后交付一个真实可用的栈。第一篇讲讲为什么。
 
@@ -64,11 +64,11 @@ translationKey: "terraform-agents-1"
 
 从中需要内化三点：
 
-- **Declarative, not imperative.** 别说“创建实例”，要说“存在一个这种形状的实例”。如果什么都没变，重跑配置是 no-op。这让 Terraform 可以安全地在每次 commit 时从 CI 运行。
+- **Declarative, not imperative.** 别说“创建实例”，要说“存在一个这种形状的实例”。如果什么都没变，重跑配置是 空操作。这让 Terraform 可以安全地在每次 commit 时从 CI 运行。
 - **State is real.** `terraform.tfstate` 文件是从 HCL 资源地址到云实际资源 ID 的 JSON 映射。丢了 state file，Terraform 就会认为什么都不存在。第二篇文章会讲把 state 放在哪里才持久——但影响远不止“别丢文件”，我们后面会回来说。
 - **Plan before apply.** 这是杀手锏。每次变更都会在你动手*之前*字面展示什么会被创建、修改或销毁。养成把 plan 输出 paste 到 PR 描述里的习惯——未来的你会感谢自己。
 
-## State as the agent stack's bill of materials
+## State as the agent stack's 物料清单
 
 "State 是真实的”这点值得多写几句，因为对于 Agent 栈来说，state 文件兼任了你的库存清单。
 
@@ -84,7 +84,7 @@ terraform show -json | jq '[.values.root_module.resources[] | {addr:.address, ty
 
 对于我今天跑的四个 Agent 栈，这三条命令几秒钟就能生成一份综合清单。在用 Terraform 之前，同样的审计需要打开 ECS、VPC、RDS、OSS、RAM、KMS、SLS、ARMS、ACK、CloudMonitor、ALB 和 OpenSearch 的十二个控制台标签页——运气好按 tag 过滤，运气不好全靠直觉。
 
-State 文件也是供应链意义上的 *bill of materials*。每个资源都携带 provider 版本和 module 来源。当 alicloud provider 出现 CVE 时——确实会有，一年几次——你可以在几分钟内 grep 所有项目的 state 文件：
+State 文件也是供应链意义上的 *物料清单*。每个资源都携带 provider 版本和 module 来源。当 alicloud provider 出现 CVE 时——确实会有，一年几次——你可以在几分钟内 grep 所有项目的 state 文件：
 
 ```bash
 for d in stack-*/; do

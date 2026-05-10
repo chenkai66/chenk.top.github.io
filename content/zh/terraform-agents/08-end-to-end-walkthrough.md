@@ -234,7 +234,7 @@ terraform apply tfplan
 - **60–380s：** RDS（5 分钟）、OpenSearch（5.5 分钟）、ECS（~2 分钟）、gateway（~1.5 分钟）—— 全部并行，受限于最慢的那个
 - **380–460s：** 通过 cloud-init 部署 agent 应用、观测资源、告警
 
-总共约 7 分钟，主要耗时在 RDS 和 OpenSearch 的 provisioning 上。如果没有变更再次 apply，会在 30 秒内完成，因为 Terraform 只做 diff。
+总共约 7 分钟，主要耗时在 RDS 和 OpenSearch 的 部署 上。如果没有变更再次 apply，会在 30 秒内完成，因为 Terraform 只做 diff。
 
 一份精简后的 apply 转录：
 
@@ -297,7 +297,7 @@ total_estimated_cost = "~¥2060/month at dev sizing"
 
 1. 在 `dev.tfvars` 的 `var.agent_quotas` 里加一条配置
 2. 执行 `terraform apply -var-file=env/dev.tfvars`
-3. 网关模块里的 `null_resource` 会 provisioning 一个新的 LiteLLM key
+3. 网关模块里的 `null_resource` 会 部署 一个新的 LiteLLM key
 4. 带着新的 `LITELLM_API_KEY` 环境变量部署你的 Agent 代码
 
 端到端大概 30 秒。第一次用这套模式上线时，产品团队问能不能通过 Slack 表单自助接入 Agent。一旦有了 Terraform 契约，写这个表单也就半天工作量。
@@ -590,7 +590,7 @@ starter stack 里我刻意省略了四件事：
 - **一套可复用的 pattern** 通过 CI 推动 dev → staging → prod，带有 state 快照和 apply 后的 diff。
 - **真实的成本账** — dev 环境 ¥2,060/month，prod 环境 ¥12,530/month — 这样在财务找你之前，你就能先跟他们谈平台成本。
 - **一个多地域逃生通道** 不需要把 everything 扔掉重来。
-- **一份 Day-2 playbook** 持续回报的 pattern：state 备份、月度成本分摊、季度升级、年度架构 review。
+- **一份 Day-2 实战手册** 持续回报的 pattern：state 备份、月度成本分摊、季度升级、年度架构 review。
 
 接下来的路你自己选：
 

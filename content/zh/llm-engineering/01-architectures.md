@@ -64,7 +64,7 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\
 
 **为什么 FlashAttention 不只是个优化。** [Dao et al., 2022] 表明， vanilla 注意力的 $O(n^2)$ 显存占用不是来自 FLOPs —— 而是来自实例化 $n \times n$ 分数矩阵。FlashAttention 把 $Q$、$K$、$V$ 切成适合 SRAM 的块，每块计算带在线数值稳定归一化的 softmax，从不把完整分数矩阵写回 HBM。结果：训练时墙钟时间加速 2-4 倍，显存从 $O(n^2)$ 降到 $O(n)$。FlashAttention-2 [Dao, 2023] 重组了工作流以更好地重叠 matmul 和归约；FlashAttention-3 [Shah et al., 2024] 为 H100 添加了异步 warp 专用调度。2026 年每个生产级 LLM 训练框架（PyTorch SDPA、JAX TPU attention、vLLM、SGLang）都在调用 FlashAttention 衍生的 kernel。
 
-FlashAttention 核心的在线 softmax 技巧值得理解。标准 softmax 需要遍历行两次：一次求 $\max$，一次求 $\sum e^{x - \max}$。FlashAttention 通过维护一个运行中的 $(m_t, \ell_t)$ 对——运行最大值和运行指数和——在新块到达时更新它们，从而一次遍历完成。当你看到一个新的最大值 $m_{t+1} > m_t$，你重新缩放现有的和：$\ell_{t+1} = e^{m_t - m_{t+1}} \ell_t + e^{x - m_{t+1}}$。这和数值稳定流式统计里用的技巧一样，只是应用到了注意力内部的 softmax 上。在 fp32 累加的精度范围内，输出与未分块的参考实现 bit-exact 一致。
+FlashAttention 核心的在线 softmax 技巧值得理解。标准 softmax 需要遍历行两次：一次求 $\max$，一次求 $\sum e^{x - \max}$。FlashAttention 通过维护一个运行中的 $(m_t, \ell_t)$ 对——运行最大值和运行指数和——在新块到达时更新它们，从而一次遍历完成。当你看到一个新的最大值 $m_{t+1} > m_t$，你重新缩放现有的和：$\ell_{t+1} = e^{m_t - m_{t+1}} \ell_t + e^{x - m_{t+1}}$。这和数值稳定流式统计里用的技巧一样，只是应用到了注意力内部的 softmax 上。在 fp32 累加的精度范围内，输出与未分块的参考实现 位精确一致。
 
 ## GQA, MQA, MHA：KV cache 的真实成本
 

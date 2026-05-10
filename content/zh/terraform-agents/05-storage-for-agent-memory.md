@@ -389,7 +389,7 @@ terraform state rm alicloud_db_instance.memory_v16_trial
 
 然后在控制台删除试验实例。别在同一个项目里 `terraform destroy` 它——那样会走依赖链，可能误伤兄弟资源。
 
-整个过程日历时间约 2 周，专注工作时间约 3 小时，零计划外 downtime。用 Terraform 做的好处是，试验实例的 HCL 留在了 git 里——六个月后你要做 v17 升级时，playbook 已经在那儿了，在同一个 repo 里，被同一个团队 review 过。
+整个过程日历时间约 2 周，专注工作时间约 3 小时，零计划外 downtime。用 Terraform 做的好处是，试验实例的 HCL 留在了 git 里——六个月后你要做 v17 升级时，实战手册 已经在那儿了，在同一个 repo 里，被同一个团队 review 过。
 
 > **Tip.** 升级前先在 agent 代码里测试 connection-string 变更。有些 Postgres v16 的改动（比如移除了 `password_encryption = md5`）会搞挂旧客户端库。在提升为主库前，让 agent 对着试验实例跑满一整天。
 

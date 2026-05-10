@@ -55,7 +55,7 @@ translationKey: "aliyun-pai-1"
 
 还有 **iTAG**（数据标注）、**PAI-Lingjun** 针对超大规模集群、**PAI-Blade / BladeLLM** 用于推理优化，以及 **FeatureStore**，但除非你要搞 >1000 GPU 的预训练或者构建推荐系统，第一天可以先忽略它们。
 
-产品划分 cleanly 映射到 ML 生命周期：
+产品划分 清晰地映射到 ML 生命周期：
 
 ![PAI sub-products on the ML lifecycle](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/01-platform-overview/fig2_pai_subproducts_lifecycle.png)
 
@@ -77,7 +77,7 @@ Designer 和 Model Gallery 是正交的——它们坐在顶层，生成的 job 
 
 1. **一个 aliyun.com 账号** 完成实名认证——任何 GPU 资源都必需。国际账号在大多数地域能用，但杭州、上海和北京的 GPU 库存最足。
 2. **一个地域。** 选一个然后别变。PAI 资源、OSS bucket 和 ECS GPU 都是地域 scoped 的，跨地域流量既花钱又加延迟。国内生产我默认 `cn-shanghai`；国际选 `ap-southeast-1`（新加坡）。
-3. **一个工作空间。** 按文档说法，工作空间是 PAI 的租户基本单元——它 holding 配额、数据集、模型注册表和 IAM 绑定。你几乎总需要至少两个：一个 `dev` 工作空间让人类在 DSW 里折腾，一个 `prod` 工作空间放 DLC job 和 EAS endpoint。跨工作空间权限配置挺麻烦，但第一次有实习生误重启了服务 endpoint 时，你就知道隔离的价值了。
+3. **一个工作空间。** 按文档说法，工作空间是 PAI 的租户基本单元——它 管理配额、数据集、模型注册表和 IAM 绑定。你几乎总需要至少两个：一个 `dev` 工作空间让人类在 DSW 里折腾，一个 `prod` 工作空间放 DLC job 和 EAS endpoint。跨工作空间权限配置挺麻烦，但第一次有实习生误重启了服务 endpoint 时，你就知道隔离的价值了。
 
 ![PAI tenancy: account, region, workspace](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-pai/01-platform-overview/fig3_pai_account_workspace.png)
 

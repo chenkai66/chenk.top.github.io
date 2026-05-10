@@ -162,9 +162,9 @@ def streaming_attention(q, k_cache, v_cache, sink_size=4, window=4096):
 
 ### 为什么 softmax 非得要个 sink
 
-数学原因是结构性的。Softmax 输出的是 key 上的概率分布，构造上概率和就得为 1。要是没 key 跟 query 真正相关（比如模型在处理 "filler" token），softmax 照样得产出分布。去哪呢？训练好的模型学会把概率质量 dump 到几个特定位置——通常是开头那几个靠近 BOS 的 token，毕竟每个训练样本里都有它们。这些 token 充当了 "no-op" 目标。
+数学原因是结构性的。Softmax 输出的是 key 上的概率分布，构造上概率和就得为 1。要是没 key 跟 query 真正相关（比如模型在处理 "filler" token），softmax 照样得产出分布。去哪呢？训练好的模型学会把概率质量 dump 到几个特定位置——通常是开头那几个靠近 BOS 的 token，毕竟每个训练样本里都有它们。这些 token 充当了 "空操作" 目标。
 
-这对流式处理影响很大。要是滑动窗口滑过了这些靠近 BOS 的 token，你就把学好的 no-op 目标给删了。Softmax 被迫把质量放到看起来真正相关的 key 上，attention 模式扭曲，质量直接崩盘。永远保留 sinks 成本几乎为零（4-8 个 KV 条目），但保住了学到的动态特性。
+这对流式处理影响很大。要是滑动窗口滑过了这些靠近 BOS 的 token，你就把学好的 空操作 目标给删了。Softmax 被迫把质量放到看起来真正相关的 key 上，attention 模式扭曲，质量直接崩盘。永远保留 sinks 成本几乎为零（4-8 个 KV 条目），但保住了学到的动态特性。
 
 另一篇相关但不同的论文，**Massive Activations**（Sun et al., 2024），指出 sink 行为是更广泛模式的一部分：训练好的 transformer 中少量特征激活承载了 disproportionate 的重要性。剪枝这些激活会毁掉模型。Sinks 就是这种现象在 attention 侧的表现。
 

@@ -22,7 +22,7 @@ translationKey: "aliyun-fullstack-5"
 
 ![RDS Database Layer](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/05-rds-database/cover.png)
 
-这篇文章咱们聊聊阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 用于应对 RDS 的瓶颈，还有那些让数据保持存活的运维实践——规格 sizing、复制、备份、监控、安全。这个数据库所在的 VPC 是在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 搭建的。如果想看用 Terraform provisioning 数据库的方法，参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。
+这篇文章咱们聊聊阿里云的数据库层：RDS 用于托管关系型数据库，PolarDB 用于应对 RDS 的瓶颈，还有那些让数据保持存活的运维实践——规格 sizing、复制、备份、监控、安全。这个数据库所在的 VPC 是在 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/) 搭建的。如果想看用 Terraform 部署 数据库的方法，参考 [Terraform Part 5](/zh/terraform-agents/05-storage-for-agent-memory/)。
 
 ## 为什么选托管数据库？
 

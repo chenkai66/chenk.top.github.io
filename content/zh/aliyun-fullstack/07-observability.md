@@ -24,7 +24,7 @@ translationKey: "aliyun-fullstack-7"
 
 ![Observability](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-fullstack/07-observability/cover.png)
 
-这篇文章会完整介绍阿里云上的可观测性栈：SLS 负责日志，CloudMonitor 负责指标，ARMS 负责链路追踪。读完这篇，本系列一直在构建的生产 Web 应用就会有一套可用的监控 setup。ECS 实例来自 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)，网络架构来自 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/)。如果想用 Terraform provisioning 这些监控资源，参考 [Terraform Part 7: Observability and Cost Control](/zh/terraform-agents/07-observability-and-cost-control/)。
+这篇文章会完整介绍阿里云上的可观测性栈：SLS 负责日志，CloudMonitor 负责指标，ARMS 负责链路追踪。读完这篇，本系列一直在构建的生产 Web 应用就会有一套可用的监控 setup。ECS 实例来自 [Part 2](/zh/aliyun-fullstack/02-ecs-compute/)，网络架构来自 [Part 3](/zh/aliyun-fullstack/03-vpc-networking/)。如果想用 Terraform 部署 这些监控资源，参考 [Terraform Part 7: Observability and Cost Control](/zh/terraform-agents/07-observability-and-cost-control/)。
 
 ## The Three Pillars of Observability
 
@@ -1002,7 +1002,7 @@ traceId: abc-123-def
 
 ### 第一步：在所有 ECS 实例上安装 Agent
 
-搞个 cloud-init 脚本或者 Ansible playbook，把两个 Agent 都装到每台应用服务器上：
+搞个 cloud-init 脚本或者 Ansible 实战手册，把两个 Agent 都装到每台应用服务器上：
 
 ```bash
 #!/bin/bash
