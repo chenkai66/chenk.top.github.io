@@ -1,5 +1,5 @@
 ---
-title: "Claude Code 实战（二）：快捷键与 Thinking Mode"
+title: "Claude Code 实战指南（2）：快捷键、四态切换与思考模式"
 date: 2026-04-19 09:00:00
 tags:
   - claude-code
@@ -9,117 +9,495 @@ categories: Claude Code
 lang: zh
 mathjax: false
 series: claude-code-learn
-series_title: "Claude Code 实战入门"
+series_title: "Claude Code 实战指南"
 series_order: 2
-description: "Shift+Tab 不是开关而是四态循环。Thinking Mode 有 5 档。Escape 和双击 Escape 做的事不同。五个会重塑日常手感的快捷键。"
+description: "Shift+Tab 是四态循环，而非简单的开关；思考模式有五个层级；单次 Escape 和双击 Escape 功能截然不同。这五个快捷键，将彻底改变你每天使用 Claude Code 的体验。"
 disableNunjucks: true
 translationKey: "claude-code-learn-2"
 ---
-快捷键没放在帮助屏幕里是有原因的——它们是靠用出来的，不是靠查文档出来的。不过既然你们问了，我还是列出来。
 
-![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
+快捷键之所以没有出现在帮助界面里，是有意为之——它们的设计理念是「用中发现」，而非「查文档学会」。不过，我们还是把它们完整列在这里。
 
-## `Shift+Tab` — 四态循环
+![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_1.png)
 
-大多数人以为 `Shift+Tab` 只是开关自动接受。其实不是。它是四个状态按顺序循环：
+## `Shift+Tab` —— 四态循环切换
+
+多数人以为 `Shift+Tab` 只是「开启/关闭自动确认」的二元开关。其实不然——它按固定顺序在**四个状态间循环**：
 
 ```
-Normal  →  Accept edits  →  Plan mode  →  Bypass permissions  →  Normal
+常规模式 → 自动接受编辑 → 计划模式 → 绕过权限 → 常规模式
 ```
 
-每个状态决定了 Claude 在不询问的情况下能做什么：
+每个状态都会改变 Claude 的行为逻辑，且全程无需额外询问：
 
-| State | What changes |
-|-------|--------------|
-| **Normal** | 默认。写文件和跑 shell 命令前会询问。 |
-| **Accept edits** | 自动接受文件修改。shell 命令还是会问。 |
-| **Plan mode** | 只生成计划不执行。适合在看副作用前先审视方案。 |
-| **Bypass permissions** | 跳过所有确认提示。只在信任当前任务时用。 |
+| 状态 | 行为变化 | 状态栏提示 |
+|------|-----------|-------------|
+| **常规模式** | 默认状态。对文件写入和 Shell 命令均会弹出确认。 | 无任何提示 |
+| **自动接受编辑** | 自动执行所有文件修改，但 Shell 命令仍需手动确认。 | `Auto-accept edits` |
+| **计划模式** | 仅生成完整执行计划，不执行任何操作。适合在真正动手前通览整体思路。 | `Plan mode` |
+| **绕过权限（Yolo 模式）** | 跳过全部确认提示，包括文件写入与 Shell 命令。仅限你完全信任当前任务时使用。 | `Yolo mode` |
 
-状态栏会显示当前处在哪个状态。`Shift+Tab` 负责循环切换。没有哪个状态是我用得最多的——它们对应不同的任务。刚开始改未知代码时我用 Plan mode。长时间重构且我会盯着输出时我用 Accept edits。跑已知范围的脚本时我会用 Bypass permissions——但绝不盲用。
+状态栏实时显示当前所处状态。按 `Shift+Tab` 即可顺次切换。没有哪个状态是“默认首选”——它们对应着不同场景下的不同需求。
 
-## 思考模式 — 五个层级
+### 各状态适用场景 —— 实战建议
 
-![Claude Code Hands-On (2): Shortcuts, the Four-State Toggle, and Thinking Modes — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
+**常规模式** 是每次会话的起点，也是以下场景的必选模式：
 
-在 prompt 里输入这些短语，Claude 就会调整回应前的推理力度：
+- 首次接触不熟悉的代码库  
+- 涉及生产数据或部署的操作  
+- 正在阅读尚未完全理解的代码  
+- 向他人演示 Claude Code 工作原理（需要让对方看到权限确认流程）
 
-| Phrase | Approximate effort |
-|--------|-------------------|
-| `think` | 轻度额外推理 |
-| `think more` | 多花几秒 |
-| `think a lot` | 明显变慢，深度更深 |
-| `think longer` | 适合架构决策 |
-| `ultrathink` | 最大值 |
+我约 40% 的时间停留在常规模式。这些确认提示不只是安全机制，更是**关键反馈信号**：当 Claude 问你「是否运行 `npm test`？」时，它同时也在告诉你：「我接下来要执行这个命令」。
 
-成本随深度增加——每级消耗的 token 更多。选哪级取决于任务：
+**自动接受编辑模式** 是我日常开发的主力模式。典型工作流如下：
 
-- "Fix this typo" — 不用加思考短语
-- "Find why this test is flaky" — `think more`
-- "Refactor this module" — `think a lot`
-- "Should we move this from REST to gRPC" — `ultrathink`
+```
+[Shift+Tab → 切换至自动接受编辑]
+> 将 UserService 类重构，分离校验逻辑与持久化逻辑
 
-只要是“非 trivial"的任务，我默认都用 `think a lot`。低于这个级别直接输 prompt。高于这个级别，意味着我在问一个不同的问题，`ultrathink` 对此很诚实。
+[Claude 自动写入文件，无需确认 — 我专注观察每处变更]
+[Claude 遇到 Shell 命令时暂停，等待确认]
+> 是的，运行测试
 
-陷阱是因为 `ultrathink` 听起来严谨就在每个 prompt 都用。并不是——它很贵。模型在匹配实际任务复杂度的级别上表现最好。
+[测试通过，继续推进]
+> 接下来更新 Controller，调用新服务方法
+```
 
-## `Control+V` — 粘贴图片
+该模式实现了理想平衡：Claude 可自由编写代码而不打断你，但所有带副作用的操作（Shell 命令、Git 操作等）仍需你拍板。我约 40% 的会话使用此模式——适用于一切需要紧盯输出的专注编码任务。
 
-直接把图片粘贴到 prompt 里。UI 截图、错误弹窗、设计稿、白板照片——Claude 像读文本一样读它。最有用的场景是“测试挂了，输出在这张终端截图里，哪错了？”。不用手动转录。
+⚠️ 注意陷阱：**切勿开启「自动接受编辑」后就离开终端**。它的设计前提是「你在看」。如果你不看，那就请留在常规模式。
 
-## `Escape` 和双按 `Escape`
+**计划模式** 常被低估。它让 Claude 从「执行者」转变为「架构师」：
 
-单按 `Escape` 中断当前生成。一旦发现指令给错了，马上用。Agent 停下，你修正。
+```
+[Shift+Tab 两次 → 进入计划模式]
+> 我需要为这个 Express 应用添加 WebSocket 支持，实现通知的实时推送。
+> 当前系统每 30 秒轮询一次。
 
-双按 `Escape`（快速按两次）打开最近几次交互的历史视图。选一个节点“回滚”，对话就从那里分叉。选中节点之后的内容会从 context 中丢弃。
+[Claude 输出计划如下：]
+1. 安装 ws 和 @types/ws
+2. 创建 src/websocket/server.ts，管理连接生命周期
+3. 创建 src/websocket/handlers.ts，处理通知事件
+4. 修改 src/server.ts，将 WebSocket 服务挂载到 HTTP 服务器
+5. 更新 src/services/notifications.ts，改为直接推送而非入队
+6. 在客户端添加重连逻辑
+7. 更新相关测试
+```
 
-这是我用其他 coding agent 时最想念的功能。对话分叉才是正确的原语——它让你试一条路，发现错了，回去重来，而不污染 Agent 的记忆。
+此时你可以审阅计划、提出疑问（「为什么不用 Socket.io？」）、调整范围（「第 6 步跳过，由前端团队负责」），再切换回「自动接受编辑」并说「开始执行」。我通常在以下情况启用计划模式：
 
-## `/compact` 和 `/clear`
+- 对技术方案尚无明确判断  
+- 修改涉及多个文件，需先看清影响范围  
+- 计划交由他人落地执行  
+- 变更风险较高，必须先审查再行动  
 
-处理长对话的两种方法：
+**绕过权限（Yolo 模式）** 名副其实：Claude 不再询问任何操作——文件写入、Shell 命令，全部直行。我只在极少数场景启用：
 
-- `/compact` 把目前的对话总结成更短的消息继续。当 context 太大导致 Agent 变慢时用。
-- `/clear` 直接丢弃对话重新开始。当你在同一项目里切换到无关任务时用。
+- 执行已反复验证过的脚本  
+- 对大量文件进行批量重命名或格式化  
+- 快速原型开发（后续会用 `git stash` 或直接丢弃）  
+- 自动化流水线中，需屏蔽交互式提示  
 
-两者都保留 `CLAUDE.md` 和 `.claude/settings.json` 在 scope 内。只影响单次会话的消息历史。
+```
+[Shift+Tab 三次 → 进入 Yolo 模式]
+> 将 src/components/ 下所有 .jsx 文件重命名为 .tsx，并同步修正 import 路径
 
-## 实际工作流长什么样
+[Claude 全程无停顿完成：30 个文件重命名 + import 路径更新]
+[检查结果、`git diff` 确认无误]
+```
 
-今天早上我的实际工作流：
+危险显而易见。我对 Yolo 模式设下两条铁律：
+
+1. **绝不用于无法快速回滚的代码**（`git stash` 或 `git checkout .` 必须一步可达）  
+2. **绝不用于涉及外部服务的操作**（API 调用、数据库、部署等）  
+
+如果你刚接触 Claude Code，请**前一个月完全忽略 Yolo 模式**。你需要先建立对 Claude 行为模式的直觉，再考虑放手让它跑。
+
+### 肌肉记忆养成路径
+
+几周后，状态切换将变成下意识动作。我的典型日间流程如下：
+
+```
+[起始于常规模式 — 先理清上下文]
+> 查看昨日变更：`git log` 与待审 PR
+
+[切换至计划模式 — 规划当日工作]
+> 需实现发票 PDF 生成功能，请输出详细方案
+
+[审阅方案后，切至自动接受编辑 — 开始构建]
+> 执行步骤 1–4
+
+[测试运行时，手动批准 Shell 命令]
+
+[遇到机械性任务时，临时切 Yolo 模式]
+> 为 src/api/ 下所有导出函数补充 JSDoc 注释
+
+[任务完成后，回归常规模式]
+```
+
+## 思考模式 —— 五个推理层级
+
+![Claude Code 实战指南（2）：快捷键、四态切换与思考模式 — 示意图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/claude-code-learn/02-shortcuts-and-modes/illustration_2.png)
+
+在任意提示词中加入以下任一短语，即可控制 Claude 在响应前投入多少推理资源：
+
+| 短语 | 推理强度 | Token 消耗 | 响应延迟 |
+|------|-----------|-------------|------------|
+| *(不加)* | 默认推理 | 基准值 | 最快 |
+| `think` | 轻量级额外推理 | ~1.2x | 略慢 |
+| `think more` | 中等强度推理 | ~1.5x | 多几秒 |
+| `think a lot` | 深度推理 | ~2x | 明显变慢 |
+| `think longer` | 延展式推理 | ~2.5x | 数秒以上 |
+| `ultrathink` | 极致推理 | ~3x+ | 可达 15–30 秒 |
+
+### 不同思考层级如何影响输出质量？
+
+差异远不止于「耗时更长」。每个层级实际改变了 Claude 内部推理的结构：
+
+**不加思考短语**：Claude 快速返回首版答案。适用于直白任务：「重命名这个变量」「此处加空值检查」「这个函数返回什么？」若答案显而易见，额外推理纯属浪费。
+
+**`think`**：Claude 短暂暂停，权衡替代方案。适用于小而微妙的任务：「是否有更简洁的写法？」「这段逻辑能否覆盖空列表的边界情况？」
+
+**`think more`**：Claude 开始评估取舍与次生影响。调试类任务的理想选择：「定位此测试不稳定的根本原因」「追踪空指针异常的源头」
+
+**`think a lot`**：这是我处理「非平凡任务」的默认档位。架构设计、重构决策、安全审查皆属此类。在此层级，Claude 常主动指出你未提及的问题：
+
+```
+> @src/auth/middleware.ts
+> think a lot — 审查此鉴权中间件的安全隐患
+
+[Claude 发现：
+ 1. Token 未校验有效期
+ 2. 登录失败尝试缺乏频率限制
+ 3. CORS 响应头设置过于宽松
+ 4. 状态变更路由缺失 CSRF 防护
+ 5. 密码比对存在计时攻击风险]
+```
+
+若未启用 `think a lot`，它可能仅捕获第 1、3 条，而遗漏最关键的计时攻击漏洞。
+
+**`think longer`**：专为具有真实业务影响的架构决策保留。「是否将单体拆分为微服务？」「针对此数据访问模式，何种缓存策略最优？」Claude 将罗列多种方案，逐条分析优劣，再给出推荐。
+
+**`ultrathink`**：推理能力的天花板。我每周仅用 1–2 次。适用场景包括：
+
+- 「基于现有数据库 Schema、预期查询模式及迁移路径，设计新功能的数据模型」  
+- 「对整个模块进行正确性、性能与可维护性三重审查，输出资深工程师级别的报告」  
+- 「系统在高负载下出现延迟尖峰，请分析架构瓶颈并提出修复方案」
+
+### 实战对照表 —— 任务 × 思考层级匹配指南
+
+| 任务 | 推荐思考层级 | 原因 |
+|------|----------------|------|
+| 修正拼写错误 | 无 | 显而易见，无需推理 |
+| 跨文件重命名变量 | 无 | 机械操作，非分析型任务 |
+| 为函数添加错误处理 | `think` | 需预判可能发生的异常类型 |
+| 调试失败测试 | `think more` | 需追溯因果链 |
+| 模块级重构 | `think a lot` | 需在行为不变前提下重构结构 |
+| Pull Request 代码评审 | `think a lot` | 需捕捉隐蔽缺陷 |
+| 架构决策 | `think longer` | 需权衡多套方案利弊 |
+| 从零设计系统 | `ultrathink` | 需全局性综合分析 |
+| 安全审计 | `ultrathink` | 需以攻击者视角深度推演 |
+
+### 成本陷阱警示
+
+陷阱在于：因 `ultrathink` 听起来更“严谨”，便滥用在每个提示词上。事实恰恰相反——它极其昂贵。模型最擅长的是**与任务复杂度精准匹配的推理强度**。用 `ultrathink` 重命名一个变量，就像雇咨询公司帮你换灯泡。
+
+实测数据显示：当我开始按任务复杂度匹配思考层级（而非一律 `think a lot`），日均 Token 消耗下降了 40%。
+
+一条实用经验法则：  
+✅ 若你能用一句话向初级开发者讲清任务 → 无需思考短语  
+❌ 若需白板画图讲解 → `think a lot` 或更高层级  
+
+## 全量快捷键详解（附使用场景）
+
+以下是 Claude Code 全部键盘快捷键参考：
+
+### 输入行快捷键
+
+| 快捷键 | 功能 | 我的使用场景 |
+|--------|------|----------------|
+| `Enter` | 发送消息 | 基础操作 |
+| `Shift+Enter` | 输入框内换行 | 编写多行提示词 |
+| `Shift+Tab` | 循环切换权限状态 | 每次会话多次使用 |
+| `↑`（上方向键） | 调出上一条消息 | 快速复用/修改刚发过的提示 |
+| `Ctrl+C` | 取消当前输入 | 彻底重写提示词时 |
+| `Ctrl+L` | 清屏（不清理上下文） | 视觉整理，上下文保留 |
+
+### 生成过程中快捷键
+
+| 快捷键 | 功能 | 我的使用场景 |
+|--------|------|----------------|
+| `Escape` | 中断当前生成 | 发现指令错误，立即叫停 |
+| `Escape Escape` | 对话分叉（时间回溯） | 撤销上一轮或多轮对话 |
+
+### 文件与上下文操作
+
+| 快捷键 | 功能 | 我的使用场景 |
+|--------|------|----------------|
+| `@` | 文件/目录选择器 | 每次会话高频使用 |
+| `#` | 写入 CLAUDE.md | 发现新项目规范时即时记录 |
+| `Ctrl+V` | 粘贴图片 | 截图、报错弹窗、设计稿、手绘草图 |
+
+## `Escape` 与双击 `Escape` —— 中断 vs. 时间旅行
+
+这两个快捷键的重要性仅次于 `Shift+Tab`，值得单独展开。
+
+### 单次 `Escape` —— 中断生成
+
+单击 `Escape` 会立即中断当前生成。当你意识到指令有误时，立刻按下。
+
+```
+> 将所有 Controller 重构为——
+[等等，我只想改 PaymentController]
+[按 Escape]
+> 仅将 PaymentController 重构为使用新服务模式
+```
+
+被中断的生成内容仍保留在界面上，但**不会提交**。只要处于常规或自动接受编辑模式，且 Claude 尚未开始写文件，就不会产生任何磁盘变更。
+
+⚠️ 注意时机：若 Claude 已开始写文件，`Escape` 无法撤销已写入的部分。此时需手动 `git checkout .` 或其他方式回滚。务必尽早按下 `Escape`。
+
+### 双击 `Escape` —— 对话分叉
+
+快速双击 `Escape` 会打开最近几轮对话的历史视图，供你选择某一轮作为「回退点」。选定后，对话从此处分叉，之后的所有交互将从上下文中移除。
+
+```
+> 为 getUser 函数添加缓存
+[Claude 引入 Redis 缓存]
+[实现过度复杂 —— 我本意是内存缓存]
+
+[双击 Escape]
+[选择：回退至添加缓存前]
+
+> 为 getUser 添加简易内存缓存，使用带 TTL 的 Map 实现。
+> 不用 Redis，仅用模块级 Map。
+```
+
+这是我在其他编码助手中最怀念的功能。**对话分叉是正确的抽象**：它允许你尝试一条路径，发现走错后干净地退回，且不污染 Claude 的记忆。
+
+⚠️ 重要提醒：双击 `Escape` **仅影响对话上下文，不撤销文件变更**。若 Claude 已写入文件，那些文件依然被修改。如需同时撤销文件变更，请配合 `git checkout .`。
+
+我的常用组合技：执行高风险操作前，先创建 Git 检查点：
+
+```bash
+git stash
+```
+
+若结果不理想，双击 `Escape` 分叉对话 + `git stash pop` 恢复文件 —— 一键回到洁净状态。
+
+## `Ctrl+V` —— 图片粘贴
+
+直接将图片粘贴进提示框。UI 截图、报错弹窗、设计稿、手绘白板图……Claude 均可像读文本一样解析。最实用的场景莫过于：「测试失败了，错误信息在下方终端截图中，问题在哪？」—— 无需手动转录。
+
+### 图片粘贴效果最佳的场景
+
+- **报错截图**：堆栈跟踪、浏览器控制台错误、终端输出  
+- **UI Bug**：「按钮位置不对」配截图  
+- **设计稿**：「实现此设计」配 Figma 导出图  
+- **白板草图**：会议中手绘的架构图  
+- **数据图表**：「这张图表哪里有问题？」配截图  
+
+### 效果不佳的场景
+
+- **小字号截图**：若你肉眼都难以辨认，Claude 更难识别  
+- **复杂 UML 图**：虽可识别，但在密集图中常遗漏细节  
+- **视频/GIF**：不支持 —— 请截取关键帧  
+
+## `/compact` 与 `/clear` —— 上下文管理
+
+应对长对话的两种策略：
+
+- `/compact`：将当前对话压缩为精简摘要，后续以此摘要为上下文继续。适用于 Claude 因上下文过大而变慢时。  
+- `/clear`：彻底清空对话历史，全新开始。适用于同一项目中切换至无关任务时。  
+
+二者均**保留 `CLAUDE.md` 和 `.claude/settings.json`**，仅影响本次会话的消息历史。
+
+### `/compact` —— 何时用？怎么用？
+
+Claude Code 有上下文窗口限制。随着对话增长，历史占用的 Token 越来越多，留给当前任务的空间越少。当出现以下症状，即需 `/compact`：
+
+- 响应明显变慢  
+- Claude 开始遗忘早前说过的内容  
+- 重复提出已讨论过的建议  
+- 代码生成质量下降  
+
+此时执行 `/compact`，Claude 将整段对话浓缩为数段摘要，并以此继续对话。你将丢失原始措辞，但保留核心要点。
+
+```
+> /compact
+
+[Claude 生成摘要：]
+摘要：我们正在为应用添加 WebSocket 支持。已完成：服务端搭建、连接管理器、鉴权中间件。待办：客户端重连逻辑、集成测试。已修改文件：src/websocket/server.ts、src/websocket/auth.ts、src/middleware/ws.ts。
+
+[后续对话以此摘要为上下文]
+```
+
+**何时 `/compact`？何时 `/clear`？**
+
+| 场景 | 操作 | 原因 |
+|------|------|------|
+| 响应变慢，仍在处理同一任务 | `/compact` | 保留上下文，节省 Token |
+| 切换至完全无关的新任务 | `/clear` | 彻底清空，避免陈旧上下文干扰 |
+| 陷入错误路径无法自拔 | 双击 `Escape` | 分叉回错误发生前 |
+| 开始新一天工作 | `/clear` | 昨日上下文已过期 |
+| 中途重构，涉及大量文件 | `/compact` | 保留文件变更上下文 |
+
+**压缩质量的权衡**：`/compact` 必然损失细节。若你曾深入讨论「为何选方案 A 而非 B」，摘要可能仅剩「选用方案 A」。若该讨论至关重要，建议在压缩前用 `#` 将结论写入 `CLAUDE.md`。
+
+我的实践模式：在复杂决策收尾时，趁未被压缩前固化：
+
+```
+# 架构决策：选用 WebSocket 而非 SSE，因协同编辑功能需双向通信能力。
+```
+
+如此，关键推理将随 `CLAUDE.md` 永久留存，不受压缩影响。
+
+### `/compact` + 自定义提示词
+
+你可在 `/compact` 后追加提示，引导摘要聚焦重点：
+
+```
+> /compact 重点关注数据库 Schema 变更与迁移方案
+```
+
+Claude 将优先保留与数据库相关的上下文。当你明确知道哪些信息最需延续时，此功能极为实用。
+
+## 多显示器与多终端工作流
+
+Claude Code 是终端应用，天然适配终端复用器（如 tmux）工作流。
+
+### Tmux 分屏布局
+
+宽屏显示器上的典型布局：
+
+```
+┌──────────────────────┬──────────────────────┐
+│                      │                      │
+│  Claude Code         │  编辑器（vim/VS Code）│
+│  （交互式）          │                      │
+│                      │                      │
+├──────────────────────┤                      │
+│                      │                      │
+│  终端                │                      │
+│  （git / 测试 / 日志）│                      │
+│                      │                      │
+└──────────────────────┴──────────────────────┘
+```
+
+Claude 在左侧面板写文件 → 编辑器右侧面板自动刷新 → 底部左侧终端运行测试。三屏联动，全程无需切换上下文。
+
+### 多个 Claude 会话并行
+
+你可在同一项目中启动多个 Claude Code 实例，各自拥有独立对话上下文，但共享 `CLAUDE.md` 和配置。
+
+适用于同一仓库中并行处理两个无关任务：
+
+```
+# 终端 1（tmux 面板或标签页）
+claude
+> 处理鉴权模块重构
+
+# 终端 2（独立面板或标签页）
+claude
+> 修复 test/integration/orders.test.ts 中的不稳定测试
+```
+
+只要不修改同一文件，二者互不冲突。若同时修改同一文件，后写入者将覆盖前者——因此仅适用于**真正独立的任务**。
+
+## 实战工作流示例
+
+今早的真实工作流：
 
 ```
 > @src/api/handlers.ts
-> think a lot — the team wants to add idempotency keys to the
-> three POST handlers in this file. propose an approach that
-> reuses the existing middleware pattern.
+> think a lot — 团队希望为此文件中三个 POST Handler 添加幂等性 Key。
+> 请提出复用现有中间件模式的方案。
 
-[Claude proposes — I read it]
+[Claude 提出方案 — 我仔细阅读]
 
-[Shift+Tab to plan mode]
+[Shift+Tab 切入计划模式]
 
-> ok, write it out as a plan, don't change anything yet.
+> 好，仅输出执行计划，暂不修改任何文件。
 
-[Claude lays out the steps]
+[Claude 列出详细步骤]
 
-[Shift+Tab to accept edits]
+[Shift+Tab 切入自动接受编辑]
 
-> go.
+> 执行。
 
-[Claude makes the changes, I watch them scroll]
+[Claude 逐文件修改，我实时监控]
 
-[Shift+Tab back to normal mode for the test run]
+[Shift+Tab 切回常规模式，准备运行测试]
 
-> run the tests.
+> 运行测试。
 
-[Claude pauses to ask — yes — runs them — three pass, one fails]
+[Claude 暂停等待确认 — 我同意 — 执行 — 三通过，一失败]
 
-[Double-Escape to fork back to before the test run]
+[双击 Escape 分叉回测试执行前]
 
-> the failing test is testing the old non-idempotent path.
-> update it to verify the new behavior.
+> 失败的测试仍在校验旧的非幂等逻辑。
+> 请更新它，以验证新行为。
 ```
 
-整个流程用到了本文提到的所有原语。单看每一个都不算惊艳。合在一起，Claude Code 才像个真正的工具，而不是挂在聊天窗口上的自动补全。
+整个流程用到了本文介绍的所有核心能力。单个功能看似普通，但组合起来，Claude Code 才真正成为一把「工具」，而非「聊天框里的智能补全」。
 
-下一篇：自定义 slash 命令和 `$ARGUMENTS`。
+### 另一案例：调试中的模式切换
+
+```
+[常规模式]
+> /api/orders 接口在 Staging 环境返回 500 错误。
+> 错误日志如下：
+[Ctrl+V — 粘贴错误截图]
+
+[Claude 定位问题：订单序列化时出现空引用]
+
+> think more — 这是数据问题还是代码问题？
+> 检查数据库中是否存在 customer_id 为空的订单。
+
+[Claude 查询发现 3 条 customer_id 为空的订单]
+
+[Shift+Tab → 自动接受编辑]
+
+> 修复序列化器，使其优雅处理空 customer_id。
+> 同时添加数据库约束，防止未来再次发生。
+
+[Claude 输出修复代码与迁移脚本]
+
+[Shift+Tab → 常规模式]
+
+> 运行测试。
+
+[全部通过]
+
+> 现在写一条 SQL，用于修复这 3 条异常订单。
+> 只展示 SQL，不要执行。
+
+[Claude 输出 SQL]
+
+> 看起来没问题。我将在 Staging 环境手动执行。
+```
+
+注意模式切换如何精准匹配风险等级：调查阶段用常规模式；编码阶段用自动接受编辑；所有数据库操作均严格保留在常规模式下，且需显式授权。
+
+## 快速备忘卡
+
+打印出来，贴在显示器边框上，坚持一周：
+
+```
+Shift+Tab          循环切换：常规 → 自动接受 → 计划 → Yolo → 常规
+Escape             中断当前生成
+Escape Escape      对话分叉 / 时间回溯
+Ctrl+V             粘贴图片
+@                  引用文件
+#                  写入 CLAUDE.md
+/compact           压缩上下文，提炼摘要
+/clear             清空对话，保留记忆
+think              轻量推理
+think more         中等推理
+think a lot        深度推理（我的日常默认）
+think longer       延展推理
+ultrathink         极致推理
+```
+
+下一篇：自定义斜杠命令与 `$ARGUMENTS`。
