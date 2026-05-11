@@ -93,7 +93,7 @@ The same template proves correctness for Jump Game II, Task Scheduler's lower-bo
 
 You do not need to track *which* jumps you make — only **how far you could possibly have got by now**. Maintain `max_reach`, the farthest index reachable using any sequence of jumps from positions `0..i`. Sweep left to right; if at any point `i > max_reach`, you are stranded.
 
-![Jump Game: maintain max_reach frontier](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/09-greedy-algorithms/fig2_jump_game.png)
+![Jump Game: greedy max-reach frontier advancing](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/greedy-jump-game.gif)
 
 The figure compares the two cases. On the left, `max_reach` jumps to 4 at `i=1` and we are done. On the right, the zero at index 3 freezes `max_reach` at 3, and on the next iteration `i=4 > max_reach=3` triggers the failure.
 

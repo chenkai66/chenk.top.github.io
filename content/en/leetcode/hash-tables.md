@@ -114,7 +114,7 @@ For `n = 10⁴` that is roughly 50 million comparisons. We can do better.
 
 While scanning left to right, every time we look at `num`, the question is not "is `num` in the array?" but "**have I already seen `target − num`?**" If yes, we have our pair. So we keep a map `value → index` of everything seen so far.
 
-![Two Sum trace on nums = [2, 7, 11, 15], target = 9](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/hash-tables/fig3_two_sum_flow.png)
+![Two Sum: building the hash map step by step](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/hash-tables-two-sum.gif)
 
 ```python
 from typing import List

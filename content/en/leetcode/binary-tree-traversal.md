@@ -217,7 +217,7 @@ This trick dodges the explicit "have I visited the right subtree yet?" bookkeepi
 
 Depth-first goes as deep as it can before backing up. Breadth-first does the opposite: it visits everyone at distance `0` from the root, then everyone at distance `1`, and so on. The right data structure is a FIFO queue, because we want the children of the *first* node we enqueued to come out *before* the children of the second.
 
-![BFS / level-order traversal: visit nodes one level at a time](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/binary-tree-traversal/fig3_bfs_levelorder.png)
+![BFS level-order traversal: visiting nodes level by level](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/binary-tree-bfs.gif)
 
 The one trick worth knowing is the **level-size capture**: at the start of each outer iteration, snapshot how many nodes are currently in the queue. Those (and only those) belong to the current level; anything enqueued during their processing is one level deeper.
 

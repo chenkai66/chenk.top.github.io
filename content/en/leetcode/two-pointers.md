@@ -88,6 +88,9 @@ def two_sum_sorted(numbers: list[int], target: int) -> list[int]:
 
 ## LeetCode 11 — Container With Most Water
 
+![Container With Most Water: two pointers narrowing inward](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/two-pointers-container-water.gif)
+
+
 **Problem.** Given heights $h_0, h_1, \dots, h_{n-1}$, pick two indices $i < j$ that maximize $\text{area}(i,j) = (j - i) \cdot \min(h_i, h_j)$.
 
 ```python

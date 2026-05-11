@@ -110,7 +110,7 @@ be 2, and indeed `dp[1] + dp[0] = 2`. The base case is consistent.
 transition usually depends on a constant number of previous cells. That
 makes them a perfect place to internalize the recipe.
 
-![1D DP fill order for Fibonacci and Climbing Stairs](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/dynamic-programming-basics/fig2_dp_fill_order.png)
+![DP table filling: climbing stairs with dependency arrows](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/dp-climbing-stairs.gif)
 
 The picture above is the mental model: a row of cells, each computed
 from a fixed-size window of earlier cells. Once you see this, you also

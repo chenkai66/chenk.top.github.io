@@ -224,7 +224,7 @@ def dailyTemperatures(temperatures: list[int]) -> list[int]:
 
 Figure 3 makes the resolution visual. Each green arc is "this colder day was finally resolved by that warmer day". The bottom row shows the stack of indices after every step — note how it always stays decreasing in temperature.
 
-![Daily Temperatures: monotonic decreasing stack of indices](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/stack-and-queue/fig3_monotonic_stack.png)
+![Monotonic stack: processing Daily Temperatures step by step](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/monotonic-stack-temps.gif)
 
 **Complexity.** Each index enters and leaves the stack at most once, so total work across the inner `while` is O(n). Space is O(n) for the stack.
 

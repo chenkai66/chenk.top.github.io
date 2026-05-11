@@ -23,7 +23,7 @@ We will build everything from a single invariant: at every iteration the answer,
 
 ## 1. The Mental Model
 
-![Binary search halves the window each iteration](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/binary-search/fig1_search_space.png)
+![Binary search: lo, mid, hi narrowing the search space](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/binary-search-step.gif)
 
 Binary search is a **shrinking interval** problem. We maintain two pointers `l` and `r` that delimit the slice of the array still under consideration. Each iteration we pick the midpoint `m`, look at `nums[m]`, and use that single observation to throw away half of the remaining interval. The figure above shows the typical behaviour: a sorted array of 16 elements, target `23`, four iterations and the window collapses from 16 to 1.
 

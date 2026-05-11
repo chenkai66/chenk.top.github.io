@@ -98,6 +98,9 @@ The crucial invariant: **`left` only ever moves right**. So even though there is
 
 ## 4. LeetCode 3 — Longest Substring Without Repeating Characters
 
+![Longest substring without repeating characters: window expanding and contracting](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/sliding-window-substr.gif)
+
+
 **Problem.** Given a string `s`, return the length of the longest substring with all distinct characters.
 
 **Pattern.** Variable window, *find longest*. The invariant is "all characters in the window are unique". When `s[right]` is already in the window, slide `left` past its previous occurrence.

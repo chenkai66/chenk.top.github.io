@@ -87,7 +87,7 @@ This is the entire mental model: **operations on a linked list are pointer assig
 
 This is the *"hello world"* of pointer manipulation. The challenge is that you have to flip every `next` pointer in place without losing access to the rest of the list.
 
-![Iterative and recursive reversal](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/linked-list-operations/fig2_reverse.png)
+![Reversing a linked list: prev, curr, next pointer dance](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/gifs/leetcode/linked-list-reverse.gif)
 
 ## Iterative: three pointers, $O(1)$ space
 
