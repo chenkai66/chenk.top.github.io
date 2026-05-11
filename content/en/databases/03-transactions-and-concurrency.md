@@ -141,6 +141,9 @@ In autocommit mode (the default in most databases), every statement is its own t
 
 ## Isolation Levels
 
+
+![Database transaction locks as golden padlocks on digital vau](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/03-database-transaction-locks-as-golden-padlocks-on-digital-vau.jpg)
+
 The SQL standard defines four isolation levels, each allowing different concurrency anomalies. Stronger isolation = fewer anomalies but lower throughput.
 
 ### The Three Anomalies

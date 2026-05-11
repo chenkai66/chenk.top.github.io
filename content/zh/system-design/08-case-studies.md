@@ -888,6 +888,9 @@ class RankingService:
 
 ## 跨案例共性主题
 
+
+![Url shortener architecture long url compressed into short co](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/08-url-shortener-architecture-long-url-compressed-into-short-co.jpg)
+
 纵观全部三个案例，以下模式反复出现：
 
 ![Cross-cutting concerns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-cross-cutting.png)

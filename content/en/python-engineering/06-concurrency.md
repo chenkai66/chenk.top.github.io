@@ -313,6 +313,9 @@ Note the `if __name__ == "__main__":` guard. This is required on macOS and Windo
 
 ## concurrent.futures: Unified API
 
+
+![Asyncio event loop as a spinning wheel processing coroutines](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/06-asyncio-event-loop-as-a-spinning-wheel-processing-coroutines.jpg)
+
 The beauty of `concurrent.futures` is that switching between threads and processes requires changing one line:
 
 ```python
@@ -653,6 +656,9 @@ Async       : 1.09s
 Both threaded and async complete in about 1 second (the server delay). Async uses fewer system resources because there are no thread stacks or context switches.
 
 ## Comparison Table
+
+
+![Python gil bottleneck single lane bridge with threads waitin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/06-python-gil-bottleneck-single-lane-bridge-with-threads-waitin.jpg)
 
 | Feature | threading | multiprocessing | asyncio |
 |---------|-----------|-----------------|---------|

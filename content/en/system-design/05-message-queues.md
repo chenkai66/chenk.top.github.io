@@ -219,6 +219,9 @@ Log compaction is particularly useful for maintaining a changelog. Kafka keeps t
 
 ## RabbitMQ
 
+
+![Event sourcing history book recording every change as an eve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/05-event-sourcing-history-book-recording-every-change-as-an-eve.jpg)
+
 RabbitMQ is a traditional message broker based on the AMQP protocol. It focuses on flexible routing, acknowledgment-based delivery, and message-level features.
 
 ### Architecture
@@ -477,6 +480,9 @@ The write model stores events in a durable event store (Kafka, EventStoreDB). Th
 **Costs**: Eventual consistency between write and read models, duplicate data, operational complexity of maintaining multiple databases.
 
 ## Dead Letter Queues
+
+
+![Message queue conveyor belt decoupling producers from consum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/05-message-queue-conveyor-belt-decoupling-producers-from-consum.jpg)
 
 When a message cannot be processed after repeated attempts, it should not block the queue forever. A dead letter queue (DLQ) is a separate queue where failed messages are sent for investigation.
 

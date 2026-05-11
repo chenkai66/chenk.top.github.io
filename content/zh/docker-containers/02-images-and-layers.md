@@ -147,6 +147,9 @@ docker.io/library/nginx:alpine
 
 ![Build cache mechanism](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-build-cache.png)
 
+
+![Container registry as a futuristic vending machine dispensin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/02-container-registry-as-a-futuristic-vending-machine-dispensin.jpg)
+
 ### `docker history`
 
 `docker history` 命令展示镜像中每一层的来源指令及其大小：
@@ -434,6 +437,9 @@ docker pull myapp@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c2
 ```
 
 ## 清理镜像
+
+
+![Docker image layers as geological rock strata each layer a d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/02-docker-image-layers-as-geological-rock-strata-each-layer-a-d.jpg)
 
 镜像会快速累积。以下是释放磁盘空间的方法：
 

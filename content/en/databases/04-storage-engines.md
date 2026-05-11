@@ -277,6 +277,9 @@ False positive rate is configurable (typically 1%). A 1% false positive rate req
 
 ## B-Tree vs LSM-Tree Comparison
 
+
+![Hard drive internals with data pages arranged like book page](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/04-hard-drive-internals-with-data-pages-arranged-like-book-page.jpg)
+
 | Aspect | B-Tree (InnoDB, PostgreSQL) | LSM-Tree (RocksDB, LevelDB) |
 |--------|---------------------------|----------------------------|
 | **Write pattern** | Random (update in place) | Sequential (append-only) |

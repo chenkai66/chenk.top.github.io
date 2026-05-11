@@ -161,6 +161,9 @@ docker run --read-only myapp 2>&1 | grep "Read-only file system"
 
 ## Linux Capabilities
 
+
+![Rootless container running as unprivileged user security vis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-rootless-container-running-as-unprivileged-user-security-vis.jpg)
+
 Linux capabilities divide root's power into ~40 individual privileges. By default, Docker grants containers a subset of these — more than most applications need.
 
 ![Linux capability management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-capability-model.png)

@@ -225,6 +225,9 @@ class PaymentGatewayAdapter:
 
 ## Inter-Service Communication
 
+
+![Monolith to microservices evolution single building to city](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-monolith-to-microservices-evolution-single-building-to-city-.jpg)
+
 ### Synchronous: REST and gRPC
 
 Use synchronous communication when the caller needs an immediate response.

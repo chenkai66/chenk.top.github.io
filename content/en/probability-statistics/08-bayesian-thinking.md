@@ -91,6 +91,9 @@ Without conjugacy, the posterior integral $p(\mathbf{x}) = \int p(\mathbf{x}|\th
 
 ## The Beta-Binomial Model
 
+
+![Bayesian updating prior to posterior belief transformation t](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-bayesian-updating-prior-to-posterior-belief-transformation-t.jpg)
+
 This is the canonical example of Bayesian inference. We'll work through it in full detail.
 
 ![Bayesian updating animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-08-bayesian-updating.gif)
@@ -280,6 +283,9 @@ The normalizing constant $p(\mathbf{x})$ cancels in the ratio. The resulting Mar
 With a **symmetric** proposal ($q(\theta^*|\theta) = q(\theta|\theta^*)$), the ratio simplifies to $p(\theta^* | \mathbf{x}) / p(\theta^{(t)} | \mathbf{x})$ — the algorithm simply moves toward higher-density regions while occasionally accepting downhill moves to explore.
 
 ## Bayesian Connections to Machine Learning
+
+
+![Mcmc random walk exploring probability landscape pathfinding](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-mcmc-random-walk-exploring-probability-landscape-pathfinding.jpg)
 
 ### Regularization as Prior
 

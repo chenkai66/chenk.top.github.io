@@ -310,6 +310,9 @@ def test_monkeypatch_env(monkeypatch):
 
 ## Parametrize: Testing Multiple Cases
 
+
+![Pytest fixture mechanism factory producing test data assembl](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-pytest-fixture-mechanism-factory-producing-test-data-assembl.jpg)
+
 Instead of writing separate test functions for each case, use `@pytest.mark.parametrize`:
 
 ![Parametrized tests](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-parametrize.png)

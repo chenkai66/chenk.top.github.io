@@ -313,6 +313,9 @@ if __name__ == "__main__":
 
 ## concurrent.futures：统一 API
 
+
+![Asyncio event loop as a spinning wheel processing coroutines](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/06-asyncio-event-loop-as-a-spinning-wheel-processing-coroutines.jpg)
+
 `concurrent.futures` 的精妙之处在于：在线程与进程间切换，只需改动一行代码：
 
 ![Concurrency decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/06-decision-tree.png)
@@ -653,6 +656,9 @@ Async       : 1.09s
 线程与异步均在约 1 秒内完成（等于服务器延迟）。异步方案系统资源占用更低——没有线程栈、没有上下文切换开销。
 
 ## 对比汇总表
+
+
+![Python gil bottleneck single lane bridge with threads waitin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/06-python-gil-bottleneck-single-lane-bridge-with-threads-waitin.jpg)
 
 | 特性 | threading | multiprocessing | asyncio |
 |---------|-----------|-----------------|---------|

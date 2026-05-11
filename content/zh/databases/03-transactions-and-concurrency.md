@@ -144,6 +144,9 @@ COMMIT;
 
 ## 隔离级别
 
+
+![Database transaction locks as golden padlocks on digital vau](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/03-database-transaction-locks-as-golden-padlocks-on-digital-vau.jpg)
+
 SQL 标准定义了四种隔离级别，各自允许不同类型的并发异常。更强的隔离性 → 更少的异常，但吞吐量更低。
 
 ### 三大并发异常

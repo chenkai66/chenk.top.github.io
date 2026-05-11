@@ -310,6 +310,9 @@ def test_monkeypatch_env(monkeypatch):
 
 ## Parametrize：批量测试多组用例
 
+
+![Pytest fixture mechanism factory producing test data assembl](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/03-pytest-fixture-mechanism-factory-producing-test-data-assembl.jpg)
+
 无需为每种输入单独编写测试函数，使用 `@pytest.mark.parametrize` 即可：
 
 ![Parametrized tests](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/03-parametrize.png)

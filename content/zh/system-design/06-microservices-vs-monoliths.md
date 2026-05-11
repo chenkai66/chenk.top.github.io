@@ -225,6 +225,9 @@ class PaymentGatewayAdapter:
 
 ## 服务间通信（Inter-Service Communication）
 
+
+![Monolith to microservices evolution single building to city](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/06-monolith-to-microservices-evolution-single-building-to-city-.jpg)
+
 ### 同步通信：REST 与 gRPC
 
 当调用方需要**即时响应**时使用同步通信。

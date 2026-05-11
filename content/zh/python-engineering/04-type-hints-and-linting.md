@@ -338,6 +338,9 @@ result = some_untyped_function()  # type: ignore[no-untyped-call]
 
 ## 使用 ruff 进行代码检查
 
+
+![Code quality pipeline raw code passing through linter format](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-code-quality-pipeline-raw-code-passing-through-linter-format.jpg)
+
 ruff 是一款用 Rust 编写的 Python linter。其速度比 flake8 快 10–100 倍，且集成了 flake8、isort、pyflakes、pycodestyle、pydocstyle 及众多 flake8 插件的功能。
 
 ![Ruff vs other linters](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-ruff-vs-others.png)
@@ -570,6 +573,9 @@ $ SKIP=mypy git commit -m "WIP: types incomplete"
 **建议**：选用 ruff。它更快、支持自动修复、并整合了多个工具。类型检查请额外搭配 mypy。
 
 ## 完整的 `pyproject.toml` 配置示例
+
+
+![Type hints as blueprint annotations on python code architect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-type-hints-as-blueprint-annotations-on-python-code-architect.jpg)
 
 以下是可用于生产环境的完整工具配置节：
 

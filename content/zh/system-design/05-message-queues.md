@@ -219,6 +219,9 @@ cleanup.policy: compact        # 按 key 保留最新值（适用于变更日志
 
 ## RabbitMQ
 
+
+![Event sourcing history book recording every change as an eve](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/05-event-sourcing-history-book-recording-every-change-as-an-eve.jpg)
+
 RabbitMQ 是基于 AMQP 协议的传统消息代理，专注于灵活的路由机制、基于确认（acknowledgment）的投递保障，以及细粒度的消息级功能。
 
 ### 架构
@@ -477,6 +480,9 @@ CQRS 将写模型（Commands）与读模型（Queries）彻底分离。它天然
 **代价**：写模型与读模型间存在最终一致性、数据冗余、运维多个数据库带来的复杂性。
 
 ## 死信队列（Dead Letter Queues, DLQ）
+
+
+![Message queue conveyor belt decoupling producers from consum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/05-message-queue-conveyor-belt-decoupling-producers-from-consum.jpg)
 
 当一条消息经多次重试仍无法被成功处理时，不应无限阻塞队列。死信队列（DLQ）是一个专用队列，用于暂存这些失败消息以便人工排查。
 

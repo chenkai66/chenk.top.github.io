@@ -112,6 +112,9 @@ SHOW INDEX FROM users;
 
 ## B+Tree: Why Databases Prefer It
 
+
+![Btree index structure as a futuristic city skyline branching](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-btree-index-structure-as-a-futuristic-city-skyline-branching.jpg)
+
 Most database implementations actually use a **B+tree**, a variation of the B-tree:
 
 | Feature | B-tree | B+tree |
@@ -387,6 +390,9 @@ Low-cardinality columns return too many rows per value. The optimizer will often
 Exception: if a low-cardinality value is rare (e.g., `status = 'fraud'` matches 0.01% of rows), it *is* selective and an index helps. A partial index is even better.
 
 ## Over-Indexing: The Hidden Cost
+
+
+![Magnifying glass over database index revealing optimized que](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-magnifying-glass-over-database-index-revealing-optimized-que.jpg)
 
 Every index you create has costs:
 

@@ -248,6 +248,9 @@ Never commit the virtual environment. It contains platform-specific binaries and
 
 ## pip: The Package Installer
 
+
+![Python virtual environment isolated bubbles each with differ](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-python-virtual-environment-isolated-bubbles-each-with-differ.jpg)
+
 With your venv activated, `pip` installs packages into the isolated environment.
 
 ### Basic Commands

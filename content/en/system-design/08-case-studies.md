@@ -888,6 +888,9 @@ The threshold is not fixed. It depends on your infrastructure capacity, acceptab
 
 ## Cross-Cutting Themes
 
+
+![Url shortener architecture long url compressed into short co](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/08-url-shortener-architecture-long-url-compressed-into-short-co.jpg)
+
 Looking across all three case studies, several patterns recur:
 
 ![Cross-cutting concerns](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/system-design/08-cross-cutting.png)

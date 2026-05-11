@@ -277,6 +277,9 @@ SSTable 格式：
 
 ## B-Tree vs LSM-Tree 对比
 
+
+![Hard drive internals with data pages arranged like book page](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/04-hard-drive-internals-with-data-pages-arranged-like-book-page.jpg)
+
 | 维度 | B-Tree（InnoDB, PostgreSQL） | LSM-Tree（RocksDB, LevelDB） |
 |--------|---------------------------|----------------------------|
 | **写入模式** | 随机（就地更新） | 顺序（仅追加） |

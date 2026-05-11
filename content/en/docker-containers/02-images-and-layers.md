@@ -147,6 +147,9 @@ Notice `59bf1c3509f3: Already exists`. Docker recognized that it already had thi
 
 ![Layer sharing between containers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/02-layer-sharing.png)
 
+
+![Container registry as a futuristic vending machine dispensin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/02-container-registry-as-a-futuristic-vending-machine-dispensin.jpg)
+
 ### docker history
 
 The `docker history` command shows each layer in an image, what instruction created it, and how large it is:
@@ -434,6 +437,9 @@ docker pull myapp@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c2
 ```
 
 ## Cleaning Up
+
+
+![Docker image layers as geological rock strata each layer a d](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/02-docker-image-layers-as-geological-rock-strata-each-layer-a-d.jpg)
 
 Images accumulate quickly. Here's how to reclaim disk space:
 

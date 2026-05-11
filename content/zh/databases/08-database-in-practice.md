@@ -451,6 +451,9 @@ WHERE variable_name IN (
 
 ![Migration workflow](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/08-migration-workflow.png)
 
+
+![Database migration journey old schema transforming into new](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-migration-journey-old-schema-transforming-into-new-.jpg)
+
 ### 启用慢查询日志
 
 ```bash

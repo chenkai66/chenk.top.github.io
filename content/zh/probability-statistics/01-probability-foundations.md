@@ -132,6 +132,9 @@ $$P(\text{Ace}_1 \cap \text{Ace}_2) = P(\text{Ace}_1) \cdot P(\text{Ace}_2 \mid 
 
 ## 全概率公式
 
+
+![Bayes theorem detective updating beliefs with new evidence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-bayes-theorem-detective-updating-beliefs-with-new-evidence.jpg)
+
 设 $B_1, B_2, \ldots, B_n$ 是 $\Omega$ 的一个**划分**——即各 $B_i$ 两两不相交，且 $\bigcup_i B_i = \Omega$，同时对所有 $i$ 都有 $P(B_i) > 0$。那么对任意事件 $A$，有：
 
 ![Bayes theorem decision tree](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/01-bayes-tree.png)

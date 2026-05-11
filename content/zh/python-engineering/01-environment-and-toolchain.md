@@ -248,6 +248,9 @@ echo ".venv/" >> .gitignore
 
 ## pip：Python 包安装器
 
+
+![Python virtual environment isolated bubbles each with differ](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/01-python-virtual-environment-isolated-bubbles-each-with-differ.jpg)
+
 在虚拟环境激活状态下，`pip` 将把包安装到该隔离环境中。
 
 ### 基础命令

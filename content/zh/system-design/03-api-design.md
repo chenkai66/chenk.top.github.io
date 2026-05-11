@@ -478,6 +478,9 @@ query Evil {
 
 ## 限流（Rate Limiting）
 
+
+![Api design three paths rest grpc graphql diverging roads](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-api-design-three-paths-rest-grpc-graphql-diverging-roads.jpg)
+
 限流用于保护 API 免受滥用，并确保资源公平分配。三种常用算法如下：
 
 ![Token bucket rate limiting animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-03-token-bucket.gif)
@@ -693,6 +696,9 @@ def authenticate(request):
 ```
 
 ## 对比：REST vs gRPC vs GraphQL
+
+
+![Rate limiting token bucket as a water fountain with controll](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-rate-limiting-token-bucket-as-a-water-fountain-with-controll.jpg)
 
 | 特性 | REST | gRPC | GraphQL |
 |---------|------|------|---------|

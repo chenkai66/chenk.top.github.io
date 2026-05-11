@@ -313,6 +313,9 @@ SET product:42 '{"name":"Widget","price":9.99}' EX 300  # 5 分钟 TTL
 
 ## 宽列式数据库：Cassandra
 
+
+![Different nosql database types as distinct architectural sty](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/05-different-nosql-database-types-as-distinct-architectural-sty.jpg)
+
 宽列式数据库（亦称列族存储）专为海量规模与可预测性能而设计。Apache Cassandra 是其中最具代表性的实现。
 
 ![NoSQL database types](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-nosql-types.png)

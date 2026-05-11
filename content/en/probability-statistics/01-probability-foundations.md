@@ -132,6 +132,9 @@ $$P(\text{Ace}_1 \cap \text{Ace}_2) = P(\text{Ace}_1) \cdot P(\text{Ace}_2 \mid 
 
 ## The Law of Total Probability
 
+
+![Bayes theorem detective updating beliefs with new evidence](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/01-bayes-theorem-detective-updating-beliefs-with-new-evidence.jpg)
+
 Let $B_1, B_2, \ldots, B_n$ be a **partition** of $\Omega$ — that is, the $B_i$ are pairwise disjoint and $\bigcup B_i = \Omega$, with $P(B_i) > 0$ for all $i$. Then for any event $A$:
 
 $$P(A) = \sum_{i=1}^{n} P(A \mid B_i) \, P(B_i).$$

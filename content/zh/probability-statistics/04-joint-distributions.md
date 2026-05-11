@@ -136,6 +136,9 @@ $$f_{X,Y}(x, y) = f_X(x) \, f_Y(y) \quad \text{对所有 } (x, y) \text{ 成立}
 
 ## 二元正态分布（The Bivariate Normal Distribution）
 
+
+![Joint probability distribution as 3d terrain map with margin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-joint-probability-distribution-as-3d-terrain-map-with-margin.jpg)
+
 最重要的多元分布。若 $(X, Y)$ 服从二元正态分布，则其联合 PDF 为：
 
 ![Bivariate normal contour](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-bivariate-normal.png)

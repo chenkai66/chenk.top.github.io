@@ -94,6 +94,9 @@ $$\boxed{p(\theta | \mathbf{x}) \propto p(\mathbf{x} | \theta) \cdot p(\theta)}$
 
 ## Beta-二项模型
 
+
+![Bayesian updating prior to posterior belief transformation t](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-bayesian-updating-prior-to-posterior-belief-transformation-t.jpg)
+
 这是贝叶斯推断的经典范例。我们将完整推导。
 
 ![Bayesian updating animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/probstat-08-bayesian-updating.gif)
@@ -282,6 +285,9 @@ $$\alpha = \min\left(1, \frac{p(\theta^* | \mathbf{x}) \, q(\theta^{(t)} | \thet
 若提议分布 **对称**（$q(\theta^*|\theta) = q(\theta|\theta^*)$），则比值简化为 $p(\theta^* | \mathbf{x}) / p(\theta^{(t)} | \mathbf{x})$ —— 算法简单地向高密度区域移动，同时偶尔接受“下坡”移动以充分探索。
 
 ## 贝叶斯与机器学习的联系
+
+
+![Mcmc random walk exploring probability landscape pathfinding](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/08-mcmc-random-walk-exploring-probability-landscape-pathfinding.jpg)
 
 ### 正则化即先验
 

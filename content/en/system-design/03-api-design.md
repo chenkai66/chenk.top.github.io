@@ -478,6 +478,9 @@ Mitigation: query depth limiting, query cost analysis, persisted queries (only a
 
 ## Rate Limiting
 
+
+![Api design three paths rest grpc graphql diverging roads](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-api-design-three-paths-rest-grpc-graphql-diverging-roads.jpg)
+
 Rate limiting protects your API from abuse and ensures fair resource allocation. Three common algorithms:
 
 ![Token bucket rate limiting animation](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/gifs/sysdesign-03-token-bucket.gif)
@@ -693,6 +696,9 @@ def authenticate(request):
 ```
 
 ## Comparison: REST vs gRPC vs GraphQL
+
+
+![Rate limiting token bucket as a water fountain with controll](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/system-design/03-rate-limiting-token-bucket-as-a-water-fountain-with-controll.jpg)
 
 | Feature | REST | gRPC | GraphQL |
 |---------|------|------|---------|

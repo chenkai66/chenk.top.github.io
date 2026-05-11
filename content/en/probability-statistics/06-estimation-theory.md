@@ -108,6 +108,9 @@ Method of moments estimators are easy to compute but generally not the most effi
 
 ![Estimation methods comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-estimation-comparison.png)
 
+
+![Bias variance tradeoff archery target scattered vs centered](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/06-bias-variance-tradeoff-archery-target-scattered-vs-centered-.jpg)
+
 ### The Likelihood Function
 
 Given observed data $x_1, \ldots, x_n$ drawn i.i.d. from $p(x|\theta)$, the **likelihood** is:

@@ -252,6 +252,9 @@ services:
 
 ## Full Example: Python Web App + PostgreSQL + Redis
 
+
+![Docker compose orchestra conductor directing multiple servic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-docker-compose-orchestra-conductor-directing-multiple-servic.jpg)
+
 Let's build a complete application stack. The API accepts tasks via HTTP, stores them in PostgreSQL, and queues them in Redis. A worker processes tasks asynchronously. The project structure:
 
 ```

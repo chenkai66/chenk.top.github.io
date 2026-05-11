@@ -121,6 +121,9 @@ When do you still want VMs? When you need strong security isolation (multi-tenan
 
 ## The Container Ecosystem: OCI, Docker, containerd, Podman
 
+
+![Virtual machine vs container architecture split screen compa](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/01-virtual-machine-vs-container-architecture-split-screen-compa.jpg)
+
 Docker popularized containers, but it's not the only player. Understanding the ecosystem prevents confusion later.
 
 ![Container isolation layers](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/01-isolation-layers.png)

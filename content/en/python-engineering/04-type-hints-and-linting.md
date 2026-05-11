@@ -338,6 +338,9 @@ result = some_untyped_function()  # type: ignore[no-untyped-call]
 
 ## Linting with ruff
 
+
+![Code quality pipeline raw code passing through linter format](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-code-quality-pipeline-raw-code-passing-through-linter-format.jpg)
+
 ruff is a Python linter written in Rust. It is 10-100x faster than flake8 and replaces flake8, isort, pyflakes, pycodestyle, pydocstyle, and many flake8 plugins in a single tool.
 
 ![Linting pipeline](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/python-engineering/04-linting-pipeline.png)
@@ -570,6 +573,9 @@ Use `--no-verify` sparingly. If you skip hooks regularly, your CI will catch the
 **Recommendation:** Use ruff. It is faster, fixes issues automatically, and consolidates multiple tools. Add mypy separately for type checking.
 
 ## Complete pyproject.toml Configuration
+
+
+![Type hints as blueprint annotations on python code architect](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/python-engineering/04-type-hints-as-blueprint-annotations-on-python-code-architect.jpg)
 
 Here is a production-ready tool configuration section:
 

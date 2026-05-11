@@ -454,6 +454,9 @@ WHERE variable_name IN (
 
 ## Slow Query Analysis
 
+
+![Database migration journey old schema transforming into new](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/08-database-migration-journey-old-schema-transforming-into-new-.jpg)
+
 ### Enable Slow Query Logging
 
 ```bash

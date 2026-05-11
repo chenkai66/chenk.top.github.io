@@ -108,6 +108,9 @@ $$\hat{\beta}_{\text{MoM}} = \frac{\bar{X}}{S^2}, \qquad \hat{\alpha}_{\text{MoM
 
 ![Estimation methods comparison](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/06-estimation-comparison.png)
 
+
+![Bias variance tradeoff archery target scattered vs centered](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/06-bias-variance-tradeoff-archery-target-scattered-vs-centered-.jpg)
+
 ### 似然函数（Likelihood Function）
 
 给定 i.i.d. 观测数据 $x_1, \ldots, x_n$ 来自 $p(x|\theta)$，其**似然函数**为：

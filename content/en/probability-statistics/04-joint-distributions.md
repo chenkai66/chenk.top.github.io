@@ -138,6 +138,9 @@ In the example above, $f(x, y) = 6(1-y)$ on a triangular region $\{0 < x < y < 1
 
 ## The Bivariate Normal Distribution
 
+
+![Joint probability distribution as 3d terrain map with margin](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/probability-statistics/04-joint-probability-distribution-as-3d-terrain-map-with-margin.jpg)
+
 The most important multivariate distribution. If $(X, Y)$ follows a bivariate normal, the joint PDF is:
 
 ![Bivariate normal contour](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/probability-statistics/04-bivariate-normal.png)

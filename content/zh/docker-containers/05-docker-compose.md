@@ -252,6 +252,9 @@ services:
 
 ## 完整示例：Python Web 应用 + PostgreSQL + Redis
 
+
+![Docker compose orchestra conductor directing multiple servic](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/05-docker-compose-orchestra-conductor-directing-multiple-servic.jpg)
+
 我们来构建一个完整的应用栈：API 通过 HTTP 接收任务，将其存入 PostgreSQL，并推入 Redis 队列；Worker 异步处理任务。项目结构如下：
 
 ```

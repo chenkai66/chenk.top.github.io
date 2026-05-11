@@ -112,6 +112,9 @@ SHOW INDEX FROM users;
 
 ## B+ 树：为何数据库更偏爱它？
 
+
+![Btree index structure as a futuristic city skyline branching](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-btree-index-structure-as-a-futuristic-city-skyline-branching.jpg)
+
 大多数数据库实现实际上使用的是 **B+ 树**——B 树的一种变体：
 
 ![Index selectivity impact](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/02-index-selectivity.png)
@@ -387,6 +390,9 @@ CREATE INDEX idx_orders_status_created ON orders (status, created_at);
 例外：若某低基数值极为稀有（如 `status = 'fraud'` 仅匹配 0.01% 的行），则它具备高选择性，索引依然有效；此时部分索引效果更佳。
 
 ## 过度索引：隐藏的成本
+
+
+![Magnifying glass over database index revealing optimized que](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/02-magnifying-glass-over-database-index-revealing-optimized-que.jpg)
 
 每个索引都会带来成本：
 

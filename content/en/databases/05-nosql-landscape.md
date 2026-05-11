@@ -308,6 +308,9 @@ SET product:42 '{"name":"Widget","price":9.99}' EX 300  # 5-min TTL
 
 ## Wide-Column Stores: Cassandra
 
+
+![Different nosql database types as distinct architectural sty](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/databases/05-different-nosql-database-types-as-distinct-architectural-sty.jpg)
+
 Wide-column databases (sometimes called column-family stores) are designed for massive scale with predictable performance. Apache Cassandra is the most prominent example.
 
 ![Column-family store layout](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/05-column-store.png)

@@ -167,6 +167,9 @@ docker run --read-only myapp 2>&1 | grep "Read-only file system"
 
 ## Linux Capabilities
 
+
+![Rootless container running as unprivileged user security vis](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/covers/articles/docker-containers/07-rootless-container-running-as-unprivileged-user-security-vis.jpg)
+
 Linux capabilities 将 root 的权限细分为约 40 种独立特权。Docker 默认授予容器其中一部分 —— 通常远超应用实际所需。
 
 ![Linux capability management](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/docker-containers/07-capability-model.png)
