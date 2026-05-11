@@ -16,7 +16,7 @@ series_order: 7
 translationKey: "python-engineering-7"
 ---
 
-你写了一个实用的小工具。一位同事向你索要。你把整个文件夹压缩成 ZIP，通过邮件发给他。他解压后运行 `python main.py`，却得到 `ModuleNotFoundError` —— 因为他没有安装依赖。接着他手动安装了依赖，但版本不对。再后来，他用的是 Python 3.8，而你的代码中用了 f-string 中的海象运算符（walrus operator），根本无法解析。
+你写了一个实用的小工具。一位同事向你索要。你把整个文件夹压缩成 ZIP，通过邮件发给他。他解压后运行 `python main.py`，却得到 `ModuleNotFoundError` —— 因为他没有安装依赖。接着他手动安装了依赖，但版本不匹配；随后又发现他使用的是 Python 3.8，而你的代码中使用了 f-string 内的海象运算符（walrus operator），该语法在 Python 3.8 中尚不可用，导致解析失败。
 
 **规范的打包能彻底解决所有这些问题。** 只需执行 `pip install your-tool`，一切就绪：依赖自动安装、版本精确匹配、CLI 命令开箱即用。
 
@@ -179,7 +179,7 @@ my_tool = ["py.typed"]
 
 ### 包含非 Python 数据文件
 
-若包需加载模板、配置或数据文件，请显式声明：
+如果包需要加载模板、配置文件或数据文件，必须显式声明：
 
 ```toml
 [tool.setuptools.package-data]

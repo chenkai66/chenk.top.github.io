@@ -17,7 +17,7 @@ disableNunjucks: true
 description: "MHA、GQA、MQA 的取舍，Mixtral 与 Qwen3-MoE 的稀疏路由，滑动窗口注意力，以及 Mamba、RWKV 这条非注意力路径——每条路的代价和适用场景。"
 translationKey: "llm-engineering-1"
 ---
-2017 年的 Transformer 块，到了 2026 年依然是所有生产级 LLM 的轮廓，但内部零件几乎全换了——有的被换血，有的被稀疏化，有的成了专用件。这套系列教程会端到端覆盖现代技术栈——架构、训练、推理、检索、评估、安全、部署。第一章咱们就聊这个块本身：2026 年的模型里注意力长什么样，MoE 怎么打破参数量和 FLOPs 的绑定，以及非注意力替代方案（Mamba、RWKV）到底在哪些地方能赢过 Transformer。
+2017 年的 Transformer 块，到了 2026 年依然是所有生产级 LLM 的轮廓，但内部零件几乎全换了——有的被彻底替换，有的被稀疏化，有的演变为专用模块。本系列教程将端到端覆盖现代大语言模型技术栈：架构、训练、推理、检索增强、评估、安全与部署。第一章咱们就聊这个块本身：2026 年模型中的注意力机制有何演进，MoE 如何解耦参数量与计算量（FLOPs），以及非注意力架构（如 Mamba、RWKV）在哪些任务或场景下展现出对 Transformer 的优势。
 
 我默认你已经熟悉原始 Transformer 块。如果不熟，[NLP 系列第 4 部分](/zh/nlp/attention-transformer/) 里有讲。本章只讲*现在有什么不同*。
 
@@ -38,17 +38,17 @@ def layer(x, kv_cache):
     return h
 ```
 
-跟《Attention Is All You Need》[Vaswani et al., 2017] 相比，主要有五处换血：
+相较于《Attention Is All You Need》[Vaswani et al., 2017] 中的原始设计，现代 Decoder 模块主要存在五处关键改进：
 
-1. **Pre-norm** 替代 post-norm —— 梯度流过干净的残差恒等路径，不需要 warmup。原始 post-norm Transformer 需要仔细的学习率 warmup（约 10K 步），否则前几次梯度更新就会把 norm-then-residual 路径炸掉。Pre-norm 由 GPT-2 普及，经 [Xiong et al., 2020] 严格分析，去掉了这个要求，从第一步开始就能稳定训练。2020 年以后的生产级 LLM 全用 pre-norm。
+1. **Pre-norm** 替代 post-norm —— 梯度流过干净的残差恒等路径，不需要 warmup。原始 post-norm Transformer 需要精心设计学习率预热（约 10K 步），否则初始几次梯度更新便可能导致 norm-then-residual 路径不稳定甚至崩溃。Pre-norm 最早由 GPT-2 采用并推广，后经 [Xiong et al., 2020] 严格理论分析，证实其可消除学习率预热需求，实现从训练初始阶段起的稳定收敛。2020 年以后的生产级 LLM 全用 pre-norm。
 2. **RMSNorm** 替代 LayerNorm —— 去掉均值，只留 RMS 除数。每层少一次归约操作。[Zhang & Sennrich, 2019] 证明 RMSNorm 在 Transformer FFN 上能达到 LayerNorm 的质量，墙钟时间快 ~7-64%。T5 和整个 LLaMA  lineage 都采用了它；到了 2026 年，只有少数遗留架构还在做均值中心化。
-3. **SwiGLU** 替代 GELU —— 门控 FFN，困惑度赢 ~2-3%，FFN 里多出 +50% FLOPs 但值得。[Shazeer, 2020] 的 "GLU variants" 论文系统扫了一遍门控激活函数；SwiGLU（Swish  gating）在几乎所有基准上都赢了。惯例是把 FFN 内部维度缩小 2/3 以保持总 FFN 参数量不变，因为 GLU 把投影次数翻了三倍。
-4. **RoPE** 替代正弦位置编码 —— [Su et al., 2021] 提出旋转嵌入，通过在 2D 子空间旋转 Q 和 K 向量来编码相对位置。RoPE 加上上下文扩展技巧（NTK scaling、YaRN），是 2026 年所有长上下文模型达到 128K-1M token 的关键。第 6 章会深入讲这个。
+3. **SwiGLU** 替代 GELU —— 门控 FFN，困惑度赢 ~2-3%，虽使 FFN 计算量增加约 50% FLOPs，但带来的困惑度下降（约 2–3%）使其整体收益显著。[Shazeer, 2020] 的 "GLU variants" 论文系统扫了一遍门控激活函数；SwiGLU（Swish  gating）在几乎所有基准上都赢了。实践中通常将 FFN 内部隐藏层维度缩减约 2/3，以维持 FFN 总参数量基本不变——这是因为 SwiGLU 引入了三次线性投影（而非 GELU 的两次）。
+4. **RoPE** 替代正弦位置编码 —— [Su et al., 2021] 提出旋转嵌入，通过在 2D 子空间旋转 Q 和 K 向量来编码相对位置。结合上下文扩展技术（如 NTK-aware scaling 和 YaRN），RoPE 已成为 2026 年支持 128K–1M token 长上下文的主流模型的核心位置编码方案。第 6 章会深入讲这个。
 5. **GQA / MQA** 替代 MHA —— 更小的 KV cache，质量不变。长上下文场景下至关重要。
 
-Dense FFN 也正越来越多地被稀疏混合专家（MoE）取代，这是过去三年最大的架构变化，也是本章 一半 的焦点。
+密集型前馈网络（Dense FFN）正日益被稀疏混合专家（MoE）架构取代——这已成为过去三年最重大的架构演进，也是本章重点讨论内容之一。
 
-有个历史细节得记在心里：这些技术的*名字*（pre-norm、RMSNorm、SwiGLU、RoPE、GQA）看起来像是一条整齐的演进路线，但它们每一个在首篇论文发表后都至少争议了一年。Pre-norm 对战 post-norm 的争论持续到 2018-2020 年。RoPE 对战 ALiBi 对战 NoPE [Press et al., 2022; Kazemnejad et al., 2023] 的争论持续到 2022-2024 年——而且有些研究显示 ALiBi 在极端长度外推上依然胜出。2026 年的“定局”架构之所以 定型了，是因为它能上线发货，不是因为数学上有了终极真理。
+需注意一个历史事实：尽管 pre-norm、RMSNorm、SwiGLU、RoPE、GQA 等术语看似构成一条线性演进脉络，但每项技术自首篇论文发表后均经历了至少一年的实证争议与社区验证。Pre-norm 对战 post-norm 的争论持续到 2018-2020 年。RoPE 对战 ALiBi 对战 NoPE [Press et al., 2022; Kazemnejad et al., 2023] 的争论持续到 2022-2024 年——而且有些研究显示 ALiBi 在极端长度外推上依然胜出。2026 年所谓‘定型’的架构，并非源于数学上的终极完备性，而是因其工程可行性与线上交付能力已获充分验证。
 
 ## 注意力数学，正经讲
 

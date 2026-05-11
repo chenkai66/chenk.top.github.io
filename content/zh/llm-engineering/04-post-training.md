@@ -62,7 +62,7 @@ SFT 成败取决于两点：
 
 **格式一致性。** 如果一半 SFT 数据用 "Sure, I'll help!" 这种开场白，另一半不用，模型就会学会 inconsistently 使用开场白。如果 SFT 数据用 Markdown 标题，但测试 prompt 是关于纯 prose 的，输出就会不匹配。预处理要 aggressive，把格式 normalize 掉。
 
-有个意想不到的失败模式：训练太多短回复，会让模型拒绝写长文。模型从你的数据里学习条件长度分布。如果你想要一个能写 2000 字文章的模型，SFT 混合集里至少要有 5-10% 的长例子。我们之前调过一个 Qwen3-7B 微调版，死活产不出超过 800 token 的内容，就是因为 SFT 混合集里 Q&A 太重了。
+有个意想不到的失败模式：过度训练短回复会导致模型难以生成长文本。模型会从训练数据中学习回复长度的条件分布。如果你想要一个能写 2000 字文章的模型，SFT 混合集里至少要有 5-10% 的长例子。我们之前调过一个 Qwen3-7B 微调版，始终无法生成超过 800 token 的输出，就是因为 SFT 混合集里 Q&A 太重了。
 
 ## SFT 数据来源与合成
 
@@ -89,7 +89,7 @@ Magpie 技术 [Xu et al., 2024] 值得了解一下。 trick 在于：只给 chat
 
 $$\mathcal{L}_{\text{DPO}} = -\mathbb{E}\left[\log \sigma\left(\beta \log \frac{\pi_\theta(y_w | x)}{\pi_{\text{ref}}(y_w | x)} - \beta \log \frac{\pi_\theta(y_l | x)}{\pi_{\text{ref}}(y_l | x)}\right)\right]$$
 
-其中 $y_w$ 是被选中的回复，$y_l$ 是被拒绝的，$\pi_{\text{ref}}$ 是冻结作为参考的 SFT 模型，$\beta$ 控制 policy 允许漂移多远。不用奖励模型。不用 PPO。每个偏好对只需要一次前向 + 反向传播。
+其中 $y_w$ 是被选中的回复，$y_l$ 是被拒绝的，$\pi_{\text{ref}}$ 是冻结作为参考的 SFT 模型，$\beta$ 控制 policy 允许漂移多远。无需奖励模型，也无需 PPO；每个偏好对仅需一次前向与反向传播
 
 ```python
 # DPO loss in 10 lines

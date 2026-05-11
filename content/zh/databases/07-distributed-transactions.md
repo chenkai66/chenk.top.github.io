@@ -16,7 +16,7 @@ series_order: 7
 translationKey: "databases-7"
 ---
 
-第 3 篇文章中关于事务的所有内容，都基于单数据库服务器的假设：一台机器、一份事务日志、一个锁管理器。一旦你的数据分布在多台机器上——这在你开始分片（sharding）、采用微服务并为每个服务配备独立数据库、或启用强一致性复制时就会立刻发生——你就直面分布式系统中最难的问题：**如何让多台机器达成一致？**
+第 3 篇文章中关于事务的所有内容，都基于单数据库服务器的假设：一台机器、一份事务日志、一个锁管理器。一旦数据分布到多台机器上——例如实施分片（sharding）、采用微服务架构并为每个服务配置独立数据库，或启用强一致性复制——你就直接面对分布式系统中最棘手的问题：**如何让多台机器就某个值达成一致？**
 
 ## 分布式事务问题
 
@@ -31,7 +31,7 @@ Order Service (DB-1)              Inventory Service (DB-2)
 └─────────────────────┘          └─────────────────────────┘
 ```
 
-如果订单插入成功，但库存更新失败（网络故障、约束冲突、进程崩溃），问题就出现了：一笔订单对应的商品从未被预留。若无协调机制，不一致便不可避免。
+如果订单插入成功，但库存更新失败（网络故障、约束冲突、进程崩溃），问题就出现了：一笔订单对应的商品从未被预留。若缺乏协调机制，数据不一致将不可避免。
 
 在单数据库中，用 `BEGIN ... COMMIT` 将二者包裹即可解决。但在两个数据库之间，这是不可能的——它们拥有各自独立的事务日志、独立的崩溃恢复机制、独立的时钟。
 
@@ -81,7 +81,7 @@ Coordinator                   Participant A      Participant B
 
 ### 协调者失效问题（The Coordinator Failure Problem）
 
-2PC 的关键弱点在于：若协调者在发出 PREPARE 后、发出 COMMIT/ROLLBACK 前崩溃，则参与者将陷入僵持状态。它们已投“是”，并持有锁，却无法得知最终决策。
+2PC 的关键缺陷在于：若协调者在发送 PREPARE 消息后、发送 COMMIT 或 ROLLBACK 消息前崩溃，参与者将陷入僵持状态。它们已投“是”，并持有锁，却无法得知最终决策。
 
 ```
 Coordinator                   Participant A      Participant B
@@ -193,7 +193,7 @@ Phase 2: Accept
 When a majority of acceptors accept → value is decided
 ```
 
-Paxos 正确但 notoriously 难以实现。正如 Lamport 所言，社区花了数年才真正理解他的论文。这种复杂性催生了 Raft。
+Paxos 在理论上正确，但以难以实现而闻名。正如 Lamport 所言，社区花了数年才真正理解他的论文。这种复杂性催生了 Raft。
 
 ### Raft：可理解的共识协议
 
@@ -281,7 +281,7 @@ Client ─── "SET x=3" ──► Leader
 
 ## Saga 模式
 
-当 2PC 成本过高或不切实际（这在微服务架构中几乎总是如此）时，Saga 模式提供了替代方案。它不追求单一巨型分布式事务，而是将业务流程拆分为一系列本地事务，每个事务都配有一个 **补偿事务（compensating transaction）**，用于在后续步骤失败时撤销其效果。
+当 2PC 成本过高或不切实际（这在微服务架构中几乎总是如此）时，Saga 模式提供了替代方案。它不依赖单一的、跨服务的分布式事务，而是将业务流程拆解为一系列本地事务；每个本地事务都对应一个 **补偿事务（compensating transaction）**，以便在后续步骤失败时回退其影响。
 
 ![Saga pattern](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-saga-pattern.png)
 
@@ -408,7 +408,7 @@ Client C:                     read() ──► 1   ✓
 ![Consistency spectrum](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/diagrams/databases/07-consistency-spectrum.png)
 
 
-“最终”是模糊的——可能是毫秒级，也可能是分钟级。实践中：
+“最终”没有明确定义——收敛时间可能短至毫秒，也可能长达数分钟。实践中：
 
 ```
 向 Node A 写入 "x = 5"

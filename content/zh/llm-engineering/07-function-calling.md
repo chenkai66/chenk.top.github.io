@@ -17,24 +17,24 @@ disableNunjucks: true
 description: "JSON 模式 vs function 模式 vs 自由格式、并行工具调用、用文法保证结构化输出、错误恢复模式，以及在真实负载里活下来的 agent loop。"
 translationKey: "llm-engineering-7"
 ---
-函数调用是 LLM 与其权重之外世界之间的桥梁。这里也是 chat-template（第 2 章）、structured-output kernels（第 5 章）和 prompt engineering（第 9 章）交汇的地方。本章我们要深挖底层机制，看看有哪些保证可以依赖，以及哪些 agent-loop 模式能扛住真实负载。
+函数调用是大语言模型（LLM）连接其参数（权重）之外外部世界的关键接口。这一能力层正是 chat template（第 2 章）、结构化输出内核（structured-output kernels，第 5 章）与提示工程（prompt engineering，第 9 章）的交汇点。本章将深入剖析底层机制：哪些行为具备可依赖的确定性保证，哪些 agent-loop 模式能在真实生产负载下稳定运行。
 
-技术渊源很重要。LLM 的工具使用能力最早追溯到 2022 年两篇几乎同时发表的论文：**MRKL Systems** (Karpas et al., AI21) 提出了神经符号模块间的专家路由，**ReAct** ([Yao et al., 2022][yao-react]) 则将思维链推理与工具动作交错进行。**Toolformer** ([Schick et al., 2023][schick-toolformer]) 展示了工具使用的自监督教学，让模型在现有文本中插入工具调用标记来生成训练数据。到了 2024 年，所有前沿模型都有了围绕工具使用格式构建的后训练数据，工具调用也从“研究演示”变成了"API 功能”。
+技术渊源很重要。LLM 的工具调用能力最早可追溯至 2022 年两篇几乎同期发表的论文：**MRKL Systems**（Karpas 等，AI21）提出了神经符号模块间的专家路由机制；**ReAct**（[Yao 等，2022][yao-react]）则将思维链（Chain-of-Thought）推理与工具调用动作交替执行。**Toolformer** ([Schick et al., 2023][schick-toolformer]) 展示了工具使用的自监督教学，让模型在现有文本中插入工具调用标记来生成训练数据。到了 2024 年，所有前沿模型都有了围绕工具使用格式构建的后训练数据，工具调用也从“研究演示”变成了"API 功能”。
 
 ![LLM Engineering (7): Function Calling and Tool Use — visual](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/llm-engineering/07-function-calling/illustration_1.png)
 
 ## 函数调用到底是什么意思
 
-当 API 暴露“函数调用”能力时，背后可能 happening 几种不同的情况：
+当 API 提供“函数调用”能力时，其底层实现可能有以下几种形式：
 
-1. **训练行为 + chat template 标记**。模型经过后训练，会在适当时候 emit 工具调用，并用特殊 token 包裹。例如：Qwen3 使用 `tool_call` 标签，Mistral 使用 `[TOOL_CALLS]`。
-2. **JSON-mode 约束解码**。通过 grammar-constrained decoding 强制输出为合法 JSON。模型未必为此训练过，是 *decoder* 在强制约束。
-3. **Schema 引导的结构化输出**。JSON-mode 加上 JSON 必须匹配特定 schema 的约束（函数名、参数类型）。
-4. **自由形式 prompt**。你在 system prompt 里写“用 JSON 回复，包含 X, Y 键”，然后祈祷。这对能力强的模型依然有效，但没有任何保证。
+1. **训练行为 + chat template 标记**。模型经后训练后，可在适当时机生成工具调用，并以特殊 token 进行包裹。例如：Qwen3 使用 `tool_call` 标签，Mistral 使用 `[TOOL_CALLS]`。
+2. **JSON-mode 约束解码**。通过语法约束解码（grammar-constrained decoding）强制模型输出合法 JSON。模型本身未必针对该任务进行过专门训练，实际约束由解码器（decoder）在生成阶段施加。
+3. **Schema 引导的结构化输出**。在 JSON 模式基础上，进一步要求输出严格匹配预定义的 JSON Schema（包括函数名、参数类型等）。
+4. **自由形式 prompt**。你在 system prompt 中声明‘请以 JSON 格式回复，包含 X 和 Y 字段’，再依赖模型自觉遵守。这对能力强的模型依然有效，但没有任何保证。
 
-生产系统里这四种往往是混用的。OpenAI/Anthropic 的 API 用的是 1+3（训练行为 + schema 强制）。vLLM 和 SGLang 为任意模型实现 2+3。自由形式（4）则是没有其他选择时的 fallback。
+在实际生产系统中，这四类实现方式常被混合采用。OpenAI 与 Anthropic 的 API 采用方案 1 与方案 3 的组合（即：基于后训练的工具调用能力 + JSON Schema 强制校验）。vLLM 和 SGLang 为任意模型实现 2+3。自由形式（4）则是没有其他选择时的 fallback。
 
-有个细微但重要的区别：**工具格式用 JSON 还是 XML**。OpenAI 默认 JSON 工具调用；Anthropic Claude 内部训练的是类 XML 结构化输出，但在 API 中暴露为 JSON。Anthropic 团队在 2024 年公开论证过，XML 标签对模型来说更容易学习——尖括号结构与训练数据中标记特殊区域的方式对齐，且流式解析部分 XML 比部分 JSON 更容易。实证来看两种格式都有效；选择主要影响解析工具链。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。
+一个关键但易被忽视的区别在于：工具调用采用 JSON 格式还是 XML 格式。OpenAI 默认 JSON 工具调用；Anthropic 的 Claude 模型在内部训练时采用类 XML 的结构化输出格式，但在对外 API 中统一转换为 JSON 格式提供。Anthropic 团队于 2024 年公开指出：XML 标签更易于模型学习——其尖括号结构与预训练数据中标识特殊区域的模式高度一致，且流式解析部分 XML 内容比解析部分 JSON 更简单。实证表明，两种格式均能有效支持工具调用；具体选择主要影响下游解析工具链的设计。在模型内部，两者看起来都像是一串带有学习语法的 token 序列。
 
 ## 一个真实的函数调用请求
 
@@ -93,19 +93,19 @@ response2 = client.messages.create(
 
 ## 工具定义的最佳实践
 
-工具定义本质上是伪装的 prompt。模型在每次调用时都把它们当作 system prompt 的一部分来读，定义的质量直接影响模型是否选对工具、调用是否正确以及能否从错误中恢复。以下模式 一致地 work：
+工具定义本质上是一种隐式的 prompt。模型在每次推理时都会将工具定义视为 system prompt 的一部分进行理解，其定义质量直接决定了模型能否准确选择工具、正确发起调用，以及在出错时有效恢复。以下实践已被验证能稳定生效：
 
-**描述是你 prompt 里被阅读次数最多的文本。** 好的描述包括 (a) 一句话说明工具做什么，(b) 何时使用（以及何时不用），(c) 返回什么。坏的描述只是复述函数名。“搜索数据库”很糟糕；“搜索客户数据库以匹配给定条件的订单。当用户询问特定订单或订单历史时使用。返回最多 10 条最新匹配项。”这才是好的。
+**描述是你 prompt 里被阅读次数最多的文本。** 优质描述应包含三要素：(a) 一句话概括工具功能；(b) 明确适用场景（含典型不适用情形）；(c) 清晰说明返回结果。低质量描述往往仅机械复述函数名称。“搜索数据库”很糟糕；“搜索客户数据库以匹配给定条件的订单。当用户询问特定订单或订单历史时使用。返回最多 10 条最新匹配项。”这才是好的。
 
 **参数描述比参数名更重要。** 模型能从 `location` 这个名字推断出它想要一个地点，但如果没有描述，它不知道格式应该是 "Tokyo"、"Tokyo, Japan" 还是 "JP/Tokyo"。务必包含格式示例。
 
-**尽可能使用 enums。** 带有 `enum: ["celsius", "fahrenheit"]` 的 `unit` 参数比自由字符串 `unit` 难 misuse 得多。Schema 约束能防止模型发明 "Kelvin" 或 "C°"。
+**尽可能使用 enums。** 带有 `enum: ["celsius", "fahrenheit"]` 的 `unit` 参数比自由字符串 `unit` 难 misuse 得多。Schema 约束可阻止模型生成非法值，例如 "Kelvin" 或 "C°"。
 
-**为复杂的工具在描述中提供调用示例。** "示例：`transfer_money({from_account: 'A123', to_account: 'B456', amount: 100, currency: 'USD'})`" 比三段散文更有用。
+**对于复杂工具，应在描述中直接提供调用示例。** "示例：`transfer_money({from_account: 'A123', to_account: 'B456', amount: 100, currency: 'USD'})`" 比三段散文更有用。
 
-**记录错误格式。** “如果账户不存在返回 404。如果调用者缺乏权限返回 403。”这让模型能正确解释错误响应，并决定是重试还是升级处理。
+**明确记录可能的错误响应格式。** “若账户不存在，则返回 HTTP 404 状态码；若调用者权限不足，则返回 HTTP 403 状态码。”这让模型能正确解释错误响应，并决定是重试还是升级处理。
 
-**不要过度定义工具。** 我见过包含 80 个工具的工具注册表，模型经常选错。将相关工具分组为较少数量的多态工具（例如，一个带有可选过滤器的 `query_orders`，而不是 `query_orders_by_id`、`query_orders_by_date`、`query_orders_by_customer` 等）。模型更擅长填充参数，而不是从长菜单中挑选。
+**避免过度细化工具定义。** 实践中曾观察到，工具注册表包含多达 80 个工具时，模型选错工具的概率显著上升。将相关工具分组为较少数量的多态工具（例如，一个带有可选过滤器的 `query_orders`，而不是 `query_orders_by_id`、`query_orders_by_date`、`query_orders_by_customer` 等）。模型更擅长填充参数，而不是从长菜单中挑选。
 
 ## 并行工具调用
 
