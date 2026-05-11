@@ -66,6 +66,8 @@ The midpoint formula `l + (r - l) // 2` is mathematically the same as `(l + r) /
 
 ### LeetCode 704 — Binary Search
 
+Given a sorted array `nums` and a `target` value, return the index of `target` or `-1` if it is not found.
+
 ```python
 class Solution:
     def search(self, nums: list[int], target: int) -> int:
@@ -227,6 +229,8 @@ The figure traces `nums = [4, 5, 6, 7, 0, 1, 2]` searching for `0`. At each step
 
 ### LeetCode 33 — Search in Rotated Sorted Array
 
+A sorted array was rotated at an unknown pivot. Given a `target`, return its index or `-1` if not found. Must run in `O(log n)` time.
+
 ```python
 class Solution:
     def search(self, nums: list[int], target: int) -> int:
@@ -257,6 +261,8 @@ The single subtlety is `nums[l] <= nums[m]` (note the `<=`). When `l == m` the l
 A peak is an element strictly greater than both neighbours. The array is *not* sorted, yet binary search still works because we have a monotonic property of a different flavour: the slope.
 
 ### LeetCode 162 — Find Peak Element
+
+A peak element is strictly greater than its neighbors. Given an integer array `nums` where `nums[-1] = nums[n] = -inf`, find any peak element and return its index. Must run in `O(log n)` time.
 
 ```python
 class Solution:

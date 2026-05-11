@@ -223,6 +223,8 @@ The one trick worth knowing is the **level-size capture**: at the start of each 
 
 ## LeetCode 102 — Level Order Traversal
 
+Given a binary tree, return the level order traversal as a list of lists, where each inner list contains the node values at that level from left to right.
+
 ```python
 from collections import deque
 from typing import List, Optional

@@ -176,6 +176,8 @@ The mechanism is purely arithmetic: inside a cycle the gap between fast and slow
 
 ## LeetCode 141 — Linked List Cycle
 
+Given a linked list, determine if it has a cycle. Use `O(1)` extra space.
+
 ```python
 class ListNode:
     def __init__(self, val: int = 0, next: "ListNode | None" = None) -> None:
@@ -234,6 +236,8 @@ That monotonicity is what lets `left` advance without ever going back. Each inde
 
 ## LeetCode 3 — Longest Substring Without Repeating Characters
 
+Given a string, find the length of the longest substring without repeating characters.
+
 ```python
 def length_of_longest_substring(s: str) -> int:
     """Length of the longest substring of s with all-distinct characters."""
@@ -268,6 +272,8 @@ Each step processes `arr[mid]` and either swaps it into the low region, leaves i
 ![Dutch National Flag: three pointers carve the array into 0/1/2 regions](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/leetcode/two-pointers/fig4_partition_pointers.png)
 
 ## LeetCode 75 — Sort Colors (Dutch National Flag)
+
+Given an array with values 0, 1, and 2 representing red, white, and blue, sort them in-place so that same-colored elements are adjacent, in the order red, white, blue. Solve it in one pass.
 
 ```python
 def sort_colors(nums: list[int]) -> None:
