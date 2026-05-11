@@ -150,7 +150,7 @@ Three factors compound:
 2. **Merge frequency.** BPE merges the most frequent pairs. Chinese pretraining data was historically a small fraction of OpenAI's corpus, so character-level pairs got merged less.
 3. **No word boundaries.** English BPE benefits from the leading-space convention (`Ġhello`); Chinese has no such marker.
 
-Cost of the same prompt across tokenizers, on the GB sentence "你好，请帮我用 Python 写一个快速排序":
+Cost of the same prompt across tokenizers, on the Chinese sentence "你好，请帮我用 Python 写一个快速排序":
 
 | Tokenizer | Tokens |
 |---|---|

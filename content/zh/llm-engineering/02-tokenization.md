@@ -145,7 +145,7 @@ LLaMA-3 还在词表末尾加了 28 个保留特殊 token（`<|reserved_special_
 2. **合并频率。** BPE 合并频率最高的 pair。中文预训练数据历史上只占 OpenAI 语料库的一小部分，所以字符级 pair 合并得较少。
 3. **无词边界。** 英文 BPE 受益于 leading-space 约定（`Ġhello`）；中文没有这种标记。
 
-同一 prompt 在不同分词器上的成本，针对 GB 句子 "你好，请帮我用 Python 写一个快速排序"：
+同一 prompt 在不同分词器上的成本，针对这句中文 "你好，请帮我用 Python 写一个快速排序"：
 
 | Tokenizer | Tokens |
 |---|---|
