@@ -526,6 +526,61 @@ Why this pays off: dependencies are resolved automatically, every package is sig
    sudo journalctl -u nginx -n 50 --no-pager       # last 50 lines for one service
    ```
 
+## Vim Essentials: Modal Editing in 5 Minutes
+
+On any Linux server, Vim is the one editor guaranteed to be available. Most people give up on Vim because they try to memorize keysbut Vim is actually a tiny **grammar**: master the `operator + motion` pattern and you can compose any edit on the fly.
+
+### Four Modes
+
+- **Normal** (default): every key is a command. Stay here 80% of the time.
+- **Insert** (`i` to enter, `Esc` to leave): type text, then get out.
+- **Visual** (`v` char, `V` line, `Ctrl-v` block): select text.
+- **Command-line** (`:`): save (`:w`), quit (`:q`), find-replace (`:%s/old/new/g`).
+
+### Operator + Motion = Command
+
+Structure: `[count] operator motion`
+
+**Operators** (what): `d` delete, `c` change (delete + insert), `y` yank (copy), `>` indent.
+
+**Motions** (scope): `w` next word, `$` end of line, `gg`/`G` file start/end, `iw` current word, `ip` paragraph.
+
+**Examples**: `dw` delete word, `ciw` replace word, `yip` copy paragraph, `3dd` delete 3 lines.
+
+### Efficient Navigation
+
+- `0` / `^` / `$`: line start / first non-blank / end
+- `f{char}`: jump to next char on line (`df,` = delete to comma)
+- `/pattern` + `n`/`N`: searchfaster than scrolling
+- `%`: jump between matching brackets
+- `Ctrl-d`/`Ctrl-u`: half-page scroll
+
+### Daily Reference
+
+| Action | Keys |
+| --- | --- |
+| Save | `:w` |
+| Quit | `:q` (force: `:q!`) |
+| Save + quit | `:wq` or `ZZ` |
+| Undo / redo | `u` / `Ctrl-r` |
+| Paste | `p` (after) / `P` (before) |
+| Global replace | `:%s/old/new/gc` |
+| Go to line N | `:N` or `{N}G` |
+
+### Minimal .vimrc
+
+```vim
+set number relativenumber
+set expandtab shiftwidth=4 tabstop=4
+set ignorecase smartcase
+set incsearch hlsearch
+set clipboard=unnamedplus
+syntax on
+filetype plugin indent on
+```
+
+This covers daily server administration. Advanced features (macros `q{reg}`, registers `"a`, splits `Ctrl-w`) come naturally once the basics are muscle memory.
+
 ## Where to Go Next
 
 This article exists to give you a map. Each topic has its own dedicated piece for when you need depth:
